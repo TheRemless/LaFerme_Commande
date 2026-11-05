@@ -32,7 +32,8 @@ async function lireLignes(): Promise<LignePlat[]> {
     if (error) throw new Error(`Lecture de la carte impossible : ${error.message}`);
     return data as LignePlat[];
   }
-  if (process.env.NODE_ENV === "production" && process.env.VERCEL_ENV) {
+  // La base locale sert au développement et aux tests sur ce poste, jamais à un site déployé.
+  if (process.env.VERCEL_ENV || (process.env.NODE_ENV === "production" && !process.env.BASE_LOCALE)) {
     throw new Error("Variables Supabase manquantes : la base locale est réservée au développement.");
   }
   return lireCommeVisiteur<LignePlat>(await baseLocale(), "select * from carte_publique");

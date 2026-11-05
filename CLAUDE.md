@@ -29,7 +29,7 @@ Next.js (App Router, TypeScript) sur Vercel Pro, Supabase Zurich `eu-central-2` 
 - `npm run dev` : sans `.env.local`, la carte vient d'une base Postgres embarquée (PGlite) qui rejoue `supabase/migrations` et `supabase/seed.sql`.
 - `npm test` (Vitest, base et sécurité par ligne), `npm run test:e2e` (Playwright sur un build de production local, Chrome du Mac).
 - `npm run seed:generer` : régénère `supabase/seed.sql` depuis `docs/carte-proposee.json`. Ne jamais modifier le seed à la main.
-- `prebuild` lance `scripts/verifier-mise-en-ligne.ts` : sur Vercel en production, le build échoue tant que la vue `plats_bloquants` n'est pas vide.
+- `prebuild` (forcé par `vercel.json`) lance `scripts/verifier-mise-en-ligne.ts` : sur Vercel en production, le build échoue tant que la vue `plats_bloquants` n'est pas vide.
 
 ## Design
 

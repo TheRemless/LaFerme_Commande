@@ -20,11 +20,16 @@ export async function creerBaseLocale(): Promise<PGlite> {
   return db;
 }
 
-let base: Promise<PGlite> | undefined;
+// Gardée sur globalThis pour survivre aux rechargements à chaud de next dev.
+const cache = globalThis as typeof globalThis & { baseLaFerme?: Promise<PGlite> };
 
 export function baseLocale(): Promise<PGlite> {
-  base ??= creerBaseLocale();
-  return base;
+  cache.baseLaFerme ??= creerBaseLocale().catch((e) => {
+    // Un échec ne reste pas en cache : la requête suivante réessaie.
+    cache.baseLaFerme = undefined;
+    throw e;
+  });
+  return cache.baseLaFerme;
 }
 
 // Exécute une lecture avec le rôle d'un visiteur anonyme, pour que la sécurité par ligne s'applique.

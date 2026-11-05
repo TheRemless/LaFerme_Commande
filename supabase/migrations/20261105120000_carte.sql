@@ -52,6 +52,7 @@ create table options (
   prix_a_valider boolean not null default true,
   actif boolean not null default true,
   ordre smallint not null default 0,
+  modifie_le timestamptz not null default now(),
   unique (groupe_id, nom)
 );
 
@@ -69,6 +70,7 @@ create table plat_retraits (
   nom text not null,
   a_valider boolean not null default true,
   ordre smallint not null default 0,
+  modifie_le timestamptz not null default now(),
   unique (plat_id, nom)
 );
 
@@ -80,6 +82,10 @@ begin
 end;
 $$;
 create trigger plats_modifie_le before update on plats
+  for each row execute function maj_modifie_le();
+create trigger options_modifie_le before update on options
+  for each row execute function maj_modifie_le();
+create trigger plat_retraits_modifie_le before update on plat_retraits
   for each row execute function maj_modifie_le();
 
 -- Sécurité : lecture publique de la carte commandable, aucune écriture sans la clé de service.
@@ -136,6 +142,11 @@ select distinct p.slug, p.nom, 'supplément à valider : ' || o.nom
 from plats p
 join plat_groupes g on g.plat_id = p.id
 join options o on o.groupe_id = g.groupe_id and o.actif and o.prix_a_valider
+where p.commandable
+union all
+select distinct p.slug, p.nom, 'retraits à valider'
+from plats p
+join plat_retraits r on r.plat_id = p.id and r.a_valider
 where p.commandable;
 
 revoke all on plats_bloquants from anon, authenticated;

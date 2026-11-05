@@ -10,9 +10,9 @@ export default defineConfig({
     { name: "mobile", use: { ...devices["Pixel 7"] } },
   ],
   webServer: {
-    command: `npm run build && npx next start -p ${PORT}`,
+    command: `npm run build && BASE_LOCALE=1 npx next start -p ${PORT}`,
     url: `http://localhost:${PORT}/carte`,
     timeout: 240_000,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
   },
 });

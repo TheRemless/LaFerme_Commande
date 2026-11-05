@@ -1,13 +1,10 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { expect, test } from "@playwright/test";
+import { prixCourt } from "../../src/lib/prix";
 
 const carte = JSON.parse(readFileSync(path.join(process.cwd(), "docs", "carte-proposee.json"), "utf8"));
 
-function prixAttendu(chf: number) {
-  const centimes = Math.round(chf * 100);
-  return centimes % 100 === 0 ? `${centimes / 100}.–` : (centimes / 100).toFixed(2);
-}
 
 test("la carte affiche chaque plat de la base avec son prix", async ({ page }) => {
   await page.goto("/");
@@ -17,7 +14,7 @@ test("la carte affiche chaque plat de la base avec son prix", async ({ page }) =
   ]);
   await expect(page.locator("li.plat")).toHaveCount(carte.plats.length);
   for (const p of carte.plats.slice(0, 10)) {
-    await expect(page.locator(`li.plat[data-slug="${p.id}"] .plat-prix`)).toHaveText(prixAttendu(p.prixPropose));
+    await expect(page.locator(`li.plat[data-slug="${p.id}"] .plat-prix`)).toHaveText(prixCourt(Math.round(p.prixPropose * 100)));
   }
 });
 

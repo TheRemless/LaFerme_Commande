@@ -102,3 +102,10 @@ describe("blocage de la mise en production", () => {
     expect(rows).toHaveLength(0);
   });
 });
+
+describe("retraits", () => {
+  it("bloquent la mise en production tant qu'ils ne sont pas validés", async () => {
+    const { rows } = await db.query("select * from plats_bloquants where motif = 'retraits à valider'");
+    expect(rows.length).toBeGreaterThan(0);
+  });
+});
