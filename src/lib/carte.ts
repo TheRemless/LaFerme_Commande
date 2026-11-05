@@ -1,0 +1,58 @@
+import "server-only";
+import { createClient } from "@supabase/supabase-js";
+import { baseLocale, lireCommeVisiteur } from "@/lib/db/locale";
+
+// Une ligne de la vue carte_publique (supabase/migrations/20261105120000_carte.sql).
+export type LignePlat = {
+  categorie_slug: string;
+  categorie_nom: string;
+  categorie_ordre: number;
+  slug: string;
+  nom: string;
+  description: string;
+  prix_centimes: number;
+  prix_a_valider: boolean;
+  photo: string | null;
+  ordre: number;
+  rupture_motif: string | null;
+  provenance: string | null;
+  provenances_a_fournir: string[];
+  allergenes: string | null;
+  a_options: boolean;
+};
+
+export type Categorie = { slug: string; nom: string; plats: LignePlat[] };
+
+async function lireLignes(): Promise<LignePlat[]> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const cle = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (url && cle) {
+    const supabase = createClient(url, cle, { auth: { persistSession: false } });
+    const { data, error } = await supabase.from("carte_publique").select("*");
+    if (error) throw new Error(`Lecture de la carte impossible : ${error.message}`);
+    return data as LignePlat[];
+  }
+  if (process.env.NODE_ENV === "production" && process.env.VERCEL_ENV) {
+    throw new Error("Variables Supabase manquantes : la base locale est réservée au développement.");
+  }
+  return lireCommeVisiteur<LignePlat>(await baseLocale(), "select * from carte_publique");
+}
+
+export function regrouperParCategorie(lignes: LignePlat[]): Categorie[] {
+  const parSlug = new Map<string, Categorie & { ordre: number }>();
+  for (const l of lignes) {
+    let c = parSlug.get(l.categorie_slug);
+    if (!c) {
+      c = { slug: l.categorie_slug, nom: l.categorie_nom, ordre: l.categorie_ordre, plats: [] };
+      parSlug.set(l.categorie_slug, c);
+    }
+    c.plats.push(l);
+  }
+  return [...parSlug.values()]
+    .sort((a, b) => a.ordre - b.ordre)
+    .map(({ slug, nom, plats }) => ({ slug, nom, plats: plats.sort((a, b) => a.ordre - b.ordre) }));
+}
+
+export async function chargerCarte(): Promise<Categorie[]> {
+  return regrouperParCategorie(await lireLignes());
+}

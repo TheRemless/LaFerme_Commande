@@ -1,0 +1,262 @@
+/* Direction Béton, choisie par Jérémy le 5.11.2026 (maquette/a/).
+   Le gris du plan de travail des photos devient le fond de la carte. */
+
+:root {
+  --beton: #6f6f71;
+  --beton-sombre: #58585a;
+  --papier: #f4f4f2;
+  --blanc: #ffffff;
+  --encre: #1c1b1a;
+  --encre-douce: #55524f;
+  --basilic: #3f6a35;
+  --filet: #dcdcd8;
+  --police: var(--police-archivo), system-ui, sans-serif;
+  --hauteur-tete: 60px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-padding-top: calc(var(--hauteur-tete) + 64px);
+}
+body {
+  margin: 0;
+  font-family: var(--police);
+  font-size: 16px;
+  line-height: 1.5;
+  background: var(--papier);
+  color: var(--encre);
+}
+img {
+  display: block;
+  max-width: 100%;
+}
+a {
+  color: inherit;
+}
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 700;
+  font-stretch: 62%;
+  line-height: 1.02;
+  letter-spacing: -0.005em;
+}
+ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+:focus-visible {
+  outline: 3px solid var(--encre);
+  outline-offset: 2px;
+}
+
+/* En-tête */
+.tete {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: var(--hauteur-tete);
+  padding: 10px max(16px, env(safe-area-inset-left));
+  background: var(--papier);
+  border-bottom: 1px solid var(--filet);
+}
+.logo img {
+  height: 34px;
+  width: auto;
+}
+
+.bandeau-preversion {
+  margin: 0;
+  padding: 8px max(16px, env(safe-area-inset-left));
+  background: #f5e6a3;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Carte */
+.page-carte {
+  background: var(--beton);
+  color: var(--blanc);
+  min-height: 100vh;
+  padding-bottom: 64px;
+}
+.cats {
+  position: sticky;
+  top: var(--hauteur-tete);
+  z-index: 20;
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 6px 12px;
+  background: var(--beton-sombre);
+}
+.cats::-webkit-scrollbar {
+  display: none;
+}
+.cats a {
+  flex: none;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  border-bottom: 3px solid transparent;
+}
+.cats a:hover {
+  border-bottom-color: var(--blanc);
+}
+.carte-liste {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 max(16px, env(safe-area-inset-left));
+}
+.categorie {
+  padding-top: 28px;
+}
+.categorie h2 {
+  font-size: 56px;
+}
+.plats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px 12px;
+  margin-top: 18px;
+}
+.plat-carte {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+.plat-media {
+  grid-column: 1 / -1;
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: var(--beton-sombre);
+}
+.plat-media img {
+  object-fit: cover;
+  transform: scale(1.04);
+}
+.plat-txt {
+  grid-column: 1;
+  min-width: 0;
+}
+.plat-nom {
+  display: block;
+  font-size: 24px;
+  font-weight: 700;
+  font-stretch: 62%;
+  line-height: 1.05;
+}
+.plat-desc {
+  display: -webkit-box;
+  margin-top: 4px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #ececea;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.plat-prix {
+  grid-column: 1;
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.plat-rupture {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 8px;
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--papier);
+  color: var(--encre);
+  border-radius: 3px;
+}
+.epuise .plat-media {
+  opacity: 0.45;
+  filter: grayscale(1);
+}
+.epuise .plat-nom,
+.epuise .plat-desc,
+.epuise .plat-prix {
+  opacity: 0.6;
+}
+
+/* Plats sans photo : une ligne de texte posée sur le béton */
+.plats-texte {
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-top: 32px;
+}
+.sans-image .plat-carte {
+  padding-top: 10px;
+  border-top: 2px solid rgb(255 255 255 / 0.85);
+}
+.sans-image .plat-prix {
+  grid-column: 2;
+  grid-row: 1;
+  text-align: right;
+}
+
+@media (min-width: 900px) {
+  :root {
+    --hauteur-tete: 68px;
+  }
+  .tete {
+    padding: 10px 32px;
+  }
+  .logo img {
+    height: 40px;
+  }
+  .cats {
+    padding: 6px 28px;
+  }
+  .carte-liste {
+    padding: 0 32px;
+  }
+  .categorie h2 {
+    font-size: 80px;
+  }
+  .plats {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 36px 20px;
+  }
+  .plats-texte {
+    grid-template-columns: repeat(3, 1fr);
+    align-items: start;
+  }
+  .a-photo .plat-prix {
+    grid-column: 2;
+    grid-row: 2;
+  }
+}
+
+@media (min-width: 1280px) {
+  .plats,
+  .plats-texte {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}

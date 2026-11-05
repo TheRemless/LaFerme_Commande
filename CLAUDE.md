@@ -24,8 +24,16 @@ Restaurant La Ferme, Route de Chancy 132, 1213 Onex. Site neuf, sans lien avec `
 
 Next.js (App Router, TypeScript) sur Vercel Pro, Supabase Zurich `eu-central-2` (Postgres, Auth, RLS sur toutes les tables, Realtime), Stripe, Resend, Star CloudPRNT puis Epson SDP derrière une interface commune, adresses par geo.admin.ch, Vitest et Playwright. Secrets en variables d'environnement seulement.
 
+## Commandes
+
+- `npm run dev` : sans `.env.local`, la carte vient d'une base Postgres embarquée (PGlite) qui rejoue `supabase/migrations` et `supabase/seed.sql`.
+- `npm test` (Vitest, base et sécurité par ligne), `npm run test:e2e` (Playwright sur un build de production local, Chrome du Mac).
+- `npm run seed:generer` : régénère `supabase/seed.sql` depuis `docs/carte-proposee.json`. Ne jamais modifier le seed à la main.
+- `prebuild` lance `scripts/verifier-mise-en-ligne.ts` : sur Vercel en production, le build échoue tant que la vue `plats_bloquants` n'est pas vide.
+
 ## Design
 
+- Direction **Béton** retenue par Jérémy le 5.11.2026 (référence : `maquette/a/`). La direction B est abandonnée.
 - Charger `ui-ux-pro-max` et `frontend-design` avant tout écran, puis la checklist `design-eviter-look-ia` (mémoire de Jérémy).
 - Interdits : crème + Playfair + boutons pilule + cartes à ombre, rouge vif, dégradés, emoji, rangée de trois cartes à icône. Le bordeaux `#571A13` reste au logo.
 - Photos : seulement le shooting pro de `~/Downloads/Plats`. Aucune image d'Uber Eats ni d'ailleurs.
