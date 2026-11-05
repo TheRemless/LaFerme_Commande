@@ -1,0 +1,843 @@
+/* Direction A, « Béton » : la carte reprend le gris du plan de travail du shooting.
+   Les assiettes semblent posées sur une seule et même table. */
+
+:root {
+  --beton: #6f6f71;
+  --beton-sombre: #58585a;
+  --beton-clair: #8a8a8c;
+  --papier: #f4f4f2;
+  --blanc: #ffffff;
+  --encre: #1c1b1a;
+  --encre-douce: #55524f;
+  --basilic: #3f6a35;
+  --fond: var(--papier);
+  --focus: #1c1b1a;
+  --police-texte: "Archivo", system-ui, sans-serif;
+}
+
+body {
+  font-stretch: 100%;
+}
+h1,
+h2,
+.plat-nom,
+.choix-titre,
+.suivi-heure,
+.sans-photo {
+  font-stretch: 62%;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  line-height: 1.02;
+}
+
+/* En-tête */
+.tete {
+  background: var(--papier);
+  border-bottom: 1px solid #dcdcd8;
+}
+.tete-mode {
+  border-left: 1px solid #cfcfcb;
+  padding-left: 16px;
+}
+.tete-mode span {
+  color: var(--encre-douce);
+}
+
+/* Champs */
+.champ input,
+.champ select,
+.recherche input {
+  background: var(--blanc);
+  border: 1px solid #bdbdb8;
+  border-radius: 4px;
+}
+.champ input:focus,
+.recherche input:focus {
+  border-color: var(--encre);
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--encre);
+}
+.facultatif,
+.gratuit,
+.obligatoire,
+.aide {
+  color: var(--encre-douce);
+}
+.obligatoire {
+  color: var(--encre);
+  font-weight: 600;
+}
+
+/* Boutons */
+.bouton-principal {
+  background: var(--encre);
+  color: var(--blanc);
+  border-radius: 4px;
+  font-size: 17px;
+}
+.bouton-principal:hover {
+  background: #000;
+}
+.bouton-second {
+  background: none;
+  color: var(--encre);
+  border: 1.5px solid var(--encre);
+  border-radius: 4px;
+  width: auto;
+}
+
+/* ---------- Accueil : la table en plein cadre, le panneau posé dessus ---------- */
+.vue-accueil {
+  background: var(--beton);
+}
+.accueil {
+  position: relative;
+}
+.accueil-photo {
+  margin: 0;
+  height: 38vh;
+  min-height: 220px;
+}
+.accueil-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.accueil-panneau {
+  position: relative;
+  background: var(--papier);
+  padding: 28px 16px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.accueil h1 {
+  font-size: 44px;
+}
+.choix-mode {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.choix-mode button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-height: 84px;
+  padding: 14px;
+  text-align: left;
+  background: var(--blanc);
+  border: 1px solid #bdbdb8;
+  border-radius: 4px;
+}
+.choix-mode button[aria-checked="true"] {
+  background: var(--encre);
+  color: var(--blanc);
+  border-color: var(--encre);
+}
+.choix-titre {
+  font-size: 26px;
+}
+.choix-sous {
+  font-size: 14px;
+  opacity: 0.8;
+}
+.suggestions {
+  border: 1px solid #bdbdb8;
+  border-radius: 4px;
+  background: var(--blanc);
+}
+.suggestions li + li {
+  border-top: 1px solid #e6e6e2;
+}
+.suggestions button:hover {
+  background: var(--papier);
+}
+.verdict {
+  background: var(--blanc);
+  border: 1px solid #d6d6d2;
+  border-radius: 4px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.verdict-ok .verdict-titre {
+  font-weight: 600;
+}
+.verdict-ok .verdict-titre .ic {
+  color: var(--basilic);
+  margin-top: 2px;
+}
+.verdict-hors {
+  border-color: var(--encre);
+}
+.verdict-hors .verdict-titre {
+  font-weight: 600;
+}
+.chiffres dt {
+  font-size: 13px;
+  color: var(--encre-douce);
+}
+.chiffres dd {
+  font-size: 30px;
+  font-stretch: 62%;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.chiffres dd.petit {
+  font-size: 18px;
+  font-stretch: 100%;
+  font-weight: 500;
+}
+.quand legend {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+.connexion {
+  margin: 0;
+  font-size: 14px;
+  color: var(--encre-douce);
+}
+
+/* ---------- Carte : grille d'assiettes sur le béton ---------- */
+.vue-carte,
+.vue-plat {
+  background: var(--beton);
+  color: var(--blanc);
+}
+.carte-outils {
+  position: sticky;
+  top: 60px;
+  z-index: 20;
+  background: var(--beton-sombre);
+  padding: 10px 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.recherche input {
+  border-color: transparent;
+  color: var(--encre);
+}
+.recherche .ic {
+  color: var(--encre-douce);
+  z-index: 1;
+}
+.cats {
+  margin: 0 -16px;
+  padding: 0 12px;
+}
+.cats a {
+  color: var(--blanc);
+  font-weight: 600;
+  border-bottom: 3px solid transparent;
+}
+.cats a:hover {
+  border-bottom-color: var(--blanc);
+}
+.carte-liste {
+  padding: 8px 16px 0;
+}
+.categorie {
+  padding-top: 28px;
+}
+.categorie h2 {
+  font-size: 56px;
+  color: var(--blanc);
+}
+.cat-note {
+  margin: 4px 0 0;
+  color: #ececea;
+}
+.plats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px 12px;
+  margin-top: 18px;
+}
+.plat-btn {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  gap: 8px 8px;
+  color: var(--blanc);
+  position: relative;
+}
+.plat-media {
+  grid-column: 1 / -1;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: var(--beton-sombre);
+}
+.plat-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.04);
+}
+.sans-photo {
+  display: flex;
+  align-items: flex-end;
+  height: 100%;
+  padding: 12px;
+  font-size: 30px;
+  color: #cfcfcd;
+  background: var(--beton-sombre);
+  border: 1px solid rgb(255 255 255 / 0.14);
+  overflow-wrap: anywhere;
+}
+.plat-txt {
+  grid-column: 1;
+  min-width: 0;
+}
+.plat-nom {
+  font-size: 24px;
+}
+.plat-desc {
+  margin-top: 4px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #ececea;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.plat-prix {
+  grid-column: 1;
+  grid-row: 3;
+  font-size: 18px;
+  font-weight: 600;
+}
+@media (min-width: 900px) {
+  .plat-prix {
+    grid-column: 2;
+    grid-row: 2;
+  }
+}
+/* Sans photo : le plat devient une ligne de texte posée sur le béton */
+.sans-image .plat-media {
+  display: none;
+}
+.sans-image .plat-btn {
+  border-top: 2px solid rgb(255 255 255 / 0.85);
+  padding-top: 10px;
+}
+.sans-image .plat-txt {
+  grid-column: 1;
+  grid-row: 1 / 3;
+}
+.sans-image .plat-prix {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  text-align: right;
+}
+.sans-image .plat-ajout {
+  position: static;
+  grid-column: 2;
+  grid-row: 2;
+  justify-self: end;
+  width: 36px;
+  height: 36px;
+}
+.plat-ajout {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  background: var(--papier);
+  color: var(--encre);
+  border-radius: 4px;
+}
+.plat-btn:hover .plat-ajout {
+  background: var(--blanc);
+}
+.plat-btn:hover .plat-nom {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+.epuise .plat-media {
+  opacity: 0.45;
+  filter: grayscale(1);
+}
+.epuise .plat-nom,
+.epuise .plat-prix,
+.epuise .plat-desc {
+  opacity: 0.6;
+}
+.plat-rupture {
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--papier);
+  color: var(--encre);
+  display: inline-block !important;
+  padding: 2px 8px;
+  border-radius: 3px;
+}
+.vide {
+  color: inherit;
+}
+
+/* Panier */
+.panier-col,
+.page-panier {
+  background: var(--papier);
+  color: var(--encre);
+}
+.page-panier {
+  min-height: calc(100vh - 60px);
+  padding: 8px 16px 32px;
+}
+.panier-titre {
+  font-size: 34px;
+  font-stretch: 62%;
+  font-weight: 700;
+  margin: 8px 0 12px;
+}
+.panier-mode {
+  padding: 12px 0;
+  border-top: 1px solid #d6d6d2;
+  border-bottom: 1px solid #d6d6d2;
+}
+.panier-mode span {
+  color: var(--encre-douce);
+}
+.lignes {
+  margin: 4px 0;
+}
+.ligne {
+  padding: 14px 0;
+  border-bottom: 1px solid #e0e0dc;
+}
+.ligne-nom {
+  font-weight: 600;
+}
+.ligne-opts {
+  color: var(--encre-douce);
+}
+.qte button {
+  border: 1px solid #bdbdb8;
+  border-radius: 4px;
+  background: var(--blanc);
+}
+.sommes {
+  display: grid;
+  gap: 6px;
+  margin: 14px 0;
+}
+.somme-totale {
+  font-weight: 700;
+  font-size: 19px;
+  padding-top: 6px;
+}
+.tva {
+  font-size: 13px;
+  color: var(--encre-douce);
+}
+.minimum {
+  margin-bottom: 12px;
+  font-size: 15px;
+}
+.minimum p {
+  margin: 0;
+}
+.jauge {
+  background: #dcdcd8;
+}
+.jauge span {
+  background: var(--encre);
+}
+.barre-panier {
+  background: var(--papier);
+  color: var(--encre);
+  border-radius: 4px;
+}
+.barre-nb {
+  min-width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  background: var(--encre);
+  color: var(--blanc);
+  border-radius: 3px;
+  font-size: 14px;
+}
+.lien-retour {
+  display: block;
+  margin-top: 14px;
+  text-align: center;
+}
+
+/* Fiche */
+.fiche {
+  background: var(--papier);
+  color: var(--encre);
+}
+.fiche-fermer {
+  background: var(--papier);
+  border-radius: 4px;
+}
+.fiche-media {
+  height: 34vh;
+  background: var(--beton);
+}
+.fiche-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.sans-photo.grand {
+  font-size: 56px;
+  padding: 20px;
+}
+.fiche-corps {
+  padding: 20px 16px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.fiche-tete {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+.fiche-tete h2 {
+  font-size: 40px;
+}
+.fiche-prix {
+  font-size: 24px;
+  font-weight: 600;
+}
+.fiche-desc {
+  margin: 0;
+  font-size: 17px;
+}
+.fiche-infos {
+  display: grid;
+  gap: 10px;
+  font-size: 14px;
+  padding: 12px 0;
+  border-top: 1px solid #d6d6d2;
+  border-bottom: 1px solid #d6d6d2;
+}
+.fiche-infos h3 {
+  font-size: 14px;
+  font-weight: 700;
+}
+.fiche-infos p {
+  margin: 0;
+}
+.a-completer {
+  color: #7a5d00;
+}
+.groupe legend {
+  font-size: 22px;
+  font-stretch: 62%;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.groupe .option {
+  border-bottom: 1px solid #e3e3df;
+}
+.fiche-pied {
+  background: var(--papier);
+  border-top: 1px solid #d6d6d2;
+}
+.fiche-pied .qte button {
+  border: 1px solid #bdbdb8;
+  border-radius: 4px;
+  background: var(--blanc);
+}
+
+/* Commande */
+.vue-commande,
+.vue-suivi {
+  background: var(--beton);
+}
+.page-commande,
+.page-suivi {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 8px 16px 48px;
+}
+.page-commande > .retour,
+.page-commande > h1 {
+  color: var(--blanc);
+}
+.page-commande > h1 {
+  font-size: 48px;
+  margin: 4px 0 18px;
+}
+.commande-form,
+.commande-recap {
+  background: var(--papier);
+  padding: 20px 16px;
+  border-radius: 4px;
+}
+.commande-form {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+.commande-recap {
+  margin-top: 16px;
+}
+.commande-recap h2 {
+  font-size: 30px;
+  font-stretch: 62%;
+  font-weight: 700;
+}
+.etape {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.etape h2 {
+  font-size: 30px;
+}
+.etape-n {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  background: var(--encre);
+  color: var(--blanc);
+  border-radius: 3px;
+  font-size: 20px;
+  font-stretch: 100%;
+}
+.recap-mode {
+  padding: 12px 14px;
+  background: var(--blanc);
+  border: 1px solid #d6d6d2;
+  border-radius: 4px;
+}
+.recap-mode a {
+  top: 12px;
+  right: 14px;
+}
+.case-compte {
+  align-items: flex-start;
+  padding: 14px;
+  background: var(--blanc);
+  border: 1px solid #d6d6d2;
+  border-radius: 4px;
+  font-size: 14px;
+}
+.case-compte input {
+  margin-top: 2px;
+}
+.paiement {
+  padding: 0 14px;
+  background: var(--blanc);
+  border: 1px solid #d6d6d2;
+  border-radius: 4px;
+  font-weight: 600;
+}
+.paiement:has(input:checked) {
+  border-color: var(--encre);
+  box-shadow: inset 0 0 0 1px var(--encre);
+}
+.stripe-simule {
+  display: grid;
+  gap: 12px;
+}
+.mentions {
+  margin: 0;
+  color: var(--encre-douce);
+}
+
+/* Suivi */
+.page-suivi {
+  max-width: 640px;
+  color: var(--blanc);
+}
+.suivi-num {
+  margin: 24px 0 4px;
+  font-weight: 600;
+}
+.page-suivi h1 {
+  font-size: 34px;
+}
+.suivi-heure {
+  display: block;
+  font-size: 120px;
+  line-height: 0.95;
+}
+.suivi-change {
+  margin: 12px 0 20px;
+  padding: 10px 14px;
+  background: var(--papier);
+  color: var(--encre);
+  border-radius: 4px;
+}
+.etapes {
+  border-top: 1px solid rgb(255 255 255 / 0.3);
+}
+.etapes li {
+  border-bottom: 1px solid rgb(255 255 255 / 0.3);
+  color: #e4e4e2;
+}
+.puce {
+  border: 2px solid rgb(255 255 255 / 0.6);
+  border-radius: 50%;
+}
+.fait .puce {
+  background: var(--blanc);
+  color: var(--encre);
+  border-color: var(--blanc);
+}
+.en-cours {
+  color: var(--blanc);
+  font-weight: 700;
+  font-size: 19px;
+}
+.en-cours .puce {
+  border-color: var(--blanc);
+  box-shadow: inset 0 0 0 5px var(--beton), inset 0 0 0 12px var(--blanc);
+}
+.suivi-info {
+  color: #ececea;
+}
+.suivi-detail {
+  margin-top: 24px;
+  background: var(--papier);
+  color: var(--encre);
+  padding: 20px 16px;
+  border-radius: 4px;
+}
+.suivi-detail h2 {
+  font-size: 28px;
+}
+.suivi-detail p {
+  margin: 0;
+}
+
+/* ---------- Bureau ---------- */
+@media (min-width: 900px) {
+  .tete {
+    padding: 10px 32px;
+    min-height: 68px;
+  }
+  .logo img {
+    height: 40px;
+  }
+  .accueil {
+    min-height: calc(100vh - 68px);
+  }
+  .accueil-photo {
+    position: absolute;
+    inset: 0;
+    height: auto;
+  }
+  .accueil-panneau {
+    width: 480px;
+    margin-left: 48px;
+    padding: 36px 32px 32px;
+    top: 48px;
+    margin-bottom: 96px;
+    border-radius: 4px;
+  }
+  .accueil h1 {
+    font-size: 58px;
+  }
+  .carte-outils {
+    top: 68px;
+    flex-direction: row;
+    align-items: center;
+    padding: 10px 32px;
+    gap: 24px;
+  }
+  .recherche {
+    width: 320px;
+    flex: none;
+  }
+  .cats {
+    margin: 0;
+    padding: 0;
+  }
+  .carte-corps {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 32px;
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 0 32px;
+  }
+  .carte-liste {
+    padding: 8px 0 0;
+  }
+  .categorie h2 {
+    font-size: 80px;
+  }
+  .plats {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 36px 20px;
+  }
+  .panier-col {
+    margin-top: 36px;
+    padding: 20px;
+    border-radius: 4px;
+    top: 152px;
+  }
+  .fiche {
+    border-radius: 4px;
+  }
+  .fiche-media {
+    height: auto;
+  }
+  .fiche-corps {
+    padding: 28px 28px 8px;
+  }
+  .fiche-pied {
+    padding: 14px 28px;
+  }
+  .page-commande,
+  .page-suivi {
+    padding: 16px 32px 64px;
+  }
+  .page-commande > h1 {
+    font-size: 64px;
+  }
+  .commande-form,
+  .commande-recap {
+    padding: 28px;
+  }
+  .commande-recap {
+    margin-top: 0;
+    top: 92px;
+  }
+  .page-panier {
+    max-width: 560px;
+    margin: 0 auto;
+  }
+  .suivi-heure {
+    font-size: 160px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .plats {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.plats-texte {
+  margin-top: 32px;
+  align-items: start;
+}
+@media (max-width: 899px) {
+  .plats-texte {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}

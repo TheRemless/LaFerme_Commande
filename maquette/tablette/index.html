@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>La Ferme, tablette de service (maquette)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap" rel="stylesheet" />
+<style>
+  /* Outil de cuisine : lisible à un mètre, cibles de 48 px au moins, aucun survol nécessaire. */
+  :root {
+    --encre: #1c1b1a;
+    --douce: #57534f;
+    --filet: #d9d6d2;
+    --fond: #efeeec;
+    --blanc: #fff;
+    --jaune: #f5e6a3;
+    --jaune-clair: #fbf4d6;
+    --vert: #2f6b3a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Archivo", system-ui, sans-serif; background: var(--fond); color: var(--encre); font-size: 17px; line-height: 1.4; }
+  button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulation; }
+  h1, h2, h3 { margin: 0; font-weight: 700; }
+  ul { list-style: none; margin: 0; padding: 0; }
+  .barre { display: flex; align-items: center; gap: 28px; padding: 10px 20px; background: var(--encre); color: var(--blanc); min-height: 64px; }
+  .barre h1 { font-stretch: 62%; font-size: 30px; }
+  .reglage { display: flex; align-items: center; gap: 10px; }
+  .reglage span { font-size: 14px; opacity: 0.8; }
+  .reglage strong { font-variant-numeric: tabular-nums; min-width: 64px; text-align: center; font-size: 20px; }
+  .reglage button, .barre .pause { min-width: 48px; min-height: 48px; background: transparent; border: 1.5px solid rgb(255 255 255 / 0.5); border-radius: 4px; }
+  .barre .pause { padding: 0 16px; font-weight: 600; }
+  .imprimantes { display: flex; gap: 16px; margin-left: auto; font-size: 15px; }
+  .imprimantes li { display: flex; align-items: center; gap: 6px; }
+  .imprimantes li::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: #7fc48b; }
+  .horloge { font-variant-numeric: tabular-nums; font-size: 22px; font-weight: 700; }
+  .corps { display: grid; grid-template-columns: 1fr 360px; gap: 16px; padding: 16px 20px; }
+  .onglets { display: flex; gap: 8px; margin-bottom: 12px; }
+  .onglets button { min-height: 48px; padding: 0 18px; border: 1px solid var(--filet); background: var(--blanc); border-radius: 4px; font-weight: 600; }
+  .onglets button[aria-selected="true"] { background: var(--encre); color: var(--blanc); border-color: var(--encre); }
+  .nouvelle { background: var(--blanc); border: 2px solid var(--encre); border-radius: 4px; }
+  .alerte { display: flex; justify-content: space-between; align-items: center; padding: 10px 18px; background: var(--jaune); font-weight: 700; }
+  .nouvelle-grille { display: grid; grid-template-columns: 1fr 1fr; }
+  .infos { padding: 18px; border-right: 1px solid var(--filet); display: flex; flex-direction: column; gap: 12px; }
+  .num { font-stretch: 62%; font-size: 44px; line-height: 1; }
+  .mode { font-size: 20px; font-weight: 700; }
+  .infos p { margin: 0; }
+  .douce { color: var(--douce); font-size: 15px; }
+  .articles li { padding: 8px 0; border-top: 1px solid var(--filet); }
+  .articles .nom { font-weight: 700; display: flex; justify-content: space-between; gap: 8px; }
+  .poste { font-size: 13px; font-weight: 600; padding: 1px 8px; border: 1px solid var(--encre); border-radius: 3px; white-space: nowrap; align-self: center; }
+  .articles .opt { margin-left: 26px; font-size: 16px; }
+  .sans { font-weight: 700; }
+  .accepter { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+  .accepter h3 { font-size: 15px; color: var(--douce); font-weight: 600; }
+  .heure { font-stretch: 62%; font-size: 96px; line-height: 0.95; font-variant-numeric: tabular-nums; }
+  .ajuste { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .ajuste button { min-height: 56px; border: 1px solid var(--filet); background: var(--blanc); border-radius: 4px; font-size: 19px; font-weight: 600; }
+  .ok { min-height: 72px; border: 0; border-radius: 4px; background: var(--vert); color: var(--blanc); font-size: 22px; font-weight: 700; }
+  .refuser { min-height: 52px; border: 1.5px solid var(--encre); background: var(--blanc); border-radius: 4px; font-weight: 600; }
+  .note-client { background: var(--jaune-clair); padding: 8px 12px; border-radius: 3px; }
+  aside h2 { font-stretch: 62%; font-size: 26px; margin-bottom: 8px; }
+  .encours li { background: var(--blanc); border: 1px solid var(--filet); border-radius: 4px; padding: 12px 14px; margin-bottom: 8px; display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; }
+  .encours .t { font-weight: 700; }
+  .encours .h { font-stretch: 62%; font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .encours .s { color: var(--douce); font-size: 15px; }
+  .encours button { grid-column: 1 / -1; min-height: 48px; border: 1.5px solid var(--encre); background: var(--blanc); border-radius: 4px; font-weight: 600; }
+  .ruptures { margin-top: 14px; background: var(--blanc); border: 1px solid var(--filet); border-radius: 4px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .ruptures button { min-height: 48px; padding: 0 14px; border: 1px solid var(--filet); background: var(--fond); border-radius: 4px; font-weight: 600; }
+  .tickets { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .tickets h3 { font-size: 15px; color: var(--douce); font-weight: 600; margin-bottom: 6px; }
+  pre { margin: 0; background: var(--blanc); padding: 14px; font: 13px/1.35 ui-monospace, "SF Mono", Menlo, monospace; border: 1px dashed #b9b5b0; white-space: pre; overflow-x: auto; }
+</style>
+</head>
+<body>
+<header class="barre">
+  <h1>Service du soir</h1>
+  <div class="reglage"><span>Préparation</span><button aria-label="Moins 5 minutes">−</button><strong>20 min</strong><button aria-label="Plus 5 minutes">+</button></div>
+  <button class="pause">Mettre en pause</button>
+  <ul class="imprimantes" aria-label="Imprimantes"><li>Pizza en ligne</li><li>Cuisine en ligne</li></ul>
+  <span class="horloge">19:07</span>
+</header>
+<div class="corps">
+  <main>
+    <div class="onglets" role="tablist">
+      <button role="tab" aria-selected="true">À accepter (1)</button>
+      <button role="tab">En cours (3)</button>
+      <button role="tab">À l'avance (2)</button>
+      <button role="tab">Terminées (11)</button>
+    </div>
+    <section class="nouvelle" aria-label="Commande à accepter">
+      <div class="alerte"><span>Nouvelle commande, la sonnerie continue jusqu'à la réponse</span><span>reçue à 19:06</span></div>
+      <div class="nouvelle-grille">
+        <div class="infos">
+          <div><span class="num">N° 038</span></div>
+          <p class="mode">Livraison, dès que possible</p>
+          <p>Rue des Bossons 12, 1213 Onex<br /><span class="douce">2e étage, sonnette Favre, zone 1</span></p>
+          <p>Marc F., 078 000 00 00<br /><span class="douce">Payé en ligne, TWINT, CHF 86.90</span></p>
+          <ul class="articles">
+            <li><div class="nom"><span>2 × Margherita</span><span class="poste">Pizza</span></div><div class="opt">+ olives</div></li>
+            <li><div class="nom"><span>1 × Capricciosa</span><span class="poste">Pizza</span></div><div class="opt"><span class="sans">SANS</span> œuf</div></li>
+            <li><div class="nom"><span>1 × Pasta all'arrabbiata</span><span class="poste">Cuisine</span></div><div class="opt">CHOIX penne</div></li>
+          </ul>
+          <p class="note-client">Note : « Sonnez deux fois »</p>
+        </div>
+        <div class="accepter">
+          <h3>Heure annoncée au client</h3>
+          <div class="heure">19:40</div>
+          <div class="ajuste">
+            <button>−5</button><button>+5</button><button>+15</button><button>+30</button>
+          </div>
+          <button class="ok">Accepter pour 19:40 et imprimer</button>
+          <button class="refuser">Refuser et rembourser</button>
+        </div>
+      </div>
+    </section>
+    <div class="tickets">
+      <div><h3>Ce qui sortira au poste pizza</h3>
+<pre>PIZZA                    N° 038
+LIVRAISON          POUR 19:40
+Mardi 10.11.2026  acceptée 19:07
+Marc F.   078 000 00 00
+Rue des Bossons 12, 1213 Onex
+--------------------------------
+2 x Margherita
+    + olives
+1 x Capricciosa
+    SANS oeuf
+--------------------------------
+Note : Sonnez deux fois
+Aussi en cuisine : 1 article
+Paiement : PAYÉ EN LIGNE</pre></div>
+      <div><h3>Ce qui sortira en cuisine</h3>
+<pre>CUISINE                  N° 038
+LIVRAISON          POUR 19:40
+Mardi 10.11.2026  acceptée 19:07
+Marc F.   078 000 00 00
+Rue des Bossons 12, 1213 Onex
+--------------------------------
+1 x Pasta all'arrabbiata
+    CHOIX penne
+--------------------------------
+Note : Sonnez deux fois
+Aussi au poste pizza : 3 articles
+Paiement : PAYÉ EN LIGNE</pre></div>
+    </div>
+  </main>
+  <aside>
+    <h2>En cours</h2>
+    <ul class="encours">
+      <li><span class="t">037 Claire R., livraison</span><span class="h">19:45</span><span class="s">En préparation</span><button>Partie</button></li>
+      <li><span class="t">036 Sofia M., à emporter</span><span class="h">19:30</span><span class="s">Prête, à encaisser au comptoir</span><button>Retirée et encaissée</button></li>
+      <li><span class="t">035 Luca B., livraison</span><span class="h">19:20</span><span class="s">Partie à 19:08</span><button>Livrée</button></li>
+    </ul>
+    <div class="ruptures"><span>Épuisé ce soir : Pizza Parma</span><button>Gérer</button></div>
+  </aside>
+</div>
+</body>
+</html>

@@ -1,0 +1,2131 @@
+{
+ "source": "Relevé Uber Eats du 5.11.2026 croisé avec la carte de la salle, revu le 5.11.2026. Tous les prix sont à valider.",
+ "groupes": {
+  "g1": {
+   "groupe": "Supplément",
+   "min": 0,
+   "max": 5,
+   "choix": [
+    {
+     "nom": "Ail",
+     "prix": 0
+    },
+    {
+     "nom": "Ananas",
+     "prix": 2
+    },
+    {
+     "nom": "Anchois",
+     "prix": 1
+    },
+    {
+     "nom": "Aubergines",
+     "prix": 2
+    },
+    {
+     "nom": "Basilic",
+     "prix": 1
+    },
+    {
+     "nom": "Bresaola",
+     "prix": 4
+    },
+    {
+     "nom": "Burrata",
+     "prix": 5
+    },
+    {
+     "nom": "Câpres",
+     "prix": 2
+    },
+    {
+     "nom": "Champignons",
+     "prix": 2
+    },
+    {
+     "nom": "Coeur d'artichaud",
+     "prix": 2
+    },
+    {
+     "nom": "Fruits de mer",
+     "prix": 3
+    },
+    {
+     "nom": "Gorgonzola",
+     "prix": 3
+    },
+    {
+     "nom": "Huile de truffes",
+     "prix": 1
+    },
+    {
+     "nom": "Jambon cru",
+     "prix": 4
+    },
+    {
+     "nom": "Jambon cuit",
+     "prix": 2
+    },
+    {
+     "nom": "Lardons",
+     "prix": 2
+    },
+    {
+     "nom": "Mortadella",
+     "prix": 4
+    },
+    {
+     "nom": "Oeuf",
+     "prix": 1
+    },
+    {
+     "nom": "Oignons",
+     "prix": 1
+    },
+    {
+     "nom": "Olives",
+     "prix": 1
+    },
+    {
+     "nom": "Parmesan",
+     "prix": 1
+    },
+    {
+     "nom": "Poivrons",
+     "prix": 1
+    },
+    {
+     "nom": "Riccota",
+     "prix": 2
+    },
+    {
+     "nom": "Rucola",
+     "prix": 2
+    },
+    {
+     "nom": "Saucisson piquant",
+     "prix": 2
+    },
+    {
+     "nom": "Saumon fumé",
+     "prix": 5
+    },
+    {
+     "nom": "Thon",
+     "prix": 2
+    },
+    {
+     "nom": "Tomates fraîches",
+     "prix": 1
+    },
+    {
+     "nom": "Tranches de boeuf",
+     "prix": 5
+    }
+   ]
+  },
+  "g2": {
+   "groupe": "Pâtes",
+   "min": 1,
+   "max": 1,
+   "choix": [
+    {
+     "nom": "Penne",
+     "prix": 0
+    },
+    {
+     "nom": "Spaghetti",
+     "prix": 0
+    }
+   ]
+  }
+ },
+ "plats": [
+  {
+   "id": "pizza-margherita",
+   "categorie": "Pizzas",
+   "nom": "Pizza Margherita",
+   "description": "Sauce tomate, Mozzarella et origan.",
+   "prixUber": 20,
+   "salleNom": "Margherita",
+   "prixSalle": 18,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 18,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "pizza",
+   "groupes": [
+    "g1"
+   ],
+   "retraits": [
+    "Sauce tomate",
+    "Mozzarella",
+    "Origan"
+   ],
+   "provenancesConnues": [],
+   "provenancesManquantes": [],
+   "photo": "margherita",
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "pizza-miss-italia",
+   "categorie": "Pizzas",
+   "nom": "Pizza miss Italia",
+   "description": "Sauce tomate, Mozzarella, Burratina, rucola, tomates cerises, jambon cru et Scaglie Grana.",
+   "prixUber": 29,
+   "salleNom": "Miss Italia",
+   "prixSalle": 28,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 28,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "pizza",
+   "groupes": [
+    "g1"
+   ],
+   "retraits": [
+    "Sauce tomate",
+    "Mozzarella",
+    "Burratina",
+    "Rucola",
+    "Tomates cerises",
+    "Jambon cru",
+    "Scaglie Grana"
+   ],
+   "provenancesConnues": [],
+   "provenancesManquantes": [
+    "jambon"
+   ],
+   "photo": "missitalia",
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "pizza-prosciutto",
+   "categorie": "Pizzas",
+   "nom": "Pizza prosciutto",
+   "description": "Sauce tomate, Mozzarella et jambon cuit.",
+   "prixUber": 22,
+   "salleNom": "Prosciutto",
+   "prixSalle": 20,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 20,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "pizza",
+   "groupes": [
+    "g1"
+   ],
+   "retraits": [
+    "Sauce tomate",
+    "Mozzarella",
+    "Jambon cuit"
+   ],
+   "provenancesConnues": [],
+   "provenancesManquantes": [
+    "jambon"
+   ],
+   "photo": "prosciuto",
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "pizza-4-stagioni",
+   "categorie": "Pizzas",
+   "nom": "Pizza 4 Stagioni",
+   "description": "Sauce tomate, Mozzarella, jambon cuit, cœurs d’artichauts, champignons et poivrons.",
+   "prixUber": 26,
+   "salleNom": "4 Stagioni",
+   "prixSalle": 24,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 24,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "pizza",
+   "groupes": [
+    "g1"
+   ],
+   "retraits": [
+    "Sauce tomate",
+    "Mozzarella",
+    "Jambon cuit",
+    "Cœurs d’artichauts",
+    "Champignons",
+    "Poivrons"
+   ],
+   "provenancesConnues": [],
+   "provenancesManquantes": [
+    "jambon"
+   ],
+   "photo": "4saison",
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "pizza-ferrari",
+   "categorie": "Pizzas",
+   "nom": "Pizza Ferrari",
+   "description": "Sauce tomate, Mozzarella, lardons, champignons, jambon cuit et saucisson piquant.",
+   "prixUber": 25,
+   "salleNom": "Ferrarii",
+   "prixSalle": 25,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 25,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "pizza",
+   "groupes": [
+    "g1"
+   ],
+   "retraits": [
+    "Sauce tomate",
+    "Mozzarella",
+    "Lardons",
+    "Champignons",
+    "Jambon cuit",
+    "Saucisson piquant"
+   ],
+   "provenancesConnues": [],
+   "provenancesManquantes": [
+    "jambon",
+    "lardons",
+    "charcuterie"
+   ],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "pizza-tonno",
+   "categorie": "Pizzas",
+   "nom": "Pizza tonno",
+   "description": "Sauce tomate, Mozzarella et thon.",
+   "prixUber": 22,
+   "salleNom": "Tonno",
+   "prixSalle": 21,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 21,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "pizza",
+   "groupes": [
+    "g1"
+   ],
+   "retraits": [
+    "Sauce tomate",
+    "Mozzarella",
+    "Thon"
+   ],
+   "provenancesConnues": [],
+   "provenancesManquantes": [
+    "thon"
+   ],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "pizza-peppino",
+   "categorie": "Pizzas",
+   "nom": "Pizza peppino",
+   "description": "Sauce tomate, Mozzarella, Burrata, mortadelle, tomates cerises et rucola.",
+   "prixUber": 27,
+   "salleNom": "Peppino",
+   "prixSalle": 28,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 28,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "pizza",
+   "groupes": [
+    "g1"
+   ],
+   "retraits": [
+    "Sauce tomate",
+    "Mozzarella",
+    "Burrata",
+    "Mortadelle",
+    "Tomates cerises",
+    "Rucola"
+   ],
+   "provenancesConnues": [],
+   "provenancesManquantes": [
+    "mortadelle"
+   ],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "pizza-vegetarienne",
+   "categorie": "Pizzas",
+   "nom": "Pizza végétarienne",
+   "description": "Sauce tomate, Mozzarella, champignons, aubergines, artichauts et tomates fraîches.",
+   "prixUber": 25,
+   "salleNom": "Végétarienne",
+   "prixSalle": 24,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 24,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "pizza",
+   "groupes": [
+    "g1"
+   ],
+   "retraits": [
+    "Sauce tomate",
+    "Mozzarella",
+    "Champignons",
+    "Aubergines",
+    "Artichauts",
+    "Tomates fraîches"
+   ],
+   "provenancesConnues": [],
+   "provenancesManquantes": [],
+   "photo": "vegetarienne",
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "pizza-rucola",
+   "categorie": "Pizzas",
+   "nom": "Pizza rucola",
+   "description": "Sauce tomate, Mozzarella, rucola, tomates cerises et Parmesan.",
+   "prixUber": 23,
+   "salleNom": "Rucola",
+   "prixSalle": 23,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 23,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "pizza",
+   "groupes": [
+    "g1"
+   ],
+   "retraits": [
+    "Sauce tomate",
+    "Mozzarella",
+    "Rucola",
+    "Tomates cerises",
+    "Parmesan"
+   ],
+   "provenancesConnues": [],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "pizza-melanzana",
+   "categorie": "Pizzas",
+   "nom": "Pizza melanzana",
+   "description": "Sauce tomate, Mozzarella et aubergines.",
+   "prixUber": 21,
+   "salleNom": "Melanzana",
+   "prixSalle": 21,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 21,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "pizza",
+   "groupes": [
+    "g1"
+   ],
+   "retraits": [
+    "Sauce tomate",
+    "Mozzarella",
+    "Aubergines"
+   ],
+   "provenancesConnues": [],
+   "provenancesManquantes": [],
+   "photo": "melanzana",
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "pizza-norvegienne",
+   "categorie": "Pizzas",
+   "nom": "Pizza norvégienne",
+   "description": "Sauce tomate, Mozzarella, saumon fumé, oignons et câpres.",
+   "prixUber": 28,
+   "salleNom": "Norvégienne",
+   "prixSalle": 27,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 27,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "pizza",
+   "groupes": [
+    "g1"
+   ],
+   "retraits": [
+    "Sauce tomate",
+    "Mozzarella",
+    "Saumon fumé",
+    "Oignons",
+    "Câpres"
+   ],
+   "provenancesConnues": [
+    "Saumon : Norvège (carte de la salle, à confirmer pour le saumon fumé)"
+   ],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "pizza-diavola",
+   "categorie": "Pizzas",
+   "nom": "Pizza Diavola",
+   "description": "Sauce tomate, Mozzarella et saucisson piquant.",
+   "prixUber": 23,
+   "salleNom": "Diavola",
+   "prixSalle": 23,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 23,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "pizza",
+   "groupes": [
+    "g1"
+   ],
+   "retraits": [
+    "Sauce tomate",
+    "Mozzarella",
+    "Saucisson piquant"
+   ],
+   "provenancesConnues": [],
+   "provenancesManquantes": [
+    "charcuterie"
+   ],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "pizza-parma",
+   "categorie": "Pizzas",
+   "nom": "Pizza Parma",
+   "description": "Sauce tomate, Mozzarella et jambon cru.",
+   "prixUber": 26,
+   "salleNom": "Parma",
+   "prixSalle": 25,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 25,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "pizza",
+   "groupes": [
+    "g1"
+   ],
+   "retraits": [
+    "Sauce tomate",
+    "Mozzarella",
+    "Jambon cru"
+   ],
+   "provenancesConnues": [],
+   "provenancesManquantes": [
+    "jambon"
+   ],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "pizza-capricciosa",
+   "categorie": "Pizzas",
+   "nom": "Pizza Capricciosa",
+   "description": "Sauce tomate, Mozzarella, jambon, champignons et œuf.",
+   "prixUber": 24,
+   "salleNom": "Capricciosa",
+   "prixSalle": 23,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 23,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "pizza",
+   "groupes": [
+    "g1"
+   ],
+   "retraits": [
+    "Sauce tomate",
+    "Mozzarella",
+    "Jambon",
+    "Champignons",
+    "Œuf"
+   ],
+   "provenancesConnues": [],
+   "provenancesManquantes": [
+    "jambon"
+   ],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "pizza-4-fromages",
+   "categorie": "Pizzas",
+   "nom": "Pizza 4 fromages",
+   "description": "Sauce tomate, Mozzarella, Ricotta, Grana et Gorgonzola.",
+   "prixUber": 25,
+   "salleNom": "4 Fromages",
+   "prixSalle": 24,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 24,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "pizza",
+   "groupes": [
+    "g1"
+   ],
+   "retraits": [
+    "Sauce tomate",
+    "Mozzarella",
+    "Ricotta",
+    "Grana",
+    "Gorgonzola"
+   ],
+   "provenancesConnues": [],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "pizza-bresaola",
+   "categorie": "Pizzas",
+   "nom": "Pizza bresaola",
+   "description": "Sauce tomate, Mozzarella, bresaola, burratina, rucola, tomates cerises et Scaglie Grana.",
+   "prixUber": 29,
+   "salleNom": "Bresaola",
+   "prixSalle": 28,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 28,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "pizza",
+   "groupes": [
+    "g1"
+   ],
+   "retraits": [
+    "Sauce tomate",
+    "Mozzarella",
+    "Bresaola",
+    "Burratina",
+    "Rucola",
+    "Tomates cerises",
+    "Scaglie Grana"
+   ],
+   "provenancesConnues": [],
+   "provenancesManquantes": [
+    "bresaola"
+   ],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "pizza-romana",
+   "categorie": "Pizzas",
+   "nom": "Pizza Romana",
+   "description": "Sauce tomate, Mozzarella, champignons et jambon cuit.",
+   "prixUber": 24,
+   "salleNom": "Romana",
+   "prixSalle": 23,
+   "fiabilite": "sûre",
+   "remarque": "Le croisement automatique l'avait associée aux gnocchi alla romana (26), c'est faux",
+   "prixPropose": 23,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "pizza",
+   "groupes": [
+    "g1"
+   ],
+   "retraits": [
+    "Sauce tomate",
+    "Mozzarella",
+    "Champignons",
+    "Jambon cuit"
+   ],
+   "provenancesConnues": [],
+   "provenancesManquantes": [
+    "jambon"
+   ],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "pizza-funghi",
+   "categorie": "Pizzas",
+   "nom": "Pizza funghi",
+   "description": "Sauce tomate, Mozzarella et champignons de Paris.",
+   "prixUber": 21,
+   "salleNom": "Funghi",
+   "prixSalle": 20,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 20,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "pizza",
+   "groupes": [
+    "g1"
+   ],
+   "retraits": [
+    "Sauce tomate",
+    "Mozzarella",
+    "Champignons de Paris"
+   ],
+   "provenancesConnues": [],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "pizza-frutti-di-mare",
+   "categorie": "Pizzas",
+   "nom": "Pizza Frutti di Mare",
+   "description": "Sauce tomate, Mozzarella et fruits de mer.",
+   "prixUber": 26,
+   "salleNom": "Frutti di Mare",
+   "prixSalle": 25,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 25,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "pizza",
+   "groupes": [
+    "g1"
+   ],
+   "retraits": [
+    "Sauce tomate",
+    "Mozzarella",
+    "Fruits de mer"
+   ],
+   "provenancesConnues": [],
+   "provenancesManquantes": [
+    "fruits de mer"
+   ],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "pizza-stromboli",
+   "categorie": "Pizzas",
+   "nom": "Pizza stromboli",
+   "description": "Sauce tomate, Mozzarella, saucisse sicilienne au fenouil et aubergines.",
+   "prixUber": 25,
+   "salleNom": "Stromboli",
+   "prixSalle": 24,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 24,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "pizza",
+   "groupes": [
+    "g1"
+   ],
+   "retraits": [
+    "Sauce tomate",
+    "Mozzarella",
+    "Saucisse sicilienne au fenouil",
+    "Aubergines"
+   ],
+   "provenancesConnues": [],
+   "provenancesManquantes": [
+    "charcuterie"
+   ],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "pizza-la-ferme",
+   "categorie": "Pizzas",
+   "nom": "Pizza La Ferme",
+   "description": "Sauce tomate, Mozzarella, champignons, fines tranches de bœuf et œuf.",
+   "prixUber": 28,
+   "salleNom": "La Ferme",
+   "prixSalle": 27,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 27,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "pizza",
+   "groupes": [
+    "g1"
+   ],
+   "retraits": [
+    "Sauce tomate",
+    "Mozzarella",
+    "Champignons",
+    "Fines tranches de bœuf",
+    "Œuf"
+   ],
+   "provenancesConnues": [
+    "Bœuf : Suisse ou Autriche (carte de la salle)"
+   ],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "pizza-sicilia",
+   "categorie": "Pizzas",
+   "nom": "Pizza Sicilia",
+   "description": "Sauce tomate, Mozzarella, thon et aubergines.",
+   "prixUber": 25,
+   "salleNom": "Sicilia",
+   "prixSalle": 24,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 24,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "pizza",
+   "groupes": [
+    "g1"
+   ],
+   "retraits": [
+    "Sauce tomate",
+    "Mozzarella",
+    "Thon",
+    "Aubergines"
+   ],
+   "provenancesConnues": [],
+   "provenancesManquantes": [
+    "thon"
+   ],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "pizza-napoletana",
+   "categorie": "Pizzas",
+   "nom": "Pizza Napoletana",
+   "description": "Sauce tomate, Mozzarella, câpres, olives noires et anchois.",
+   "prixUber": 22,
+   "salleNom": "Napoletana",
+   "prixSalle": 20,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 20,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "pizza",
+   "groupes": [
+    "g1"
+   ],
+   "retraits": [
+    "Sauce tomate",
+    "Mozzarella",
+    "Câpres",
+    "Olives noires",
+    "Anchois"
+   ],
+   "provenancesConnues": [],
+   "provenancesManquantes": [
+    "anchois"
+   ],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "pizza-hawai",
+   "categorie": "Pizzas",
+   "nom": "Pizza Hawaï",
+   "description": "Sauce tomate, Mozzarella, ananas et jambon cuit.",
+   "prixUber": 24,
+   "salleNom": "Hawaï",
+   "prixSalle": 23,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 23,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "pizza",
+   "groupes": [
+    "g1"
+   ],
+   "retraits": [
+    "Sauce tomate",
+    "Mozzarella",
+    "Ananas",
+    "Jambon cuit"
+   ],
+   "provenancesConnues": [],
+   "provenancesManquantes": [
+    "jambon"
+   ],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "pizza-calzone",
+   "categorie": "Pizzas",
+   "nom": "Pizza Calzone",
+   "description": "Sauce tomate, Mozzarella, champignons, jambon cuit et œuf.",
+   "prixUber": 24,
+   "salleNom": "Calzone",
+   "prixSalle": 23,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 23,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "pizza",
+   "groupes": [
+    "g1"
+   ],
+   "retraits": [
+    "Sauce tomate",
+    "Mozzarella",
+    "Champignons",
+    "Jambon cuit",
+    "Œuf"
+   ],
+   "provenancesConnues": [],
+   "provenancesManquantes": [
+    "jambon"
+   ],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "coca-cola",
+   "categorie": "Boissons",
+   "nom": "Coca-Cola",
+   "description": "330ml",
+   "prixUber": 4.5,
+   "salleNom": null,
+   "prixSalle": null,
+   "fiabilite": "aucune",
+   "remarque": "Boissons sur une carte séparée, sans prix connu",
+   "prixPropose": 4.5,
+   "sourcePrix": "uber",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "coca-cola-zero",
+   "categorie": "Boissons",
+   "nom": "Coca-Cola Zéro",
+   "description": "330ml",
+   "prixUber": 4.5,
+   "salleNom": null,
+   "prixSalle": null,
+   "fiabilite": "aucune",
+   "remarque": "Boissons sur une carte séparée, sans prix connu",
+   "prixPropose": 4.5,
+   "sourcePrix": "uber",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "the-froid-citron",
+   "categorie": "Boissons",
+   "nom": "Thé froid citron",
+   "description": "330ml",
+   "prixUber": 4.5,
+   "salleNom": null,
+   "prixSalle": null,
+   "fiabilite": "aucune",
+   "remarque": "Boissons sur une carte séparée, sans prix connu",
+   "prixPropose": 4.5,
+   "sourcePrix": "uber",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "the-froid-peche",
+   "categorie": "Boissons",
+   "nom": "Thé froid pêche",
+   "description": "330ml",
+   "prixUber": 4.5,
+   "salleNom": null,
+   "prixSalle": null,
+   "fiabilite": "aucune",
+   "remarque": "Boissons sur une carte séparée, sans prix connu",
+   "prixPropose": 4.5,
+   "sourcePrix": "uber",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "burrata-tomates-et-mortadella",
+   "categorie": "Entrées",
+   "nom": "Burrata, tomates et mortadella",
+   "description": "Tomates et mortadella.",
+   "prixUber": 24,
+   "salleNom": "Burrata, mortadella, tomate et rucola",
+   "prixSalle": 24,
+   "fiabilite": "probable",
+   "remarque": "La salle ajoute la rucola",
+   "prixPropose": 24,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [
+    "mortadelle"
+   ],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "salade-de-chevre-chaud",
+   "categorie": "Entrées",
+   "nom": "Salade de chèvre chaud",
+   "description": "Façon Malakoff au miel.",
+   "prixUber": 29,
+   "salleNom": "Salade de chèvre chaud façon Malakoff au miel",
+   "prixSalle": 32,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 32,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "salade-paysanne",
+   "categorie": "Entrées",
+   "nom": "Salade paysanne",
+   "description": "Poulet, lardons, œuf et croûtons.",
+   "prixUber": 29,
+   "salleNom": "Salade paysanne",
+   "prixSalle": 32,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 32,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [
+    "poulet",
+    "lardons"
+   ],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "terrine-de-foie-gras-de-canard",
+   "categorie": "Entrées",
+   "nom": "Terrine de foie gras de canard",
+   "description": "Fait maison.",
+   "prixUber": 32,
+   "salleNom": "Terrine de foie de canard et son chutney de figues",
+   "prixSalle": 30,
+   "fiabilite": "probable",
+   "remarque": "Uber dit foie gras, la salle dit foie de canard, avec chutney de figues",
+   "prixPropose": 30,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [
+    "Canard : France (carte de la salle)"
+   ],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": true
+  },
+  {
+   "id": "salade-verte",
+   "categorie": "Entrées",
+   "nom": "Salade verte",
+   "description": "Salade verte, sauce à l'italienne",
+   "prixUber": 9,
+   "salleNom": "Salade verte",
+   "prixSalle": 8,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 8,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "salade-melee",
+   "categorie": "Entrées",
+   "nom": "Salade mêlée",
+   "description": "Salade verte, carottes, betterave rouge, tomate, maïs, concombre, sauce à l'italienne",
+   "prixUber": 12,
+   "salleNom": "Salade mêlée",
+   "prixSalle": 10,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 10,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [],
+   "photo": "salade-melee",
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "tomates-mozzarella-et-rucola",
+   "categorie": "Entrées",
+   "nom": "Tomates, mozzarella et rucola",
+   "description": "Assaisonné à l'huile d'olive, sel et poivre",
+   "prixUber": 21,
+   "salleNom": "Tomate, mozzarella et rucola",
+   "prixSalle": 19,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 19,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "pasta-alla-carbonara",
+   "categorie": "Pâtes",
+   "nom": "Pasta alla carbonara",
+   "description": "Pâtes au choix, lardons, crème, œuf et Grana Padano.",
+   "prixUber": 25,
+   "salleNom": "Alla carbonara",
+   "prixSalle": 25,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 25,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [
+    "g2"
+   ],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [
+    "lardons"
+   ],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "paccheri-alla-salsiccia-siciliana-et-polpette-de-boeuf",
+   "categorie": "Pâtes",
+   "nom": "Paccheri alla salsiccia siciliana et polpette de bœuf",
+   "description": "Saucisse au fenouil et boulettes bœuf.",
+   "prixUber": 27,
+   "salleNom": "Paccheri alla salsiccia siciliana et polpette de bœuf",
+   "prixSalle": 27,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 27,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [
+    "Bœuf : Suisse ou Autriche (carte de la salle)"
+   ],
+   "provenancesManquantes": [
+    "charcuterie"
+   ],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "rigatoni-alla-peppino",
+   "categorie": "Pâtes",
+   "nom": "Rigatoni alla peppino",
+   "description": "Sauce tomate, Burrata et basilic.",
+   "prixUber": 26,
+   "salleNom": "Rigatoni alla Peppino",
+   "prixSalle": 26,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 26,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [],
+   "photo": "rigatoniallapeppino",
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "pasta-bolognaise",
+   "categorie": "Pâtes",
+   "nom": "Pasta bolognaise",
+   "description": "Pâtes au choix.",
+   "prixUber": 25,
+   "salleNom": "Spaghettini bolognese",
+   "prixSalle": 25,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 25,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [
+    "g2"
+   ],
+   "retraits": [],
+   "provenancesConnues": [
+    "Bœuf : Suisse ou Autriche (carte de la salle)"
+   ],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "lasagne-de-boeuf",
+   "categorie": "Pâtes",
+   "nom": "Lasagne de bœuf",
+   "description": "Bœuf maison gratiné à la Mozzarella au four à bois.",
+   "prixUber": 26,
+   "salleNom": "Lasagne de bœuf",
+   "prixSalle": 27,
+   "fiabilite": "sûre",
+   "remarque": "Score bas à cause du nom de groupe, l'association est juste",
+   "prixPropose": 27,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [
+    "Bœuf : Suisse ou Autriche (carte de la salle)"
+   ],
+   "provenancesManquantes": [],
+   "photo": "lasagne",
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "pasta-al-pesto",
+   "categorie": "Pâtes",
+   "nom": "Pasta al pesto",
+   "description": "Pâtes au choix.",
+   "prixUber": 25,
+   "salleNom": "Al pesto",
+   "prixSalle": 25,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 25,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [
+    "g2"
+   ],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [],
+   "photo": "spaghettialpesto",
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "paccheri-alla-norma",
+   "categorie": "Pâtes",
+   "nom": "Paccheri alla norma",
+   "description": "Sauce tomate, aubergines et Ricotta au four.",
+   "prixUber": 27,
+   "salleNom": "Paccheri alla Norma",
+   "prixSalle": 27,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 27,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [],
+   "photo": "paccheriallanorma",
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "linguine-aux-fruits-de-mer",
+   "categorie": "Pâtes",
+   "nom": "Linguine aux fruits de mer",
+   "description": "",
+   "prixUber": 30,
+   "salleNom": "Aux fruits de mer",
+   "prixSalle": 30,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 30,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [
+    "fruits de mer"
+   ],
+   "photo": "linguineaifruttidimare",
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "pennette-a-la-sicilienne",
+   "categorie": "Pâtes",
+   "nom": "Pennette à la sicilienne",
+   "description": "Aubergines, sauce tomate et basilic gratinées à la Mozzarella au four à bois.",
+   "prixUber": 26,
+   "salleNom": "Pennette à la sicilienne",
+   "prixSalle": 26,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 26,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "tagliatelle-la-ferme",
+   "categorie": "Pâtes",
+   "nom": "Tagliatelle La Ferme",
+   "description": "Préparé avec morilles.",
+   "prixUber": 29,
+   "salleNom": "Tagliatelle La Ferme",
+   "prixSalle": 28,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 28,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "pasta-aux-crevettes",
+   "categorie": "Pâtes",
+   "nom": "Pasta aux crevettes",
+   "description": "Pâtes au choix et scampis au parfum de curry.",
+   "prixUber": 27,
+   "salleNom": "Pennette aux crevettes et scampis au parfum de curry",
+   "prixSalle": 28,
+   "fiabilite": "probable",
+   "remarque": "Uber propose des pâtes au choix, la salle des pennette",
+   "prixPropose": 28,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [
+    "g2"
+   ],
+   "retraits": [],
+   "provenancesConnues": [
+    "Gambas : Vietnam (carte de la salle, à confirmer pour les crevettes et scampis)"
+   ],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "gnocchi-pommes-de-terre",
+   "categorie": "Pâtes",
+   "nom": "Gnocchi pommes de terre",
+   "description": "à la crème de tomate gratinée à la Mozzarella au four à bois.",
+   "prixUber": 24,
+   "salleNom": "Gnocchi alla sorrentina",
+   "prixSalle": 25,
+   "fiabilite": "probable",
+   "remarque": "Uber : crème de tomate gratinée à la mozzarella, salle : sauce tomate, crème, gratinés à la mozzarella. Le croisement automatique proposait alla romana (26)",
+   "prixPropose": 25,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "fagottini-au-parfum-de-truffes",
+   "categorie": "Pâtes",
+   "nom": "Fagottini au parfum de truffes",
+   "description": "",
+   "prixUber": 27,
+   "salleNom": "Fagottini au parfum de truffes",
+   "prixSalle": 28,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 28,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "gnocchi-alla-romana",
+   "categorie": "Pâtes",
+   "nom": "Gnocchi alla romana",
+   "description": "Champignons, jambon cuit, tomates et crème.",
+   "prixUber": 25,
+   "salleNom": "Gnocchi alla romana",
+   "prixSalle": 26,
+   "fiabilite": "sûre",
+   "remarque": "Même garniture des deux côtés",
+   "prixPropose": 26,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [
+    "jambon"
+   ],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "risotto-bolets",
+   "categorie": "Pâtes",
+   "nom": "Risotto bolets",
+   "description": "",
+   "prixUber": 29,
+   "salleNom": "Aux bolets",
+   "prixSalle": 29,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 29,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "fagottini-di-parma",
+   "categorie": "Pâtes",
+   "nom": "Fagottini di Parma",
+   "description": "Jambon cru, sauce tomate, crème et basilic.",
+   "prixUber": 27,
+   "salleNom": "Fagottini di Parma",
+   "prixSalle": 28,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 28,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [
+    "jambon"
+   ],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "linguine-au-saumon-fume",
+   "categorie": "Pâtes",
+   "nom": "Linguine au saumon fumé",
+   "description": "Safran et crème.",
+   "prixUber": 27,
+   "salleNom": "Linguine au saumon fumé, safran, crème",
+   "prixSalle": 28,
+   "fiabilite": "sûre",
+   "remarque": "Score bas à cause du nom de groupe, l'association est juste",
+   "prixPropose": 28,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [
+    "Saumon : Norvège (carte de la salle, à confirmer pour le saumon fumé)"
+   ],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "risotto-au-parfum-de-truffes",
+   "categorie": "Pâtes",
+   "nom": "Risotto au parfum de truffes",
+   "description": "",
+   "prixUber": 27,
+   "salleNom": "Au parfum de truffes",
+   "prixSalle": 27,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 27,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "paccheri-alla-calabrese",
+   "categorie": "Pâtes",
+   "nom": "Paccheri alla calabrese",
+   "description": "Salami, calabraise, aubergines et tomates.",
+   "prixUber": 27,
+   "salleNom": "Paccheri alla calabrese",
+   "prixSalle": 27,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 27,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [
+    "charcuterie"
+   ],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "gnocchi-au-gorgonzola",
+   "categorie": "Pâtes",
+   "nom": "Gnocchi au Gorgonzola",
+   "description": "",
+   "prixUber": 25,
+   "salleNom": "Gnocchi au gorgonzola",
+   "prixSalle": 26,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 26,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "pasta-allamatriciana",
+   "categorie": "Pâtes",
+   "nom": "Pasta all'amatriciana",
+   "description": "Pâtes au choix, lardons, oignons, sauce tomate et piments.",
+   "prixUber": 24,
+   "salleNom": "Alla matriciana",
+   "prixSalle": 25,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 25,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [
+    "g2"
+   ],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [
+    "lardons"
+   ],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "linguine-au-homard",
+   "categorie": "Pâtes",
+   "nom": "Linguine au homard",
+   "description": "",
+   "prixUber": 36,
+   "salleNom": "Au homard",
+   "prixSalle": 36,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 36,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [
+    "homard"
+   ],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "risotto-noix-de-saint-jacques",
+   "categorie": "Pâtes",
+   "nom": "Risotto noix de Saint Jacques",
+   "description": "Gambas safranée.",
+   "prixUber": 33,
+   "salleNom": "Risotto noix de Saint-Jacques et gambas safranées",
+   "prixSalle": 34,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 34,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [
+    "Gambas : Vietnam (carte de la salle, à confirmer pour les crevettes et scampis)"
+   ],
+   "provenancesManquantes": [
+    "Saint-Jacques"
+   ],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "panzerotti-aux-epinards",
+   "categorie": "Pâtes",
+   "nom": "Panzerotti aux épinards",
+   "description": "Ricotta à la crème gratinée à la Mozzarella au four à bois.",
+   "prixUber": 26,
+   "salleNom": "Panzerotti ricotta et épinards",
+   "prixSalle": 26,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 26,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "linguine-alle-vongole",
+   "categorie": "Pâtes",
+   "nom": "Linguine alle vongole",
+   "description": "",
+   "prixUber": 29,
+   "salleNom": "Alle vongole",
+   "prixSalle": 29,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 29,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [
+    "Vongole : Italie (carte de la salle)"
+   ],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "paccheri-calamarata",
+   "categorie": "Pâtes",
+   "nom": "Paccheri calamarata",
+   "description": "Calamaretti, olives, taggiasche, tomates, ail et persil.",
+   "prixUber": 29,
+   "salleNom": "Paccheri calamarata",
+   "prixSalle": 30,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 30,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [
+    "calamars"
+   ],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "risotto-aux-fruits-de-mer",
+   "categorie": "Pâtes",
+   "nom": "Risotto aux fruits de mer",
+   "description": "",
+   "prixUber": 30,
+   "salleNom": "Aux fruits de mer",
+   "prixSalle": 32,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 32,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [
+    "fruits de mer"
+   ],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "pasta-allarrabbiata",
+   "categorie": "Pâtes",
+   "nom": "Pasta all'arrabbiata",
+   "description": "Pâtes au choix, sauce tomate, ail et piments.",
+   "prixUber": 23,
+   "salleNom": "All'arrabbiata",
+   "prixSalle": 23,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 23,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [
+    "g2"
+   ],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "pasta-al-pomodoro-et-basilico",
+   "categorie": "Pâtes",
+   "nom": "Pasta al pomodoro et basilico",
+   "description": "Pâtes au choix.",
+   "prixUber": 23,
+   "salleNom": "Al pomodoro e basilico",
+   "prixSalle": 22,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 22,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [
+    "g2"
+   ],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "rigatoni-alla-parmigiana-et-burrata",
+   "categorie": "Pâtes",
+   "nom": "Rigatoni alla parmigiana et Burrata",
+   "description": "",
+   "prixUber": 27,
+   "salleNom": "Rigatoni alla parmigiana et burrata",
+   "prixSalle": 27,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 27,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "pasta-aglio",
+   "categorie": "Pâtes",
+   "nom": "Pasta aglio",
+   "description": "Pâtes au choix et olio peperoncino.",
+   "prixUber": 21,
+   "salleNom": "Spaghettini aglio, olio e peperoncino",
+   "prixSalle": 21,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 21,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [
+    "g2"
+   ],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "rigatoni-al-sugo-della-nonna",
+   "categorie": "Pâtes",
+   "nom": "Rigatoni al sugo della nonna",
+   "description": "Bœuf, porc et boulettes de bœuf.",
+   "prixUber": 27,
+   "salleNom": "Rigatoni al sugo della nonna",
+   "prixSalle": 27,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 27,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [
+    "Bœuf : Suisse ou Autriche (carte de la salle)",
+    "Porc : Suisse ou Autriche (carte de la salle)"
+   ],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "tagliatelle-mari-e-monti",
+   "categorie": "Pâtes",
+   "nom": "Tagliatelle mari e monti",
+   "description": "Gambas et bolets.",
+   "prixUber": 30,
+   "salleNom": "Tagliatelle mari e monti",
+   "prixSalle": 32,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 32,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [
+    "Gambas : Vietnam (carte de la salle, à confirmer pour les crevettes et scampis)"
+   ],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "tagliatelle-trifolate",
+   "categorie": "Pâtes",
+   "nom": "Tagliatelle trifolate",
+   "description": "Bolets, ail, persil et huile d'olive.",
+   "prixUber": 29,
+   "salleNom": "Tagliatelle trifolate",
+   "prixSalle": 28,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 28,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "spaghettini-alla-mollica",
+   "categorie": "Pâtes",
+   "nom": "Spaghettini alla mollica",
+   "description": "Anchois, ail, piments, panure et huile olives.",
+   "prixUber": 24,
+   "salleNom": "Spaghettini alla mollica",
+   "prixSalle": 23,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 23,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [
+    "anchois"
+   ],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "filets-de-perches-meuniere-sauce-tartare",
+   "categorie": "Poissons",
+   "nom": "Filets de perches meunière sauce tartare",
+   "description": "",
+   "prixUber": 33,
+   "salleNom": "Filets de perches meunière, sauce tartare",
+   "prixSalle": 34,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 34,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [
+    "Perches : Estonie (carte de la salle)"
+   ],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "queues-de-gambas-decortiquees-poelees-a-la-creme-de-safran",
+   "categorie": "Poissons",
+   "nom": "Queues de gambas décortiquées poêlées à la crème de safran",
+   "description": "",
+   "prixUber": 37,
+   "salleNom": "Queues de gambas décortiquées poêlées à la crème de safran",
+   "prixSalle": 38,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 38,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [
+    "Gambas : Vietnam (carte de la salle, à confirmer pour les crevettes et scampis)"
+   ],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "queues-de-gambas-decortiquees-poelees-et-flambees-au-cognac",
+   "categorie": "Poissons",
+   "nom": "Queues de gambas décortiquées poêlées et flambées au cognac",
+   "description": "",
+   "prixUber": 38,
+   "salleNom": "Queues de gambas décortiquées poêlées et flambées au cognac",
+   "prixSalle": 38,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 38,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [
+    "Gambas : Vietnam (carte de la salle, à confirmer pour les crevettes et scampis)"
+   ],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "queues-de-gambas-decortiquees-poelees-a-la-provencale",
+   "categorie": "Poissons",
+   "nom": "Queues de gambas décortiquées poêlées à la Provençale",
+   "description": "",
+   "prixUber": 37,
+   "salleNom": "Queues de gambas décortiquées poêlées à la provençale",
+   "prixSalle": 38,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 38,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [
+    "Gambas : Vietnam (carte de la salle, à confirmer pour les crevettes et scampis)"
+   ],
+   "provenancesManquantes": [],
+   "photo": null,
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "tartare-de-boeuf",
+   "categorie": "Viandes",
+   "nom": "Tartare de bœuf",
+   "description": "220 grammes",
+   "prixUber": 32,
+   "salleNom": "Tartare de bœuf",
+   "prixSalle": 34,
+   "fiabilite": "sûre",
+   "remarque": "",
+   "prixPropose": 34,
+   "sourcePrix": "salle",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [
+    "Bœuf : Suisse ou Autriche (carte de la salle)"
+   ],
+   "provenancesManquantes": [],
+   "photo": "tartare",
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "cheeseburger-de-boeuf",
+   "categorie": "Viandes",
+   "nom": "Cheeseburger de bœuf",
+   "description": "Servi avec frites.",
+   "prixUber": 22,
+   "salleNom": null,
+   "prixSalle": null,
+   "fiabilite": "aucune",
+   "remarque": "Pas sur la carte de la salle. Le « Burger maison gourmand » (29) est un autre plat",
+   "prixPropose": 22,
+   "sourcePrix": "uber",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [
+    "Bœuf : Suisse ou Autriche (carte de la salle)"
+   ],
+   "provenancesManquantes": [],
+   "photo": "cheeseburger",
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "chiacchiere-alla-nutella",
+   "categorie": "Desserts",
+   "nom": "Chiacchiere alla Nutella",
+   "description": "Boules de pâtes à pizza fries aspergées de Nutella",
+   "prixUber": 12,
+   "salleNom": null,
+   "prixSalle": null,
+   "fiabilite": "aucune",
+   "remarque": "Desserts sur une carte séparée, sans prix connu",
+   "prixPropose": 12,
+   "sourcePrix": "uber",
+   "prixAValider": true,
+   "station": "pizza",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [],
+   "photo": "chiacchiere",
+   "faitMaisonSurUber": false
+  },
+  {
+   "id": "tiramisu",
+   "categorie": "Desserts",
+   "nom": "Tiramisu",
+   "description": "Fait maison",
+   "prixUber": 10,
+   "salleNom": null,
+   "prixSalle": null,
+   "fiabilite": "aucune",
+   "remarque": "Desserts sur une carte séparée, sans prix connu",
+   "prixPropose": 10,
+   "sourcePrix": "uber",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [],
+   "photo": "tiramisu",
+   "faitMaisonSurUber": true
+  },
+  {
+   "id": "panna-cotta",
+   "categorie": "Desserts",
+   "nom": "Panna cotta",
+   "description": "Au coulis de framboise",
+   "prixUber": 10,
+   "salleNom": null,
+   "prixSalle": null,
+   "fiabilite": "aucune",
+   "remarque": "Desserts sur une carte séparée, sans prix connu",
+   "prixPropose": 10,
+   "sourcePrix": "uber",
+   "prixAValider": true,
+   "station": "cuisine",
+   "groupes": [],
+   "retraits": [],
+   "provenancesConnues": [],
+   "provenancesManquantes": [],
+   "photo": "pannacotta",
+   "faitMaisonSurUber": false
+  }
+ ]
+}
