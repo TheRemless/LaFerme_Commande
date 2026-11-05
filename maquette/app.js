@@ -1,5 +1,4 @@
-// Maquette du lot 1 : parcours client simulé dans le navigateur, sans serveur.
-// Les deux directions partagent ce fichier, seule la feuille de style change.
+// Maquette du lot 1 (direction Béton) : parcours client simulé dans le navigateur, sans serveur.
 
 const CATEGORIES = [
   ["Pizzas", "Pizzas"],
@@ -51,15 +50,17 @@ function chargerEtat() {
   } catch {
     e = null;
   }
-  e = e || { mode: "livraison", adresse: null, saisie: "", details: {}, quand: "asap", panier: [], paiement: "twint", compte: true };
-  if (p.has("adresse")) {
-    e.mode = "livraison";
-    e.adresse = ADRESSES[Number(p.get("adresse"))];
-    e.saisie = e.adresse.rue;
+  // Les paramètres de démonstration ne s'appliquent qu'à la première visite de l'onglet.
+  if (e) return e;
+  e = { mode: "livraison", adresse: null, saisie: "", details: {}, quand: "asap", panier: [], paiement: "twint", compte: true };
+  const demo = p.has("adresse") ? ADRESSES[Number(p.get("adresse"))] : null;
+  if (demo) {
+    e.adresse = demo;
+    e.saisie = demo.rue;
     e.details = { etage: "3e", sonnette: "Rochat", code: "", note: "" };
   }
   if (p.get("mode") === "retrait") e.mode = "retrait";
-  if (p.has("panier")) e.panier = paniersDemo[p.get("panier")] || [];
+  if (paniersDemo[p.get("panier")]) e.panier = structuredClone(paniersDemo[p.get("panier")]);
   return e;
 }
 
@@ -162,8 +163,8 @@ function vueAccueil() {
             <div class="details">
               <div class="champ"><label for="etage">Étage</label><input id="etage" value="${esc(etat.details.etage || "")}" /></div>
               <div class="champ"><label for="sonnette">Nom sur la sonnette</label><input id="sonnette" value="${esc(etat.details.sonnette || "")}" /></div>
-              <div class="champ"><label for="code">Code d'entrée <span class="facultatif">facultatif</span></label><input id="code" /></div>
-              <div class="champ champ-large"><label for="note-livreur">Pour le livreur <span class="facultatif">facultatif</span></label><input id="note-livreur" maxlength="140" /></div>
+              <div class="champ"><label for="code">Code d'entrée <span class="facultatif">facultatif</span></label><input id="code" value="${esc(etat.details.code || "")}" /></div>
+              <div class="champ champ-large"><label for="note-livreur">Pour le livreur <span class="facultatif">facultatif</span></label><input id="note-livreur" maxlength="140" value="${esc(etat.details.note || "")}" /></div>
             </div>`
           : ""
       }
@@ -329,7 +330,10 @@ function panierContenu(pleinePage) {
       <div class="somme-totale"><dt>Total</dt><dd>${chf(total)}</dd></div>
     </dl>
     ${
-      manque
+      etat.mode === "livraison" && !z
+        ? `<div class="minimum" role="status"><p>Choisissez une adresse dans notre zone de livraison, ou passez en retrait.</p></div>
+          <a class="bouton-principal" href="#accueil">Choisir l'adresse</a>`
+        : manque
         ? `<div class="minimum" role="status"><p>Encore <strong>${chf(manque)}</strong> pour le minimum de livraison (${prix(z.minimum)}).</p><span class="jauge"><span style="width:${Math.round((st / z.minimum) * 100)}%"></span></span></div>
           <span class="bouton-principal inactif" aria-disabled="true">Commander</span>`
         : `<a class="bouton-principal" href="#commande">Commander, ${chf(total)}</a>`
@@ -343,7 +347,8 @@ function vuePanier() {
 
 function vueFiche(id) {
   const p = parId[id];
-  const f = etat.fiche || (etat.fiche = { id, qte: 1, retraits: [], ajouts: [], choix: null, note: "", tous: false });
+  if (!etat.fiche || etat.fiche.id !== id) etat.fiche = { id, qte: 1, retraits: [], ajouts: [], choix: null, note: "", tous: false };
+  const f = etat.fiche;
   const pates = p.groupes.includes("g2");
   const supp = p.groupes.includes("g1");
   const suppAffiches = f.tous ? groupes.g1.choix : groupes.g1.choix.slice(0, 8);
@@ -433,7 +438,7 @@ function vueCommande() {
             ${
               retrait
                 ? `<p><strong>Route de Chancy 132, 1213 Onex</strong></p><p>Prête vers ${heureAsap()}</p>`
-                : `<p><strong>${esc(a.rue)}, ${a.npa} ${a.ville}</strong></p><p>${esc(etat.details.etage || "")} étage, sonnette ${esc(etat.details.sonnette || "")}</p><p>Vers ${heureAsap()}</p>`
+                : `<p><strong>${esc(a.rue)}, ${a.npa} ${a.ville}</strong></p>${[etat.details.etage && `${esc(etat.details.etage)} étage`, etat.details.sonnette && `sonnette ${esc(etat.details.sonnette)}`, etat.details.code && `code ${esc(etat.details.code)}`].filter(Boolean).map((t) => `<p>${t}</p>`).join("")}<p>Vers ${heureAsap()}</p>`
             }
             <a href="#accueil">Modifier</a>
           </div>
@@ -479,6 +484,15 @@ function vueCommande() {
   </div>`;
 }
 
+// Même règles que le bouton « Commander » du panier, pour un accès direct à #commande.
+function commandePossible() {
+  if (!etat.panier.length) return false;
+  if (etat.mode === "retrait") return true;
+  return !!zone() && totaux().manque === 0;
+}
+
+const LIBELLES_PAIEMENT = { twint: "Payé avec TWINT", apple: "Payé avec Apple Pay", carte: "Payé par carte", comptoir: "À payer au comptoir" };
+
 function vueSuivi() {
   const retrait = etat.mode === "retrait";
   const etapes = retrait
@@ -490,7 +504,7 @@ function vueSuivi() {
   <div class="page-suivi">
     <p class="suivi-num">Commande 037, ${esc("Claire")}</p>
     <h1>${retrait ? "Prête vers" : "Chez vous vers"} <span class="suivi-heure">19h45</span></h1>
-    <p class="suivi-change">Le restaurant a confirmé l'heure : 19h45 au lieu de ${heureAsap()}.</p>
+    ${heureAsap() !== "19h45" ? `<p class="suivi-change">Le restaurant a confirmé l'heure : 19h45 au lieu de ${heureAsap()}.</p>` : ""}
     <ol class="etapes">
       ${etapes
         .map(([t, h], i) => `<li class="${i < courante ? "fait" : i === courante ? "en-cours" : ""}" ${i === courante ? 'aria-current="step"' : ""}><span class="puce">${i < courante ? icone("ok") : ""}</span><span class="etape-t">${t}</span><span class="etape-h">${h}</span></li>`)
@@ -500,7 +514,7 @@ function vueSuivi() {
     <section class="suivi-detail">
       <h2>Votre commande</h2>
       <ul class="lignes">${lignesPanier(false)}</ul>
-      <dl class="sommes"><div class="somme-totale"><dt>Payé avec TWINT</dt><dd>${chf(total)}</dd></div></dl>
+      <dl class="sommes"><div class="somme-totale"><dt>${LIBELLES_PAIEMENT[etat.paiement]}</dt><dd>${chf(total)}</dd></div></dl>
       <p>Une question ? <a href="tel:+41227921689">022 792 16 89</a></p>
     </section>
   </div>`;
@@ -521,7 +535,7 @@ function rendre() {
   let html;
   if (vue === "carte" || vue === "plat") html = vueCarte();
   else if (vue === "panier") html = vuePanier();
-  else if (vue === "commande") html = etat.panier.length ? vueCommande() : vueCarte();
+  else if (vue === "commande") html = commandePossible() ? vueCommande() : vuePanier();
   else if (vue === "suivi") html = vueSuivi();
   else html = vueAccueil();
   const fiche = vue === "plat" && parId[arg] ? vueFiche(arg) : "";
@@ -579,7 +593,7 @@ app.addEventListener("click", (ev) => {
     rendre();
   } else if (a === "ancre") {
     ev.preventDefault();
-    document.querySelector(el.getAttribute("href")).scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    document.querySelector(el.getAttribute("href"))?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   }
 });
 
@@ -623,8 +637,10 @@ app.addEventListener("input", (ev) => {
     i.setSelectionRange(i.value.length, i.value.length);
   } else if (el.id === "note-plat") {
     etat.fiche.note = el.value;
-  } else if (["etage", "sonnette"].includes(el.id)) {
+  } else if (["etage", "sonnette", "code"].includes(el.id)) {
     etat.details[el.id] = el.value;
+  } else if (el.id === "note-livreur") {
+    etat.details.note = el.value;
   }
 });
 

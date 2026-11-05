@@ -1,5 +1,5 @@
-/* Mécanique commune aux deux directions : positions, empilement, comportements.
-   Couleurs, polices et mise en page de la carte sont dans a/style.css et b/style.css. */
+/* Mécanique de la maquette : positions, empilement, comportements.
+   Couleurs, polices et mise en page de la carte sont dans a/style.css. */
 
 *,
 *::before,
