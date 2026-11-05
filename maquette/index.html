@@ -38,12 +38,12 @@
   .intro { display: flex; flex-direction: column; gap: 14px; }
   .liens { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
   .liens a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border: 1px solid var(--texte); border-radius: 4px; text-decoration: none; font-weight: 600; }
-  .directions { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .directions { display: grid; grid-template-columns: minmax(0, 640px); gap: 24px; }
   .direction { background: var(--surface); border: 1px solid var(--filet); border-radius: 4px; padding: 20px; display: flex; flex-direction: column; gap: 8px; }
   .direction .lettre { font-size: 40px; font-weight: 700; line-height: 1; }
   .ecran { display: flex; flex-direction: column; gap: 16px; padding-top: 28px; border-top: 1px solid var(--filet); }
   .ecran > p { color: var(--doux); }
-  .paire { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .paire { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; }
   .colonne { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
   .colonne h3 span { color: var(--texte); }
   .bureau img { width: 100%; height: auto; border: 1px solid var(--filet); border-radius: 4px; display: block; }
@@ -64,25 +64,19 @@
 
 <div class="page">
   <header class="intro">
-    <h1>Commande La Ferme : deux directions à choisir</h1>
-    <p>Les deux maquettes suivent le même parcours : livraison ou retrait, adresse, carte, fiche du plat, panier, paiement, suivi. Seul l'habillage change. La tablette de cuisine est la même pour les deux.</p>
+    <h1>Commande La Ferme : direction Béton</h1>
+    <p>Direction retenue par Jérémy le 5.11.2026. Le parcours : livraison ou retrait, adresse, carte, fiche du plat, panier, paiement, suivi, puis la tablette de cuisine.</p>
     <div class="liens">
-      <a href="a/index.html?adresse=0&amp;panier=petit#carte">Essayer A, Béton</a>
-      <a href="b/index.html?adresse=0&amp;panier=petit#carte">Essayer B, La carte</a>
+      <a href="a/index.html?adresse=0&amp;panier=petit#carte">Essayer la maquette</a>
       <a href="tablette/index.html">Voir la tablette</a>
     </div>
   </header>
 
-  <section class="directions" aria-label="Les deux directions">
+  <section class="directions" aria-label="Direction retenue">
     <div class="direction">
       <span class="lettre">A</span>
       <h2>Béton</h2>
       <p>Le gris du plan de travail des photos devient le fond de la carte. Les assiettes ont l'air posées sur une seule grande table. Titres étroits et gras, comme une enseigne.</p>
-    </div>
-    <div class="direction">
-      <span class="lettre">B</span>
-      <h2>La carte</h2>
-      <p>Une carte de restaurant imprimée : fond blanc, une liste avec des filets, les noms des plats en Bodoni, un caractère né à Parme. Le jaune pâle marque ce qui est choisi.</p>
     </div>
   </section>
 
@@ -90,7 +84,7 @@
 
   <section class="ecran tablette">
     <h2>Tablette de service</h2>
-    <p>Commune aux deux directions. Une commande sonne jusqu'à la réponse. On ajuste l'heure, on accepte, et les deux tickets sortent : pizza d'un côté, cuisine de l'autre, chacun avec ses lignes.</p>
+    <p>Une commande sonne jusqu'à la réponse. On ajuste l'heure, on accepte, et les deux tickets sortent : pizza d'un côté, cuisine de l'autre, chacun avec ses lignes.</p>
     <a href="captures/tablette.jpg"><img src="captures/tablette.jpg" width="1280" height="1019" alt="Tablette : commande 038 à accepter, heure 19:40, aperçu des tickets pizza et cuisine" loading="lazy"></a>
   </section>
 
@@ -117,16 +111,16 @@
     { titre: "Paiement en une page", note: "Coordonnées, une case pour garder ses adresses et ses commandes, puis TWINT, Apple Pay ou carte. Le récapitulatif reste à côté.", nom: "commande", bureau: true, mobiles: [["commande", "Page entière"]] },
     { titre: "Suivi de la commande", note: "L'heure confirmée par le restaurant en grand, et les étapes. Ici, le restaurant a décalé l'heure de cinq minutes.", nom: "suivi", bureau: true, mobiles: [["suivi", "Suivi"]] },
   ];
-  const NOMS = { a: "A, Béton", b: "B, La carte" };
+  const NOMS = { a: "Béton" };
   const html = ECRANS.map((e) => {
     const col = (d) => {
       const bureau = e.bureau ? `<a class="bureau" href="captures/${d}-${e.nom}-bureau.jpg"><img src="captures/${d}-${e.nom}-bureau.jpg" width="1200" height="750" alt="${e.titre}, direction ${NOMS[d]}, ordinateur" loading="lazy"></a>` : "";
       const mobiles = e.mobiles.length
         ? `<div class="mobiles">${e.mobiles.map(([n, l]) => `<div><a class="tel" href="captures/${d}-${n}-mobile.jpg"><img src="captures/${d}-${n}-mobile.jpg" alt="${l}, direction ${NOMS[d]}, téléphone" loading="lazy"></a><p class="legende">${l}</p></div>`).join("")}</div>`
         : "";
-      return `<div class="colonne"><h3>Direction <span>${NOMS[d]}</span></h3>${bureau}${mobiles}</div>`;
+      return `<div class="colonne">${bureau}${mobiles}</div>`;
     };
-    return `<section class="ecran"><h2>${e.titre}</h2><p>${e.note}</p><div class="paire">${col("a")}${col("b")}</div></section>`;
+    return `<section class="ecran"><h2>${e.titre}</h2><p>${e.note}</p><div class="paire">${col("a")}</div></section>`;
   }).join("");
   document.getElementById("ecrans").outerHTML = html;
 </script>
