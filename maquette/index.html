@@ -1,0 +1,132 @@
+<title>Maquettes La Ferme</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700&display=swap">
+<style>
+  /* Planche de choix : chaque écran montre A et B côte à côte, bureau puis mobile. */
+  :root {
+    --fond: #f3f3f1;
+    --surface: #ffffff;
+    --texte: #1d1c1b;
+    --doux: #5f5b57;
+    --filet: #dad7d3;
+    --marque: #ece3c4;
+    --police: "Public Sans", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --fond: #1b1b1a; --surface: #262524; --texte: #f1efec; --doux: #b3aea8; --filet: #3a3836; --marque: #4a4330;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --fond: #1b1b1a; --surface: #262524; --texte: #f1efec; --doux: #b3aea8; --filet: #3a3836; --marque: #4a4330;
+    color-scheme: dark;
+  }
+  body {
+    background: var(--fond); color: var(--texte); font-family: var(--police); line-height: 1.55;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .page { max-width: 1240px; margin: 0 auto; padding-block: 40px 80px; display: flex; flex-direction: column; gap: 56px; }
+  h1, h2, h3 { margin: 0; line-height: 1.15; text-wrap: balance; }
+  h1 { font-size: clamp(30px, 4vw, 44px); font-weight: 700; letter-spacing: -0.01em; }
+  h2 { font-size: 26px; font-weight: 700; }
+  h3 { font-size: 15px; font-weight: 600; color: var(--doux); }
+  p { margin: 0; max-width: 68ch; }
+  a { color: inherit; }
+  .intro { display: flex; flex-direction: column; gap: 14px; }
+  .liens { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+  .liens a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border: 1px solid var(--texte); border-radius: 4px; text-decoration: none; font-weight: 600; }
+  .directions { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .direction { background: var(--surface); border: 1px solid var(--filet); border-radius: 4px; padding: 20px; display: flex; flex-direction: column; gap: 8px; }
+  .direction .lettre { font-size: 40px; font-weight: 700; line-height: 1; }
+  .ecran { display: flex; flex-direction: column; gap: 16px; padding-top: 28px; border-top: 1px solid var(--filet); }
+  .ecran > p { color: var(--doux); }
+  .paire { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .colonne { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .colonne h3 span { color: var(--texte); }
+  .bureau img { width: 100%; height: auto; border: 1px solid var(--filet); border-radius: 4px; display: block; }
+  .mobiles { display: flex; gap: 12px; flex-wrap: wrap; }
+  .tel { width: 200px; aspect-ratio: 390 / 844; overflow: hidden; border: 1px solid var(--filet); border-radius: 14px; display: block; }
+  .tel img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+  .legende { font-size: 13px; color: var(--doux); margin-top: 4px; }
+  .tablette img { width: 100%; height: auto; border: 1px solid var(--filet); border-radius: 4px; display: block; }
+  .notes { background: var(--surface); border: 1px solid var(--filet); border-radius: 4px; padding: 20px 24px; }
+  .notes ul { margin: 10px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+  .notes li { max-width: 80ch; }
+  mark { background: var(--marque); color: inherit; padding: 0 3px; }
+  @media (max-width: 760px) {
+    .directions, .paire { grid-template-columns: 1fr; }
+    .tel { width: calc(50% - 6px); }
+  }
+</style>
+
+<div class="page">
+  <header class="intro">
+    <h1>Commande La Ferme : deux directions à choisir</h1>
+    <p>Les deux maquettes suivent le même parcours : livraison ou retrait, adresse, carte, fiche du plat, panier, paiement, suivi. Seul l'habillage change. La tablette de cuisine est la même pour les deux.</p>
+    <div class="liens">
+      <a href="a/index.html?adresse=0&amp;panier=petit#carte">Essayer A, Béton</a>
+      <a href="b/index.html?adresse=0&amp;panier=petit#carte">Essayer B, La carte</a>
+      <a href="tablette/index.html">Voir la tablette</a>
+    </div>
+  </header>
+
+  <section class="directions" aria-label="Les deux directions">
+    <div class="direction">
+      <span class="lettre">A</span>
+      <h2>Béton</h2>
+      <p>Le gris du plan de travail des photos devient le fond de la carte. Les assiettes ont l'air posées sur une seule grande table. Titres étroits et gras, comme une enseigne.</p>
+    </div>
+    <div class="direction">
+      <span class="lettre">B</span>
+      <h2>La carte</h2>
+      <p>Une carte de restaurant imprimée : fond blanc, une liste avec des filets, les noms des plats en Bodoni, un caractère né à Parme. Le jaune pâle marque ce qui est choisi.</p>
+    </div>
+  </section>
+
+  <div id="ecrans"></div>
+
+  <section class="ecran tablette">
+    <h2>Tablette de service</h2>
+    <p>Commune aux deux directions. Une commande sonne jusqu'à la réponse. On ajuste l'heure, on accepte, et les deux tickets sortent : pizza d'un côté, cuisine de l'autre, chacun avec ses lignes.</p>
+    <a href="captures/tablette.jpg"><img src="captures/tablette.jpg" width="1280" height="1019" alt="Tablette : commande 038 à accepter, heure 19:40, aperçu des tickets pizza et cuisine" loading="lazy"></a>
+  </section>
+
+  <section class="notes">
+    <h2>À savoir en regardant</h2>
+    <ul>
+      <li>Les prix affichés sont les prix de la salle proposés, <mark>tous à valider</mark> dans le tableau <code>docs/validation-carte.xlsx</code>.</li>
+      <li>Frais, minimum et heure viennent des propositions de zones (zone 1 : 2.90 de frais, 30.– de minimum). À valider aussi.</li>
+      <li>L'horloge est figée à mardi 19h05 pour que les écrans restent comparables. Adresses, prénoms et numéros sont fictifs.</li>
+      <li>Les textes sont provisoires. Ils seront réécrits avec la voix du restaurant une fois la direction choisie.</li>
+      <li>Les provenances manquantes apparaissent en clair (« Jambon : provenance à compléter »). Les allergènes renvoient au 022 792 16 89 en attendant la liste du restaurant.</li>
+      <li>17 plats ont une photo du shooting. Ils passent en tête de chaque catégorie, les autres suivent en liste.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+  const ECRANS = [
+    { titre: "Accueil : le mode et l'adresse avant la carte", note: "L'adresse est contrôlée tout de suite : frais, minimum et heure d'arrivée s'affichent avant le premier plat.", nom: "accueil", bureau: true, mobiles: [["accueil", "Adresse dans la zone"], ["horszone", "Adresse hors zone"]] },
+    { titre: "Carte", note: "Catégories toujours visibles, recherche, panier à droite sur ordinateur et barre en bas sur téléphone, avec le montant qui manque pour le minimum.", nom: "carte", bureau: true, mobiles: [["carte", "Haut de la carte"]] },
+    { titre: "Plats sans photo et rupture", note: "Plus bas sur la carte : les plats sans photo en liste, et un plat épuisé ce soir, grisé avec la raison.", nom: "carte-suite", bureau: true, mobiles: [["carte-suite", "Plats sans photo, plat épuisé"]] },
+    { titre: "Fiche du plat et options", note: "Retraits gratuits, suppléments payants (cinq au plus), note pour la cuisine. Les pâtes demandent un choix avant d'ajouter.", nom: "fiche", bureau: true, mobiles: [["fiche", "Pizza avec options"], ["fiche-pates", "Choix obligatoire"]] },
+    { titre: "Panier", note: "Sur téléphone, le panier s'ouvre en page. Quantités, options et total restent modifiables jusqu'au paiement.", nom: "panier", bureau: false, mobiles: [["panier", "Panier"]] },
+    { titre: "Paiement en une page", note: "Coordonnées, une case pour garder ses adresses et ses commandes, puis TWINT, Apple Pay ou carte. Le récapitulatif reste à côté.", nom: "commande", bureau: true, mobiles: [["commande", "Page entière"]] },
+    { titre: "Suivi de la commande", note: "L'heure confirmée par le restaurant en grand, et les étapes. Ici, le restaurant a décalé l'heure de cinq minutes.", nom: "suivi", bureau: true, mobiles: [["suivi", "Suivi"]] },
+  ];
+  const NOMS = { a: "A, Béton", b: "B, La carte" };
+  const html = ECRANS.map((e) => {
+    const col = (d) => {
+      const bureau = e.bureau ? `<a class="bureau" href="captures/${d}-${e.nom}-bureau.jpg"><img src="captures/${d}-${e.nom}-bureau.jpg" width="1200" height="750" alt="${e.titre}, direction ${NOMS[d]}, ordinateur" loading="lazy"></a>` : "";
+      const mobiles = e.mobiles.length
+        ? `<div class="mobiles">${e.mobiles.map(([n, l]) => `<div><a class="tel" href="captures/${d}-${n}-mobile.jpg"><img src="captures/${d}-${n}-mobile.jpg" alt="${l}, direction ${NOMS[d]}, téléphone" loading="lazy"></a><p class="legende">${l}</p></div>`).join("")}</div>`
+        : "";
+      return `<div class="colonne"><h3>Direction <span>${NOMS[d]}</span></h3>${bureau}${mobiles}</div>`;
+    };
+    return `<section class="ecran"><h2>${e.titre}</h2><p>${e.note}</p><div class="paire">${col("a")}${col("b")}</div></section>`;
+  }).join("");
+  document.getElementById("ecrans").outerHTML = html;
+</script>
