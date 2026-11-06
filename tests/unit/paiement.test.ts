@@ -38,15 +38,15 @@ async function nouvelleCommande() {
     lignes: [{ slug: "pizza-margherita", nom: "Pizza Margherita", station: "pizza", qte: 1, unitaire_centimes: 1000, total_centimes: 1000, choix: {}, retraits: [], note: "" }],
   });
   await lierSessionPaiement(c.id, `cs_test_${cle}`);
-  return c;
+  return { ...c, session: `cs_test_${cle}` };
 }
 
-function evenement(id: string, type: string, commande: string, paye = true) {
+function evenement(id: string, type: string, commande: string, paye = true, session = "cs_test") {
   return JSON.stringify({
     id,
     object: "event",
     type,
-    data: { object: { object: "checkout.session", id: "cs_test", metadata: { commande_id: commande }, payment_status: paye ? "paid" : "unpaid", payment_intent: "pi_test" } },
+    data: { object: { object: "checkout.session", id: session, metadata: { commande_id: commande }, payment_status: paye ? "paid" : "unpaid", payment_intent: "pi_test" } },
   });
 }
 
@@ -90,5 +90,15 @@ describe("webhook Stripe", () => {
     await envoyer(evenement(`evt_p_${c.id}`, "checkout.session.completed", c.id));
     await envoyer(evenement(`evt_x_${c.id}`, "checkout.session.expired", c.id, false));
     expect((await commandeParId(c.id))?.statut_paiement).toBe("paye");
+  });
+});
+
+describe("expiration d'une session", () => {
+  it("annule la commande si c'est sa session en cours, pas si c'est un ancien essai", async () => {
+    const c = await nouvelleCommande();
+    await envoyer(evenement(`evt_vieux_${c.id}`, "checkout.session.expired", c.id, false, "cs_test_ancien"));
+    expect((await commandeParId(c.id))?.statut_paiement).toBe("en_attente");
+    await envoyer(evenement(`evt_exp_${c.id}`, "checkout.session.expired", c.id, false, c.session));
+    expect((await commandeParId(c.id))?.statut).toBe("annulee");
   });
 });

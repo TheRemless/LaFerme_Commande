@@ -11,8 +11,10 @@ export function champ(v: unknown): string | null {
   return typeof v === "string" && v.trim().length > 0 && v.length <= LONGUEUR_MAX ? v.trim() : null;
 }
 
+export type AdresseRetenue = { rue: string; numero: string; npa: string; localite: string };
+
 export type ResultatZoneServeur =
-  | { statut: "livrable"; zone: Zone; verifiee: boolean }
+  | { statut: "livrable"; zone: Zone; verifiee: boolean; adresse: AdresseRetenue }
   | { statut: "hors-zone"; verifiee: boolean }
   | { erreur: string; code: 422 | 503 };
 
@@ -39,6 +41,7 @@ export async function zoneServeur(config: ConfigService, adresse: unknown, exige
   let npa: string | null;
   let localite: string | null;
   let verifiee = false;
+  let retenue: AdresseRetenue | null = null;
   if (featureId) {
     let officielle;
     try {
@@ -51,11 +54,14 @@ export async function zoneServeur(config: ConfigService, adresse: unknown, exige
     npa = officielle.npa;
     localite = officielle.localite;
     verifiee = true;
+    // L'adresse officielle fait foi : c'est elle qui est enregistrée, pas celle tapée par le client.
+    retenue = { rue: officielle.rue, numero: officielle.numero, npa: officielle.npa, localite: officielle.localite };
   } else {
     npa = champ(a.npa);
     localite = champ(a.localite);
     if (!npa || !/^\d{4}$/.test(npa) || !localite) return { erreur: "Indiquez un NPA à quatre chiffres et une localité.", code: 422 };
   }
   const r = zonePour(config, npa, localite);
-  return r.statut === "livrable" ? { statut: "livrable", zone: r.zone, verifiee } : { statut: "hors-zone", verifiee };
+  retenue ??= { rue: champ(a.rue) ?? "", numero: champ(a.numero) ?? "", npa, localite };
+  return r.statut === "livrable" ? { statut: "livrable", zone: r.zone, verifiee, adresse: retenue } : { statut: "hors-zone", verifiee };
 }

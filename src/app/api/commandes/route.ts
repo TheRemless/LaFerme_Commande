@@ -4,13 +4,13 @@ import { chargerCatalogue } from "@/lib/catalogue";
 import { confirmerCommandeComptoir } from "@/lib/commandes";
 import { chargerConfigService } from "@/lib/config-service";
 import { detailsLigne } from "@/lib/courriel/modeles";
-import { ConfigurationManquante, creerCommande, lierSessionPaiement } from "@/lib/db/serveur";
+import { commandeParId, ConfigurationManquante, creerCommande, lierSessionPaiement } from "@/lib/db/serveur";
 import { origineSure } from "@/lib/origine";
 import { calculerPanier } from "@/lib/panier";
 import { passerelle } from "@/lib/paiement/passerelle";
 import { depuisHeureGeneve, quandPossible, type Zone } from "@/lib/service";
 import { cleValide, clientValide, detailsValides, lignesValides, quandValide } from "@/lib/validation";
-import { zoneServeur } from "@/lib/zone-serveur";
+import { zoneServeur, type AdresseRetenue } from "@/lib/zone-serveur";
 
 // Passage de la commande. Le serveur refait tous les contrôles avec la base : contenu et prix, adresse
 // retrouvée dans le registre fédéral, zone, minimum, heure. Il enregistre la commande, puis renvoie
@@ -44,6 +44,7 @@ export async function POST(requete: Request) {
 
   let zone: Zone | undefined;
   let details = null;
+  let adresse: AdresseRetenue | null = null;
   if (mode === "livraison") {
     details = detailsValides(corps.details);
     if (!details) return refus("Indiquez le nom sur la sonnette.");
@@ -51,6 +52,7 @@ export async function POST(requete: Request) {
     if ("erreur" in r) return refus(r.erreur, r.code);
     if (r.statut !== "livrable") return refus("Cette adresse est hors de notre zone de livraison.");
     zone = r.zone;
+    adresse = r.adresse;
   }
 
   const totaux = calculerPanier(catalogue, lignes, zone ? { frais_centimes: zone.frais_centimes, minimum_centimes: zone.minimum_centimes } : null);
@@ -65,7 +67,6 @@ export async function POST(requete: Request) {
     return refus("Ce moment n'est plus disponible. Choisissez une autre heure.");
   }
 
-  const adresse = mode === "livraison" ? (corps.adresse as Record<string, string>) : null;
   let creee;
   try {
     creee = await creerCommande({
@@ -79,7 +80,7 @@ export async function POST(requete: Request) {
       client_nom: client.nom,
       client_telephone: client.telephone,
       client_email: client.email,
-      adresse: adresse ? { rue: adresse.rue, numero: adresse.numero, npa: adresse.npa, localite: adresse.localite } : null,
+      adresse,
       details_livraison: details,
       zone_numero: zone?.numero ?? null,
       quand_type: quand.type,
@@ -109,6 +110,8 @@ export async function POST(requete: Request) {
     throw e;
   }
   const suivi = `${origine}/suivi/${creee.jeton_suivi}`;
+  const existante = creee.deja ? await commandeParId(creee.id) : null;
+  if (existante && existante.statut_paiement !== "en_attente") return NextResponse.json({ redirection: suivi });
 
   if (moyen === "comptoir") {
     if (!creee.deja) await confirmerCommandeComptoir(creee.id);
@@ -117,6 +120,9 @@ export async function POST(requete: Request) {
 
   // Paiement en ligne : une ligne par plat (options comprises dans le libellé), puis la livraison.
   const p = passerelle();
+  // Nouvel essai pour la même commande (retour arrière depuis Stripe) : l'ancienne session est fermée
+  // pour qu'on ne puisse pas payer deux fois.
+  if (existante?.stripe_session_id) await p.expirerSession(existante.stripe_session_id).catch(() => undefined);
   const factures = totaux.lignes.map((l) => {
     const options = detailsLigne(catalogue, { choix: l.choix, retraits: l.retraits, note: "" });
     return { libelle: options.length ? `${l.nom} (${options.join(", ")})` : l.nom, qte: l.qte, unitaire_centimes: l.unitaire_centimes };

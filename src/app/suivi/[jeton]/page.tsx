@@ -137,6 +137,11 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
               Une question ? <a href="tel:+41227921689">022 792 16 89</a>
             </p>
           </section>
+          {process.env.CONTEXTE_DEPLOIEMENT !== "production" && (
+            <p className="suivi-info">
+              Préversion : <a href={`/dev/courriels?jeton=${c.jeton_suivi}`}>voir les courriels de test de cette commande</a>.
+            </p>
+          )}
         </div>
       </main>
     </>

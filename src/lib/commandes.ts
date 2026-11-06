@@ -26,7 +26,10 @@ export async function confirmerPaiement(commandeId: string, evenement: string, p
   return applique;
 }
 
-export async function annulerPaiement(commandeId: string, evenement: string): Promise<boolean> {
+// Seule la session en cours de la commande peut l'annuler : l'expiration d'un ancien essai ne compte pas.
+export async function annulerPaiement(commandeId: string, evenement: string, sessionId: string): Promise<boolean> {
+  const c = await commandeParId(commandeId);
+  if (!c || c.stripe_session_id !== sessionId) return false;
   return appliquerPaiement(evenement, commandeId, "echec");
 }
 
@@ -45,7 +48,7 @@ export async function reconcilier(c: Commande): Promise<Commande> {
   const etat = await p.lireSession(c.stripe_session_id);
   let change = false;
   if (etat.statut === "paye") change = await confirmerPaiement(c.id, `session:${c.stripe_session_id}:paye`, etat.paymentIntent);
-  if (etat.statut === "echec") change = await annulerPaiement(c.id, `session:${c.stripe_session_id}:echec`);
+  if (etat.statut === "echec") change = await annulerPaiement(c.id, `session:${c.stripe_session_id}:echec`, c.stripe_session_id);
   return change ? ((await commandeParId(c.id)) ?? c) : c;
 }
 

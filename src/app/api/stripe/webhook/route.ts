@@ -32,7 +32,7 @@ export async function POST(requete: Request) {
         break;
       case "checkout.session.async_payment_failed":
       case "checkout.session.expired":
-        await annulerPaiement(commandeId, evenement.id);
+        await annulerPaiement(commandeId, evenement.id, session.id);
         break;
     }
   }

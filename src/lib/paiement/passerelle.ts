@@ -24,6 +24,7 @@ export interface Passerelle {
   creerSession(d: DemandeSession): Promise<{ id: string; url: string }>;
   lireSession(id: string): Promise<EtatSession>;
   rembourser(paymentIntent: string): Promise<{ id: string }>;
+  expirerSession(id: string): Promise<void>;
 }
 
 let stripe: Stripe | null = null;
@@ -61,7 +62,6 @@ const passerelleStripe = (s: Stripe): Passerelle => ({
         // Une demi-heure (minimum Stripe) : au-delà, la session expire et la commande est annulée.
         expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
       },
-      { idempotencyKey: `session-${d.commandeId}` },
     );
     if (!session.url) throw new Error("Stripe n'a pas renvoyé d'adresse de paiement.");
     return { id: session.id, url: session.url };
@@ -76,6 +76,10 @@ const passerelleStripe = (s: Stripe): Passerelle => ({
   async rembourser(paymentIntent) {
     const r = await s.refunds.create({ payment_intent: paymentIntent }, { idempotencyKey: `remboursement-${paymentIntent}` });
     return { id: r.id };
+  },
+  async expirerSession(id) {
+    const session = await s.checkout.sessions.retrieve(id);
+    if (session.status === "open") await s.checkout.sessions.expire(id);
   },
 });
 
@@ -92,6 +96,7 @@ const passerelleDoublure: Passerelle = {
   async rembourser(paymentIntent) {
     return { id: `re_doublure_${paymentIntent}` };
   },
+  async expirerSession() {},
 };
 
 export function passerelle(): Passerelle {

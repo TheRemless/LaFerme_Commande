@@ -106,9 +106,11 @@ export function usePrixServeur(lignes: LignePanier[], actif: boolean): ReponsePa
   return etat && etat.cle === cle ? etat.reponse : null;
 }
 
-// Après une commande passée : le panier repart vide (et la clé de commande avec lui).
+// Après une commande passée : le panier repart vide (et la clé de commande avec lui). Seulement dans
+// l'onglet qui a passé la commande, reconnu à sa clé : ouvrir un lien de suivi transmis ne vide rien.
 export function viderPanier(): void {
   try {
+    if (!window.sessionStorage.getItem("laferme.cle-commande")) return;
     window.localStorage.removeItem(CLE);
     window.sessionStorage.removeItem("laferme.cle-commande");
   } catch {

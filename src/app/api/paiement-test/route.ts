@@ -16,6 +16,6 @@ export async function POST(requete: Request) {
   const c = await commandeParId(corps.commande);
   if (!c || c.stripe_session_id !== `doublure_${c.id}`) return NextResponse.json({ erreur: "Commande inconnue." }, { status: 404 });
   if (corps.issue === "paye") await confirmerPaiement(c.id, `doublure:${c.id}:paye`, `pi_doublure_${c.id}`);
-  else await annulerPaiement(c.id, `doublure:${c.id}:echec`);
+  else await annulerPaiement(c.id, `doublure:${c.id}:echec`, `doublure_${c.id}`);
   return NextResponse.json({ redirection: corps.issue === "paye" ? `/suivi/${c.jeton_suivi}?retour=1` : "/commande?annule=1" });
 }

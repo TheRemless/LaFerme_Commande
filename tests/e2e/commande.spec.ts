@@ -57,7 +57,7 @@ test("paiement en ligne réussi, puis courriel de confirmation", async ({ page }
   await expect(page).toHaveURL(/\/suivi\//);
   await expect(page.getByText("Payée en ligne")).toBeVisible();
   const numero = (await page.locator(".suivi-num").innerText()).match(/Commande (\d+)/)![1];
-  await page.goto("/dev/courriels");
+  await page.getByRole("link", { name: /voir les courriels de test/ }).click();
   await expect(page.getByRole("heading", { name: `Commande ${numero} reçue, La Ferme` })).toBeVisible();
 });
 
@@ -88,4 +88,8 @@ test("le serveur refuse coordonnées invalides et paiement au comptoir en livrai
 test("un jeton inconnu donne une page introuvable", async ({ page }) => {
   const rep = await page.goto("/suivi/jeton-inexistant-0000000000");
   expect(rep?.status()).toBe(404);
+});
+
+test("les courriels de test exigent le jeton de la commande", async ({ page }) => {
+  expect((await page.goto("/dev/courriels"))?.status()).toBe(404);
 });

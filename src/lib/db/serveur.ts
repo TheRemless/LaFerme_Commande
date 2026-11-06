@@ -137,17 +137,21 @@ export async function enregistrerCourriel(p: Record<string, unknown>): Promise<v
   await rpc("enregistrer_courriel", { p }, "select enregistrer_courriel($1)", [p]);
 }
 
-// Préversion seulement : les derniers courriels gardés, pour les montrer à Jérémy.
-export async function derniersCourriels(n = 20): Promise<{ destinataire: string; sujet: string; texte: string; html: string; envoye_le: string; fournisseur: string }[]> {
+// Préversion seulement : les courriels d'une commande, pour les montrer à celui qui a le lien de suivi.
+export async function courrielsDeCommande(commandeId: string): Promise<{ destinataire: string; sujet: string; texte: string; envoye_le: string; fournisseur: string }[]> {
   const s = supabaseServeur();
   if (s) {
-    const { data, error } = await s.from("courriels").select("destinataire, sujet, texte, html, envoye_le, fournisseur").order("envoye_le", { ascending: false }).limit(n);
+    const { data, error } = await s
+      .from("courriels")
+      .select("destinataire, sujet, texte, envoye_le, fournisseur")
+      .eq("commande_id", commandeId)
+      .order("envoye_le", { ascending: false });
     if (error) throw new Error(error.message);
     return data;
   }
   const db = await baseLocale();
-  return (await db.query<{ destinataire: string; sujet: string; texte: string; html: string; envoye_le: string; fournisseur: string }>(
-    "select destinataire, sujet, texte, html, envoye_le::text, fournisseur from courriels order by envoye_le desc limit $1",
-    [n],
+  return (await db.query<{ destinataire: string; sujet: string; texte: string; envoye_le: string; fournisseur: string }>(
+    "select destinataire, sujet, texte, envoye_le::text, fournisseur from courriels where commande_id = $1 order by envoye_le desc",
+    [commandeId],
   )).rows;
 }

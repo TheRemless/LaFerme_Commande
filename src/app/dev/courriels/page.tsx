@@ -1,27 +1,32 @@
 import { notFound } from "next/navigation";
 import { EnTete } from "@/components/EnTete";
-import { derniersCourriels } from "@/lib/db/serveur";
+import { commandeParJeton, courrielsDeCommande } from "@/lib/db/serveur";
 
 export const dynamic = "force-dynamic";
 
-// Préversion seulement : les courriels gardés par la doublure (sans Resend), pour relire ce que reçoit le client.
-export default async function Courriels() {
+// Préversion seulement : les courriels d'une commande gardés par la doublure (sans Resend).
+// Le jeton de suivi est exigé : on ne voit que les courriels de sa propre commande.
+export default async function Courriels({ searchParams }: { searchParams: Promise<{ jeton?: string }> }) {
   if (process.env.CONTEXTE_DEPLOIEMENT === "production") notFound();
-  const liste = await derniersCourriels(10);
+  const { jeton } = await searchParams;
+  if (!jeton || !/^[A-Za-z0-9_-]{20,64}$/.test(jeton)) notFound();
+  const c = await commandeParJeton(jeton);
+  if (!c) notFound();
+  const liste = await courrielsDeCommande(c.id);
   return (
     <>
       <EnTete />
       <main className="page-suivi">
         <div className="suivi">
-          <h1>Courriels de test</h1>
-          {liste.length === 0 && <p>Aucun courriel pour l&apos;instant.</p>}
-          {liste.map((c, i) => (
+          <h1>Courriels de test, commande {c.numero}</h1>
+          {liste.length === 0 && <p>Aucun courriel pour cette commande.</p>}
+          {liste.map((m, i) => (
             <article key={i} className="courriel-test">
               <p className="suivi-num">
-                {c.envoye_le.slice(0, 16).replace("T", " ")}, {c.fournisseur}, à {c.destinataire}
+                {m.envoye_le.slice(0, 16).replace("T", " ")}, {m.fournisseur}, à {m.destinataire}
               </p>
-              <h2>{c.sujet}</h2>
-              <pre>{c.texte}</pre>
+              <h2>{m.sujet}</h2>
+              <pre>{m.texte}</pre>
             </article>
           ))}
         </div>

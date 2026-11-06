@@ -69,7 +69,7 @@ export function PageCommande({ catalogue, preversion }: { catalogue: Catalogue; 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          cle: cleCommande(JSON.stringify([lignes, choix, moyen])),
+          cle: cleCommande(JSON.stringify([lignes, choix, moyen, client])),
           lignes,
           mode: choix.mode,
           adresse: choix.adresse,

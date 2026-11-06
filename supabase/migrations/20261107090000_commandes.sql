@@ -137,9 +137,10 @@ begin
 end;
 $$;
 
+-- Une commande en attente de paiement peut changer de session (nouvel essai) ; une commande payée, jamais.
 create function lier_session_paiement(p_commande uuid, p_session text) returns void
 language sql as $$
-  update commandes set stripe_session_id = p_session where id = p_commande and stripe_session_id is null;
+  update commandes set stripe_session_id = p_session where id = p_commande and statut_paiement = 'en_attente';
 $$;
 
 -- Applique un événement de paiement une seule fois. Les transitions ne vont que dans un sens :
