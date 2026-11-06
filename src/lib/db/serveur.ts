@@ -69,12 +69,18 @@ export async function lierSessionPaiement(commande: string, session: string): Pr
 export type TypePaiement = "paye" | "echec" | "rembourse";
 
 // Vrai seulement la première fois qu'un événement change la commande (sert à n'envoyer qu'un courriel).
-export async function appliquerPaiement(evenement: string, commande: string, type: TypePaiement, paymentIntent?: string): Promise<boolean> {
+export async function appliquerPaiement(
+  evenement: string,
+  commande: string,
+  type: TypePaiement,
+  paymentIntent?: string,
+  montantCentimes?: number,
+): Promise<boolean> {
   const r = await rpc<unknown>(
     "appliquer_paiement",
-    { p_evenement: evenement, p_commande: commande, p_type: type, p_payment_intent: paymentIntent ?? null },
-    "select appliquer_paiement($1, $2, $3, $4) as r",
-    [evenement, commande, type, paymentIntent ?? null],
+    { p_evenement: evenement, p_commande: commande, p_type: type, p_payment_intent: paymentIntent ?? null, p_montant: montantCentimes ?? null },
+    "select appliquer_paiement($1, $2, $3, $4, $5) as r",
+    [evenement, commande, type, paymentIntent ?? null, montantCentimes ?? null],
   );
   return Array.isArray(r) ? Boolean((r[0] as { r: boolean }).r) : Boolean(r);
 }

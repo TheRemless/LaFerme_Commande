@@ -17,7 +17,12 @@ export type DemandeSession = {
   origine: string;
 };
 
-export type EtatSession = { statut: "paye" | "en_attente" | "echec"; paymentIntent?: string };
+export type EtatSession = {
+  statut: "paye" | "en_attente" | "echec";
+  paymentIntent?: string;
+  montantCentimes: number | null;
+  devise: string | null;
+};
 
 export interface Passerelle {
   nom: "stripe" | "doublure";
@@ -69,9 +74,10 @@ const passerelleStripe = (s: Stripe): Passerelle => ({
   async lireSession(id) {
     const session = await s.checkout.sessions.retrieve(id);
     const paymentIntent = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
-    if (session.payment_status === "paid") return { statut: "paye", paymentIntent };
-    if (session.status === "expired") return { statut: "echec" };
-    return { statut: "en_attente" };
+    const montant = { montantCentimes: session.amount_total, devise: session.currency };
+    if (session.payment_status === "paid") return { statut: "paye", paymentIntent, ...montant };
+    if (session.status === "expired") return { statut: "echec", ...montant };
+    return { statut: "en_attente", ...montant };
   },
   async rembourser(paymentIntent) {
     const r = await s.refunds.create({ payment_intent: paymentIntent }, { idempotencyKey: `remboursement-${paymentIntent}` });
@@ -91,7 +97,7 @@ const passerelleDoublure: Passerelle = {
   },
   // L'état vit dans la base (événements appliqués par la page de test) : rien à relire ailleurs.
   async lireSession() {
-    return { statut: "en_attente" };
+    return { statut: "en_attente", montantCentimes: null, devise: null };
   },
   async rembourser(paymentIntent) {
     return { id: `re_doublure_${paymentIntent}` };

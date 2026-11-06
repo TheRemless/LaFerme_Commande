@@ -41,12 +41,12 @@ async function nouvelleCommande() {
   return { ...c, session: `cs_test_${cle}` };
 }
 
-function evenement(id: string, type: string, commande: string, paye = true, session = "cs_test") {
+function evenement(id: string, type: string, commande: string, paye = true, session = "cs_test", montant = 1000, devise = "chf") {
   return JSON.stringify({
     id,
     object: "event",
     type,
-    data: { object: { object: "checkout.session", id: session, metadata: { commande_id: commande }, payment_status: paye ? "paid" : "unpaid", payment_intent: "pi_test" } },
+    data: { object: { object: "checkout.session", id: session, metadata: { commande_id: commande }, payment_status: paye ? "paid" : "unpaid", payment_intent: "pi_test", amount_total: montant, currency: devise } },
   });
 }
 
@@ -69,10 +69,10 @@ describe("webhook Stripe", () => {
 
   it("confirme le paiement une seule fois et n'envoie qu'un courriel", async () => {
     const c = await nouvelleCommande();
-    const ev = evenement(`evt_${c.id}`, "checkout.session.completed", c.id);
+    const ev = evenement(`evt_${c.id}`, "checkout.session.completed", c.id, true, c.session);
     expect((await envoyer(ev)).status).toBe(200);
     await envoyer(ev);
-    await envoyer(evenement(`evt_bis_${c.id}`, "checkout.session.async_payment_succeeded", c.id));
+    await envoyer(evenement(`evt_bis_${c.id}`, "checkout.session.async_payment_succeeded", c.id, true, c.session));
     const apres = await commandeParId(c.id);
     expect(apres?.statut).toBe("nouvelle");
     expect(apres?.statut_paiement).toBe("paye");
@@ -81,14 +81,14 @@ describe("webhook Stripe", () => {
 
   it("attend TWINT quand la session est terminée sans paiement", async () => {
     const c = await nouvelleCommande();
-    await envoyer(evenement(`evt_u_${c.id}`, "checkout.session.completed", c.id, false));
+    await envoyer(evenement(`evt_u_${c.id}`, "checkout.session.completed", c.id, false, c.session));
     expect((await commandeParId(c.id))?.statut_paiement).toBe("en_attente");
   });
 
   it("n'annule jamais une commande déjà payée", async () => {
     const c = await nouvelleCommande();
-    await envoyer(evenement(`evt_p_${c.id}`, "checkout.session.completed", c.id));
-    await envoyer(evenement(`evt_x_${c.id}`, "checkout.session.expired", c.id, false));
+    await envoyer(evenement(`evt_p_${c.id}`, "checkout.session.completed", c.id, true, c.session));
+    await envoyer(evenement(`evt_x_${c.id}`, "checkout.session.expired", c.id, false, c.session));
     expect((await commandeParId(c.id))?.statut_paiement).toBe("paye");
   });
 });
@@ -100,5 +100,16 @@ describe("expiration d'une session", () => {
     expect((await commandeParId(c.id))?.statut_paiement).toBe("en_attente");
     await envoyer(evenement(`evt_exp_${c.id}`, "checkout.session.expired", c.id, false, c.session));
     expect((await commandeParId(c.id))?.statut).toBe("annulee");
+  });
+});
+
+describe("paiement qui ne correspond pas à la commande", () => {
+  it("refuse un montant inférieur, une autre devise ou une autre session", async () => {
+    const c = await nouvelleCommande();
+    await envoyer(evenement(`evt_m_${c.id}`, "checkout.session.completed", c.id, true, c.session, 100));
+    await envoyer(evenement(`evt_d_${c.id}`, "checkout.session.completed", c.id, true, c.session, 1000, "eur"));
+    await envoyer(evenement(`evt_s_${c.id}`, "checkout.session.completed", c.id, true, "cs_test_etrangere"));
+    expect((await commandeParId(c.id))?.statut_paiement).toBe("en_attente");
+    expect(await nbCourriels(c.id)).toBe(0);
   });
 });

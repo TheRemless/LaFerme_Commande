@@ -28,7 +28,14 @@ export async function POST(requete: Request) {
       case "checkout.session.completed":
       case "checkout.session.async_payment_succeeded":
         // TWINT peut finir plus tard : « completed » sans paiement attend l'événement asynchrone.
-        if (session.payment_status === "paid") await confirmerPaiement(commandeId, evenement.id, paymentIntent);
+        if (session.payment_status === "paid") {
+          await confirmerPaiement(commandeId, evenement.id, {
+            sessionId: session.id,
+            montantCentimes: session.amount_total,
+            devise: session.currency,
+            paymentIntent,
+          });
+        }
         break;
       case "checkout.session.async_payment_failed":
       case "checkout.session.expired":

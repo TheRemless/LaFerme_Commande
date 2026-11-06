@@ -44,7 +44,7 @@ describe("fonctions SQL des commandes", () => {
   it("applique chaque événement de paiement une seule fois et dans un seul sens", async () => {
     const { id } = (await db.query<{ id: string }>("select * from creer_commande($1)", [commande("k3")])).rows[0];
     const applique = async (ev: string, type: string) =>
-      (await db.query<{ r: boolean }>("select appliquer_paiement($1, $2, $3, 'pi_test') as r", [ev, id, type])).rows[0].r;
+      (await db.query<{ r: boolean }>("select appliquer_paiement($1, $2, $3, 'pi_test', 1000) as r", [ev, id, type])).rows[0].r;
     expect(await applique("ev1", "paye")).toBe(true);
     expect(await applique("ev1", "paye")).toBe(false);
     expect(await applique("ev2", "echec")).toBe(false);

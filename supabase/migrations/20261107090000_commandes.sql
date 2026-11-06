@@ -145,7 +145,7 @@ $$;
 
 -- Applique un événement de paiement une seule fois. Les transitions ne vont que dans un sens :
 -- un paiement confirmé ne repasse jamais en attente, un remboursement est définitif.
-create function appliquer_paiement(p_evenement text, p_commande uuid, p_type text, p_payment_intent text default null)
+create function appliquer_paiement(p_evenement text, p_commande uuid, p_type text, p_payment_intent text default null, p_montant integer default null)
 returns boolean
 language plpgsql as $$
 declare
@@ -158,6 +158,10 @@ begin
   end if;
   select * into c from commandes where id = p_commande for update;
   if not found then
+    return false;
+  end if;
+  -- Un paiement dont le montant n'est pas celui de la commande ne la confirme jamais.
+  if p_type = 'paye' and (p_montant is null or p_montant <> c.total_centimes) then
     return false;
   end if;
   if p_type = 'paye' and c.statut_paiement = 'en_attente' then
@@ -198,10 +202,10 @@ language sql as $$
 $$;
 
 -- Seul le serveur (clé secrète) appelle ces fonctions. Supabase les ouvre par défaut à anon : on ferme.
-revoke execute on function creer_commande(jsonb), lier_session_paiement(uuid, text), appliquer_paiement(text, uuid, text, text),
+revoke execute on function creer_commande(jsonb), lier_session_paiement(uuid, text), appliquer_paiement(text, uuid, text, text, integer),
   commande_par_jeton(text), commande_par_id(uuid), enregistrer_courriel(jsonb)
   from public, anon, authenticated;
-grant execute on function creer_commande(jsonb), lier_session_paiement(uuid, text), appliquer_paiement(text, uuid, text, text),
+grant execute on function creer_commande(jsonb), lier_session_paiement(uuid, text), appliquer_paiement(text, uuid, text, text, integer),
   commande_par_jeton(text), commande_par_id(uuid), enregistrer_courriel(jsonb)
   to service_role;
 grant select, insert, update, delete on compteurs_jour, commandes, commande_lignes, evenements_paiement, courriels to service_role;

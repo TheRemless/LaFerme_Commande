@@ -17,11 +17,21 @@ async function envoyerConfirmation(c: Commande): Promise<void> {
   });
 }
 
-export async function confirmerPaiement(commandeId: string, evenement: string, paymentIntent?: string): Promise<boolean> {
-  const applique = await appliquerPaiement(evenement, commandeId, "paye", paymentIntent);
+export type PreuvePaiement = { sessionId: string; montantCentimes: number | null; devise: string | null; paymentIntent?: string };
+
+// Un paiement ne confirme la commande que s'il vient de sa session en cours, en francs, pour son montant exact.
+// Sinon (ancienne session, lien de paiement étranger, montant différent) : rien n'est confirmé et on le signale.
+export async function confirmerPaiement(commandeId: string, evenement: string, preuve: PreuvePaiement): Promise<boolean> {
+  const c = await commandeParId(commandeId);
+  if (!c) return false;
+  if (c.stripe_session_id !== preuve.sessionId || preuve.devise?.toLowerCase() !== "chf" || preuve.montantCentimes !== c.total_centimes) {
+    console.error(`Paiement non rapproché pour la commande ${c.numero} : session ou montant différents, à vérifier dans Stripe.`);
+    return false;
+  }
+  const applique = await appliquerPaiement(evenement, commandeId, "paye", preuve.paymentIntent, preuve.montantCentimes);
   if (applique) {
-    const c = await commandeParId(commandeId);
-    if (c) await envoyerConfirmation(c);
+    const apres = await commandeParId(commandeId);
+    if (apres) await envoyerConfirmation(apres);
   }
   return applique;
 }
@@ -47,7 +57,14 @@ export async function reconcilier(c: Commande): Promise<Commande> {
   if (p.nom !== "stripe") return c;
   const etat = await p.lireSession(c.stripe_session_id);
   let change = false;
-  if (etat.statut === "paye") change = await confirmerPaiement(c.id, `session:${c.stripe_session_id}:paye`, etat.paymentIntent);
+  if (etat.statut === "paye") {
+    change = await confirmerPaiement(c.id, `session:${c.stripe_session_id}:paye`, {
+      sessionId: c.stripe_session_id,
+      montantCentimes: etat.montantCentimes,
+      devise: etat.devise,
+      paymentIntent: etat.paymentIntent,
+    });
+  }
   if (etat.statut === "echec") change = await annulerPaiement(c.id, `session:${c.stripe_session_id}:echec`, c.stripe_session_id);
   return change ? ((await commandeParId(c.id)) ?? c) : c;
 }

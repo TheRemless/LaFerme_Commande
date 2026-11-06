@@ -123,16 +123,20 @@ export async function POST(requete: Request) {
   // Nouvel essai pour la même commande (retour arrière depuis Stripe) : l'ancienne session est fermée
   // pour qu'on ne puisse pas payer deux fois.
   if (existante?.stripe_session_id) await p.expirerSession(existante.stripe_session_id).catch(() => undefined);
-  const factures = totaux.lignes.map((l) => {
+  // Nouvel essai avec la même clé : on facture la commande enregistrée, jamais le contenu de cette requête.
+  const aFacturer = existante
+    ? { lignes: existante.lignes, frais: existante.frais_centimes }
+    : { lignes: totaux.lignes, frais: totaux.frais_centimes };
+  const factures = aFacturer.lignes.map((l) => {
     const options = detailsLigne(catalogue, { choix: l.choix, retraits: l.retraits, note: "" });
     return { libelle: options.length ? `${l.nom} (${options.join(", ")})` : l.nom, qte: l.qte, unitaire_centimes: l.unitaire_centimes };
   });
-  if (totaux.frais_centimes > 0) factures.push({ libelle: "Livraison", qte: 1, unitaire_centimes: totaux.frais_centimes });
+  if (aFacturer.frais > 0) factures.push({ libelle: "Livraison", qte: 1, unitaire_centimes: aFacturer.frais });
   try {
     const session = await p.creerSession({
       commandeId: creee.id,
       numero: creee.numero,
-      email: client.email,
+      email: existante?.client_email ?? client.email,
       lignes: factures,
       urlRetour: `${suivi}?retour=1`,
       urlAnnulation: `${origine}/commande?annule=1`,
