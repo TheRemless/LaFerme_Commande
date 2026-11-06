@@ -104,3 +104,13 @@ describe("fusion des lignes", () => {
     expect(memeLigne(a, { ...b, note: "bien cuite" })).toBe(false);
   });
 });
+
+describe("slugs hostiles", () => {
+  it("refusent proprement au lieu de planter", () => {
+    for (const slug of ["__proto__", "toString", "constructor"]) {
+      const t = calculerPanier(cat, [ligne(slug)], null);
+      expect(t.valide).toBe(false);
+      expect(t.lignes[0].erreur).toBeTruthy();
+    }
+  });
+});

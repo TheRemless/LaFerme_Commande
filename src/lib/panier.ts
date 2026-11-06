@@ -50,14 +50,22 @@ export type Totaux = {
 
 export const LIMITES = { lignes: 30, quantite: 20, note: 80 } as const;
 
+// Lecture sûre : un slug comme « __proto__ » ou « toString » ne doit pas tomber sur Object.prototype.
+function platDe(cat: Catalogue, slug: string): PlatCatalogue | undefined {
+  return Object.hasOwn(cat.plats, slug) ? cat.plats[slug] : undefined;
+}
+function groupeDe(cat: Catalogue, slug: string): GroupeCatalogue | undefined {
+  return Object.hasOwn(cat.groupes, slug) ? cat.groupes[slug] : undefined;
+}
+
 function erreurLigne(cat: Catalogue, l: LignePanier): string | undefined {
-  const plat = cat.plats[l.slug];
+  const plat = platDe(cat, l.slug);
   if (!plat) return "Ce plat n'est plus à la carte.";
   if (plat.rupture_motif) return plat.rupture_motif;
   if (!Number.isInteger(l.qte) || l.qte < 1 || l.qte > LIMITES.quantite) return "Quantité invalide.";
   if (l.note.length > LIMITES.note) return "Note trop longue.";
   for (const cle of Object.keys(l.choix)) if (!plat.groupes.includes(cle)) return "Option inconnue pour ce plat.";
-  for (const g of plat.groupes.map((s) => cat.groupes[s])) {
+  for (const g of plat.groupes.map((s) => groupeDe(cat, s))) {
     if (!g) return "Option inconnue pour ce plat.";
     const choisis = l.choix[g.slug] ?? [];
     if (new Set(choisis).size !== choisis.length) return "Option choisie deux fois.";
@@ -71,11 +79,11 @@ function erreurLigne(cat: Catalogue, l: LignePanier): string | undefined {
 }
 
 export function prixUnitaire(cat: Catalogue, l: LignePanier): number {
-  const plat = cat.plats[l.slug];
+  const plat = platDe(cat, l.slug);
   if (!plat) return 0;
   let prix = plat.prix_centimes;
   for (const [g, noms] of Object.entries(l.choix)) {
-    for (const n of noms) prix += cat.groupes[g]?.options.find((o) => o.nom === n)?.prix_centimes ?? 0;
+    for (const n of noms) prix += groupeDe(cat, g)?.options.find((o) => o.nom === n)?.prix_centimes ?? 0;
   }
   return prix;
 }
@@ -84,15 +92,15 @@ export function calculerPanier(cat: Catalogue, lignes: LignePanier[], livraison:
   const calculees: LigneCalculee[] = lignes.slice(0, LIMITES.lignes).map((l) => {
     const erreur = erreurLigne(cat, l);
     const unitaire = prixUnitaire(cat, l);
-    return { ...l, nom: cat.plats[l.slug]?.nom ?? l.slug, unitaire_centimes: unitaire, total_centimes: erreur ? 0 : unitaire * l.qte, erreur };
+    return { ...l, nom: platDe(cat, l.slug)?.nom ?? l.slug, unitaire_centimes: unitaire, total_centimes: erreur ? 0 : unitaire * l.qte, erreur };
   });
   const sousTotal = calculees.reduce((s, l) => s + l.total_centimes, 0);
   const frais = livraison && calculees.length ? livraison.frais_centimes : 0;
   const total = sousTotal + frais;
   const taux = cat.tauxTvaPourcent;
-  const plats = calculees.map((l) => cat.plats[l.slug]).filter(Boolean);
+  const plats = calculees.map((l) => platDe(cat, l.slug)).filter((p): p is PlatCatalogue => p !== undefined);
   const optionsAValider = calculees.some((l) =>
-    Object.entries(l.choix).some(([g, noms]) => noms.some((n) => cat.groupes[g]?.options.find((o) => o.nom === n)?.prix_a_valider)),
+    Object.entries(l.choix).some(([g, noms]) => noms.some((n) => groupeDe(cat, g)?.options.find((o) => o.nom === n)?.prix_a_valider)),
   );
   const manque = livraison ? Math.max(0, livraison.minimum_centimes - sousTotal) : 0;
   return {

@@ -152,6 +152,9 @@ ul {
 .plat-carte:disabled {
   cursor: not-allowed;
 }
+.plat-carte:disabled:hover .plat-nom {
+  text-decoration: none;
+}
 .plat-carte:hover .plat-nom {
   text-decoration: underline;
   text-decoration-thickness: 2px;
