@@ -9,10 +9,6 @@ export default async function PageCarte() {
   const { categories, source } = await chargerCarte();
   const preversion = process.env.CONTEXTE_DEPLOIEMENT !== "production";
   const aValider = categories.some((c) => c.plats.some((p) => p.prix_a_valider));
-  // Diagnostic temporaire des previews : noms (jamais valeurs) des variables Supabase reçues.
-  const variablesSupabase = preversion
-    ? Object.keys(process.env).filter((k) => k.includes("SUPABASE")).sort().join(",") || "aucune"
-    : undefined;
   return (
     <>
       <EnTete />
@@ -22,7 +18,7 @@ export default async function PageCarte() {
         </p>
       )}
       {/* data-source dit d'où vient la carte (Supabase ou base embarquée), pour vérifier une preview. */}
-      <main className="page-carte" data-source={source} data-variables-supabase={variablesSupabase}>
+      <main className="page-carte" data-source={source}>
         <nav className="cats" aria-label="Catégories">
           {categories.map((c) => (
             <a key={c.slug} href={`#${c.slug}`}>

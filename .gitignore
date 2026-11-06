@@ -20,3 +20,6 @@ supabase/.temp/
 next-env.d.ts
 *.tsbuildinfo
 .pglite/
+
+# Local Netlify folder
+.netlify
