@@ -1,0 +1,104 @@
+import type { Commande } from "@/lib/db/serveur";
+import type { Catalogue } from "@/lib/panier";
+import { prixChf, prixCourt } from "@/lib/prix";
+import { heureTexte, jourTexte } from "@/lib/service";
+
+// Textes des courriels, passés par redaction-fr (voix de Giuseppe : direct, factuel).
+// Rien d'autre que des faits du registre (adresse, téléphone) et le contenu de la commande.
+
+const RESTAURANT = "Restaurant La Ferme, Route de Chancy 132, 1213 Onex";
+const TELEPHONE = "022 792 16 89";
+
+function echapper(t: string): string {
+  return t.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+}
+
+export function quandTexte(c: Pick<Commande, "quand_type" | "quand_date" | "quand_minutes">): string {
+  if (c.quand_type === "creneau" && c.quand_date && c.quand_minutes !== null) return `le ${jourTexte(c.quand_date)} à ${heureTexte(c.quand_minutes)}`;
+  return "dès que possible";
+}
+
+export function detailsLigne(cat: Catalogue | null, l: { choix: Record<string, string[]>; retraits: string[]; note: string }): string[] {
+  const choix = Object.entries(l.choix ?? {}).flatMap(([g, noms]) => {
+    const unique = cat?.groupes[g]?.choix_max === 1;
+    return noms.map((n) => (unique ? n : `+ ${n.toLowerCase()}`));
+  });
+  return [...choix, ...(l.retraits ?? []).map((r) => `sans ${r.toLowerCase()}`), ...(l.note ? [`« ${l.note} »`] : [])];
+}
+
+function lienSuivi(c: Commande): string {
+  return `${c.origine}/suivi/${c.jeton_suivi}`;
+}
+
+function modeTexte(c: Commande): string {
+  if (c.mode === "livraison" && c.adresse) {
+    return `Livraison ${quandTexte(c)}, ${c.adresse.rue}${c.adresse.numero ? ` ${c.adresse.numero}` : ""}, ${c.adresse.npa} ${c.adresse.localite}.`;
+  }
+  return `À emporter ${quandTexte(c)}, Route de Chancy 132 à Onex.`;
+}
+
+export function courrielConfirmation(c: Commande, cat: Catalogue | null) {
+  const paiement = c.moyen_paiement === "comptoir" ? `À payer au comptoir en venant la chercher, ${prixChf(c.total_centimes)}.` : `Payée en ligne, ${prixChf(c.total_centimes)}.`;
+  const lignes = c.lignes.map((l) => ({ titre: `${l.qte} × ${l.nom}`, prix: prixCourt(l.total_centimes), details: detailsLigne(cat, l) }));
+  const sommes = [
+    ["Sous-total", prixChf(c.sous_total_centimes)],
+    ...(c.mode === "livraison" ? [["Livraison", prixChf(c.frais_centimes)]] : []),
+    ["Total", prixChf(c.total_centimes)],
+    [`dont TVA ${String(c.taux_tva_pourcent).replace(".", ",")} %`, prixChf(c.tva_centimes)],
+  ];
+  const sujet = `Commande ${c.numero} reçue, La Ferme`;
+  const texte = [
+    `Bonjour ${c.client_prenom},`,
+    "",
+    `Nous avons bien reçu votre commande n° ${c.numero}.`,
+    modeTexte(c),
+    "Le restaurant vous confirme l'heure dès qu'il l'accepte.",
+    "",
+    ...lignes.flatMap((l) => [`${l.titre}  ${l.prix}`, ...l.details.map((d) => `   ${d}`)]),
+    "",
+    ...sommes.map(([a, b]) => `${a}  ${b}`),
+    paiement,
+    "",
+    `Suivre la commande : ${lienSuivi(c)}`,
+    `Une question ? ${TELEPHONE}`,
+    "",
+    RESTAURANT,
+  ].join("\n");
+  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#1c1b1a;max-width:560px">
+<p>Bonjour ${echapper(c.client_prenom)},</p>
+<p>Nous avons bien reçu votre commande n° <strong>${c.numero}</strong>.<br>${echapper(modeTexte(c))}<br>Le restaurant vous confirme l'heure dès qu'il l'accepte.</p>
+<table style="width:100%;border-collapse:collapse">${lignes
+    .map(
+      (l) => `<tr><td style="padding:6px 0;border-top:1px solid #ddd"><strong>${echapper(l.titre)}</strong>${l.details
+        .map((d) => `<br><span style="color:#55524f">${echapper(d)}</span>`)
+        .join("")}</td><td style="padding:6px 0;border-top:1px solid #ddd;text-align:right;vertical-align:top">${l.prix}</td></tr>`,
+    )
+    .join("")}${sommes
+    .map(([a, b]) => `<tr><td style="padding:4px 0">${echapper(a)}</td><td style="padding:4px 0;text-align:right">${b}</td></tr>`)
+    .join("")}</table>
+<p>${echapper(paiement)}</p>
+<p><a href="${echapper(lienSuivi(c))}">Suivre la commande</a><br>Une question ? ${TELEPHONE}</p>
+<p style="color:#55524f;font-size:13px">${RESTAURANT}</p></div>`;
+  return { sujet, texte, html };
+}
+
+export function courrielRemboursement(c: Commande, motif: string) {
+  const sujet = `Commande ${c.numero} annulée, La Ferme`;
+  const texte = [
+    `Bonjour ${c.client_prenom},`,
+    "",
+    `Nous ne pouvons pas préparer votre commande n° ${c.numero}. ${motif}`,
+    `Nous vous remboursons ${prixChf(c.total_centimes)} sur le moyen de paiement utilisé. Le délai dépend de votre banque.`,
+    "",
+    `Une question ? ${TELEPHONE}`,
+    "",
+    RESTAURANT,
+  ].join("\n");
+  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#1c1b1a;max-width:560px">
+<p>Bonjour ${echapper(c.client_prenom)},</p>
+<p>Nous ne pouvons pas préparer votre commande n° <strong>${c.numero}</strong>. ${echapper(motif)}</p>
+<p>Nous vous remboursons ${prixChf(c.total_centimes)} sur le moyen de paiement utilisé. Le délai dépend de votre banque.</p>
+<p>Une question ? ${TELEPHONE}</p>
+<p style="color:#55524f;font-size:13px">${RESTAURANT}</p></div>`;
+  return { sujet, texte, html };
+}
