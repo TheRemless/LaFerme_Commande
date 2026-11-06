@@ -88,6 +88,13 @@ def retraits(plat):
     return [m.strip()[0].upper() + m.strip()[1:] for m in morceaux if m.strip()]
 
 
+def sans_maison(texte):
+    # docs/PROMPT.md §5.4 : « fait maison » interdit tant que Jérémy ne l'a pas confirmé.
+    texte = re.sub(r"(?i)\bfait maison\.?", "", texte)
+    texte = re.sub(r"(?i)\s*\bmaison\b", "", texte)
+    return texte.strip()
+
+
 def slug(texte):
     t = texte.lower()
     for a, b in (("œ", "oe"), ("à", "a"), ("â", "a"), ("é", "e"), ("è", "e"), ("ê", "e"), ("ï", "i"), ("î", "i"), ("ô", "o"), ("ç", "c"), ("’", ""), ("'", "")):
@@ -115,6 +122,7 @@ def main():
             "categorie": p["c"],
             "nom": nom,
             "description": p["d"],
+            "descriptionSite": sans_maison(p["d"]),
             "prixUber": p["prixUber"],
             "salleNom": salle_nom,
             "prixSalle": prix_salle,

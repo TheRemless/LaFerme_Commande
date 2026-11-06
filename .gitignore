@@ -16,3 +16,7 @@ supabase/.temp/
 .DS_Store
 *.log
 ~$*.xlsx
+
+next-env.d.ts
+*.tsbuildinfo
+.pglite/
