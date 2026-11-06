@@ -17,8 +17,8 @@ export default async function PageCarte() {
           Préversion : prix proposés, en attente de validation.
         </p>
       )}
-      {/* data-source dit d'où vient la carte (Supabase ou base embarquée), pour vérifier une preview. */}
-      <main className="page-carte" data-source={source}>
+      {/* Sur les previews, data-source dit d'où vient la carte (Supabase ou base embarquée). */}
+      <main className="page-carte" data-source={preversion ? source : undefined}>
         <nav className="cats" aria-label="Catégories">
           {categories.map((c) => (
             <a key={c.slug} href={`#${c.slug}`}>

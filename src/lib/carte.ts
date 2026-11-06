@@ -28,6 +28,10 @@ export type SourceCarte = "supabase" | "locale";
 async function lireLignes(): Promise<{ lignes: LignePlat[]; source: SourceCarte }> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const cle = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (Boolean(url) !== Boolean(cle)) {
+    // Une seule des deux variables : configuration cassée, on le dit au lieu de servir la base embarquée.
+    throw new Error("Configuration Supabase incomplète : il faut NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.");
+  }
   if (url && cle) {
     const supabase = createClient(url, cle, { auth: { persistSession: false } });
     const { data, error } = await supabase.from("carte_publique").select("*");
