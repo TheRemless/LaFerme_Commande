@@ -53,7 +53,7 @@ function Recommander({ commandeId }: { commandeId: string }) {
   if (etat === "confirmer") {
     return (
       <div className="recommande" role="status">
-        <p>Votre panier contient déjà des plats. Les remplacer par cette commande ?</p>
+        <p>Votre panier contient déjà des plats. Les remplacer par cette commande&nbsp;?</p>
         <div className="boutons-ligne">
           <button type="button" className="bouton-second" onClick={() => lancer(true)}>
             Remplacer mon panier
