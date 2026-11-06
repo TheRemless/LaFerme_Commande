@@ -109,3 +109,15 @@ describe("retraits", () => {
     expect(rows.length).toBeGreaterThan(0);
   });
 });
+
+describe("configuration Supabase", () => {
+  it("refuse une configuration à moitié remplie au lieu de servir la base embarquée", async () => {
+    const { chargerCarte } = await import("@/lib/carte");
+    const avant = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://exemple.supabase.co";
+    delete process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+    await expect(chargerCarte()).rejects.toThrow(/incomplète/);
+    if (avant === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    else process.env.NEXT_PUBLIC_SUPABASE_URL = avant;
+  });
+});

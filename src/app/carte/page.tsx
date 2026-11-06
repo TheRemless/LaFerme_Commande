@@ -6,7 +6,7 @@ import { chargerCarte } from "@/lib/carte";
 export const dynamic = "force-dynamic";
 
 export default async function PageCarte() {
-  const categories = await chargerCarte();
+  const { categories, source } = await chargerCarte();
   const preversion = process.env.CONTEXTE_DEPLOIEMENT !== "production";
   const aValider = categories.some((c) => c.plats.some((p) => p.prix_a_valider));
   return (
@@ -17,7 +17,8 @@ export default async function PageCarte() {
           Préversion : prix proposés, en attente de validation.
         </p>
       )}
-      <main className="page-carte">
+      {/* Sur les previews, data-source dit d'où vient la carte (Supabase ou base embarquée). */}
+      <main className="page-carte" data-source={preversion ? source : undefined}>
         <nav className="cats" aria-label="Catégories">
           {categories.map((c) => (
             <a key={c.slug} href={`#${c.slug}`}>

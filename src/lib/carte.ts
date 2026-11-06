@@ -23,14 +23,20 @@ export type LignePlat = {
 
 export type Categorie = { slug: string; nom: string; plats: LignePlat[] };
 
-async function lireLignes(): Promise<LignePlat[]> {
+export type SourceCarte = "supabase" | "locale";
+
+async function lireLignes(): Promise<{ lignes: LignePlat[]; source: SourceCarte }> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const cle = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const cle = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (Boolean(url) !== Boolean(cle)) {
+    // Une seule des deux variables : configuration cassée, on le dit au lieu de servir la base embarquée.
+    throw new Error("Configuration Supabase incomplète : il faut NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.");
+  }
   if (url && cle) {
     const supabase = createClient(url, cle, { auth: { persistSession: false } });
     const { data, error } = await supabase.from("carte_publique").select("*");
     if (error) throw new Error(`Lecture de la carte impossible : ${error.message}`);
-    return data as LignePlat[];
+    return { lignes: data as LignePlat[], source: "supabase" };
   }
   // Sans Supabase, la base embarquée sert au développement, aux tests et aux previews Netlify,
   // jamais à la production. En local, un build de production l'exige explicitement (BASE_LOCALE).
@@ -38,7 +44,7 @@ async function lireLignes(): Promise<LignePlat[]> {
   if (contexte === "production" || (contexte === "local" && process.env.NODE_ENV === "production" && !process.env.BASE_LOCALE)) {
     throw new Error("Variables Supabase manquantes : la base embarquée n'est pas autorisée ici.");
   }
-  return lireCommeVisiteur<LignePlat>(await baseLocale(), "select * from carte_publique");
+  return { lignes: await lireCommeVisiteur<LignePlat>(await baseLocale(), "select * from carte_publique"), source: "locale" };
 }
 
 export function regrouperParCategorie(lignes: LignePlat[]): Categorie[] {
@@ -56,6 +62,7 @@ export function regrouperParCategorie(lignes: LignePlat[]): Categorie[] {
     .map(({ slug, nom, plats }) => ({ slug, nom, plats: plats.sort((a, b) => a.ordre - b.ordre) }));
 }
 
-export async function chargerCarte(): Promise<Categorie[]> {
-  return regrouperParCategorie(await lireLignes());
+export async function chargerCarte(): Promise<{ categories: Categorie[]; source: SourceCarte }> {
+  const { lignes, source } = await lireLignes();
+  return { categories: regrouperParCategorie(lignes), source };
 }

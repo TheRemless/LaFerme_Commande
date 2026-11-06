@@ -13,6 +13,7 @@ test("la carte affiche chaque plat de la base avec son prix", async ({ page }) =
     "Pizzas", "Entrées", "Pâtes et risottos", "Poissons", "Viandes", "Desserts", "Boissons",
   ]);
   await expect(page.locator("li.plat")).toHaveCount(carte.plats.length);
+  await expect(page.locator("main")).toHaveAttribute("data-source", /^(supabase|locale)$/);
   for (const p of carte.plats.slice(0, 10)) {
     await expect(page.locator(`li.plat[data-slug="${p.id}"] .plat-prix`)).toHaveText(prixCourt(Math.round(p.prixPropose * 100)));
   }
