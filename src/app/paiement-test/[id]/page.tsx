@@ -21,7 +21,7 @@ export default async function PaiementTest({ params }: { params: Promise<{ id: s
         <div className="suivi paiement-test">
           <p className="suivi-num">Paiement de test, aucun montant n&apos;est débité</p>
           <h1>
-            Commande {c.numero} <span className="suivi-heure">{prixChf(c.total_centimes)}</span>
+            Commande {c.numero} <span className="montant-test">{prixChf(c.total_centimes)}</span>
           </h1>
           <p className="suivi-change">Cette page remplace Stripe tant que le compte n&apos;existe pas. Choisissez l&apos;issue du paiement.</p>
           <BoutonsTest commande={c.id} />

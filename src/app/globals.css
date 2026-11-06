@@ -1245,6 +1245,11 @@ body.fiche-ouverte {
 .suivi-detail p {
   margin: 0;
 }
+.montant-test {
+  display: block;
+  font-size: 64px;
+  line-height: 1;
+}
 .boutons-test {
   display: flex;
   flex-direction: column;
