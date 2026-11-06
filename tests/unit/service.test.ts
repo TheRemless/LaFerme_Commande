@@ -84,3 +84,20 @@ describe("créneaux", () => {
     expect(heureTexte(19 * 60 + 5)).toBe("19h05");
   });
 });
+
+describe("promesse d'heure", () => {
+  it("ne propose pas « dès que possible » au-delà de la dernière livraison", () => {
+    const h = config.horaires.find((x) => x.jour === 2 && x.service === "midi")!;
+    const [hh, mm] = h.derniere_commande.split(":").map(Number);
+    const juste = `2026-11-10T${String(hh).padStart(2, "0")}:${String(mm - 1).padStart(2, "0")}:00`;
+    const e = etatService(config, geneve(juste), "livraison", zone(2));
+    if (e.etat === "ouvert") expect(e.desQuePossible).toBeLessThanOrEqual(Number(h.derniere_heure.slice(0, 2)) * 60 + Number(h.derniere_heure.slice(3, 5)));
+    else expect(e.etat).toBe("ferme");
+  });
+
+  it("convertit une heure de Genève en été comme en hiver", async () => {
+    const { depuisHeureGeneve } = await import("@/lib/service");
+    expect(depuisHeureGeneve("2027-06-15T19:05")?.toISOString()).toBe("2027-06-15T17:05:00.000Z");
+    expect(depuisHeureGeneve("2026-11-10T19:05")?.toISOString()).toBe("2026-11-10T18:05:00.000Z");
+  });
+});

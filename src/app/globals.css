@@ -329,7 +329,7 @@ ul {
   border-radius: 4px;
   cursor: pointer;
 }
-.choix-mode button[aria-checked="true"] {
+.choix-mode button[aria-pressed="true"] {
   background: var(--encre);
   color: var(--blanc);
   border-color: var(--encre);

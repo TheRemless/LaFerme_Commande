@@ -17,7 +17,10 @@ import {
 } from "@/lib/service";
 import { Icone } from "@/components/Icone";
 
-type Verdict = { statut: "livrable"; zone: ZoneChoisie; verifiee: boolean } | { statut: "hors-zone" } | { statut: "attente" };
+type Verdict =
+  | { statut: "livrable"; zone: ZoneChoisie; verifiee: boolean; controleImpossible?: boolean }
+  | { statut: "hors-zone" }
+  | { statut: "attente" };
 
 const DETAILS_VIDES: Details = { etage: "", sonnette: "", code: "", instructions: "" };
 
@@ -105,8 +108,12 @@ export function ChoixCommande({ config, maintenantServeur }: { config: ConfigSer
       .then((r: { statut?: string; zone?: ZoneChoisie; verifiee?: boolean }) => {
         if (r.statut === "livrable" && r.zone) setVerdict({ statut: "livrable", zone: r.zone, verifiee: Boolean(r.verifiee) });
         else if (r.statut === "hors-zone") setVerdict({ statut: "hors-zone" });
+        else setVerdict((v) => (v.statut === "livrable" ? { ...v, controleImpossible: true } : v));
       })
-      .catch(() => undefined);
+      .catch((e) => {
+        if (e instanceof DOMException && e.name === "AbortError") return;
+        setVerdict((v) => (v.statut === "livrable" ? { ...v, controleImpossible: true } : v));
+      });
     return () => ctrl.abort();
     // adresseRetenue change d'identité à chaque rendu en saisie manuelle : on suit ses champs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -171,12 +178,12 @@ export function ChoixCommande({ config, maintenantServeur }: { config: ConfigSer
       <div className="accueil-panneau">
         <h1>Livraison ou à emporter ?</h1>
 
-        <div className="choix-mode" role="radiogroup" aria-label="Livraison ou à emporter">
-          <button type="button" role="radio" aria-checked={mode === "livraison"} onClick={() => setMode("livraison")}>
+        <div className="choix-mode" role="group" aria-label="Livraison ou à emporter">
+          <button type="button" aria-pressed={mode === "livraison"} onClick={() => setMode("livraison")}>
             <span className="choix-titre">Livraison</span>
             <span className="choix-sous">par les livreurs du restaurant</span>
           </button>
-          <button type="button" role="radio" aria-checked={mode === "retrait"} onClick={() => setMode("retrait")}>
+          <button type="button" aria-pressed={mode === "retrait"} onClick={() => setMode("retrait")}>
             <span className="choix-titre">À emporter</span>
             <span className="choix-sous">Route de Chancy 132, Onex</span>
           </button>
@@ -290,6 +297,7 @@ export function ChoixCommande({ config, maintenantServeur }: { config: ConfigSer
                       </dd>
                     </div>
                   </dl>
+                  {verdict.controleImpossible && <p className="aide">Adresse contrôlée de nouveau au moment de payer.</p>}
                 </div>
                 <div className="details">
                   <div className="champ">

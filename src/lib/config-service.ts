@@ -1,4 +1,5 @@
 import "server-only";
+import { unstable_cache } from "next/cache";
 import { lirePublic } from "@/lib/db/lecture";
 import type { ConfigService, Fermeture, Horaire, Zone, ZoneNpa } from "@/lib/service";
 
@@ -11,7 +12,7 @@ function nombre(reglages: LigneReglage[], cle: string): number {
 }
 
 // Tout ce qu'il faut pour décider zone, créneaux et état du restaurant, lu en base.
-export async function chargerConfigService(): Promise<ConfigService> {
+async function lireConfigService(): Promise<ConfigService> {
   const [zones, npa, horaires, fermetures, reglages] = await Promise.all([
     lirePublic<Zone>("zones_livraison"),
     lirePublic<ZoneNpa>("zone_npa"),
@@ -33,3 +34,8 @@ export async function chargerConfigService(): Promise<ConfigService> {
     },
   };
 }
+
+// Une minute de cache : une pause ou un horaire changé dans le back-office s'applique en moins d'une minute.
+export const chargerConfigService = process.env.VITEST
+  ? lireConfigService
+  : unstable_cache(lireConfigService, ["config-service"], { revalidate: 60 });

@@ -81,6 +81,18 @@ export function instantGeneve(maintenant: Date): Instant {
   return { date, jour: jourIso(date), minutes: Number(p.hour) * 60 + Number(p.minute) };
 }
 
+// « 2026-11-10T19:05 » à l'heure de Genève → instant, heure d'été comprise.
+export function depuisHeureGeneve(texte: string): Date | null {
+  const m = texte.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})$/);
+  if (!m) return null;
+  for (const decalage of ["+01:00", "+02:00"]) {
+    const d = new Date(`${texte}:00${decalage}`);
+    const ici = instantGeneve(d);
+    if (ici.date === m[1] && ici.minutes === Number(m[2]) * 60 + Number(m[3])) return d;
+  }
+  return null;
+}
+
 export function jourIso(date: string): number {
   const j = new Date(`${date}T12:00:00Z`).getUTCDay();
   return j === 0 ? 7 : j;
@@ -176,7 +188,9 @@ export function etatService(config: ConfigService, maintenant: Date, mode: Mode,
     const ouvertDes = enMinutes(h.premiere_heure) - delai;
     if (ici.minutes >= ouvertDes && ici.minutes <= enMinutes(h.derniere_commande)) {
       const moyen = mode === "livraison" && zone ? Math.round((zone.delai_min + zone.delai_max) / 2) : delai;
-      return { etat: "ouvert", desQuePossible: Math.max(enMinutes(h.premiere_heure), arrondir(ici.minutes + moyen, 5)) };
+      const promise = Math.max(enMinutes(h.premiere_heure), arrondir(ici.minutes + moyen, 5));
+      // Une heure promise après la dernière livraison du service ne se propose pas.
+      if (promise <= enMinutes(h.derniere_heure)) return { etat: "ouvert", desQuePossible: promise };
     }
   }
   const liste = creneaux(config, maintenant, mode, zone);
