@@ -2,7 +2,9 @@
 // La saisie de l'adresse part vers geo.admin.ch pour l'autocomplétion, rien d'autre ne sort.
 // Le serveur recontrôle tout au paiement.
 import type { Adresse, Details } from "@/lib/adresse";
-import type { Mode } from "@/lib/service";
+import type { Mode, Quand } from "@/lib/service";
+
+export type { Quand };
 
 export type ZoneChoisie = {
   numero: number;
@@ -12,7 +14,7 @@ export type ZoneChoisie = {
   delai_max: number;
 };
 
-export type Quand = { type: "asap" } | { type: "creneau"; date: string; minutes: number } | { type: "aucun" };
+
 
 export type Choix = {
   mode: Mode;
@@ -20,6 +22,10 @@ export type Choix = {
   details?: Details;
   zone?: ZoneChoisie;
   quand: Quand;
+  // Vrai quand le moment choisi n'est possible que pour un panier 100 % pizzas (après la dernière commande de la carte).
+  pizzasSeulement?: boolean;
+  // Préversion seulement : heure de Genève simulée par ?heure= sur l'accueil, transmise au calcul du panier.
+  heureSimulee?: string;
   enregistreLe: number;
 };
 

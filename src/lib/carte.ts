@@ -18,6 +18,7 @@ export type LignePlat = {
   provenances_a_fournir: string[];
   allergenes: string | null;
   a_options: boolean;
+  station: "pizza" | "cuisine";
 };
 
 export type Categorie = { slug: string; nom: string; plats: LignePlat[] };

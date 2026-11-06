@@ -15,7 +15,7 @@ test.beforeEach(async ({ page }) => {
 
 test("la carte affiche chaque plat de la base avec son prix", async ({ page }) => {
   await page.goto("/carte");
-  await expect(page.getByRole("heading", { level: 2 })).toHaveText([
+  await expect(page.locator(".carte-liste").getByRole("heading", { level: 2 })).toHaveText([
     "Pizzas", "Entrées", "Pâtes et risottos", "Poissons", "Viandes", "Desserts", "Boissons",
   ]);
   await expect(page.locator("li.plat")).toHaveCount(carte.plats.length);

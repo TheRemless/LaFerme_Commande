@@ -139,11 +139,25 @@ function delaiMinimum(config: ConfigService, mode: Mode, zone?: Zone): number {
   return mode === "livraison" && zone ? zone.delai_min : config.reglages.preparation_minutes;
 }
 
+function delaiMaximum(config: ConfigService, mode: Mode, zone?: Zone): number {
+  return mode === "livraison" && zone ? zone.delai_max : config.reglages.preparation_minutes;
+}
+
+// Bornes d'un service. Panier 100 % poste pizza : commande jusqu'à derniere_commande_pizzas,
+// remise jusqu'à la fin du service. Sinon commande jusqu'à derniere_commande, remise au plus tard
+// le temps de préparer et de livrer une commande passée à cette heure-là.
+function bornes(config: ConfigService, h: Horaire, mode: Mode, zone: Zone | undefined, pizzas: boolean) {
+  const finService = enMinutes(h.derniere_heure);
+  if (pizzas) return { finCommande: enMinutes(h.derniere_commande_pizzas), finRemise: finService };
+  const finCommande = enMinutes(h.derniere_commande);
+  return { finCommande, finRemise: Math.min(finService, finCommande + delaiMaximum(config, mode, zone)) };
+}
+
 // ---------- Créneaux ----------
 
 export type Creneau = { date: string; minutes: number; service: Horaire["service"] };
 
-export function creneaux(config: ConfigService, maintenant: Date, mode: Mode, zone?: Zone): Creneau[] {
+export function creneaux(config: ConfigService, maintenant: Date, mode: Mode, zone?: Zone, pizzas = false): Creneau[] {
   const ici = instantGeneve(maintenant);
   const delai = delaiMinimum(config, mode, zone);
   const pas = config.reglages.creneau_minutes;
@@ -151,15 +165,14 @@ export function creneaux(config: ConfigService, maintenant: Date, mode: Mode, zo
   for (let d = 0; d <= config.reglages.avance_jours; d++) {
     const date = ajouterJours(ici.date, d);
     for (const h of servicesDu(config, date)) {
-      const premier = enMinutes(h.premiere_heure);
-      const dernier = enMinutes(h.derniere_heure);
-      let debut = premier;
+      const { finCommande, finRemise } = bornes(config, h, mode, zone, pizzas);
+      let debut = enMinutes(h.premiere_heure);
       if (d === 0) {
         // Aujourd'hui : la commande doit partir avant la dernière commande du service.
-        if (ici.minutes > enMinutes(h.derniere_commande)) continue;
-        debut = Math.max(premier, arrondir(ici.minutes + delai, pas));
+        if (ici.minutes > finCommande) continue;
+        debut = Math.max(debut, arrondir(ici.minutes + delai, pas));
       }
-      for (let m = debut; m <= dernier; m += pas) liste.push({ date, minutes: m, service: h.service });
+      for (let m = debut; m <= finRemise; m += pas) liste.push({ date, minutes: m, service: h.service });
     }
   }
   return liste;
@@ -171,7 +184,7 @@ export type EtatService =
   | { etat: "fermeture"; fermeture: Fermeture; reouverture: string | null }
   | { etat: "aucun-creneau" };
 
-export function etatService(config: ConfigService, maintenant: Date, mode: Mode, zone?: Zone): EtatService {
+export function etatService(config: ConfigService, maintenant: Date, mode: Mode, zone?: Zone, pizzas = false): EtatService {
   const ici = instantGeneve(maintenant);
   const fermeture = fermeturePour(config, ici.date);
   if (fermeture) {
@@ -184,15 +197,27 @@ export function etatService(config: ConfigService, maintenant: Date, mode: Mode,
   }
   const delai = delaiMinimum(config, mode, zone);
   for (const h of servicesDu(config, ici.date)) {
+    const { finCommande, finRemise } = bornes(config, h, mode, zone, pizzas);
     // « Dès que possible » quand la cuisine peut lancer la commande maintenant.
     const ouvertDes = enMinutes(h.premiere_heure) - delai;
-    if (ici.minutes >= ouvertDes && ici.minutes <= enMinutes(h.derniere_commande)) {
+    if (ici.minutes >= ouvertDes && ici.minutes <= finCommande) {
       const moyen = mode === "livraison" && zone ? Math.round((zone.delai_min + zone.delai_max) / 2) : delai;
       const promise = Math.max(enMinutes(h.premiere_heure), arrondir(ici.minutes + moyen, 5));
-      // Une heure promise après la dernière livraison du service ne se propose pas.
-      if (promise <= enMinutes(h.derniere_heure)) return { etat: "ouvert", desQuePossible: promise };
+      // Une heure promise après la dernière remise possible ne se propose pas.
+      if (promise <= finRemise) return { etat: "ouvert", desQuePossible: promise };
     }
   }
-  const liste = creneaux(config, maintenant, mode, zone);
+  const liste = creneaux(config, maintenant, mode, zone, pizzas);
   return liste.length ? { etat: "ferme", prochain: liste[0] } : { etat: "aucun-creneau" };
+}
+
+// Le moment demandé est-il encore possible pour ce panier ? Contrôle serveur avant paiement.
+export type Quand = { type: "asap" } | { type: "creneau"; date: string; minutes: number } | { type: "aucun" };
+
+export function quandPossible(config: ConfigService, maintenant: Date, mode: Mode, zone: Zone | undefined, pizzas: boolean, quand: Quand): boolean {
+  if (quand.type === "asap") return etatService(config, maintenant, mode, zone, pizzas).etat === "ouvert";
+  if (quand.type === "creneau") {
+    return creneaux(config, maintenant, mode, zone, pizzas).some((c) => c.date === quand.date && c.minutes === quand.minutes);
+  }
+  return false;
 }
