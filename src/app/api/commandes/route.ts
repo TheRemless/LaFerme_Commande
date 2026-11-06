@@ -9,6 +9,8 @@ import { origineSure } from "@/lib/origine";
 import { calculerPanier } from "@/lib/panier";
 import { passerelle } from "@/lib/paiement/passerelle";
 import { depuisHeureGeneve, quandPossible, type Zone } from "@/lib/service";
+import { requeteDuSite } from "@/lib/comptes/origine-requete";
+import { compteCourant, jetonSession } from "@/lib/comptes/session";
 import { cleValide, clientValide, detailsValides, lignesValides, quandValide } from "@/lib/validation";
 import { zoneServeur, type AdresseRetenue } from "@/lib/zone-serveur";
 
@@ -29,6 +31,10 @@ export async function POST(requete: Request) {
   }
   const origine = origineSure(requete);
   if (!origine) return refus("Origine de la requête refusée.", 400);
+  // Avec un cookie de session, la commande va dans le compte : on exige alors une requête du site (CSRF).
+  if ((await jetonSession()) && !requeteDuSite(requete)) return refus("Requête refusée.", 403);
+  const compte = await compteCourant();
+  const creerCompte = !compte && corps.creerCompte === true;
 
   const cle = cleValide(corps.cle);
   const lignes = lignesValides(corps.lignes);
@@ -93,6 +99,8 @@ export async function POST(requete: Request) {
       tva_centimes: totaux.tva_centimes,
       taux_tva_pourcent: catalogue.tauxTvaPourcent,
       origine,
+      compte_id: compte?.id ?? null,
+      compte_demande: creerCompte,
       lignes: totaux.lignes.map((l) => ({
         slug: l.slug,
         nom: l.nom,

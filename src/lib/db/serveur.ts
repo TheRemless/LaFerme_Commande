@@ -55,6 +55,23 @@ async function rpc<T>(nom: string, args: Record<string, unknown>, sqlLocal: stri
   return res.rows as T;
 }
 
+// Appelle une fonction SQL qui renvoie une seule valeur (jsonb, entier, booléen ou rien).
+// Les arguments sont passés par leur nom, dans les deux bases.
+export async function fonctionSql<T>(nom: string, args: Record<string, unknown>): Promise<T> {
+  const cles = Object.keys(args);
+  if (!/^[a-z_]+$/.test(nom) || cles.some((k) => !/^p(_[a-z_]+)?$/.test(k))) throw new Error(`Appel SQL refusé : ${nom}`);
+  const s = supabaseServeur();
+  if (s) {
+    const { data, error } = await s.rpc(nom, args);
+    if (error) throw new Error(`${nom} : ${error.message}`);
+    return data as T;
+  }
+  const db = await baseLocale();
+  const sql = `select ${nom}(${cles.map((k, i) => `${k} => $${i + 1}`).join(", ")}) as r`;
+  const res = await db.query<{ r: T }>(sql, cles.map((k) => args[k]));
+  return res.rows[0]?.r as T;
+}
+
 export type CommandeCreee = { id: string; numero: number; jeton_suivi: string; deja: boolean };
 
 export async function creerCommande(p: Record<string, unknown>): Promise<CommandeCreee> {
@@ -111,7 +128,7 @@ export type Commande = {
   client_nom: string;
   client_telephone: string;
   client_email: string;
-  adresse: { rue: string; numero: string; npa: string; localite: string } | null;
+  adresse: { rue: string; numero: string; npa: string; localite: string; featureId?: string } | null;
   details_livraison: { etage: string; sonnette: string; code: string; instructions: string } | null;
   quand_type: "asap" | "creneau";
   quand_date: string | null;
@@ -125,6 +142,8 @@ export type Commande = {
   stripe_session_id: string | null;
   stripe_payment_intent: string | null;
   motif: string | null;
+  compte_id: string | null;
+  compte_demande: boolean;
   origine: string;
   cree_le: string;
   lignes: LigneCommande[];

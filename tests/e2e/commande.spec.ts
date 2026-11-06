@@ -35,7 +35,7 @@ async function remplir(page: Page) {
   await page.getByLabel("Prénom").fill("Test");
   await page.getByLabel("Nom", { exact: true }).fill("Essai");
   await page.getByLabel("Téléphone").fill("079 000 00 00");
-  await page.getByLabel("E-mail").fill("test@exemple.ch");
+  await page.getByLabel("E-mail", { exact: true }).fill("test@exemple.ch");
 }
 
 test("à emporter, paiement au comptoir : suivi immédiat et panier vidé", async ({ page }) => {

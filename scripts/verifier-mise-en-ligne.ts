@@ -12,6 +12,10 @@ async function main() {
   if (!url || !cle) {
     throw new Error("Build de production sans NEXT_PUBLIC_SUPABASE_URL ou SUPABASE_SECRET_KEY.");
   }
+  // Liens des courriels et contrôle d'origine des routes du compte : sans elle, tout est refusé.
+  if (!/^https:\/\/[a-z0-9.-]+$/.test(process.env.URL_SITE ?? "")) {
+    throw new Error("Build de production sans URL_SITE valable (https://domaine, sans barre finale).");
+  }
   const supabase = createClient(url, cle, { auth: { persistSession: false } });
   const { data, error } = await supabase.from("plats_bloquants").select("slug, nom, motif");
   if (error) throw new Error(`Lecture de plats_bloquants impossible : ${error.message}`);

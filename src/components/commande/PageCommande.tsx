@@ -25,13 +25,21 @@ function cleCommande(contenu: string): string {
   }
 }
 
-export function PageCommande({ catalogue, preversion }: { catalogue: Catalogue; preversion: boolean }) {
+type CompteConnu = { email: string; prenom: string; nom: string; telephone: string } | null;
+
+export function PageCommande({ catalogue, preversion, compte }: { catalogue: Catalogue; preversion: boolean; compte: CompteConnu }) {
   const ids = useId();
   const annule = useSearchParams().get("annule") === "1";
   const { lignes, charge, quantite } = usePanier();
   const reponse = usePrixServeur(lignes, charge);
   const [choix, setChoix] = useState<Choix | null>(null);
-  const [client, setClient] = useState({ prenom: "", nom: "", telephone: "", email: "" });
+  const [client, setClient] = useState({
+    prenom: compte?.prenom ?? "",
+    nom: compte?.nom ?? "",
+    telephone: compte?.telephone ?? "",
+    email: compte?.email ?? "",
+  });
+  const [creerCompte, setCreerCompte] = useState(false);
   const [moyen, setMoyen] = useState<Moyen>("en_ligne");
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -78,6 +86,7 @@ export function PageCommande({ catalogue, preversion }: { catalogue: Catalogue; 
           heure: choix.heureSimulee,
           client,
           moyen: choix.mode === "retrait" ? moyen : "en_ligne",
+          creerCompte: !compte && creerCompte,
         }),
       });
       const r = (await rep.json()) as { redirection?: string; erreur?: string };
@@ -168,6 +177,20 @@ export function PageCommande({ catalogue, preversion }: { catalogue: Catalogue; 
                 <p className="aide">Pour la confirmation et le suivi de la commande.</p>
               </div>
             </div>
+            {compte ? (
+              <p className="aide">
+                Connecté avec {compte.email}. La commande sera rangée dans votre compte.
+              </p>
+            ) : (
+              <label className="option case-compte">
+                <input type="checkbox" checked={creerCompte} onChange={(e) => setCreerCompte(e.target.checked)} />
+                <span>
+                  <strong>Créer mon compte avec cet e-mail</strong>
+                  <br />
+                  Pour retrouver vos adresses et vos commandes. On vous envoie un code pour le confirmer.
+                </span>
+              </label>
+            )}
           </section>
 
           <section className="etape">

@@ -47,7 +47,8 @@ Mémoire de Jérémy à relire : `~/.claude/projects/-Users-admin-Desktop-Claude
 Recommandation du benchmark, à confirmer en dix lignes au début du lot 1 si tu vois mieux :
 
 - **Next.js** (App Router, TypeScript) hébergé sur **Vercel Pro** (le plan Hobby est non commercial).
-- **Supabase** en région Zurich `eu-central-2`, plan Pro (pas de mise en pause) : Postgres, Auth (code e-mail à usage unique), Row Level Security sur toutes les tables, Realtime pour la tablette et le suivi.
+- **Supabase** en région Zurich `eu-central-2`, plan Pro (pas de mise en pause) : Postgres, Row Level Security sur toutes les tables, Realtime pour la tablette et le suivi.
+- **Écart acté le 6.11.2026 (lot 6)** : la connexion des clients par code e-mail à usage unique est faite par le site lui-même, pas par Supabase Auth. Même parcours pour le client (e-mail, code à 6 chiffres, session de 30 jours). Raisons : l'envoi intégré de Supabase Auth est limité à quelques e-mails par heure et exige un SMTP réglé dans Supabase, et il ne tourne ni dans la base embarquée ni dans les tests. Le code part par Resend comme les autres courriels. Détail et règles de sécurité dans `docs/comptes.md`. Une connexion Google ou Apple demandera un ajout.
 - **Stripe** Checkout ou Payment Element avec TWINT. TWINT n'accepte pas la capture différée : on encaisse au paiement et on rembourse en cas de refus, frais Stripe perdus. D'où l'importance d'éviter les refus avant paiement : zone vérifiée, plats en rupture, pause, capacité par créneau.
 - **Resend** pour les e-mails. SMS (Twilio ou ASPSMS) prêt mais désactivé.
 - **Impression** : Star CloudPRNT (mC-Print3 Ethernet) en premier, Epson Server Direct Print en second, derrière une interface commune. File d'impression en base.

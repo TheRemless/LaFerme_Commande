@@ -117,3 +117,12 @@ export function viderPanier(): void {
     // Stockage bloqué : rien à vider.
   }
 }
+
+// « Recommander la même chose » : le panier prend les lignes contrôlées par le serveur.
+export function remplacerPanier(lignes: LignePanier[]): void {
+  ecrire(lignes.slice(0, LIMITES.lignes));
+}
+
+export function panierVide(): boolean {
+  return lire().length === 0;
+}
