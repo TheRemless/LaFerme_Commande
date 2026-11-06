@@ -6,3 +6,8 @@
 
 [build.environment]
   NODE_VERSION = "22"
+
+# Déclaré ici car le site Netlify a été créé quand main ne contenait pas encore Next.js :
+# sans cette ligne, Netlify publie le dossier .next brut et toutes les pages répondent 404.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
