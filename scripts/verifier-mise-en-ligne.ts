@@ -8,9 +8,9 @@ async function main() {
     return;
   }
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const cle = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const cle = process.env.SUPABASE_SECRET_KEY;
   if (!url || !cle) {
-    throw new Error("Build de production sans NEXT_PUBLIC_SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY.");
+    throw new Error("Build de production sans NEXT_PUBLIC_SUPABASE_URL ou SUPABASE_SECRET_KEY.");
   }
   const supabase = createClient(url, cle, { auth: { persistSession: false } });
   const { data, error } = await supabase.from("plats_bloquants").select("slug, nom, motif");

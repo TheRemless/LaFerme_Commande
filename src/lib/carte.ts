@@ -27,7 +27,7 @@ export type SourceCarte = "supabase" | "locale";
 
 async function lireLignes(): Promise<{ lignes: LignePlat[]; source: SourceCarte }> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const cle = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const cle = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (url && cle) {
     const supabase = createClient(url, cle, { auth: { persistSession: false } });
     const { data, error } = await supabase.from("carte_publique").select("*");
