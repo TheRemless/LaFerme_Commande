@@ -8,7 +8,7 @@ import { commandeParId, ConfigurationManquante, creerCommande, lierSessionPaieme
 import { origineSure } from "@/lib/origine";
 import { calculerPanier } from "@/lib/panier";
 import { passerelle } from "@/lib/paiement/passerelle";
-import { depuisHeureGeneve, quandPossible, type Zone } from "@/lib/service";
+import { depuisHeureGeneve, messagePause, pauseEnCours, quandPossible, type Zone } from "@/lib/service";
 import { requeteDuSite } from "@/lib/comptes/origine-requete";
 import { compteCourant, jetonSession } from "@/lib/comptes/session";
 import { cleValide, clientValide, detailsValides, lignesValides, quandValide } from "@/lib/validation";
@@ -69,6 +69,8 @@ export async function POST(requete: Request) {
   const preversion = process.env.CONTEXTE_DEPLOIEMENT !== "production";
   const maintenant = (preversion && typeof corps.heure === "string" ? depuisHeureGeneve(corps.heure) : null) ?? new Date();
   const quand = quandValide(corps.quand);
+  const pause = pauseEnCours(config, maintenant, mode);
+  if (pause) return refus(messagePause(pause) ?? "Les commandes en ligne sont en pause.");
   if (quand.type === "aucun" || !quandPossible(config, maintenant, mode, zone, totaux.pizzas_seulement, quand)) {
     return refus("Ce moment n'est plus disponible. Choisissez une autre heure.");
   }

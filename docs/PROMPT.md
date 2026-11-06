@@ -155,6 +155,7 @@ Jérémy a accepté le 6.11.2026 que les previews utilisent la clé secrète Sup
 
 - [ ] Vider toutes les commandes de test de la base : `delete from courriels; delete from evenements_paiement; delete from commandes; delete from compteurs_jour;` (les lignes de commande partent avec les commandes).
 - [ ] Retirer `SUPABASE_SECRET_KEY` des contextes Deploy Previews et Branch deploys de Netlify, ou y mettre la clé d'un projet de test créé au passage de Supabase en Pro.
+- [ ] Retirer le membre d'équipe de test : `delete from personnel where email like '%.test';` (ajouté par la migration du lot 7a pour les préversions).
 
 ## 12. Ce que Jérémy doit fournir (demande-le au lot qui en a besoin)
 

@@ -31,6 +31,8 @@ export type ConfigService = {
   horaires: Horaire[];
   fermetures: Fermeture[];
   reglages: Reglages;
+  // Réglé depuis la tablette : pause des commandes en ligne (jusqu'à une heure, ou sans fin) et livraison fermée.
+  pause?: { jusqua: string | null; active: boolean; livraisonFermee: boolean };
 };
 
 // ---------- Zones ----------
@@ -179,12 +181,39 @@ export function creneaux(config: ConfigService, maintenant: Date, mode: Mode, zo
 }
 
 export type EtatService =
+  | { etat: "pause"; jusqua: string | null }
+  | { etat: "livraison-fermee" }
   | { etat: "ouvert"; desQuePossible: number }
   | { etat: "ferme"; prochain: Creneau }
   | { etat: "fermeture"; fermeture: Fermeture; reouverture: string | null }
   | { etat: "aucun-creneau" };
 
+// Pause en cours ? Une pause datée se lève seule à son heure ; sans heure, elle dure jusqu'à la reprise.
+// La pause se compare toujours à l'heure réelle : l'heure simulée des préversions (?heure=) ne la lève pas.
+export function pauseEnCours(config: ConfigService, _maintenant: Date, mode: Mode, reel = Date.now()): EtatService | null {
+  const p = config.pause;
+  if (!p) return null;
+  if (p.active && (!p.jusqua || new Date(p.jusqua).getTime() > reel)) return { etat: "pause", jusqua: p.jusqua };
+  if (mode === "livraison" && p.livraisonFermee) return { etat: "livraison-fermee" };
+  return null;
+}
+
+// Phrase pour le client quand la commande en ligne est suspendue (accueil, panier, paiement).
+export function messagePause(etat: EtatService): string | null {
+  if (etat.etat === "pause") {
+    return etat.jusqua
+      ? `Les commandes en ligne reprennent à ${heureTexte(instantGeneve(new Date(etat.jusqua)).minutes)}. En attendant, commandez par téléphone au 022 792 16 89.`
+      : "Les commandes en ligne sont en pause. Commandez par téléphone au 022 792 16 89.";
+  }
+  if (etat.etat === "livraison-fermee") {
+    return "La livraison est fermée pour le moment. Vous pouvez commander à emporter, ou nous appeler au 022 792 16 89.";
+  }
+  return null;
+}
+
 export function etatService(config: ConfigService, maintenant: Date, mode: Mode, zone?: Zone, pizzas = false): EtatService {
+  const suspendu = pauseEnCours(config, maintenant, mode);
+  if (suspendu) return suspendu;
   const ici = instantGeneve(maintenant);
   const fermeture = fermeturePour(config, ici.date);
   if (fermeture) {
@@ -215,6 +244,7 @@ export function etatService(config: ConfigService, maintenant: Date, mode: Mode,
 export type Quand = { type: "asap" } | { type: "creneau"; date: string; minutes: number } | { type: "aucun" };
 
 export function quandPossible(config: ConfigService, maintenant: Date, mode: Mode, zone: Zone | undefined, pizzas: boolean, quand: Quand): boolean {
+  if (pauseEnCours(config, maintenant, mode)) return false;
   if (quand.type === "asap") return etatService(config, maintenant, mode, zone, pizzas).etat === "ouvert";
   if (quand.type === "creneau") {
     return creneaux(config, maintenant, mode, zone, pizzas).some((c) => c.date === quand.date && c.minutes === quand.minutes);

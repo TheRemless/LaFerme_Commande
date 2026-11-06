@@ -17,6 +17,7 @@ export async function creerBaseLocale(): Promise<PGlite> {
     await db.exec(await readFile(path.join(SUPABASE, "migrations", f), "utf8"));
   }
   await db.exec(await readFile(path.join(SUPABASE, "seed.sql"), "utf8"));
+  await db.exec(await readFile(path.join(SUPABASE, "local", "donnees-test.sql"), "utf8"));
   return db;
 }
 

@@ -6,10 +6,13 @@ import { useEffect, useId, useRef, useState } from "react";
 // Connexion par code à 6 chiffres. Deux départs : un e-mail tapé (page Compte), ou le jeton d'une
 // commande (suivi, case « créer mon compte ») : l'e-mail est alors celui de la commande, jamais affiché ici.
 
-type Props = { jeton?: string; titreBouton?: string; onConnecte: () => void };
+// api : routes du personnel pour la tablette, celles des clients sinon.
+type Props = { jeton?: string; titreBouton?: string; onConnecte: () => void; api?: { code: string; connexion: string } };
+
+const API_CLIENTS = { code: "/api/compte/code", connexion: "/api/compte/connexion" };
 
 
-export function FormCode({ jeton, titreBouton = "Me connecter", onConnecte }: Props) {
+export function FormCode({ jeton, titreBouton = "Me connecter", onConnecte, api = API_CLIENTS }: Props) {
   const ids = useId();
   const [email, setEmail] = useState("");
   const [etape, setEtape] = useState<"email" | "code">("email");
@@ -27,7 +30,7 @@ export function FormCode({ jeton, titreBouton = "Me connecter", onConnecte }: Pr
     e?.preventDefault();
     setEnvoi(true);
     setErreur(null);
-    const r = await poster("/api/compte/code", jeton ? { jeton } : { email });
+    const r = await poster(api.code, jeton ? { jeton } : { email });
     setEnvoi(false);
     if (!r.ok) {
       setErreur(String(r.donnees.erreur ?? "Le code n'est pas parti. Réessayez."));
@@ -42,7 +45,7 @@ export function FormCode({ jeton, titreBouton = "Me connecter", onConnecte }: Pr
     e.preventDefault();
     setEnvoi(true);
     setErreur(null);
-    const r = await poster("/api/compte/connexion", jeton ? { jeton, code } : { email, code });
+    const r = await poster(api.connexion, jeton ? { jeton, code } : { email, code });
     if (r.ok) {
       onConnecte();
       return;

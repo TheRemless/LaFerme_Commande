@@ -4,11 +4,14 @@ import { courrielConfirmation, courrielRemboursement } from "@/lib/courriel/mode
 import { envoyerCourriel } from "@/lib/courriel/envoi";
 import { appliquerPaiement, commandeParId, type Commande } from "@/lib/db/serveur";
 import { passerelle } from "@/lib/paiement/passerelle";
+import { signalerTablette } from "@/lib/tablette";
 
 // Ce qui suit un événement de paiement. Une seule source de vérité : appliquer_paiement en base,
 // qui n'accepte chaque événement qu'une fois. Le courriel ne part que si l'événement a changé la commande.
 
 async function envoyerConfirmation(c: Commande): Promise<void> {
+  // La commande devient visible sur la tablette : on la prévient tout de suite.
+  await signalerTablette();
   const cat = await chargerCatalogue().catch(() => null);
   const m = courrielConfirmation(c, cat);
   await envoyerCourriel({ commandeId: c.id, destinataire: c.client_email, ...m }).catch((e) => {

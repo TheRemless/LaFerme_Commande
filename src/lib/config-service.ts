@@ -32,10 +32,19 @@ async function lireConfigService(): Promise<ConfigService> {
       creneau_minutes: nombre(reglages, "creneau_minutes"),
       avance_jours: nombre(reglages, "avance_jours"),
     },
+    pause: (() => {
+      const jusqua = reglages.find((r) => r.cle === "pause_jusqu_a")?.valeur;
+      // valeur : null (pas de pause), "sans-fin", ou une date ISO.
+      return {
+        active: typeof jusqua === "string",
+        jusqua: typeof jusqua === "string" && jusqua !== "sans-fin" ? jusqua : null,
+        livraisonFermee: reglages.find((r) => r.cle === "livraison_fermee")?.valeur === true,
+      };
+    })(),
   };
 }
 
 // Une minute de cache : une pause ou un horaire changé dans le back-office s'applique en moins d'une minute.
 export const chargerConfigService = process.env.VITEST
   ? lireConfigService
-  : unstable_cache(lireConfigService, ["config-service"], { revalidate: 60 });
+  : unstable_cache(lireConfigService, ["config-service"], { revalidate: 60, tags: ["config-service"] });

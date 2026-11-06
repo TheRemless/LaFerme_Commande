@@ -128,3 +128,55 @@ export function courrielCode(code: string) {
 <p style="color:#55524f;font-size:13px">${RESTAURANT}</p></div>`;
   return { sujet, texte, html };
 }
+
+// ---------- Courriels envoyés depuis la tablette (lot 7a) ----------
+
+function heureDe(iso: string): string {
+  return new Intl.DateTimeFormat("fr-CH", { timeZone: "Europe/Zurich", hour: "2-digit", minute: "2-digit" }).format(new Date(iso)).replace(":", "h");
+}
+
+function courrielCourt(c: Commande, sujet: string, phrases: string[], avecSuivi = true) {
+  const texte = [
+    `Bonjour ${c.client_prenom},`,
+    "",
+    ...phrases,
+    "",
+    ...(avecSuivi ? [`Suivre la commande : ${lienSuivi(c)}`] : []),
+    `Une question ? ${TELEPHONE}`,
+    "",
+    RESTAURANT,
+  ].join("\n");
+  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#1c1b1a;max-width:560px">
+<p>Bonjour ${echapper(c.client_prenom)},</p>
+${phrases.map((p) => `<p>${echapper(p)}</p>`).join("\n")}
+<p>${avecSuivi ? `<a href="${echapper(lienSuivi(c))}">Suivre la commande</a><br>` : ""}Une question ? ${TELEPHONE}</p>
+<p style="color:#55524f;font-size:13px">${RESTAURANT}</p></div>`;
+  return { sujet, texte, html };
+}
+
+function heurePhrase(c: Commande, iso: string): string {
+  return c.mode === "livraison" ? `Le livreur passe chez vous vers ${heureDe(iso)}.` : `Elle sera prête vers ${heureDe(iso)}, Route de Chancy 132 à Onex.`;
+}
+
+export function courrielAcceptation(c: Commande, heureIso: string) {
+  return courrielCourt(c, `Commande ${c.numero} acceptée, La Ferme`, [`Votre commande n° ${c.numero} est acceptée.`, heurePhrase(c, heureIso)]);
+}
+
+export function courrielNouvelleHeure(c: Commande, heureIso: string) {
+  return courrielCourt(c, `Commande ${c.numero}, nouvelle heure`, [`L'heure de votre commande n° ${c.numero} change.`, heurePhrase(c, heureIso)]);
+}
+
+export function courrielPrete(c: Commande) {
+  if (c.mode === "livraison") {
+    return courrielCourt(c, `Commande ${c.numero} en route, La Ferme`, [`Votre commande n° ${c.numero} est partie. Le livreur est en route.`]);
+  }
+  return courrielCourt(c, `Commande ${c.numero} prête, La Ferme`, [
+    `Votre commande n° ${c.numero} est prête. Vous pouvez venir la chercher, Route de Chancy 132 à Onex.`,
+    ...(c.statut_paiement === "a_encaisser_retrait" ? [`Le paiement de ${prixChf(c.total_centimes)} se fait au comptoir.`] : []),
+  ]);
+}
+
+// Refus d'une commande qui n'a pas été payée en ligne (paiement au comptoir) : rien à rembourser.
+export function courrielRefus(c: Commande, motif: string) {
+  return courrielCourt(c, `Commande ${c.numero} annulée, La Ferme`, [`Nous ne pouvons pas préparer votre commande n° ${c.numero}. ${motif}`, "Rien n'a été débité."], false);
+}
