@@ -8,8 +8,14 @@ export function origineSure(requete: Request): string | null {
     const u = process.env.URL_SITE;
     return u && /^https:\/\/[a-z0-9.-]+$/.test(u) ? u : null;
   }
-  const o = new URL(requete.url).origin;
-  if (/^http:\/\/(localhost|127\.0\.0\.1):\d{2,5}$/.test(o)) return o;
-  if (/^https:\/\/[a-z0-9-]+\.netlify\.app$/.test(o)) return o;
+  // Derrière Netlify, l'URL vue par la fonction est l'adresse interne du déploiement : l'adresse que le
+  // client a ouverte (celle de la preview) arrive dans x-forwarded-host. Les deux passent la même liste.
+  const transmis = requete.headers.get("x-forwarded-host");
+  const candidats = [transmis ? `https://${transmis}` : null, new URL(requete.url).origin];
+  for (const o of candidats) {
+    if (!o) continue;
+    if (/^http:\/\/(localhost|127\.0\.0\.1):\d{2,5}$/.test(o)) return o;
+    if (/^https:\/\/[a-z0-9-]+\.netlify\.app$/.test(o)) return o;
+  }
   return null;
 }
