@@ -5,10 +5,16 @@ import { prixCourt } from "../../src/lib/prix";
 
 const carte = JSON.parse(readFileSync(path.join(process.cwd(), "docs", "carte-proposee.json"), "utf8"));
 
+// Le client choisit livraison ou retrait avant la carte : on pose un choix « à emporter » enregistré.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("laferme.choix.v1", JSON.stringify({ mode: "retrait", quand: { type: "asap" }, enregistreLe: Date.now() }));
+  });
+});
+
 
 test("la carte affiche chaque plat de la base avec son prix", async ({ page }) => {
-  await page.goto("/");
-  await expect(page).toHaveURL(/\/carte$/);
+  await page.goto("/carte");
   await expect(page.getByRole("heading", { level: 2 })).toHaveText([
     "Pizzas", "Entrées", "Pâtes et risottos", "Poissons", "Viandes", "Desserts", "Boissons",
   ]);

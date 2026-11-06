@@ -1,4 +1,5 @@
 import { EnTete } from "@/components/EnTete";
+import { ResumeChoix } from "@/components/ResumeChoix";
 import { Plat } from "@/components/Plat";
 import { chargerCarte } from "@/lib/carte";
 
@@ -11,7 +12,9 @@ export default async function PageCarte() {
   const aValider = categories.some((c) => c.plats.some((p) => p.prix_a_valider));
   return (
     <>
-      <EnTete />
+      <EnTete>
+        <ResumeChoix />
+      </EnTete>
       {preversion && aValider && (
         <p className="bandeau-preversion" role="note">
           Préversion : prix proposés, en attente de validation.
