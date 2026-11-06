@@ -11,9 +11,9 @@ export const dynamic = "force-dynamic";
 export default async function Accueil({ searchParams }: { searchParams: Promise<{ heure?: string }> }) {
   const [config, compte] = await Promise.all([chargerConfigService(), compteCourant()]);
   // Client connecté : ses adresses de livraison, à choisir d'un geste.
-  const espace = compte
-    ? await fonctionSql<{ adresses: AdresseEnregistree[] } | null>("espace_compte", { p_compte: compte.id }).catch(() => null)
-    : null;
+  const adresses = compte
+    ? await fonctionSql<AdresseEnregistree[]>("adresses_compte_liste", { p_compte: compte.id }).catch(() => [])
+    : [];
   const preversion = process.env.CONTEXTE_DEPLOIEMENT !== "production";
   // Hors production, ?heure=2026-11-10T19:05 (heure de Genève) simule un autre moment pour tester les états.
   const { heure } = await searchParams;
@@ -29,7 +29,7 @@ export default async function Accueil({ searchParams }: { searchParams: Promise<
         </p>
       )}
       <main className="page-accueil">
-        <ChoixCommande config={config} maintenantServeur={maintenant} heureSimulee={simulee ? heure : undefined} adressesEnregistrees={espace?.adresses ?? []} />
+        <ChoixCommande config={config} maintenantServeur={maintenant} heureSimulee={simulee ? heure : undefined} adressesEnregistrees={adresses} />
       </main>
     </>
   );

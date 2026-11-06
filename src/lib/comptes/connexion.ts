@@ -1,7 +1,7 @@
 import "server-only";
 import { courrielCode } from "@/lib/courriel/modeles";
 import { envoyerCodeParCourriel, resendConfigure } from "@/lib/courriel/envoi";
-import { fonctionSql } from "@/lib/db/serveur";
+import { commandeParJeton, fonctionSql } from "@/lib/db/serveur";
 import { empreinte, ipCourt, nouveauCode, nouveauJeton } from "@/lib/comptes/securite";
 
 // Demande et vérification d'un code de connexion. Les limites de débit et le compte vivent en base
@@ -62,4 +62,13 @@ export async function verifierCode(
   if (r.statut === "ok") return { statut: "ok", jeton };
   if (r.statut === "attente") return { statut: "attente", attente: r.attente ?? 60 };
   return { statut: "invalide" };
+}
+
+// Commande du lien de suivi dont le client a coché « créer mon compte » et pas encore rattachée :
+// seule source d'e-mail acceptée avec un jeton. Sans la case cochée, un lien transféré ne permet
+// pas d'envoyer des codes au client.
+export async function commandeACompte(jeton: unknown): Promise<{ email: string; jeton: string } | null> {
+  if (typeof jeton !== "string" || !/^[A-Za-z0-9_-]{20,64}$/.test(jeton)) return null;
+  const c = await commandeParJeton(jeton);
+  return c && c.compte_demande && !c.compte_id ? { email: c.client_email, jeton: c.jeton_suivi } : null;
 }

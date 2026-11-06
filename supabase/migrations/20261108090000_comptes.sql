@@ -178,11 +178,13 @@ declare
   cid uuid;
 begin
   perform pg_advisory_xact_lock(hashtext('code:' || p_cle_email));
-  -- Ménage : les compteurs vivent un jour, les codes un jour, le journal six mois.
-  delete from tentatives_connexion where le < now() - interval '1 day';
-  delete from codes_connexion where cree_le < now() - interval '1 day';
-  delete from sessions_compte where expire_le < now() - interval '30 days' or revoquee_le < now() - interval '30 days';
-  delete from journal_connexions where le < now() - interval '180 days';
+  -- Ménage, une demande sur vingt : les compteurs vivent un jour, les codes un jour, le journal six mois.
+  if random() < 0.05 then
+    delete from tentatives_connexion where le < now() - interval '1 day';
+    delete from codes_connexion where cree_le < now() - interval '1 day';
+    delete from sessions_compte where expire_le < now() - interval '30 days' or revoquee_le < now() - interval '30 days';
+    delete from journal_connexions where le < now() - interval '180 days';
+  end if;
 
   select id into cid from comptes where email = p_email;
   -- Par e-mail : un code tout de suite, puis 30 s, 1 min, 2 min, 4 min d'attente, cinq par heure au plus.
@@ -329,6 +331,13 @@ language sql stable as $$
   from comptes c where c.id = p_compte;
 $$;
 
+-- Adresses seules, pour l'accueil d'un client connecté.
+create function adresses_compte_liste(p_compte uuid) returns jsonb
+language sql stable as $$
+  select coalesce(jsonb_agg(jsonb_build_object('id', a.id, 'adresse', a.adresse, 'details', a.details) order by a.utilisee_le desc), '[]'::jsonb)
+  from adresses_compte a where a.compte_id = p_compte;
+$$;
+
 create function modifier_profil(p_compte uuid, p jsonb, p_ip_court text) returns void
 language plpgsql as $$
 begin
@@ -466,14 +475,14 @@ revoke execute on function
   egal_constant(text, text), attente_limite(text, text, integer, interval, integer, integer),
   enregistrer_adresse(uuid, jsonb, jsonb), completer_depuis_commande(uuid, uuid),
   demander_code(text, text, text, text, text), verifier_code(text, text, text, text, text, text, text, text),
-  compte_de_session(text), deconnecter(text, boolean, text), espace_compte(uuid), modifier_profil(uuid, jsonb, text),
+  compte_de_session(text), deconnecter(text, boolean, text), espace_compte(uuid), adresses_compte_liste(uuid), modifier_profil(uuid, jsonb, text),
   supprimer_adresse(uuid, uuid, text), lignes_commande_compte(uuid, uuid), export_compte(uuid, text), supprimer_compte(uuid, text)
   from public, anon, authenticated;
 grant execute on function
   egal_constant(text, text), attente_limite(text, text, integer, interval, integer, integer),
   enregistrer_adresse(uuid, jsonb, jsonb), completer_depuis_commande(uuid, uuid),
   demander_code(text, text, text, text, text), verifier_code(text, text, text, text, text, text, text, text),
-  compte_de_session(text), deconnecter(text, boolean, text), espace_compte(uuid), modifier_profil(uuid, jsonb, text),
+  compte_de_session(text), deconnecter(text, boolean, text), espace_compte(uuid), adresses_compte_liste(uuid), modifier_profil(uuid, jsonb, text),
   supprimer_adresse(uuid, uuid, text), lignes_commande_compte(uuid, uuid), export_compte(uuid, text), supprimer_compte(uuid, text)
   to service_role;
 grant select, insert, update, delete on comptes, codes_connexion, sessions_compte, adresses_compte, tentatives_connexion, journal_connexions to service_role;

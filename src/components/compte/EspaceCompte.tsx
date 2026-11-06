@@ -1,12 +1,13 @@
 "use client";
 
+import { poster } from "@/lib/requete-client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 import { adresseTexte, type Adresse, type Details } from "@/lib/adresse";
 import { lireChoix } from "@/lib/choix";
 import type { Recommande } from "@/lib/comptes/recommander";
-import { remplacerPanier } from "@/lib/panier-local";
+import { panierVide, remplacerPanier } from "@/lib/panier-local";
 import { prixChf } from "@/lib/prix";
 
 export type DonneesEspace = {
@@ -30,20 +31,14 @@ function dateTexte(iso: string): string {
   return new Intl.DateTimeFormat("fr-CH", { timeZone: "Europe/Zurich", weekday: "long", day: "numeric", month: "long" }).format(new Date(iso));
 }
 
-async function poster(url: string, corps: unknown) {
-  try {
-    const rep = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corps) });
-    return { ok: rep.ok, statut: rep.status, donnees: (await rep.json().catch(() => ({}))) as Record<string, unknown> };
-  } catch {
-    return { ok: false, statut: 0, donnees: { erreur: "Pas de connexion. Vérifiez le réseau et réessayez." } };
-  }
-}
 
 function Recommander({ commandeId }: { commandeId: string }) {
   const router = useRouter();
-  const [etat, setEtat] = useState<"repos" | "envoi" | Recommande | { erreur: string }>("repos");
+  const [etat, setEtat] = useState<"repos" | "confirmer" | "envoi" | Recommande | { erreur: string }>("repos");
 
-  async function lancer() {
+  async function lancer(remplacer = false) {
+    // Un panier en cours n'est jamais écrasé sans accord.
+    if (!remplacer && !panierVide()) return setEtat("confirmer");
     setEtat("envoi");
     const r = await poster("/api/compte/recommander", { commande: commandeId });
     if (r.statut === 401) return router.refresh();
@@ -55,9 +50,24 @@ function Recommander({ commandeId }: { commandeId: string }) {
     setEtat(rec);
   }
 
+  if (etat === "confirmer") {
+    return (
+      <div className="recommande" role="status">
+        <p>Votre panier contient déjà des plats. Les remplacer par cette commande ?</p>
+        <div className="boutons-ligne">
+          <button type="button" className="bouton-second" onClick={() => lancer(true)}>
+            Remplacer mon panier
+          </button>
+          <button type="button" className="lien" onClick={() => setEtat("repos")}>
+            Garder mon panier
+          </button>
+        </div>
+      </div>
+    );
+  }
   if (etat === "repos" || etat === "envoi") {
     return (
-      <button type="button" className="bouton-second" onClick={lancer} disabled={etat === "envoi"}>
+      <button type="button" className="bouton-second" onClick={() => lancer()} disabled={etat === "envoi"}>
         {etat === "envoi" ? "Un instant…" : "Recommander la même chose"}
       </button>
     );
@@ -117,6 +127,29 @@ export function EspaceCompte({ donnees, preversion }: { donnees: DonneesEspace; 
     if (r.statut === 401) return router.refresh();
     if (!r.ok) return setErreur(String(r.donnees.erreur ?? "Impossible pour le moment. Réessayez."));
     ensuite();
+  }
+
+  // Par fetch plutôt qu'un lien direct : une session expirée renvoie à la connexion au lieu de
+  // télécharger le message d'erreur comme fichier.
+  async function telecharger() {
+    setEnvoi(true);
+    setErreur(null);
+    try {
+      const rep = await fetch("/api/compte/export");
+      if (rep.status === 401) return router.refresh();
+      if (!rep.ok) return setErreur("Le fichier n'est pas prêt. Réessayez.");
+      const nom = rep.headers.get("Content-Disposition")?.match(/filename="([^"]+)"/)?.[1] ?? "la-ferme-mes-donnees.json";
+      const url = URL.createObjectURL(await rep.blob());
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = nom;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setErreur("Pas de connexion. Vérifiez le réseau et réessayez.");
+    } finally {
+      setEnvoi(false);
+    }
   }
 
   async function enregistrerProfil(e: React.FormEvent) {
@@ -271,9 +304,9 @@ export function EspaceCompte({ donnees, preversion }: { donnees: DonneesEspace; 
           <section className="espace-bloc" aria-labelledby={`${ids}-donnees`}>
             <h2 id={`${ids}-donnees`}>Vos données</h2>
             <p className="aide">Téléchargez dans un fichier tout ce que nous gardons sur vous.</p>
-            <a className="bouton-second" href="/api/compte/export" download>
+            <button type="button" className="bouton-second" disabled={envoi} onClick={telecharger}>
               Télécharger mes données
-            </a>
+            </button>
             <div className="zone-suppression">
               <h3>Supprimer mon compte</h3>
               <p className="aide">

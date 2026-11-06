@@ -122,3 +122,7 @@ export function viderPanier(): void {
 export function remplacerPanier(lignes: LignePanier[]): void {
   ecrire(lignes.slice(0, LIMITES.lignes));
 }
+
+export function panierVide(): boolean {
+  return lire().length === 0;
+}

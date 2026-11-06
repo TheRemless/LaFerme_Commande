@@ -25,11 +25,7 @@ export function nouveauJeton(): string {
   return randomBytes(32).toString("base64url");
 }
 
-export function emailNormalise(v: unknown): string | null {
-  if (typeof v !== "string") return null;
-  const e = v.trim().toLowerCase();
-  return e.length >= 5 && e.length <= 120 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e) ? e : null;
-}
+export { emailNormalise } from "@/lib/validation";
 
 export function codeValide(v: unknown): string | null {
   if (typeof v !== "string") return null;
@@ -42,10 +38,12 @@ export function codeValide(v: unknown): string | null {
 export function ipDe(requete: Request): string {
   const netlify = requete.headers.get("x-nf-client-connection-ip");
   if (netlify) return netlify.trim();
-  if (process.env.CONTEXTE_DEPLOIEMENT === "local") {
-    return requete.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
-  }
-  return "inconnue";
+  const transmis = (requete.headers.get("x-forwarded-for") ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+  // Poste local : la première valeur (les tests s'en servent pour simuler plusieurs clients).
+  if (process.env.CONTEXTE_DEPLOIEMENT === "local") return transmis[0] || "local";
+  // Ailleurs, la dernière : celle ajoutée par le proxy, que le client ne choisit pas. Jamais une valeur
+  // commune à tous, qui rendrait les limites par IP globales au site.
+  return transmis.at(-1) || "inconnue";
 }
 
 // Ce que le journal garde de l'IP : huit caractères de son empreinte, assez pour voir une rafale.

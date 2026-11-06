@@ -1,5 +1,6 @@
 "use client";
 
+import { poster } from "@/lib/requete-client";
 import { useEffect, useId, useRef, useState } from "react";
 
 // Connexion par code à 6 chiffres. Deux départs : un e-mail tapé (page Compte), ou le jeton d'une
@@ -7,14 +8,6 @@ import { useEffect, useId, useRef, useState } from "react";
 
 type Props = { jeton?: string; titreBouton?: string; onConnecte: () => void };
 
-async function poster(url: string, corps: unknown): Promise<{ ok: boolean; donnees: Record<string, unknown> }> {
-  try {
-    const rep = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corps) });
-    return { ok: rep.ok, donnees: (await rep.json().catch(() => ({}))) as Record<string, unknown> };
-  } catch {
-    return { ok: false, donnees: { erreur: "Pas de connexion. Vérifiez le réseau et réessayez." } };
-  }
-}
 
 export function FormCode({ jeton, titreBouton = "Me connecter", onConnecte }: Props) {
   const ids = useId();

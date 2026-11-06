@@ -219,6 +219,7 @@ describe("compte et commandes", () => {
     const espace = await f<{ adresses: unknown[]; commandes: unknown[] }>("espace_compte($1)", [compte]);
     expect(espace.commandes).toHaveLength(2);
     expect(espace.adresses).toHaveLength(1);
+    expect(await f<unknown[]>("adresses_compte_liste($1)", [compte])).toEqual(espace.adresses);
     const demande = (await db.query<{ compte_demande: boolean }>("select compte_demande from commandes where cle_idempotence = 'compte-c1'")).rows[0];
     expect(demande.compte_demande).toBe(false);
   });

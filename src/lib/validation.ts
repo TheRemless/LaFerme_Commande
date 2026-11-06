@@ -47,15 +47,21 @@ function texte(v: unknown, min: number, max: number): string | null {
 
 export type Client = { prenom: string; nom: string; telephone: string; email: string };
 
+// E-mail sans espaces, en minuscules, de forme valable. Même règle pour la commande et le compte.
+export function emailNormalise(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  const e = v.trim().toLowerCase();
+  return e.length >= 5 && e.length <= 120 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e) ? e : null;
+}
+
 export function clientValide(v: unknown): Client | null {
   const c = (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
   const prenom = texte(c.prenom, 1, 60);
   const nom = texte(c.nom, 1, 60);
   const telephone = texte(c.telephone, 8, 20);
-  const email = texte(c.email, 5, 120)?.toLowerCase() ?? null;
+  const email = emailNormalise(c.email);
   if (!prenom || !nom || !telephone || !email) return null;
   if (!/^\+?[0-9 ().-]{8,20}$/.test(telephone) || (telephone.match(/\d/g) ?? []).length < 9) return null;
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return null;
   return { prenom, nom, telephone, email };
 }
 

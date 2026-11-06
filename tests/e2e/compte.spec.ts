@@ -89,9 +89,16 @@ test("commande en invité avec « créer mon compte », code sur le suivi, puis 
   await expect(page.locator(".ancienne-lignes")).toContainText("2 × Pizza Margherita");
   await expect(page.getByLabel("Téléphone")).toHaveValue("079 000 00 00");
 
-  // Recommander : même plats, prix actuels, panier rempli, retour à la carte.
-  await page.evaluate(() => localStorage.removeItem("laferme.panier.v1"));
+  // Recommander avec un panier en cours : confirmation d'abord.
+  await page.evaluate(() =>
+    localStorage.setItem("laferme.panier.v1", JSON.stringify({ le: Date.now(), lignes: [{ slug: "pizza-margherita", qte: 5, choix: {}, retraits: [], note: "" }] })),
+  );
   await page.getByRole("button", { name: "Recommander la même chose" }).click();
+  await page.getByRole("button", { name: "Garder mon panier" }).click();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("laferme.panier.v1")!).lignes[0].qte)).toBe(5);
+  // Puis on remplace : mêmes plats que la commande, prix actuels, retour à la carte.
+  await page.getByRole("button", { name: "Recommander la même chose" }).click();
+  await page.getByRole("button", { name: "Remplacer mon panier" }).click();
   await expect(page).toHaveURL(/\/carte/);
   const panier = await page.evaluate(() => JSON.parse(localStorage.getItem("laferme.panier.v1") ?? "{}"));
   expect(panier.lignes).toEqual([{ slug: "pizza-margherita", qte: 2, choix: {}, retraits: [], note: "" }]);
@@ -124,7 +131,7 @@ test("export des données puis suppression du compte, case de confirmation oblig
   await seConnecter(page, email);
 
   const telechargement = page.waitForEvent("download");
-  await page.getByRole("link", { name: "Télécharger mes données" }).click();
+  await page.getByRole("button", { name: "Télécharger mes données" }).click();
   const fichier = await telechargement;
   expect(fichier.suggestedFilename()).toMatch(/^la-ferme-mes-donnees-\d{4}-\d{2}-\d{2}\.json$/);
   const morceaux: Buffer[] = [];
