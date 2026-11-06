@@ -1058,3 +1058,244 @@ body.fiche-ouverte {
     padding: 14px 28px;
   }
 }
+
+/* ---------- Commande et suivi : feuilles posées sur le béton ---------- */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.page-commande,
+.page-suivi {
+  min-height: calc(100vh - var(--hauteur-tete));
+  padding-bottom: 48px;
+  background: var(--beton);
+}
+.page-commande-contenu {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 8px max(16px, env(safe-area-inset-left)) 0;
+}
+.page-commande-contenu > .retour,
+.page-commande-contenu > h1 {
+  color: var(--blanc);
+}
+.page-commande-contenu > h1 {
+  margin: 4px 0 18px;
+  font-size: 44px;
+}
+.commande-form,
+.commande-recap,
+.commande-vide {
+  padding: 20px 16px;
+  color: var(--encre);
+  background: var(--papier);
+  border-radius: 4px;
+}
+.commande-vide {
+  max-width: 480px;
+  margin: 40px auto 0;
+}
+.commande-form {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+.commande-recap {
+  margin-top: 16px;
+}
+.commande-recap h2 {
+  font-size: 30px;
+}
+.etape {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.etape h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 30px;
+}
+.etape-n {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  font-size: 20px;
+  font-stretch: 100%;
+  color: var(--blanc);
+  background: var(--encre);
+  border-radius: 3px;
+}
+.recap-mode {
+  position: relative;
+  padding: 12px 88px 12px 14px;
+  background: var(--blanc);
+  border: 1px solid #d6d6d2;
+  border-radius: 4px;
+}
+.recap-mode p {
+  margin: 0;
+}
+.recap-mode a {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+}
+.details.deux {
+  grid-template-columns: 1fr;
+}
+.paiements {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.paiement {
+  padding: 10px 14px;
+  background: var(--blanc);
+  border: 1px solid #d6d6d2;
+  border-radius: 4px;
+}
+.paiement:has(input:checked) {
+  border-color: var(--encre);
+  box-shadow: inset 0 0 0 1px var(--encre);
+}
+.commande-form .bouton-principal {
+  width: 100%;
+}
+.suivi {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 8px max(16px, env(safe-area-inset-left)) 0;
+  color: var(--blanc);
+}
+.suivi-num {
+  margin: 24px 0 4px;
+  font-weight: 600;
+}
+.suivi h1 {
+  font-size: 34px;
+}
+.suivi-heure {
+  display: block;
+  font-size: 120px;
+  line-height: 0.95;
+}
+.suivi-change {
+  margin: 12px 0 20px;
+  padding: 10px 14px;
+  color: var(--encre);
+  background: var(--papier);
+  border-radius: 4px;
+}
+.etapes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid rgb(255 255 255 / 0.3);
+}
+.etapes li {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  color: #e4e4e2;
+  border-bottom: 1px solid rgb(255 255 255 / 0.3);
+}
+.puce {
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgb(255 255 255 / 0.6);
+  border-radius: 50%;
+}
+.fait .puce {
+  background: var(--blanc);
+  border-color: var(--blanc);
+}
+.en-cours {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--blanc);
+}
+.en-cours .puce {
+  border-color: var(--blanc);
+  box-shadow: inset 0 0 0 5px var(--beton), inset 0 0 0 12px var(--blanc);
+}
+.suivi-info {
+  color: #ececea;
+}
+.suivi-detail {
+  margin-top: 24px;
+  padding: 20px 16px;
+  color: var(--encre);
+  background: var(--papier);
+  border-radius: 4px;
+}
+.suivi-detail h2 {
+  font-size: 28px;
+}
+.suivi-detail p {
+  margin: 0;
+}
+.boutons-test {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.paiement-test .bouton-second {
+  align-self: stretch;
+  color: var(--blanc);
+  border-color: var(--blanc);
+}
+.courriel-test {
+  margin-top: 20px;
+  padding: 16px;
+  color: var(--encre);
+  background: var(--papier);
+  border-radius: 4px;
+}
+.courriel-test h2 {
+  font-size: 24px;
+}
+.courriel-test pre {
+  font: 14px/1.5 var(--police);
+  white-space: pre-wrap;
+}
+
+@media (min-width: 900px) {
+  .page-commande-contenu {
+    padding: 16px 32px 0;
+  }
+  .page-commande-contenu > h1 {
+    font-size: 64px;
+  }
+  .commande-grille {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 32px;
+    align-items: start;
+  }
+  .commande-form,
+  .commande-recap {
+    padding: 28px;
+  }
+  .commande-recap {
+    position: sticky;
+    top: calc(var(--hauteur-tete) + 24px);
+    margin-top: 0;
+  }
+  .details.deux {
+    grid-template-columns: 1fr 1fr;
+  }
+  .suivi-heure {
+    font-size: 160px;
+  }
+}

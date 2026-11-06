@@ -105,3 +105,13 @@ export function usePrixServeur(lignes: LignePanier[], actif: boolean): ReponsePa
 
   return etat && etat.cle === cle ? etat.reponse : null;
 }
+
+// Après une commande passée : le panier repart vide (et la clé de commande avec lui).
+export function viderPanier(): void {
+  try {
+    window.localStorage.removeItem(CLE);
+    window.sessionStorage.removeItem("laferme.cle-commande");
+  } catch {
+    // Stockage bloqué : rien à vider.
+  }
+}

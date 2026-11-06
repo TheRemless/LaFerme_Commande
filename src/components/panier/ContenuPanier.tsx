@@ -15,14 +15,15 @@ export function ContenuPanier({
   catalogue,
   choix,
   reponse,
-  preversion,
+  sansBouton = false,
 }: {
   lignes: LignePanier[];
   quantite: (i: number, delta: number) => void;
   catalogue: Catalogue;
   choix: Choix | null;
   reponse: ReponsePanier | null;
-  preversion: boolean;
+  preversion?: boolean;
+  sansBouton?: boolean;
 }) {
   const local = calculerPanier(catalogue, lignes, choix?.mode === "livraison" && choix.zone ? choix.zone : null);
   const t = reponse && !reponse.erreur ? reponse : local;
@@ -128,10 +129,16 @@ export function ContenuPanier({
         </p>
       )}
 
-      <button type="button" className="bouton-principal" disabled>
-        Commander, {prixChf(t.total_centimes)}
-      </button>
-      {preversion && <p className="aide">Préversion : le paiement arrive à la prochaine étape.</p>}
+      {!sansBouton &&
+        (reponse?.valide ? (
+          <Link className="bouton-principal" href="/commande">
+            Commander, {prixChf(t.total_centimes)}
+          </Link>
+        ) : (
+          <button type="button" className="bouton-principal" disabled>
+            Commander, {prixChf(t.total_centimes)}
+          </button>
+        ))}
     </>
   );
 }

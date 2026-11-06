@@ -1,45 +1,13 @@
 import { NextResponse } from "next/server";
 import { chargerCatalogue } from "@/lib/catalogue";
 import { chargerConfigService } from "@/lib/config-service";
-import { calculerPanier, LIMITES, type LignePanier } from "@/lib/panier";
-import { depuisHeureGeneve, enMinutes, heureTexte, instantGeneve, jourIso, quandPossible, type Quand, type Zone } from "@/lib/service";
+import { calculerPanier } from "@/lib/panier";
+import { lignesValides, quandValide } from "@/lib/validation";
+import { depuisHeureGeneve, enMinutes, heureTexte, instantGeneve, jourIso, quandPossible, type Zone } from "@/lib/service";
 import { zoneServeur } from "@/lib/zone-serveur";
 
 // Prix du panier calculé par le serveur à partir de la base : options, frais de zone, minimum, TVA,
 // et contrôle que le moment demandé reste possible pour ce contenu. Rien n'est enregistré.
-
-function lignesValides(v: unknown): LignePanier[] | null {
-  if (!Array.isArray(v) || v.length > LIMITES.lignes) return null;
-  const lignes: LignePanier[] = [];
-  for (const x of v) {
-    if (!x || typeof x !== "object") return null;
-    const l = x as Record<string, unknown>;
-    if (typeof l.slug !== "string" || l.slug.length > 80 || typeof l.qte !== "number") return null;
-    const choix: Record<string, string[]> = {};
-    if (l.choix && typeof l.choix === "object") {
-      for (const [g, noms] of Object.entries(l.choix as Record<string, unknown>)) {
-        if (g === "__proto__" || g === "constructor" || g === "prototype") return null;
-        if (!Array.isArray(noms) || noms.length > 40 || noms.some((n) => typeof n !== "string" || n.length > 80)) return null;
-        choix[g.slice(0, 80)] = noms as string[];
-      }
-    }
-    const retraits = Array.isArray(l.retraits) ? l.retraits : [];
-    if (retraits.length > 20 || retraits.some((r) => typeof r !== "string" || r.length > 80)) return null;
-    const note = typeof l.note === "string" ? l.note : "";
-    if (note.length > 500) return null;
-    lignes.push({ slug: l.slug, qte: l.qte, choix, retraits: retraits as string[], note });
-  }
-  return lignes;
-}
-
-function quandValide(v: unknown): Quand {
-  const q = (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
-  if (q.type === "asap") return { type: "asap" };
-  if (q.type === "creneau" && typeof q.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(q.date) && Number.isInteger(q.minutes)) {
-    return { type: "creneau", date: q.date, minutes: q.minutes as number };
-  }
-  return { type: "aucun" };
-}
 
 export async function POST(requete: Request) {
   let corps: Record<string, unknown>;
