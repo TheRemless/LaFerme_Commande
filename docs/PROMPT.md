@@ -148,6 +148,13 @@ Une branche et une PR par lot. Avant chaque PR : `code-review`, puis `security-r
 | 7 | Tablette, back-office, impression CloudPRNT avec une vraie imprimante | Acceptation et deux tickets imprimés |
 | 8 | Légal, accessibilité, performances, recette en service fictif, mise en ligne sur accord | Liste de contrôle cochée |
 
+### Points bloquants de la liste de contrôle du lot 8 (ajoutés le 6.11.2026)
+
+Jérémy a accepté le 6.11.2026 que les previews utilisent la clé secrète Supabase du projet de production (`tvpoiujvcaruypcfkbeq`), faute de projet de test (limite de deux projets gratuits). Les commandes de test s'enregistrent donc dans la vraie base. Avant toute mise en ligne :
+
+- [ ] Vider toutes les commandes de test de la base : `delete from courriels; delete from evenements_paiement; delete from commandes; delete from compteurs_jour;` (les lignes de commande partent avec les commandes).
+- [ ] Retirer `SUPABASE_SECRET_KEY` des contextes Deploy Previews et Branch deploys de Netlify, ou y mettre la clé d'un projet de test créé au passage de Supabase en Pro.
+
 ## 12. Ce que Jérémy doit fournir (demande-le au lot qui en a besoin)
 
 Validation des prix et des plats commandables (tableau xlsx), stations pizza ou cuisine, prix des suppléments, provenances manquantes, allergènes, validation des zones, frais et horaires proposés, fait maison ou non, raison sociale et numéro TVA, achat des imprimantes et de la tablette, compte Stripe et activation TWINT, nom de domaine (restaurantlaferme.ch est encore sur Wix, ce site est-il le site principal ou un sous-domaine ?), offre de lancement pour les flyers.

@@ -30,6 +30,7 @@ Next.js (App Router, TypeScript) sur Netlify (choisi par Jérémy le 6.11.2026 �
 - **Impression, plan A (6.11.2026)** : imprimantes en câble sur le switch du restaurant. La tablette leur envoie les tickets directement par le réseau local à l'acceptation, sans passer par Internet. Elle vérifie en continu que chaque imprimante répond (papier, hors ligne) et propose « réimprimer ». Le serveur surveille la tablette : sans signe de vie, il met les commandes en ligne en pause et alerte la personne de service.
 - **Impression, plan B** : si le navigateur bloque l'envoi vers une imprimante locale, l'imprimante va chercher ses tickets (Star CloudPRNT, de préférence en MQTT). À trancher au lot 7 avec l'imprimante en main, avant l'achat.
 - La caisse du restaurant reste hors du système (confirmé par Jérémy le 6.11.2026).
+- **Previews sur la base de production (6.11.2026)** : faute de projet Supabase de test, les previews ont la clé secrète du projet de production. Toute commande passée sur une preview est une commande de test dans la vraie base. Deux points bloquants avant mise en ligne, dans `docs/PROMPT.md` §11 (lot 8) : vider les commandes de test, retirer la clé secrète des previews.
 
 ## Commandes
 
