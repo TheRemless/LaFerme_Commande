@@ -22,14 +22,21 @@ Restaurant La Ferme, Route de Chancy 132, 1213 Onex. Site neuf, sans lien avec `
 
 ## Pile
 
-Next.js (App Router, TypeScript) sur Vercel Pro, Supabase Zurich `eu-central-2` (Postgres, Auth, RLS sur toutes les tables, Realtime), Stripe, Resend, Star CloudPRNT puis Epson SDP derrière une interface commune, adresses par geo.admin.ch, Vitest et Playwright. Secrets en variables d'environnement seulement.
+Next.js (App Router, TypeScript) sur Netlify (choisi par Jérémy le 6.11.2026 à la place de Vercel), Supabase Zurich `eu-central-2` (Postgres, Auth, RLS sur toutes les tables, Realtime), Stripe, Resend, impression locale (voir Décisions après le prompt), adresses par geo.admin.ch, Vitest et Playwright. Secrets en variables d'environnement seulement.
+
+## Décisions après le prompt
+
+- **Hébergement : Netlify**, choisi par Jérémy le 6.11.2026 à la place de Vercel (il y a déjà son compte). Les mentions « Vercel » de `docs/PROMPT.md` (pile, déclaration de confidentialité, lot 2) se lisent « Netlify ». Plan gratuit pour les previews pendant la construction, Pro au lancement.
+- **Impression, plan A (6.11.2026)** : imprimantes en câble sur le switch du restaurant. La tablette leur envoie les tickets directement par le réseau local à l'acceptation, sans passer par Internet. Elle vérifie en continu que chaque imprimante répond (papier, hors ligne) et propose « réimprimer ». Le serveur surveille la tablette : sans signe de vie, il met les commandes en ligne en pause et alerte la personne de service.
+- **Impression, plan B** : si le navigateur bloque l'envoi vers une imprimante locale, l'imprimante va chercher ses tickets (Star CloudPRNT, de préférence en MQTT). À trancher au lot 7 avec l'imprimante en main, avant l'achat.
+- La caisse du restaurant reste hors du système (confirmé par Jérémy le 6.11.2026).
 
 ## Commandes
 
 - `npm run dev` : sans `.env.local`, la carte vient d'une base Postgres embarquée (PGlite) qui rejoue `supabase/migrations` et `supabase/seed.sql`.
 - `npm test` (Vitest, base et sécurité par ligne), `npm run test:e2e` (Playwright sur un build de production local, Chrome du Mac).
 - `npm run seed:generer` : régénère `supabase/seed.sql` depuis `docs/carte-proposee.json`. Ne jamais modifier le seed à la main.
-- `prebuild` (forcé par `vercel.json`) lance `scripts/verifier-mise-en-ligne.ts` : sur Vercel en production, le build échoue tant que la vue `plats_bloquants` n'est pas vide.
+- `prebuild` (lancé par la commande de `netlify.toml`) lance `scripts/verifier-mise-en-ligne.ts` : sur Netlify en production, le build échoue tant que la vue `plats_bloquants` n'est pas vide.
 
 ## Design
 

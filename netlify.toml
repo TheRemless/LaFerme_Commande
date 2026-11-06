@@ -1,0 +1,8 @@
+# Netlify détecte Next.js et ajoute son adaptateur. La commande passe par npm pour lancer le prebuild,
+# qui bloque un build de production tant que la carte n'est pas validée.
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"

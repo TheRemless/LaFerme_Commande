@@ -32,9 +32,11 @@ async function lireLignes(): Promise<LignePlat[]> {
     if (error) throw new Error(`Lecture de la carte impossible : ${error.message}`);
     return data as LignePlat[];
   }
-  // La base locale sert au développement et aux tests sur ce poste, jamais à un site déployé.
-  if (process.env.VERCEL_ENV || (process.env.NODE_ENV === "production" && !process.env.BASE_LOCALE)) {
-    throw new Error("Variables Supabase manquantes : la base locale est réservée au développement.");
+  // Sans Supabase, la base embarquée sert au développement, aux tests et aux previews Netlify,
+  // jamais à la production. En local, un build de production l'exige explicitement (BASE_LOCALE).
+  const contexte = process.env.CONTEXTE_DEPLOIEMENT;
+  if (contexte === "production" || (contexte === "local" && process.env.NODE_ENV === "production" && !process.env.BASE_LOCALE)) {
+    throw new Error("Variables Supabase manquantes : la base embarquée n'est pas autorisée ici.");
   }
   return lireCommeVisiteur<LignePlat>(await baseLocale(), "select * from carte_publique");
 }

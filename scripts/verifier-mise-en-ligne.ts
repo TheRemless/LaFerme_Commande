@@ -1,9 +1,9 @@
-// Lancé avant chaque build. Sur Vercel en production, refuse le build tant qu'un plat commandable
+// Lancé avant chaque build. Sur Netlify en production, refuse le build tant qu'un plat commandable
 // a un prix, une provenance, un allergène ou un supplément non validé (docs/PROMPT.md §5).
 import { createClient } from "@supabase/supabase-js";
 
 async function main() {
-  if (process.env.VERCEL_ENV !== "production") {
+  if (process.env.CONTEXT !== "production") {
     console.log("Vérification de mise en ligne ignorée : ce n'est pas un build de production.");
     return;
   }

@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export default async function PageCarte() {
   const categories = await chargerCarte();
-  const preversion = process.env.VERCEL_ENV !== "production";
+  const preversion = process.env.CONTEXTE_DEPLOIEMENT !== "production";
   const aValider = categories.some((c) => c.plats.some((p) => p.prix_a_valider));
   return (
     <>
