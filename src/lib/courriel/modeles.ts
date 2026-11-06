@@ -1,6 +1,7 @@
 import type { Commande } from "@/lib/db/serveur";
 import type { Catalogue } from "@/lib/panier";
 import { prixChf, prixCourt } from "@/lib/prix";
+import { heureDe } from "@/lib/heures";
 import { heureTexte, jourTexte } from "@/lib/service";
 
 // Textes des courriels, passés par redaction-fr (voix de Giuseppe : direct, factuel).
@@ -131,9 +132,6 @@ export function courrielCode(code: string) {
 
 // ---------- Courriels envoyés depuis la tablette (lot 7a) ----------
 
-function heureDe(iso: string): string {
-  return new Intl.DateTimeFormat("fr-CH", { timeZone: "Europe/Zurich", hour: "2-digit", minute: "2-digit" }).format(new Date(iso)).replace(":", "h");
-}
 
 function courrielCourt(c: Commande, sujet: string, phrases: string[], avecSuivi = true) {
   const texte = [

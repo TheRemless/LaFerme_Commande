@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { corpsJson, refus } from "@/lib/comptes/api";
 import { fonctionSql } from "@/lib/db/serveur";
-import { auteur, exigerPersonnel } from "@/lib/personnel/session";
+import { exigerPersonnel } from "@/lib/personnel/session";
 import { rafraichirCaches, signalerTablette } from "@/lib/tablette";
 
 // Pause des commandes en ligne, livraison fermée, délai de préparation du moment.
@@ -28,7 +28,7 @@ export async function POST(requete: Request) {
     p.preparation_minutes = corps.preparation;
   }
   if (Object.keys(p).length === 0) return refus("Rien à changer.");
-  await fonctionSql("regler_service", { p, p_par: auteur(g.personnel) });
+  await fonctionSql("regler_service", { p, p_personnel: g.personnel.id });
   rafraichirCaches("config-service");
   await signalerTablette();
   return NextResponse.json({ enregistre: true });

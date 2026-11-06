@@ -34,7 +34,7 @@ export async function POST(requete: Request) {
   const corps = await corpsJson(requete);
   if (!corps || typeof corps.commande !== "string" || !/^[0-9a-f-]{36}$/.test(corps.commande)) return refus("Commande inconnue.", 404);
   const action = actionValide(corps);
-  if (!action) return refus("Action incomplète.");
+  if (!action) return refus(corps.action === "accepter" || corps.action === "heure" ? "Choisissez une heure à venir." : "Action incomplète.");
   const r = await agir(corps.commande, action, g.personnel);
   return NextResponse.json(r, { status: r.ok ? 200 : 409 });
 }

@@ -8,7 +8,8 @@ import { envoyerCourriel } from "@/lib/courriel/envoi";
 import { commandeParId, fonctionSql, type Commande } from "@/lib/db/serveur";
 import type { Catalogue } from "@/lib/panier";
 import { auteur, type Personnel } from "@/lib/personnel/session";
-import { depuisHeureGeneve, heureTexte } from "@/lib/service";
+import { hhmm } from "@/lib/heures";
+import { depuisHeureGeneve } from "@/lib/service";
 
 // Ce que fait la tablette. Les passages de statut sont contrôlés en base (changer_statut) ; ici, les
 // courriels au client, le remboursement d'un refus et le signal aux autres tablettes.
@@ -62,7 +63,7 @@ export async function fileTablette(maintenant = new Date()): Promise<CommandeTab
     const c = { ...brute, lignes: brute.lignes.map((l) => ({ ...l, details: detailsTablette(cat, l) })) };
     let proposee: Date | null = null;
     if (c.quand_type === "creneau" && c.quand_date && c.quand_minutes !== null) {
-      proposee = depuisHeureGeneve(`${c.quand_date}T${heureTexte(c.quand_minutes).replace("h", ":")}`);
+      proposee = depuisHeureGeneve(`${c.quand_date}T${hhmm(c.quand_minutes)}`);
     }
     if (!proposee || proposee.getTime() < maintenant.getTime()) {
       const zone = config.zones.find((z) => z.numero === c.zone_numero);
@@ -73,12 +74,12 @@ export async function fileTablette(maintenant = new Date()): Promise<CommandeTab
   });
 }
 
-// Heure envoyée par la tablette : une date valable, d'une heure en arrière à huit jours devant.
+// Heure envoyée par la tablette : une date valable, de cinq minutes en arrière à huit jours devant.
 export function heureValide(v: unknown, maintenant = new Date()): string | null {
   if (typeof v !== "string" || v.length > 40) return null;
   const d = new Date(v);
   const t = d.getTime();
-  if (!Number.isFinite(t) || t < maintenant.getTime() - 3_600_000 || t > maintenant.getTime() + 8 * 86_400_000) return null;
+  if (!Number.isFinite(t) || t < maintenant.getTime() - 5 * 60_000 || t > maintenant.getTime() + 8 * 86_400_000) return null;
   return d.toISOString();
 }
 
@@ -98,7 +99,8 @@ export async function signalerTablette(): Promise<void> {
     method: "POST",
     headers: { apikey: cle, Authorization: `Bearer ${cle}`, "Content-Type": "application/json" },
     body: JSON.stringify({ messages: [{ topic: "tablette", event: "commande", payload: {} }] }),
-    signal: AbortSignal.timeout(3000),
+    // Court : ce signal ne doit pas retarder le webhook ni le courriel qui suivent.
+    signal: AbortSignal.timeout(1500),
   }).catch(() => undefined);
 }
 

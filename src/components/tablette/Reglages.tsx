@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { heureDe } from "@/lib/heures";
 import { poster } from "@/lib/requete-client";
 
 type Props = {
@@ -10,9 +11,6 @@ type Props = {
 
 type Plat = { slug: string; nom: string; categorie: string; rupture: boolean };
 
-function heure(iso: string): string {
-  return new Intl.DateTimeFormat("fr-CH", { timeZone: "Europe/Zurich", hour: "2-digit", minute: "2-digit" }).format(new Date(iso)).replace(":", "h");
-}
 
 // Pause des commandes en ligne, livraison, délai de préparation et ruptures du jour.
 export function Reglages({ reglages, onChange }: Props) {
@@ -64,7 +62,7 @@ export function Reglages({ reglages, onChange }: Props) {
       )}
       <div className="tab-bloc">
         <h2>Commandes en ligne</h2>
-        <p>{enPause ? (p?.jusqua ? `En pause jusqu'à ${heure(p.jusqua)}. Elles reprennent seules.` : "En pause jusqu'à ce que vous repreniez.") : "Ouvertes."}</p>
+        <p>{enPause ? (p?.jusqua ? `En pause jusqu'à ${heureDe(p.jusqua)}. Elles reprennent seules.` : "En pause jusqu'à ce que vous repreniez.") : "Ouvertes."}</p>
         <div className="boutons-ligne">
           {enPause ? (
             <button type="button" className="bouton-principal" disabled={envoi} onClick={() => regler({ pause: "reprendre" })}>

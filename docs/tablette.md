@@ -33,3 +33,8 @@ update personnel set actif = false where email = 'prenom@exemple.ch';
 - Impression à l'acceptation (lot 7c).
 - Surveillance de la tablette par le serveur (pause automatique sans signe de vie) : avec l'impression, au lot 7c.
 - Alerte si une commande n'est pas acceptée après un délai.
+
+## Risques assumés
+
+- Le canal Realtime `tablette` est public : un tiers peut y envoyer des messages vides, qui font seulement relire la file. Aucune donnée n'y passe.
+- Le membre de test `equipe@laferme.test` est dans la base de production pour les préversions. À retirer avant la mise en ligne (liste du lot 8).

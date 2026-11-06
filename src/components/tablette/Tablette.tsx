@@ -6,6 +6,8 @@ import type { CommandeTablette } from "@/lib/tablette";
 import { poster } from "@/lib/requete-client";
 import { prixChf } from "@/lib/prix";
 import { Reglages } from "@/components/tablette/Reglages";
+import { heureDe as heure, jourGeneveDe as jourGeneve } from "@/lib/heures";
+import { heureTexte, jourTexte } from "@/lib/service";
 
 // Tablette posée en cuisine : file des commandes, alerte sonore, accepter, refuser, statuts.
 // Vérification toutes les 5 secondes, et tout de suite quand Supabase Realtime signale un changement.
@@ -19,16 +21,6 @@ type Donnees = {
 type Onglet = "traiter" | "cours" | "avance" | "terminees";
 
 const MOTIFS = ["La cuisine est complète pour ce service.", "Un des plats commandés est épuisé.", "Nous fermons plus tôt aujourd'hui."];
-
-function heure(iso: string): string {
-  return new Intl.DateTimeFormat("fr-CH", { timeZone: "Europe/Zurich", hour: "2-digit", minute: "2-digit" }).format(new Date(iso)).replace(":", "h");
-}
-function jourGeneve(iso: string | Date): string {
-  return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Zurich" }).format(new Date(iso));
-}
-function jourTexte(date: string): string {
-  return new Intl.DateTimeFormat("fr-CH", { timeZone: "UTC", weekday: "long", day: "numeric", month: "long" }).format(new Date(`${date}T12:00:00Z`));
-}
 
 // Deux notes courtes, assez fortes pour une cuisine. Le navigateur n'autorise le son qu'après un geste.
 function sonner(ctx: AudioContext) {
@@ -54,6 +46,8 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
   const [horsLigne, setHorsLigne] = useState(false);
   const [onglet, setOnglet] = useState<Onglet>("traiter");
   const [demarre, setDemarre] = useState(false);
+  // Vrai seulement si le navigateur a accepté de jouer le son.
+  const [son, setSon] = useState(false);
   const [reglagesOuverts, setReglagesOuverts] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const audio = useRef<AudioContext | null>(null);
@@ -106,18 +100,19 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
 
   // Son répété toutes les 4 secondes tant qu'une commande du jour attend.
   useEffect(() => {
-    if (!demarre || listes.traiter.length === 0) return;
+    if (!son || listes.traiter.length === 0) return;
     const ctx = audio.current;
     if (ctx) sonner(ctx);
     const t = window.setInterval(() => audio.current && sonner(audio.current), 4000);
     return () => window.clearInterval(t);
-  }, [demarre, listes.traiter.length]);
+  }, [son, listes.traiter.length]);
 
   async function demarrer() {
     try {
       audio.current ??= new AudioContext();
       await audio.current.resume();
       sonner(audio.current);
+      setSon(true);
     } catch {
       // Pas de son possible : la file et le bandeau restent visibles.
     }
@@ -207,7 +202,7 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
       {listes.traiter.length > 0 && (
         <p className="tab-attente" role="status">
           {listes.traiter.length === 1 ? "1 commande à accepter" : `${listes.traiter.length} commandes à accepter`}
-          {!demarre ? ". Le son est coupé." : ""}
+          {!son ? ". Le son est coupé." : ""}
         </p>
       )}
       {message && (
@@ -249,7 +244,11 @@ function decaler(iso: string, minutes: number): string {
 
 function CarteCommande({ c, aujourdHui, agir }: { c: CommandeTablette; aujourdHui: string; agir: (corps: Record<string, unknown>) => Promise<void> }) {
   const [panneau, setPanneau] = useState<"aucun" | "refuser" | "heure">("aucun");
-  const [heureChoisie, setHeureChoisie] = useState(c.heure_confirmee ?? c.heure_proposee);
+  // Décalage choisi à la main, appliqué à l'heure de base : celle-ci suit la proposition recalculée à chaque
+  // vérification, pour ne jamais accepter avec une heure déjà passée.
+  const [decalage, setDecalage] = useState(0);
+  const base = c.statut === "nouvelle" ? c.heure_proposee : (c.heure_confirmee ?? c.heure_proposee);
+  const heureChoisie = decaler(base, decalage);
   const [motif, setMotif] = useState("");
   const [envoi, setEnvoi] = useState(false);
 
@@ -258,11 +257,12 @@ function CarteCommande({ c, aujourdHui, agir }: { c: CommandeTablette; aujourdHu
     await agir(corps);
     setEnvoi(false);
     setPanneau("aucun");
+    setDecalage(0);
   }
 
   const demande =
     c.quand_type === "creneau" && c.quand_date && c.quand_minutes !== null
-      ? `${c.quand_date === aujourdHui ? "" : `${jourTexte(c.quand_date)}, `}${String(Math.floor(c.quand_minutes / 60)).padStart(2, "0")}h${String(c.quand_minutes % 60).padStart(2, "0")}`
+      ? `${c.quand_date === aujourdHui ? "" : `${jourTexte(c.quand_date)}, `}${heureTexte(c.quand_minutes)}`
       : "dès que possible";
   const paiement =
     c.statut_paiement === "paye"
@@ -291,7 +291,7 @@ function CarteCommande({ c, aujourdHui, agir }: { c: CommandeTablette; aujourdHu
       </p>
       <div className="tab-heure-boutons">
         {[-5, 5, 15].map((m) => (
-          <button key={m} type="button" className="bouton-second" onClick={() => setHeureChoisie((h) => decaler(h, m))}>
+          <button key={m} type="button" className="bouton-second" onClick={() => setDecalage((d) => d + m)}>
             {m > 0 ? `+${m}` : `−${-m}`} min
           </button>
         ))}

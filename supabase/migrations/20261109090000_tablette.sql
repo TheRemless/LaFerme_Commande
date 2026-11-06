@@ -297,7 +297,7 @@ $$;
 
 -- Pause (jusqu'à une heure, ou null pour reprendre), livraison fermée, délai de préparation du moment.
 -- Seules ces trois clés sont modifiables depuis la tablette.
-create function regler_service(p jsonb, p_par text) returns void
+create function regler_service(p jsonb, p_personnel uuid) returns void
 language plpgsql as $$
 begin
   if p ? 'pause_jusqu_a' then
@@ -312,19 +312,19 @@ begin
     end if;
     update reglages set valeur = to_jsonb((p ->> 'preparation_minutes')::integer) where cle = 'preparation_minutes';
   end if;
-  insert into journal_personnel (personnel_id, evenement) values (null, 'reglages ' || p_par || ' ' || p::text);
+  insert into journal_personnel (personnel_id, evenement) values (p_personnel, 'reglages ' || p::text);
 end;
 $$;
 
 -- Rupture d'un plat pour la journée (p_rupture vrai) ou retour à la carte.
-create function regler_rupture(p_slug text, p_rupture boolean, p_par text) returns boolean
+create function regler_rupture(p_slug text, p_rupture boolean, p_personnel uuid) returns boolean
 language plpgsql as $$
 begin
   update plats set rupture_jour = case when p_rupture then (now() at time zone 'Europe/Zurich')::date end where slug = p_slug;
   if not found then
     return false;
   end if;
-  insert into journal_personnel (personnel_id, evenement) values (null, 'rupture ' || p_par || ' ' || p_slug || ' ' || p_rupture::text);
+  insert into journal_personnel (personnel_id, evenement) values (p_personnel, 'rupture ' || p_slug || ' ' || p_rupture::text);
   return true;
 end;
 $$;
@@ -344,13 +344,13 @@ revoke execute on function
   demander_code_personnel(text, text, text, text, text), verifier_code_personnel(text, text, text, text, text, text, text),
   personnel_de_session(text), deconnecter_personnel(text, text), file_tablette(),
   changer_statut(uuid, text, text, timestamptz, text), changer_heure(uuid, timestamptz, text), marquer_encaisse(uuid, text),
-  regler_service(jsonb, text), regler_rupture(text, boolean, text), plats_tablette()
+  regler_service(jsonb, uuid), regler_rupture(text, boolean, uuid), plats_tablette()
   from public, anon, authenticated;
 grant execute on function
   demander_code_personnel(text, text, text, text, text), verifier_code_personnel(text, text, text, text, text, text, text),
   personnel_de_session(text), deconnecter_personnel(text, text), file_tablette(),
   changer_statut(uuid, text, text, timestamptz, text), changer_heure(uuid, timestamptz, text), marquer_encaisse(uuid, text),
-  regler_service(jsonb, text), regler_rupture(text, boolean, text), plats_tablette()
+  regler_service(jsonb, uuid), regler_rupture(text, boolean, uuid), plats_tablette()
   to service_role;
 grant select, insert, update, delete on personnel, sessions_personnel, evenements_commande, journal_personnel to service_role;
 grant usage on all sequences in schema public to service_role;

@@ -121,25 +121,25 @@ describe("statuts depuis la tablette", () => {
 
 describe("réglages et ruptures", () => {
   it("pause, livraison fermée et délai, dans les limites", async () => {
-    await f("regler_service($1, 'tablette:Test')", [{ pause_jusqu_a: "sans-fin", livraison_fermee: true, preparation_minutes: 25 }]);
+    await f("regler_service($1, null)", [{ pause_jusqu_a: "sans-fin", livraison_fermee: true, preparation_minutes: 25 }]);
     const r = (await db.query<{ cle: string; valeur: unknown }>("select cle, valeur from reglages where cle in ('pause_jusqu_a', 'livraison_fermee', 'preparation_minutes') order by cle")).rows;
     expect(r).toEqual([
       { cle: "livraison_fermee", valeur: true },
       { cle: "pause_jusqu_a", valeur: "sans-fin" },
       { cle: "preparation_minutes", valeur: 25 },
     ]);
-    await expect(f("regler_service($1, 'tablette:Test')", [{ preparation_minutes: 500 }])).rejects.toThrow();
-    await f("regler_service($1, 'tablette:Test')", [{ pause_jusqu_a: null, livraison_fermee: false, preparation_minutes: 20 }]);
+    await expect(f("regler_service($1, null)", [{ preparation_minutes: 500 }])).rejects.toThrow();
+    await f("regler_service($1, null)", [{ pause_jusqu_a: null, livraison_fermee: false, preparation_minutes: 20 }]);
   });
 
   it("une rupture du jour grise le plat dans la carte publique", async () => {
-    expect(await f<boolean>("regler_rupture('pizza-margherita', true, 'tablette:Test')")).toBe(true);
+    expect(await f<boolean>("regler_rupture('pizza-margherita', true, null)")).toBe(true);
     const motif = (await db.query<{ rupture_motif: string | null }>("select rupture_motif from carte_publique where slug = 'pizza-margherita'")).rows[0];
     expect(motif.rupture_motif).toBe("Épuisé pour aujourd'hui.");
     // Une rupture d'hier ne compte plus.
     await db.query("update plats set rupture_jour = current_date - 2 where slug = 'pizza-margherita'");
     expect((await db.query<{ rupture_motif: string | null }>("select rupture_motif from carte_publique where slug = 'pizza-margherita'")).rows[0].rupture_motif).toBeNull();
-    expect(await f<boolean>("regler_rupture('inexistant', true, 'tablette:Test')")).toBe(false);
+    expect(await f<boolean>("regler_rupture('inexistant', true, null)")).toBe(false);
   });
 
   it("aucun droit pour un visiteur sur les tables et fonctions de la tablette", async () => {

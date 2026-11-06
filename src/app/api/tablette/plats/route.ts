@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { corpsJson, refus } from "@/lib/comptes/api";
 import { fonctionSql } from "@/lib/db/serveur";
-import { auteur, exigerPersonnel } from "@/lib/personnel/session";
+import { exigerPersonnel } from "@/lib/personnel/session";
 import { rafraichirCaches, signalerTablette } from "@/lib/tablette";
 
 // Plats commandables et leur rupture du jour.
@@ -18,7 +18,7 @@ export async function POST(requete: Request) {
   if (!corps || typeof corps.slug !== "string" || !/^[a-z0-9-]{1,80}$/.test(corps.slug) || typeof corps.rupture !== "boolean") {
     return refus("Plat inconnu.", 404);
   }
-  const ok = await fonctionSql<boolean>("regler_rupture", { p_slug: corps.slug, p_rupture: corps.rupture, p_par: auteur(g.personnel) });
+  const ok = await fonctionSql<boolean>("regler_rupture", { p_slug: corps.slug, p_rupture: corps.rupture, p_personnel: g.personnel.id });
   if (!ok) return refus("Plat inconnu.", 404);
   rafraichirCaches("catalogue");
   await signalerTablette();
