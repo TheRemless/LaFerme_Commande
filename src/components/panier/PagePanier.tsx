@@ -9,7 +9,7 @@ import { ContenuPanier } from "@/components/panier/ContenuPanier";
 
 export function PagePanier({ catalogue, preversion }: { catalogue: Catalogue; preversion: boolean }) {
   const { lignes, charge, quantite } = usePanier();
-  const { reponse } = usePrixServeur(lignes, charge);
+  const reponse = usePrixServeur(lignes, charge);
   const [choix, setChoix] = useState<Choix | null>(null);
   useEffect(() => setChoix(lireChoix()), []);
   return (

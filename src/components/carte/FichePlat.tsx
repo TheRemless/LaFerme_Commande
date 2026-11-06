@@ -38,7 +38,21 @@ export function FichePlat({
     const avant = document.activeElement as HTMLElement | null;
     document.body.classList.add("fiche-ouverte");
     fenetre.current?.focus();
-    const touche = (e: KeyboardEvent) => e.key === "Escape" && onFermer();
+    const touche = (e: KeyboardEvent) => {
+      if (e.key === "Escape") return onFermer();
+      if (e.key !== "Tab" || !fenetre.current) return;
+      // Tab et Maj+Tab tournent dans la fiche au lieu de passer sur la carte derrière le voile.
+      const focusables = fenetre.current.querySelectorAll<HTMLElement>("button:not([disabled]), input:not([disabled]), a[href]");
+      const premier = focusables[0];
+      const dernier = focusables[focusables.length - 1];
+      if (e.shiftKey && (document.activeElement === premier || document.activeElement === fenetre.current)) {
+        e.preventDefault();
+        dernier?.focus();
+      } else if (!e.shiftKey && document.activeElement === dernier) {
+        e.preventDefault();
+        premier?.focus();
+      }
+    };
     document.addEventListener("keydown", touche);
     return () => {
       document.body.classList.remove("fiche-ouverte");

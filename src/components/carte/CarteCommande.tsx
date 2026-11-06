@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import type { Categorie, LignePlat } from "@/lib/carte";
 import { lireChoix, type Choix } from "@/lib/choix";
-import type { Catalogue } from "@/lib/panier";
+import { calculerPanier, type Catalogue } from "@/lib/panier";
 import { usePanier, usePrixServeur } from "@/lib/panier-local";
 import { prixChf, prixCourt } from "@/lib/prix";
 import { nomAffiche } from "@/components/Plat";
@@ -14,7 +14,7 @@ import { ContenuPanier } from "@/components/panier/ContenuPanier";
 
 export function CarteCommande({ categories, catalogue, preversion }: { categories: Categorie[]; catalogue: Catalogue; preversion: boolean }) {
   const { lignes, charge, ajouter, quantite } = usePanier();
-  const { reponse } = usePrixServeur(lignes, charge);
+  const reponse = usePrixServeur(lignes, charge);
   const [choix, setChoix] = useState<Choix | null>(null);
   const [ouvert, setOuvert] = useState<LignePlat | null>(null);
   const fermer = useCallback(() => setOuvert(null), []);
@@ -24,7 +24,8 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
   // Après la dernière commande de la carte, seules les pizzas restent commandables pour l'heure choisie.
   const seulementPizzas = Boolean(choix?.pizzasSeulement);
   const nbArticles = lignes.reduce((s, l) => s + l.qte, 0);
-  const total = reponse && !reponse.erreur ? reponse.total_centimes : null;
+  const local = calculerPanier(catalogue, lignes, choix?.mode === "livraison" && choix.zone ? choix.zone : null);
+  const montants = reponse && !reponse.erreur ? reponse : local;
 
   return (
     <>
@@ -91,9 +92,9 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
           <span className="barre-nb">{nbArticles}</span>
           <span className="barre-txt">
             Voir le panier
-            {reponse && reponse.manque_minimum_centimes > 0 && <small>Encore {prixChf(reponse.manque_minimum_centimes)} pour le minimum</small>}
+            {montants.manque_minimum_centimes > 0 && <small>Encore {prixChf(montants.manque_minimum_centimes)} pour le minimum</small>}
           </span>
-          <span className="barre-total">{total !== null ? prixChf(total) : ""}</span>
+          <span className="barre-total">{prixChf(montants.total_centimes)}</span>
         </Link>
       )}
       {ouvert && <FichePlat plat={ouvert} catalogue={catalogue} preversion={preversion} onAjouter={ajouter} onFermer={fermer} />}

@@ -80,3 +80,27 @@ test.describe("calcul serveur", () => {
     expect(hors.status()).toBe(422);
   });
 });
+
+test("un panier mixte pour un autre jour reçoit un message complet", async ({ request }) => {
+  const r = await (
+    await request.post("/api/panier", {
+      data: {
+        mode: "retrait",
+        heure: "2026-11-09T12:00",
+        quand: { type: "creneau", date: "2026-11-10", minutes: 22 * 60 },
+        lignes: [
+          { slug: "pizza-margherita", qte: 1, choix: {}, retraits: [], note: "" },
+          { slug: "pasta-alla-carbonara", qte: 1, choix: { "choix-pates": ["Penne"] }, retraits: [], note: "" },
+        ],
+      },
+    })
+  ).json();
+  expect(r.message_quand).toMatch(/^Après \d+h\d\d, on ne prend plus que les pizzas/);
+});
+
+test("refuse une clé réservée dans les options", async ({ request }) => {
+  const rep = await request.post("/api/panier", {
+    data: { mode: "retrait", lignes: [{ slug: "pizza-margherita", qte: 1, choix: JSON.parse('{"__proto__":["x"]}'), retraits: [], note: "" }] },
+  });
+  expect(rep.status()).toBe(422);
+});

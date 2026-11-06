@@ -72,21 +72,18 @@ export function usePanier() {
 export type ReponsePanier = Totaux & { message_quand: string | null; erreur?: string };
 
 // Montants calculés par le serveur, redemandés 300 ms après chaque changement du panier.
-export function usePrixServeur(lignes: LignePanier[], actif: boolean) {
-  const [reponse, setReponse] = useState<ReponsePanier | null>(null);
-  const [enCours, setEnCours] = useState(false);
+// Une réponse ne sert que pour le contenu exact qu'elle a calculé : sinon le navigateur affiche son propre calcul.
+export function usePrixServeur(lignes: LignePanier[], actif: boolean): ReponsePanier | null {
+  const [etat, setEtat] = useState<{ cle: string; reponse: ReponsePanier } | null>(null);
+  const cle = JSON.stringify(lignes);
   const dernier = useRef(0);
 
   useEffect(() => {
     if (!actif) return;
     const choix = lireChoix();
-    if (!choix || lignes.length === 0) {
-      setReponse(null);
-      return;
-    }
+    if (!choix || lignes.length === 0) return;
     const numero = ++dernier.current;
     const ctrl = new AbortController();
-    setEnCours(true);
     const t = window.setTimeout(() => {
       fetch("/api/panier", {
         method: "POST",
@@ -96,10 +93,9 @@ export function usePrixServeur(lignes: LignePanier[], actif: boolean) {
       })
         .then((r) => r.json())
         .then((r: ReponsePanier) => {
-          if (numero === dernier.current) setReponse(r);
+          if (numero === dernier.current) setEtat({ cle: JSON.stringify(lignes), reponse: r });
         })
-        .catch(() => undefined)
-        .finally(() => numero === dernier.current && setEnCours(false));
+        .catch(() => undefined);
     }, 300);
     return () => {
       ctrl.abort();
@@ -107,5 +103,5 @@ export function usePrixServeur(lignes: LignePanier[], actif: boolean) {
     };
   }, [lignes, actif]);
 
-  return { reponse, enCours };
+  return etat && etat.cle === cle ? etat.reponse : null;
 }

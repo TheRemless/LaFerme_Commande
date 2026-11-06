@@ -290,7 +290,7 @@ ul {
 @media (min-width: 1280px) {
   .plats,
   .plats-texte {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
@@ -1053,12 +1053,5 @@ body.fiche-ouverte {
   .fiche-pied {
     grid-column: 2;
     padding: 14px 28px;
-  }
-}
-
-@media (min-width: 1280px) {
-  .plats,
-  .plats-texte {
-    grid-template-columns: repeat(3, 1fr);
   }
 }

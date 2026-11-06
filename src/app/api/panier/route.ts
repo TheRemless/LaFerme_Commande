@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { chargerCatalogue } from "@/lib/catalogue";
 import { chargerConfigService } from "@/lib/config-service";
 import { calculerPanier, LIMITES, type LignePanier } from "@/lib/panier";
-import { depuisHeureGeneve, enMinutes, instantGeneve, quandPossible, type Quand, type Zone } from "@/lib/service";
+import { depuisHeureGeneve, enMinutes, heureTexte, instantGeneve, jourIso, quandPossible, type Quand, type Zone } from "@/lib/service";
 import { zoneServeur } from "@/lib/zone-serveur";
 
 // Prix du panier calculé par le serveur à partir de la base : options, frais de zone, minimum, TVA,
@@ -18,6 +18,7 @@ function lignesValides(v: unknown): LignePanier[] | null {
     const choix: Record<string, string[]> = {};
     if (l.choix && typeof l.choix === "object") {
       for (const [g, noms] of Object.entries(l.choix as Record<string, unknown>)) {
+        if (g === "__proto__" || g === "constructor" || g === "prototype") return null;
         if (!Array.isArray(noms) || noms.length > 40 || noms.some((n) => typeof n !== "string" || n.length > 80)) return null;
         choix[g.slice(0, 80)] = noms as string[];
       }
@@ -73,10 +74,17 @@ export async function POST(requete: Request) {
   if (lignes.length > 0 && !quandPossible(config, maintenant, mode, zone, totaux.pizzas_seulement, quand)) {
     const pourPizzas = !totaux.pizzas_seulement && quandPossible(config, maintenant, mode, zone, true, quand);
     if (pourPizzas) {
+      // Le service concerné est celui du moment demandé : aujourd'hui pour « dès que possible », sinon celui du créneau.
       const ici = instantGeneve(maintenant);
-      const h = config.horaires.find((x) => x.jour === ici.jour && ici.minutes <= enMinutes(x.derniere_commande_pizzas));
-      const heure = h ? h.derniere_commande.slice(0, 5).replace(":", "h") : "";
-      messageQuand = `Après ${heure}, on ne prend plus que les pizzas. Retirez les autres plats ou choisissez une autre heure.`;
+      const h =
+        quand.type === "creneau"
+          ? config.horaires.find(
+              (x) => x.jour === jourIso(quand.date) && enMinutes(x.premiere_heure) <= quand.minutes && quand.minutes <= enMinutes(x.derniere_heure),
+            )
+          : config.horaires.find((x) => x.jour === ici.jour && ici.minutes <= enMinutes(x.derniere_commande_pizzas));
+      messageQuand = h
+        ? `Après ${heureTexte(enMinutes(h.derniere_commande))}, on ne prend plus que les pizzas. Retirez les autres plats ou choisissez une autre heure.`
+        : "À cette heure-là, on ne prend plus que les pizzas. Retirez les autres plats ou choisissez une autre heure.";
     } else {
       messageQuand = "Ce moment n'est plus disponible. Choisissez une autre heure.";
     }
