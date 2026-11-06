@@ -45,7 +45,7 @@ test("à emporter, paiement au comptoir : suivi immédiat et panier vidé", asyn
   await page.getByRole("button", { name: "Commander, je paie au comptoir" }).click();
   await expect(page).toHaveURL(/\/suivi\//);
   await expect(page.getByText("À payer au comptoir")).toBeVisible();
-  expect(await page.evaluate(() => localStorage.getItem("laferme.panier.v1"))).toBeNull();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("laferme.panier.v1"))).toBeNull();
 });
 
 test("paiement en ligne réussi, puis courriel de confirmation", async ({ page }) => {
