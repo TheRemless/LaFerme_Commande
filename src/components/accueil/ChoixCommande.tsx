@@ -25,14 +25,18 @@ type Verdict =
 
 const DETAILS_VIDES: Details = { etage: "", sonnette: "", code: "", instructions: "" };
 
+export type AdresseEnregistree = { id: string; adresse: Adresse; details: Partial<Details> };
+
 export function ChoixCommande({
   config,
   maintenantServeur,
   heureSimulee,
+  adressesEnregistrees = [],
 }: {
   config: ConfigService;
   maintenantServeur: number;
   heureSimulee?: string;
+  adressesEnregistrees?: AdresseEnregistree[];
 }) {
   const router = useRouter();
   const ids = useId();
@@ -178,6 +182,12 @@ export function ChoixCommande({
     setSuggestions([]);
   }
 
+  function choisirEnregistree(a: AdresseEnregistree) {
+    setManuel(false);
+    choisirSuggestion(a.adresse);
+    setDetails({ ...DETAILS_VIDES, ...a.details });
+  }
+
   function effacerAdresse() {
     setAdresse(null);
     setSaisie("");
@@ -220,6 +230,22 @@ export function ChoixCommande({
 
         {mode === "livraison" && (
           <>
+            {!adresse && !manuel && adressesEnregistrees.length > 0 && (
+              <fieldset className="adresses-enregistrees">
+                <legend>Vos adresses</legend>
+                {adressesEnregistrees.map((a) => (
+                  <button key={a.id} type="button" onClick={() => choisirEnregistree(a)}>
+                    <Icone nom="repere" />
+                    <span>
+                      <strong>
+                        {a.adresse.rue} {a.adresse.numero}
+                      </strong>{" "}
+                      {a.adresse.npa} {a.adresse.localite}
+                    </span>
+                  </button>
+                ))}
+              </fieldset>
+            )}
             {!manuel ? (
               <div className="champ champ-adresse">
                 <label htmlFor={`${ids}-adresse`}>Adresse de livraison</label>

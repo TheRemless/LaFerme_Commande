@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { EnTete } from "@/components/EnTete";
 import { Actualiser } from "@/components/suivi/Actualiser";
+import { CreerCompte } from "@/components/suivi/CreerCompte";
 import { chargerCatalogue } from "@/lib/catalogue";
 import { reconcilier } from "@/lib/commandes";
 import { detailsLigne, quandTexte } from "@/lib/courriel/modeles";
@@ -100,6 +101,7 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
               <p className="suivi-info">Un e-mail vous prévient si l&apos;heure change.</p>
             </>
           )}
+          {c.compte_demande && enregistree && <CreerCompte jeton={c.jeton_suivi} rattachee={Boolean(c.compte_id)} />}
           <section className="suivi-detail">
             <h2>{c.mode === "livraison" && c.adresse ? `Livraison à ${c.adresse.localite}` : "À emporter, Route de Chancy 132, Onex"}</h2>
             <ul className="lignes">

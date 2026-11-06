@@ -1304,3 +1304,333 @@ body.fiche-ouverte {
     font-size: 160px;
   }
 }
+
+/* ---------- Lot 6 : compte client ---------- */
+.tete-compte {
+  display: flex;
+  align-items: center;
+  flex: none;
+  min-height: 44px;
+  margin-left: auto;
+  padding: 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.tete-compte:hover {
+  text-decoration: underline;
+}
+.page-compte {
+  min-height: calc(100vh - var(--hauteur-tete));
+  padding: 8px max(16px, env(safe-area-inset-left)) 56px;
+  background: var(--beton);
+}
+.connexion,
+.espace {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+.connexion h1,
+.espace h1 {
+  margin: 12px 0 18px;
+  font-size: 44px;
+  color: var(--blanc);
+}
+.connexion-panneau {
+  max-width: 480px;
+  padding: 20px 16px;
+  background: var(--papier);
+  border-radius: 4px;
+}
+.connexion-panneau > p {
+  margin: 0 0 18px;
+}
+.form-code {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.form-code .aide-forte {
+  margin: 0;
+}
+/* Le code se lit comme un ticket : chiffres larges, espacés, à chasse fixe. */
+.champ input.saisie-code {
+  max-width: 260px;
+  min-height: 64px;
+  font-size: 40px;
+  font-weight: 700;
+  font-stretch: 62%;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.32em;
+}
+.liens-code {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+}
+.note-preversion {
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 14px;
+  background: #f5e6a3;
+  color: var(--encre);
+  border-radius: 3px;
+}
+.espace-grille {
+  display: grid;
+  gap: 16px;
+}
+.espace-commandes,
+.espace-bloc {
+  padding: 20px 16px;
+  color: var(--encre);
+  background: var(--papier);
+  border-radius: 4px;
+}
+.espace-commandes h2,
+.espace-bloc h2 {
+  font-size: 30px;
+}
+.espace-cote {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+.espace-bloc {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.espace-vide {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 12px;
+}
+.espace-vide p {
+  margin: 0;
+}
+.historique {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+/* Chaque commande porte son numéro du jour en grand, celui du ticket et du téléphone. */
+.ancienne {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 10px;
+  padding: 18px 0;
+  border-top: 1px solid var(--filet);
+}
+.ancienne:first-child {
+  border-top: 0;
+}
+.ancienne-num {
+  margin: 0;
+  font-size: 44px;
+  font-weight: 700;
+  font-stretch: 62%;
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+}
+.ancienne-corps h3 {
+  font-size: 22px;
+  font-stretch: 100%;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.ancienne-corps h3::first-letter {
+  text-transform: uppercase;
+}
+.ancienne-meta {
+  margin: 2px 0 8px;
+  font-size: 14px;
+  color: var(--encre-douce);
+}
+.ancienne-lignes {
+  margin: 0 0 12px;
+  font-size: 15px;
+}
+.ancienne-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 20px;
+}
+.ancienne-actions .bouton-second,
+.espace-bloc .bouton-second {
+  min-height: 48px;
+  padding: 0 14px;
+}
+.recommande {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--blanc);
+  border-left: 3px solid var(--encre);
+}
+.recommande ul {
+  display: grid;
+  gap: 4px;
+  font-size: 15px;
+}
+.recommande p {
+  margin: 0;
+}
+.adresses {
+  display: grid;
+}
+.adresses li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--filet);
+}
+.adresses li:first-child {
+  border-top: 0;
+}
+.adresses span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.adresses small {
+  font-size: 13px;
+  color: var(--encre-douce);
+}
+.adresses .lien {
+  align-self: center;
+  flex: none;
+}
+.form-profil {
+  display: grid;
+  gap: 12px;
+}
+.champ input[readonly] {
+  color: var(--encre-douce);
+  background: transparent;
+  border-style: dashed;
+}
+.boutons-ligne {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.boutons-ligne .bouton-second {
+  align-self: auto;
+}
+.zone-suppression {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 16px;
+  border-top: 1px solid #bdbdb8;
+}
+.zone-suppression h3 {
+  font-size: 22px;
+}
+/* Pas de rouge dans l'interface (décision de Jérémy) : l'action se distingue par sa place et sa confirmation. */
+.bouton-supprimer {
+  align-self: flex-start;
+  min-height: 48px;
+  padding: 0 18px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--blanc);
+  background: var(--encre-douce);
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.bouton-supprimer:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.case-compte {
+  align-items: flex-start;
+  padding: 10px 14px;
+  background: var(--blanc);
+  border: 1px solid #d6d6d2;
+  border-radius: 4px;
+}
+.case-compte input {
+  margin-top: 3px;
+}
+.suivi-compte {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+  padding: 20px 16px;
+  color: var(--encre);
+  background: var(--papier);
+  border-radius: 4px;
+}
+.suivi-compte h2 {
+  font-size: 28px;
+}
+.suivi-compte > p {
+  margin: 0;
+}
+.adresses-enregistrees {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.adresses-enregistrees legend {
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.adresses-enregistrees button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 8px 12px;
+  font: inherit;
+  text-align: left;
+  color: var(--encre);
+  background: var(--blanc);
+  border: 1px solid #bdbdb8;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.adresses-enregistrees button:hover {
+  border-color: var(--encre);
+}
+
+@media (min-width: 900px) {
+  .page-compte {
+    padding: 16px 32px 64px;
+  }
+  .connexion h1,
+  .espace h1 {
+    font-size: 64px;
+  }
+  .connexion-panneau,
+  .espace-commandes,
+  .espace-bloc {
+    padding: 28px;
+  }
+  .espace-grille {
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 32px;
+    align-items: start;
+  }
+  .ancienne {
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 20px;
+  }
+  .ancienne-num {
+    font-size: 72px;
+  }
+}

@@ -102,3 +102,29 @@ export function courrielRemboursement(c: Commande, motif: string) {
 <p style="color:#55524f;font-size:13px">${RESTAURANT}</p></div>`;
   return { sujet, texte, html };
 }
+
+// Code de connexion au compte. Le code est dans le sujet pour se lire dans la notification.
+export function courrielCode(code: string) {
+  const sujet = `${code}, votre code La Ferme`;
+  const texte = [
+    "Bonjour,",
+    "",
+    `Votre code pour vous connecter au site de commande de La Ferme est le ${code}.`,
+    "Il est valable 10 minutes et ne sert qu'une fois.",
+    "",
+    "Si vous n'avez rien demandé, ne faites rien. Sans ce code, personne n'entre dans votre compte.",
+    "",
+    `Une question ? ${TELEPHONE}`,
+    "",
+    RESTAURANT,
+  ].join("\n");
+  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#1c1b1a;max-width:560px">
+<p>Bonjour,</p>
+<p>Votre code pour vous connecter au site de commande de La Ferme est le</p>
+<p style="font-size:28px;font-weight:700;letter-spacing:4px;margin:8px 0">${echapper(code)}</p>
+<p>Il est valable 10 minutes et ne sert qu'une fois.</p>
+<p>Si vous n'avez rien demandé, ne faites rien. Sans ce code, personne n'entre dans votre compte.</p>
+<p>Une question ? ${TELEPHONE}</p>
+<p style="color:#55524f;font-size:13px">${RESTAURANT}</p></div>`;
+  return { sujet, texte, html };
+}

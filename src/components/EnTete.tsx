@@ -9,6 +9,9 @@ export function EnTete({ children }: { children?: ReactNode }) {
         <Image src="/logo-la-ferme.png" alt="La Ferme, accueil" width={829} height={250} priority />
       </Link>
       {children}
+      <Link className="tete-compte" href="/compte">
+        Compte
+      </Link>
     </header>
   );
 }

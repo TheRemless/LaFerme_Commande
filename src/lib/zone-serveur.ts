@@ -11,7 +11,7 @@ export function champ(v: unknown): string | null {
   return typeof v === "string" && v.trim().length > 0 && v.length <= LONGUEUR_MAX ? v.trim() : null;
 }
 
-export type AdresseRetenue = { rue: string; numero: string; npa: string; localite: string };
+export type AdresseRetenue = { rue: string; numero: string; npa: string; localite: string; featureId?: string };
 
 export type ResultatZoneServeur =
   | { statut: "livrable"; zone: Zone; verifiee: boolean; adresse: AdresseRetenue }
@@ -55,7 +55,7 @@ export async function zoneServeur(config: ConfigService, adresse: unknown, exige
     localite = officielle.localite;
     verifiee = true;
     // L'adresse officielle fait foi : c'est elle qui est enregistrée, pas celle tapée par le client.
-    retenue = { rue: officielle.rue, numero: officielle.numero, npa: officielle.npa, localite: officielle.localite };
+    retenue = { rue: officielle.rue, numero: officielle.numero, npa: officielle.npa, localite: officielle.localite, featureId };
   } else {
     npa = champ(a.npa);
     localite = champ(a.localite);
