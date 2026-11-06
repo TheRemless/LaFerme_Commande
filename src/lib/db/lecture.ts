@@ -3,7 +3,17 @@ import { createClient } from "@supabase/supabase-js";
 import { baseLocale, lireCommeVisiteur } from "@/lib/db/locale";
 
 // Tables et vues lisibles par un visiteur. Liste fermée : le nom finit dans une requête SQL locale.
-const LISIBLES = ["carte_publique", "zones_livraison", "zone_npa", "horaires", "fermetures", "reglages"] as const;
+const LISIBLES = [
+  "carte_publique",
+  "plat_groupes_publics",
+  "options_publiques",
+  "retraits_publics",
+  "zones_livraison",
+  "zone_npa",
+  "horaires",
+  "fermetures",
+  "reglages",
+] as const;
 export type Lisible = (typeof LISIBLES)[number];
 export type SourceDonnees = "supabase" | "locale";
 

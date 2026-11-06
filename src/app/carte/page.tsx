@@ -1,13 +1,14 @@
 import { EnTete } from "@/components/EnTete";
 import { ResumeChoix } from "@/components/ResumeChoix";
-import { Plat } from "@/components/Plat";
+import { CarteCommande } from "@/components/carte/CarteCommande";
 import { chargerCarte } from "@/lib/carte";
+import { chargerCatalogue } from "@/lib/catalogue";
 
 // La carte change dans le back-office sans redéploiement : lecture à chaque requête.
 export const dynamic = "force-dynamic";
 
 export default async function PageCarte() {
-  const { categories, source } = await chargerCarte();
+  const [{ categories, source }, catalogue] = await Promise.all([chargerCarte(), chargerCatalogue()]);
   const preversion = process.env.CONTEXTE_DEPLOIEMENT !== "production";
   const aValider = categories.some((c) => c.plats.some((p) => p.prix_a_valider));
   return (
@@ -22,38 +23,7 @@ export default async function PageCarte() {
       )}
       {/* Sur les previews, data-source dit d'où vient la carte (Supabase ou base embarquée). */}
       <main className="page-carte" data-source={preversion ? source : undefined}>
-        <nav className="cats" aria-label="Catégories">
-          {categories.map((c) => (
-            <a key={c.slug} href={`#${c.slug}`}>
-              {c.nom}
-            </a>
-          ))}
-        </nav>
-        <div className="carte-liste">
-          {categories.map((c, i) => {
-            const avecPhoto = c.plats.filter((p) => p.photo);
-            const sansPhoto = c.plats.filter((p) => !p.photo);
-            return (
-              <section key={c.slug} id={c.slug} className="categorie" aria-labelledby={`${c.slug}-titre`}>
-                <h2 id={`${c.slug}-titre`}>{c.nom}</h2>
-                {avecPhoto.length > 0 && (
-                  <ul className="plats">
-                    {avecPhoto.map((p, j) => (
-                      <Plat key={p.slug} plat={p} prioritaire={i === 0 && j < 4} />
-                    ))}
-                  </ul>
-                )}
-                {sansPhoto.length > 0 && (
-                  <ul className="plats plats-texte">
-                    {sansPhoto.map((p) => (
-                      <Plat key={p.slug} plat={p} />
-                    ))}
-                  </ul>
-                )}
-              </section>
-            );
-          })}
-        </div>
+        <CarteCommande categories={categories} catalogue={catalogue} preversion={preversion} />
       </main>
     </>
   );

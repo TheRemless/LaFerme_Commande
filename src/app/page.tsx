@@ -23,7 +23,7 @@ export default async function Accueil({ searchParams }: { searchParams: Promise<
         </p>
       )}
       <main className="page-accueil">
-        <ChoixCommande config={config} maintenantServeur={maintenant} />
+        <ChoixCommande config={config} maintenantServeur={maintenant} heureSimulee={simulee ? heure : undefined} />
       </main>
     </>
   );

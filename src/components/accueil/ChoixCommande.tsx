@@ -8,6 +8,7 @@ import { ecrireChoix, lireChoix, type Quand, type ZoneChoisie } from "@/lib/choi
 import { prixCourt } from "@/lib/prix";
 import {
   creneaux,
+  enMinutes,
   etatService,
   heureTexte,
   jourTexte,
@@ -24,7 +25,15 @@ type Verdict =
 
 const DETAILS_VIDES: Details = { etage: "", sonnette: "", code: "", instructions: "" };
 
-export function ChoixCommande({ config, maintenantServeur }: { config: ConfigService; maintenantServeur: number }) {
+export function ChoixCommande({
+  config,
+  maintenantServeur,
+  heureSimulee,
+}: {
+  config: ConfigService;
+  maintenantServeur: number;
+  heureSimulee?: string;
+}) {
   const router = useRouter();
   const ids = useId();
   const [mode, setMode] = useState<Mode>("livraison");
@@ -120,8 +129,16 @@ export function ChoixCommande({ config, maintenantServeur }: { config: ConfigSer
   }, [mode, adresseRetenue?.featureId, adresseRetenue?.npa, adresseRetenue?.localite, adresseRetenue?.rue, config]);
 
   const zone = mode === "livraison" && verdict.statut === "livrable" ? config.zones.find((z) => z.numero === verdict.zone.numero) : undefined;
-  const etat = useMemo(() => etatService(config, maintenant, mode, zone), [config, maintenant, mode, zone]);
-  const liste = useMemo(() => creneaux(config, maintenant, mode, zone), [config, maintenant, mode, zone]);
+  // Deux calculs : carte complète, et panier 100 % pizzas (dernière commande plus tardive le soir).
+  // On montre le plus large ; ce qui ne vaut que pour les pizzas est signalé et suit dans le choix.
+  const etatCarte = useMemo(() => etatService(config, maintenant, mode, zone), [config, maintenant, mode, zone]);
+  const etatPizzas = useMemo(() => etatService(config, maintenant, mode, zone, true), [config, maintenant, mode, zone]);
+  const asapPizzasSeulement = etatCarte.etat !== "ouvert" && etatPizzas.etat === "ouvert";
+  const etat = asapPizzasSeulement ? etatPizzas : etatCarte;
+  const listeCarte = useMemo(() => creneaux(config, maintenant, mode, zone), [config, maintenant, mode, zone]);
+  const liste = useMemo(() => creneaux(config, maintenant, mode, zone, true), [config, maintenant, mode, zone]);
+  const pourTous = useMemo(() => new Set(listeCarte.map((c) => `${c.date} ${c.minutes}`)), [listeCarte]);
+  const derniereCarte = config.horaires.find((h) => h.derniere_commande !== h.derniere_commande_pizzas)?.derniere_commande;
   const jours = useMemo(() => [...new Set(liste.map((c) => c.date))], [liste]);
   const [jourChoisi, setJourChoisi] = useState("");
   const jour = jours.includes(jourChoisi) ? jourChoisi : (jours[0] ?? "");
@@ -148,6 +165,9 @@ export function ChoixCommande({ config, maintenantServeur }: { config: ConfigSer
       details: mode === "livraison" ? details : undefined,
       zone: mode === "livraison" && verdict.statut === "livrable" ? verdict.zone : undefined,
       quand,
+      pizzasSeulement:
+        quand.type === "asap" ? asapPizzasSeulement : quand.type === "creneau" ? !pourTous.has(`${quand.date} ${quand.minutes}`) : false,
+      heureSimulee,
     });
     router.push("/carte");
   }
@@ -362,6 +382,9 @@ export function ChoixCommande({ config, maintenantServeur }: { config: ConfigSer
                   <input type="radio" name={`${ids}-quand`} checked={plusTard} onChange={() => setPlusTard(true)} />
                   <span>Plus tard</span>
                 </label>
+                {asapPizzasSeulement && !plusTard && derniereCarte && (
+                  <p className="aide">Après {heureTexte(enMinutes(derniereCarte))}, on ne prend plus que les pizzas.</p>
+                )}
               </>
             ) : (
               <p className="aide-forte">
@@ -387,6 +410,7 @@ export function ChoixCommande({ config, maintenantServeur }: { config: ConfigSer
                     {heuresDuJour.map((c) => (
                       <option key={c.minutes} value={c.minutes}>
                         {heureTexte(c.minutes)}
+                        {pourTous.has(`${c.date} ${c.minutes}`) ? "" : ", pizzas seulement"}
                       </option>
                     ))}
                   </select>
