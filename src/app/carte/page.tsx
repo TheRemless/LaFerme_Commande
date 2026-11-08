@@ -5,8 +5,9 @@ import { CarteCommande } from "@/components/carte/CarteCommande";
 import { chargerCarte } from "@/lib/carte";
 import { chargerCatalogue } from "@/lib/catalogue";
 
-// La carte change dans le back-office sans redéploiement : lecture à chaque requête.
-export const dynamic = "force-dynamic";
+// Servie depuis le cache de Netlify, refaite au plus toutes les minutes. Le back-office et la
+// tablette la vident aussitôt qu'un prix ou une rupture change (rafraichirCaches).
+export const revalidate = 60;
 
 export default async function PageCarte() {
   const [{ categories, source }, catalogue] = await Promise.all([chargerCarte(), chargerCatalogue()]);

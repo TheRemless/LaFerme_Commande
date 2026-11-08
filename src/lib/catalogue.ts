@@ -18,8 +18,17 @@ type LigneOption = {
 type LigneRetrait = { plat_slug: string; nom: string; a_valider: boolean; ordre: number };
 type LigneReglage = { cle: string; valeur: unknown };
 
-// Catalogue complet pour la fiche plat et le calcul du panier, lu en base avec les droits d'un visiteur.
-async function lireCatalogue(): Promise<Catalogue> {
+type DonneesCarte = {
+  plats: LignePlat[];
+  liens: LigneGroupe[];
+  options: LigneOption[];
+  retraits: LigneRetrait[];
+  reglages: LigneReglage[];
+};
+
+// Lignes brutes de la carte, lues en base avec les droits d'un visiteur. La page carte et le
+// catalogue (fiche plat, calcul du panier) partagent cette seule lecture.
+async function lireDonneesCarte(): Promise<DonneesCarte> {
   const [plats, liens, options, retraits, reglages] = await Promise.all([
     lirePublic<LignePlat>("carte_publique"),
     lirePublic<LigneGroupe>("plat_groupes_publics"),
@@ -27,6 +36,20 @@ async function lireCatalogue(): Promise<Catalogue> {
     lirePublic<LigneRetrait>("retraits_publics"),
     lirePublic<LigneReglage>("reglages"),
   ]);
+  return { plats, liens, options, retraits, reglages };
+}
+
+// Une minute de cache : un prix ou une rupture changés dans le back-office s'appliquent vite,
+// et le back-office comme la tablette vident le cache aussitôt (rafraichirCaches).
+export const chargerDonneesCarte = process.env.VITEST
+  ? lireDonneesCarte
+  : unstable_cache(lireDonneesCarte, ["donnees-carte"], { revalidate: 60, tags: ["catalogue"] });
+
+export async function chargerCatalogue(): Promise<Catalogue> {
+  return construireCatalogue(await chargerDonneesCarte());
+}
+
+function construireCatalogue({ plats, liens, options, retraits, reglages }: DonneesCarte): Catalogue {
   const taux = Number(reglages.find((r) => r.cle === "tva_emporter_pourcent")?.valeur);
   if (!Number.isFinite(taux)) throw new Error("Réglage manquant : tva_emporter_pourcent");
 
@@ -57,8 +80,3 @@ async function lireCatalogue(): Promise<Catalogue> {
   }
   return catalogue;
 }
-
-// Une minute de cache : un prix ou une rupture changés dans le back-office s'appliquent vite.
-export const chargerCatalogue = process.env.VITEST
-  ? lireCatalogue
-  : unstable_cache(lireCatalogue, ["catalogue"], { revalidate: 60, tags: ["catalogue"] });

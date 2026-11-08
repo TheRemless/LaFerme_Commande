@@ -4,7 +4,8 @@ import { ResumeChoix } from "@/components/ResumeChoix";
 import { PagePanier } from "@/components/panier/PagePanier";
 import { chargerCatalogue } from "@/lib/catalogue";
 
-export const dynamic = "force-dynamic";
+// Même cache que la carte (src/app/carte/page.tsx) : le panier ne lit que le catalogue.
+export const revalidate = 60;
 
 // Le panier en pleine page, pour le téléphone (sur ordinateur, il est à droite de la carte).
 export default async function Panier() {

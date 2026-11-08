@@ -113,6 +113,11 @@ test("connecté, la commande va dans le compte et les coordonnées sont déjà r
   await page.getByRole("button", { name: "Enregistrer" }).click();
   await expect(page.getByText("Enregistré.")).toBeVisible();
 
+  // Connecté, l'accueil en cache reçoit ses adresses par /api/accueil (aucune tant qu'il n'a pas été livré).
+  const accueil = await page.request.get("/api/accueil");
+  expect(accueil.status()).toBe(200);
+  expect((await accueil.json()).adresses).toEqual([]);
+
   await preparerRetrait(page);
   await page.goto("/commande");
   await expect(page.getByLabel("Prénom")).toHaveValue("Max");

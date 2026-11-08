@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useState } from "react";
 import { adresseTexte, chercherAdresses, type Adresse, type Details } from "@/lib/adresse";
 import { ecrireChoix, lireChoix, type Quand, type ZoneChoisie } from "@/lib/choix";
 import { prixCourt } from "@/lib/prix";
@@ -28,17 +28,9 @@ const DETAILS_VIDES: Details = { etage: "", sonnette: "", code: "", instructions
 
 export type AdresseEnregistree = { id: string; adresse: Adresse; details: Partial<Details> };
 
-export function ChoixCommande({
-  config,
-  maintenantServeur,
-  heureSimulee,
-  adressesEnregistrees = [],
-}: {
-  config: ConfigService;
-  maintenantServeur: number;
-  heureSimulee?: string;
-  adressesEnregistrees?: AdresseEnregistree[];
-}) {
+type ReponseAccueil = { maintenant: number; heureSimulee: string | null; adresses: AdresseEnregistree[] };
+
+export function ChoixCommande({ config, maintenantServeur }: { config: ConfigService; maintenantServeur: number }) {
   const router = useRouter();
   const ids = useId();
   const [mode, setMode] = useState<Mode>("livraison");
@@ -52,14 +44,37 @@ export function ChoixCommande({
   const [details, setDetails] = useState<Details>(DETAILS_VIDES);
   const [plusTard, setPlusTard] = useState(false);
   const [creneauChoisi, setCreneauChoisi] = useState<string>("");
-  // L'heure du serveur fait foi : l'horloge d'un téléphone peut être fausse.
   const [maintenant, setMaintenant] = useState(() => new Date(maintenantServeur));
+  const [heureSimulee, setHeureSimulee] = useState<string | undefined>();
+  const [adressesEnregistrees, setAdressesEnregistrees] = useState<AdresseEnregistree[]>([]);
 
-  useEffect(() => {
-    const decalage = maintenantServeur - Date.now();
+  // La page vient du cache : l'heure où elle a été faite peut dater. On prend aussitôt celle du
+  // téléphone, puis celle du serveur, qui fait foi (l'horloge d'un téléphone peut être fausse).
+  // Le même appel rapporte les adresses d'un client connecté.
+  useLayoutEffect(() => {
+    let decalage = 0;
+    setMaintenant(new Date());
     const tic = window.setInterval(() => setMaintenant(new Date(Date.now() + decalage)), 30_000);
-    return () => window.clearInterval(tic);
-  }, [maintenantServeur]);
+    const ctrl = new AbortController();
+    const heure = new URLSearchParams(window.location.search).get("heure");
+    const depart = Date.now();
+    fetch(`/api/accueil${heure ? `?heure=${encodeURIComponent(heure)}` : ""}`, { cache: "no-store", signal: ctrl.signal })
+      .then((r) => (r.ok ? (r.json() as Promise<ReponseAccueil>) : Promise.reject(new Error(`accueil ${r.status}`))))
+      .then((r) => {
+        // L'heure lue par le serveur date du milieu de l'aller-retour.
+        decalage = r.maintenant - (depart + Date.now()) / 2;
+        setMaintenant(new Date(Date.now() + decalage));
+        setHeureSimulee(r.heureSimulee ?? undefined);
+        setAdressesEnregistrees(r.adresses);
+      })
+      .catch(() => {
+        // Hors ligne ou serveur muet : on garde l'heure du téléphone, sans adresses enregistrées.
+      });
+    return () => {
+      ctrl.abort();
+      window.clearInterval(tic);
+    };
+  }, []);
 
   // Reprendre le choix précédent (retour depuis la carte avec « Modifier »).
   useEffect(() => {

@@ -6,7 +6,8 @@ export function EnTete({ children }: { children?: ReactNode }) {
   return (
     <header className="tete">
       <Link className="logo" href="/">
-        <Image src="/logo-la-ferme.png" alt="La Ferme, accueil" width={829} height={250} priority />
+        {/* Affiché sur 40 px de haut au plus (globals.css) : le navigateur prend un fichier de 256 ou 384 px. */}
+        <Image src="/logo-la-ferme.png" alt="La Ferme, accueil" width={133} height={40} priority />
       </Link>
       {children}
       <Link className="tete-compte" href="/compte">

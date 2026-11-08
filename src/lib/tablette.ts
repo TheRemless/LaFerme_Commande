@@ -1,5 +1,5 @@
 import "server-only";
-import { revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { rembourserCommande } from "@/lib/commandes";
 import { imprimerCommande } from "@/lib/impression/service";
 import { chargerCatalogue } from "@/lib/catalogue";
@@ -169,9 +169,13 @@ export async function agir(commandeId: string, a: Action, p: Personnel): Promise
   return ok ? { ok, message } : { ok, message: message ?? "Cette commande a déjà changé. La liste se met à jour." };
 }
 
+// Pages publiques servies depuis le cache de Netlify et ce qu'elles lisent : on les vide avec les données.
+const PAGES_EN_CACHE = { "config-service": ["/"], catalogue: ["/carte", "/panier"] } as const;
+
 export function rafraichirCaches(quoi: "config-service" | "catalogue"): void {
   try {
     revalidateTag(quoi);
+    for (const chemin of PAGES_EN_CACHE[quoi]) revalidatePath(chemin);
   } catch {
     // Hors requête Next (tests) : rien à vider.
   }

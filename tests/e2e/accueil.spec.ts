@@ -51,3 +51,20 @@ test("le serveur refuse une adresse hors du canton", async ({ request }) => {
   const invalide = await request.post("/api/adresse", { data: { featureId: "../../etc" } });
   expect(invalide.status()).toBe(422);
 });
+
+// Lot 8c : l'accueil est servi depuis le cache, sans rien de propre au visiteur. L'heure qui fait foi
+// et les adresses d'un client connecté arrivent ensuite par /api/accueil.
+test("accueil en cache, heure et adresses par /api/accueil", async ({ request }) => {
+  await request.get("/");
+  const page = await request.get("/");
+  expect(page.headers()["x-nextjs-cache"]).toMatch(/HIT|STALE/);
+  const rep = await request.get("/api/accueil?heure=2026-11-10T19:05");
+  expect(rep.headers()["cache-control"]).toContain("no-store");
+  const r = await rep.json();
+  expect(r.heureSimulee).toBe("2026-11-10T19:05");
+  expect(r.maintenant).toBe(Date.parse("2026-11-10T19:05:00+01:00"));
+  expect(r.adresses).toEqual([]);
+  const reel = await (await request.get("/api/accueil")).json();
+  expect(Math.abs(reel.maintenant - Date.now())).toBeLessThan(60_000);
+  expect(reel.heureSimulee).toBeNull();
+});
