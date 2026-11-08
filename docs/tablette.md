@@ -25,7 +25,7 @@ update personnel set actif = false where email = 'prenom@exemple.ch';
 - Statuts en un appui : en préparation, prête au comptoir ou partie en livraison (e-mail au client), retirée ou livrée. Encaissée pour le comptoir. Changer l'heure (e-mail au client).
 - Onglet « À l'avance » : commandes pour un autre jour.
 - Réglages : pause des commandes en ligne (30 min, 1 h, jusqu'à reprise), livraison fermée, délai de préparation, plats épuisés pour la journée (ils reviennent seuls le lendemain).
-- Mise à jour : vérification toutes les 5 secondes, et tout de suite au signal Supabase Realtime (message vide sur le canal `tablette`, aucune donnée). Perte de connexion : bandeau avec l'heure du dernier contact.
+- Mise à jour : relecture toutes les 15 secondes pendant le service, toutes les 60 secondes hors service (toutes les 5 secondes si le signal ne passe pas). Le signal Supabase Realtime (message vide sur le canal `tablette`, aucune donnée) déclenche une relecture immédiate. Perte de connexion : bandeau avec l'heure du dernier contact.
 - Chaque changement de statut est tracé dans `evenements_commande` avec son auteur (`tablette:Prénom`).
 
 ## Pas encore fait

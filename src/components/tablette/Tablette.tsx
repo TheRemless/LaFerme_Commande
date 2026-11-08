@@ -13,14 +13,19 @@ import { heureDe as heure, jourGeneveDe as jourGeneve } from "@/lib/heures";
 import { heureTexte, jourTexte } from "@/lib/service";
 
 // Tablette posée en cuisine : file des commandes, alerte sonore, accepter, refuser, statuts.
-// Vérification toutes les 5 secondes, et tout de suite quand Supabase Realtime signale un changement.
+// Relecture toutes les 15 secondes en service, 60 hors service, 5 sans signal Realtime, et tout de suite quand Supabase Realtime signale un changement.
 
 type Donnees = {
   maintenant: string;
   commandes: CommandeTablette[];
   reglages: { pause: { active: boolean; jusqua: string | null; livraisonFermee: boolean; auto?: boolean } | null; preparation_minutes: number };
   impression: EtatImpression;
+  // Rythme de relecture proposé par le serveur : 15 s pendant le service, 60 s hors service.
+  relecture_s: number;
 };
+
+// Sans signal Realtime, la tablette ne voit une nouvelle commande qu'en relisant : 5 s, à toute heure.
+const RELECTURE_SANS_SIGNAL_MS = 5000;
 
 type Tache = EtatImpression["taches"][number];
 
@@ -88,23 +93,35 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
     }
   }, [router]);
 
-  useEffect(() => {
-    charger();
-    const t = window.setInterval(charger, 5000);
-    return () => window.clearInterval(t);
-  }, [charger]);
-
   // Signal Supabase Realtime : un message vide qui dit seulement « relis la file ».
+  const [signal, setSignal] = useState(false);
   useEffect(() => {
     if (!supabase) return;
     let fermer: (() => void) | undefined;
     import("@supabase/supabase-js").then(({ createClient }) => {
       const client = createClient(supabase.url, supabase.cle, { auth: { persistSession: false } });
-      const canal = client.channel("tablette").on("broadcast", { event: "commande" }, () => charger()).subscribe();
-      fermer = () => void client.removeChannel(canal);
+      const canal = client
+        .channel("tablette")
+        .on("broadcast", { event: "commande" }, () => charger())
+        .subscribe((etat) => setSignal(etat === "SUBSCRIBED"));
+      fermer = () => {
+        setSignal(false);
+        void client.removeChannel(canal);
+      };
     });
     return () => fermer?.();
   }, [supabase, charger]);
+
+  // Relecture au rythme proposé par le serveur (15 s en service, 60 s hors service) tant que le signal
+  // Realtime passe. Sans lui, 5 s à toute heure pour ne pas rater une commande.
+  const delai = signal && donnees ? donnees.relecture_s * 1000 : RELECTURE_SANS_SIGNAL_MS;
+  useEffect(() => {
+    charger();
+  }, [charger]);
+  useEffect(() => {
+    const t = window.setInterval(charger, delai);
+    return () => window.clearInterval(t);
+  }, [charger, delai]);
 
   const aujourdHui = donnees ? jourGeneve(donnees.maintenant) : "";
   const listes = useMemo(() => {
