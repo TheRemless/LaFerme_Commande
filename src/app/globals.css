@@ -2021,3 +2021,272 @@ body.fiche-ouverte {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+
+/* ---------- Lot 7b : back-office (gérant) ---------- */
+.gestion {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px 16px 64px;
+}
+.ges-tete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ges-tete h1 {
+  font-size: 44px;
+}
+.ges-tete .aide {
+  margin-top: 4px;
+}
+.ges-bloquants,
+.ges-ok {
+  margin: 0;
+  padding: 10px 14px;
+  font-weight: 700;
+  border-radius: 4px;
+}
+.ges-bloquants {
+  background: #f5e6a3;
+}
+.ges-ok {
+  color: var(--blanc);
+  background: var(--basilic);
+}
+.ges-bloc {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--blanc);
+  border: 1px solid #cfcfcb;
+  border-radius: 4px;
+}
+.ges-bloc h2,
+.ges-categorie h2 {
+  font-size: 30px;
+}
+.ges-bloc > p {
+  margin: 0;
+  max-width: 70ch;
+}
+.ges-bloc .bouton-principal {
+  align-self: flex-start;
+  width: auto;
+  padding: 0 28px;
+}
+.ges-filtres {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 24px;
+  margin: 16px 0 4px;
+}
+.ges-filtres .champ {
+  min-width: 260px;
+}
+.ges-categorie {
+  margin-top: 20px;
+}
+.ges-plats,
+.ges-options {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  background: var(--blanc);
+  border: 1px solid #cfcfcb;
+  border-radius: 4px;
+}
+.ges-plats > li + li,
+.ges-options > li + li {
+  border-top: 1px solid var(--filet);
+}
+.ges-ligne {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) auto minmax(0, 2fr);
+  gap: 8px 16px;
+  align-items: center;
+  width: 100%;
+  min-height: 52px;
+  padding: 8px 14px;
+  font: inherit;
+  text-align: left;
+  color: var(--encre);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.ges-ligne[aria-expanded="true"] {
+  background: var(--papier);
+}
+.ges-nom {
+  font-weight: 600;
+}
+.ges-prix {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.ges-etats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.ges-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--papier);
+  border: 1px solid #cfcfcb;
+  border-radius: 3px;
+}
+.ges-etats .ges-badge {
+  margin-left: 0;
+}
+.ges-badge-bloque {
+  background: #f5e6a3;
+  border-color: #e9cf5b;
+}
+.ges-retire .ges-nom {
+  color: var(--encre-douce);
+}
+.ges-fiche {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px;
+  background: var(--papier);
+  border-top: 1px solid var(--filet);
+}
+.ges-fiche textarea {
+  width: 100%;
+  padding: 10px 12px;
+  font: inherit;
+  border: 1px solid #bdbdb8;
+  border-radius: 4px;
+}
+.ges-fiche .bouton-principal {
+  width: auto;
+  padding: 0 28px;
+}
+.ges-retraits {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--filet);
+}
+.ges-retraits .champ {
+  flex: 1 1 320px;
+}
+.ges-options li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 8px 14px;
+}
+.ges-options .ges-nom {
+  flex: 1 1 160px;
+}
+.ges-options .champ input {
+  width: 96px;
+}
+.ges-zones,
+.ges-horaires {
+  display: grid;
+  gap: 12px;
+}
+.ges-zone,
+.ges-horaire {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: var(--papier);
+  border-radius: 4px;
+}
+.ges-zone h3,
+.ges-horaire h3 {
+  font-size: 22px;
+}
+.ges-heures {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.ges-fermetures {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ges-fermetures li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--filet);
+}
+.ges-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+.ges-table th,
+.ges-table td {
+  padding: 6px 8px;
+  text-align: left;
+  vertical-align: top;
+  border-top: 1px solid var(--filet);
+}
+.ges-journal {
+  display: block;
+  overflow-x: auto;
+}
+.ges-diff {
+  font-size: 13px;
+  word-break: break-word;
+}
+.ges-avert {
+  margin: 0;
+  padding: 10px 14px 10px 30px;
+  background: #f5e6a3;
+  border-radius: 4px;
+}
+.ges-apercu {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-x: auto;
+}
+@media (min-width: 900px) {
+  .ges-tete h1 {
+    font-size: 64px;
+  }
+  .ges-zones {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .ges-horaires {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ges-heures {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  .ges-ligne {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .ges-etats {
+    grid-column: 1 / -1;
+  }
+}
+.ges-fiche .details {
+  align-items: start;
+}

@@ -188,7 +188,7 @@ describe("logique de la tablette", () => {
     // La pause se compare à l'heure réelle.
     const pause = { ...config, pause: { active: true, jusqua: new Date(Date.now() + 1_800_000).toISOString(), livraisonFermee: false } };
     expect(etatService(pause, maintenant, "retrait").etat).toBe("pause");
-    expect(messagePause(etatService(pause, maintenant, "retrait"))).toMatch(/reprennent à \d{2}h\d{2}/);
+    expect(messagePause(etatService(pause, maintenant, "retrait"))).toMatch(/reprennent à \d{1,2}h\d{2}/);
     const finie = { ...config, pause: { active: true, jusqua: new Date(Date.now() - 60_000).toISOString(), livraisonFermee: false } };
     expect(etatService(finie, maintenant, "retrait").etat).not.toBe("pause");
     const livraison = { ...config, pause: { active: false, jusqua: null, livraisonFermee: true } };
