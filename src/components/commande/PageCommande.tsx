@@ -168,7 +168,7 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
                 <label htmlFor={`${ids}-telephone`}>Téléphone</label>
                 <input {...champ("telephone")} type="tel" autoComplete="tel" maxLength={20} />
                 <p className="aide">
-                  {choix?.mode === "livraison" ? "Le livreur vous appelle s'il ne trouve pas l'entrée." : "On vous appelle si la commande a du retard."}
+                  Pour vous joindre au sujet de la commande.
                 </p>
               </div>
               <div className="champ">
@@ -204,7 +204,7 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
                 <span>
                   <strong>En ligne</strong>
                   <br />
-                  TWINT, carte, Apple Pay ou Google Pay
+                  TWINT ou carte bancaire
                 </span>
               </label>
               {choix?.mode === "retrait" && (
