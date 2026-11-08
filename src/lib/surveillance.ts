@@ -32,6 +32,17 @@ export async function alerter(sujet: string, lignes: string[]): Promise<void> {
   });
 }
 
+// Appelée à chaque passage d'imprimante et à chaque relecture de la tablette : une fois par minute au
+// plus par instance de fonction, pour ne pas payer un appel à la base à chaque passage. En production,
+// la fonction planifiée (netlify/functions/surveillance.mts) la lance de toute façon chaque minute.
+let dernierTour = 0;
+export async function surveillanceAuPassage(): Promise<void> {
+  const t = Date.now();
+  if (t - dernierTour < 60_000) return;
+  dernierTour = t;
+  await executerSurveillance().catch((e) => console.error(`Surveillance : ${e instanceof Error ? e.message : e}`));
+}
+
 export async function executerSurveillance(maintenant = new Date()): Promise<{ fait: boolean; retards: number; pause: boolean }> {
   if (!(await fonctionSql<boolean>("tour_de_surveillance", {}))) return { fait: false, retards: 0, pause: false };
 

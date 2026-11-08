@@ -3,7 +3,7 @@ import { empreinte } from "@/lib/comptes/securite";
 import { fonctionSql } from "@/lib/db/serveur";
 import { pngTicket } from "@/lib/impression/png";
 import { texteTicket, type LigneTicket } from "@/lib/impression/ticket";
-import { alerter, executerSurveillance } from "@/lib/surveillance";
+import { alerter, surveillanceAuPassage } from "@/lib/surveillance";
 
 // Star CloudPRNT (HTTP), d'après la référence du protocole Star (manuel v2.6.0) :
 // - POST : l'imprimante donne son état et demande s'il y a un ticket ({ jobReady, mediaTypes, jobToken }) ;
@@ -56,8 +56,7 @@ export async function POST(requete: Request, { params }: { params: Promise<{ jet
     p_statut_code: statut,
   });
   if (!r) return refus();
-  // L'imprimante passe toutes les 5 secondes : bon moment pour la surveillance (une fois par minute au plus).
-  await executerSurveillance().catch((e) => console.error(`Surveillance : ${e instanceof Error ? e.message : e}`));
+  await surveillanceAuPassage();
   return NextResponse.json(r.tache ? { jobReady: true, mediaTypes: TYPES, jobToken: r.tache } : { jobReady: false }, { headers: { "Cache-Control": "no-store" } });
 }
 

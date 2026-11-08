@@ -84,7 +84,7 @@ async function prevenir(c: Commande, m: { sujet: string; texte: string; html: st
 }
 
 // Les autres tablettes se rafraîchissent tout de suite (Supabase Realtime, message vide). Sans Realtime,
-// elles se remettent à jour à leur prochaine vérification, toutes les 5 secondes.
+// elles se remettent à jour à leur prochaine relecture (toutes les 5 secondes sans signal).
 export async function signalerTablette(): Promise<void> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const cle = process.env.SUPABASE_SECRET_KEY;

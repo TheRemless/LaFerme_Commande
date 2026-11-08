@@ -82,3 +82,52 @@ Source pour la région : https://docs.netlify.com/functions/optional-configurati
 5. Me prévenir : je relance `/api/diagnostic/latence` sur une préversion. Elle doit indiquer la région `eu-central-1` et des lectures autour de 30 ms.
 
 Avec Next.js, la région se règle seulement dans l'interface, pour tout le projet (même page de documentation). Pas de modification du code.
+
+## Crédits Netlify sur un mois (lot 8f, 8.11.2026)
+
+### Comment Netlify compte
+
+Source : https://docs.netlify.com/manage/accounts-and-billing/billing/billing-for-credit-based-plans/how-credits-work/ et https://docs.netlify.com/build/functions/usage-and-billing/, lues le 8.11.2026.
+
+- Calcul : durée d'exécution des fonctions multipliée par leur mémoire, 10 crédits par Go-heure. Mémoire par défaut : 1024 Mo (https://docs.netlify.com/build/functions/configuration/).
+- Requêtes : 2 crédits pour 10 000, fichiers fixes compris.
+- Bande passante : 20 crédits par Go.
+- Mise en production : 15 crédits. Préversions gratuites.
+- Crédits épuisés : tous les sites du compte sont mis en pause (« Site not available ») jusqu'au mois suivant. La recharge automatique (1 500 crédits pour 10 $ sur Pro) est coupée par défaut. Alertes par e-mail à 50, 75, 90 et 100 %.
+
+### Ce qui interroge le serveur sans arrêt
+
+| Source | Avant ce lot | Après ce lot |
+|---|---|---|
+| Chaque imprimante (réglage sur l'imprimante) | toutes les 5 s, deux appels à la base | toutes les 10 s conseillé, un appel |
+| Tablette | toutes les 5 s, quatre appels à la base | 15 s en service, 60 s hors service, deux appels (5 s si le signal Realtime ne passe pas) |
+| Surveillance (fonction planifiée, production) | chaque minute | chaque minute |
+
+La surveillance n'est plus relancée à chaque passage d'imprimante ou de tablette (une fois par minute au plus). Le signe de vie de la tablette s'écrit toutes les 30 secondes au plus (le seuil d'alerte est de 3 minutes).
+
+### Estimation sur 30 jours
+
+Hypothèses : deux imprimantes et la tablette allumées jour et nuit. Service du mardi au samedi, de 11h à 14h et de 18h30 à 23h (161 heures par mois). Un appel à la base dure 350 ms depuis l'Ohio (mesuré, voir plus haut) et environ 35 ms depuis Francfort (calculé avec les allers-retours mesurés). 50 ms de plus par appel de fonction (hypothèse).
+
+| Poste | Avant ce lot, Ohio | Après ce lot, Ohio | Après ce lot, Francfort |
+|---|---|---|---|
+| Imprimantes (calcul) | 2 160 | 576 | 122 |
+| Tablette (calcul) | 2 088 | 202 | 29 |
+| Surveillance planifiée (calcul) | 102 | 102 | 20 |
+| Requêtes de ces trois sources | 320 | 127 | 127 |
+| Total sans aucun client | environ 4 670 | environ 1 010 | environ 300 |
+
+Avant ce lot, le plan Pro (3 000 crédits) aurait été épuisé vers le 19 du mois et le site mis en pause.
+
+À ajouter selon l'usage (estimation, pas de chiffre réel avant le lancement) :
+
+- Clients : une première visite (accueil puis carte) pèse de 0,65 à 0,93 Mo pour environ 45 requêtes (mesuré sur la préversion, bureau et mobile). Avec les appels du panier et de la commande, compter environ 45 crédits pour 1 000 visites depuis l'Ohio, 30 depuis Francfort.
+- Chaque mise en production : 15 crédits.
+
+Cas à surveiller :
+
+- Imprimantes laissées à 5 s : +576 crédits depuis l'Ohio, +122 depuis Francfort.
+- Signal Realtime coupé (la tablette relit toutes les 5 s) : environ +1 300 crédits depuis l'Ohio, +260 depuis Francfort.
+- Imprimantes éteintes à la fermeture : leur part baisse d'environ trois quarts. Utile, pas indispensable une fois à Francfort.
+
+Conclusion : avec Pro, Francfort et les imprimantes à 10 s, le site consomme environ 300 crédits par mois sans client, soit un dixième des 3 000 inclus. La marge couvre plusieurs milliers de visites.

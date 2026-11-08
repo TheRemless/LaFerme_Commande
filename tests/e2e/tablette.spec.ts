@@ -122,3 +122,10 @@ test("la tablette est fermée aux clients et aux autres sites", async ({ request
   // Une session client ne donne pas accès à la tablette.
   expect((await request.get("/api/tablette/file", { headers: { Cookie: `laferme-session=${session.value}` } })).status()).toBe(401);
 });
+
+// Lot 8f : la file propose son rythme de relecture. Une commande en cours garde la tablette à 15 s.
+test("rythme de relecture : 15 s tant qu'une commande est en cours", async ({ request }) => {
+  await commander(request, "Rythme", "comptoir");
+  const r = await (await tablette.request.get("/api/tablette/file")).json();
+  expect(r.relecture_s).toBe(15);
+});

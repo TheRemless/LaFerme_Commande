@@ -2,7 +2,7 @@
 
 ## Comment ça marche
 
-- L'acceptation sur la tablette, et elle seule, crée les tickets : un par poste (pizza, cuisine) qui a des lignes, chacun avec ses seules lignes.
+- Seule l'acceptation sur la tablette crée les tickets : un par poste (pizza, cuisine) qui a des lignes, chacun avec ses seules lignes.
 - Chaque ticket va à la première imprimante active de son poste. Sans imprimante pour ce poste, il s'affiche sur la tablette (bouton « Ticket »).
 - Protocole Star CloudPRNT (HTTP) : l'imprimante interroge son adresse toutes les quelques secondes (POST), télécharge le ticket (GET) puis confirme (DELETE). Un ticket ne quitte la file qu'après confirmation. Il reste en file si l'imprimante est éteinte et sort à son retour.
 - Le ticket est envoyé en image (PNG, 576 points de large, police DejaVu Sans Condensed) : grandes tailles, accents et « œ » sans dépendre de la page de codes de l'imprimante. Un texte de secours en ASCII existe si l'imprimante ne prend pas l'image.
@@ -17,9 +17,9 @@
 
 ## Surveillance
 
-Une fois par minute au plus, à chaque passage d'une imprimante ou relecture de la tablette, et chaque minute en production (fonction planifiée Netlify `netlify/functions/surveillance.mts`) :
+Chaque minute en production (fonction planifiée Netlify `netlify/functions/surveillance.mts`). Les passages des imprimantes et les relectures de la tablette la relancent aussi, une fois par minute au plus, ce qui la fait tourner sur les préversions :
 
-- une commande du jour pas acceptée après le délai réglé (5 minutes par défaut, back-office) : un e-mail au restaurant (`ALERTE_EMAIL`), une seule fois par commande, et « Attend depuis N min » sur la tablette ;
+- une commande du jour pas acceptée après le délai réglé (5 minutes par défaut, back-office) : un e-mail au restaurant (`ALERTE_EMAIL`), une seule fois par commande. La tablette affiche « Attend depuis N min » ;
 - la tablette muette depuis 3 minutes pendant un service : commandes en ligne mises en pause, e-mail au restaurant, bandeau sur la tablette. La reprise se fait à la main (« Reprendre les commandes »).
 
 ## Imprimante à acheter
@@ -38,14 +38,14 @@ Une fois par minute au plus, à chaque passage d'une imprimante ou relecture de 
 3. Ouvrir la page de réglages de l'imprimante (son adresse IP dans un navigateur), rubrique CloudPRNT :
    - activer CloudPRNT, protocole HTTP (pas MQTT) ;
    - « Server URL » : l'adresse copiée dans le back-office, rubrique Imprimantes (`https://…/api/cloudprnt/…`) ;
-   - intervalle d'interrogation : 5 secondes (valeur d'usine) ; on peut monter à 10 secondes pour réduire les requêtes ;
+   - intervalle d'interrogation : 10 secondes (5 en usine). Un ticket sort au plus 10 secondes après l'acceptation. La consommation de crédits Netlify des imprimantes est divisée par deux (`docs/performance.md`) ;
    - pas d'identifiant ni de mot de passe : le jeton de l'adresse suffit.
 4. Le certificat HTTPS du site (Netlify) est signé par une autorité courante : rien à installer.
 5. Sur la tablette, l'imprimante doit passer « en ligne » dans la minute. Accepter une commande de test : le ticket sort.
 
 ## Coût en requêtes
 
-Une imprimante qui interroge toutes les 5 secondes, jour et nuit, fait environ 17 000 requêtes par jour. Éteindre les imprimantes hors service, ou passer l'intervalle à 10 secondes, divise ce nombre. Le plan Netlify et ses quotas sont à vérifier avant la mise en ligne (lot 8).
+Une imprimante qui interroge toutes les 10 secondes, jour et nuit, fait environ 8 600 requêtes par jour, chacune avec un seul appel à la base. Estimation en crédits Netlify sur un mois et cas à surveiller : `docs/performance.md`, « Crédits Netlify sur un mois ».
 
 ## Variables à créer (Netlify)
 
