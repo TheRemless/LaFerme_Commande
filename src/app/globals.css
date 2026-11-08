@@ -2385,3 +2385,69 @@ body.fiche-ouverte {
   justify-content: space-between;
   gap: 12px;
 }
+
+/* ---------- Lot 8b : pied de page et pages légales ---------- */
+.pied {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 24px;
+  padding: 20px max(16px, env(safe-area-inset-left)) calc(20px + env(safe-area-inset-bottom));
+  font-size: 14px;
+  color: var(--encre-douce);
+  background: var(--papier);
+  border-top: 1px solid var(--filet);
+}
+.pied p {
+  margin: 0;
+}
+.pied nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+}
+.pied a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+.page-carte + .pied {
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
+}
+.page-legale {
+  padding: 16px max(16px, env(safe-area-inset-left)) 48px;
+}
+.legal {
+  max-width: 68ch;
+  margin: 0 auto;
+}
+.legal h1 {
+  margin: 12px 0 4px;
+  font-size: 44px;
+}
+.legal h2 {
+  margin: 28px 0 8px;
+  font-size: 26px;
+}
+.legal p,
+.legal li {
+  line-height: 1.6;
+}
+.legal ul {
+  padding-left: 20px;
+  list-style: disc;
+}
+.legal li + li {
+  margin-top: 6px;
+}
+.legal mark {
+  padding: 0 3px;
+  background: #f5e6a3;
+}
+.legal-ebauche {
+  margin: 0;
+  padding: 12px 14px;
+  font-weight: 600;
+  background: #f5e6a3;
+  border-radius: 4px;
+}

@@ -221,7 +221,10 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
           </section>
 
           {preversion && (
-            <p className="aide">Préversion : paiement de test, aucun montant n&apos;est débité. Conditions générales et confidentialité à venir.</p>
+            <p className="aide">
+              Préversion : paiement de test, aucun montant n&apos;est débité. <Link href="/cgv">Conditions générales</Link> et{" "}
+              <Link href="/confidentialite">confidentialité</Link> en ébauche, à faire relire.
+            </p>
           )}
           {erreur && (
             <p className="panier-alerte" role="alert">

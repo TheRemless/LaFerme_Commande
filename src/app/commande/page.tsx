@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { EnTete } from "@/components/EnTete";
+import { PiedDePage } from "@/components/PiedDePage";
 import { ResumeChoix } from "@/components/ResumeChoix";
 import { PageCommande } from "@/components/commande/PageCommande";
 import { chargerCatalogue } from "@/lib/catalogue";
@@ -21,6 +22,7 @@ export default async function Commande() {
           />
         </Suspense>
       </main>
+      <PiedDePage />
     </>
   );
 }
