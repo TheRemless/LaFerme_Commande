@@ -2,7 +2,9 @@ import type { ReactNode } from "react";
 import type { PageLegale } from "@/lib/legal/types";
 
 // Les passages entre crochets sont des informations à fournir : surlignés pour la relecture.
-function avecTrous(t: string): ReactNode[] {
+// Le numéro de téléphone ne se coupe jamais en fin de ligne.
+function avecTrous(brut: string): ReactNode[] {
+  const t = brut.replace(/022 792 16 89/g, "022\u00a0792\u00a016\u00a089");
   return t.split(/(\[[^\]]+\])/g).map((m, i) => (m.startsWith("[") ? <mark key={i}>{m.slice(1, -1)}</mark> : m));
 }
 
