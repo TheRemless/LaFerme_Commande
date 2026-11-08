@@ -12,7 +12,7 @@ Résultat du script de vérification : 0 point bloquant (virgule avant « et »,
 | 022 792 16 89 | Registre de faits (confirmé le 29.10.2026) |
 | Livraison « par les livreurs du restaurant » | Décision de Jérémy, `docs/PROMPT.md` §2, ajoutée au registre le 8.11.2026 |
 | Paiement en ligne par TWINT ou carte, au comptoir pour un retrait | Décision de Jérémy, `docs/PROMPT.md` §2 |
-| « Allergènes : demandez-nous au 022 792 16 89 » | Décision de Jérémy, `docs/PROMPT.md` §5 |
+| « Allergènes : demandez-nous au 022 792 16 89 » | Règle du prompt de construction, `docs/PROMPT.md` §5 (pas une décision de Jérémy) |
 | Provenances | Seulement celles saisies dans la base (back-office ou tableau de validation) |
 | Zones, frais, minimums, délais, horaires | Lus dans la base, jamais écrits en dur. Marqués « proposition » sur les préversions tant qu'ils ne sont pas validés |
 | Prix | Base seulement |
