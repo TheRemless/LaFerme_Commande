@@ -11,3 +11,9 @@
 # sans cette ligne, Netlify publie le dossier .next brut et toutes les pages répondent 404.
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+# Manifeste de la tablette (fichier de public/, servi par le CDN sans passer par Next) : son vrai type.
+[[headers]]
+  for = "/tablette.webmanifest"
+  [headers.values]
+    Content-Type = "application/manifest+json"

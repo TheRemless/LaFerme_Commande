@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
     // Rendu des tickets en PNG : moteur resvg (wasm) et police DejaVu, lus sur le disque à l'exécution.
     "/api/cloudprnt/[jeton]": ["./node_modules/@resvg/resvg-wasm/index_bg.wasm", "./node_modules/dejavu-fonts-ttf/ttf/DejaVuSansCondensed*.ttf"],
   },
-  // Manifeste de la tablette (fichier de public/) : servi avec son vrai type.
+  // Manifeste de la tablette servi avec son vrai type par next start (sur Netlify : netlify.toml).
   async headers() {
     return [{ source: "/tablette.webmanifest", headers: [{ key: "Content-Type", value: "application/manifest+json" }] }];
   },
