@@ -48,7 +48,7 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
   return (
     <>
       <EnTete />
-      <main className="page-suivi">
+      <main id="contenu" className="page-suivi">
         <Actualiser actif={!termine} commandeEnregistree={enregistree} />
         <div className="suivi">
           <p className="suivi-num">

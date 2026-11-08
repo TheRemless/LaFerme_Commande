@@ -18,6 +18,8 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
   const [choix, setChoix] = useState<Choix | null>(null);
   const [ouvert, setOuvert] = useState<LignePlat | null>(null);
   const fermer = useCallback(() => setOuvert(null), []);
+  // La fiche se ferme après l'ajout : on annonce aux lecteurs d'écran ce qui est entré dans le panier.
+  const [annonce, setAnnonce] = useState("");
 
   useEffect(() => setChoix(lireChoix()), []);
 
@@ -97,7 +99,22 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
           <span className="barre-total">{prixChf(montants.total_centimes)}</span>
         </Link>
       )}
-      {ouvert && <FichePlat plat={ouvert} catalogue={catalogue} preversion={preversion} onAjouter={ajouter} onFermer={fermer} />}
+      <p className="sr-only" role="status">
+        {annonce}
+      </p>
+      {ouvert && (
+        <FichePlat
+          plat={ouvert}
+          catalogue={catalogue}
+          preversion={preversion}
+          onAjouter={(ligne) => {
+            ajouter(ligne);
+            const total = nbArticles + ligne.qte;
+            setAnnonce(`Dans le panier : ${nomAffiche(ouvert)}. ${total} article${total > 1 ? "s" : ""} en tout.`);
+          }}
+          onFermer={fermer}
+        />
+      )}
     </>
   );
 }

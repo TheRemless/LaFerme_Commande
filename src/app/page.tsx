@@ -20,7 +20,7 @@ export default async function Accueil() {
           Préversion : zones, frais, horaires et prix proposés, en attente de validation.
         </p>
       )}
-      <main className="page-accueil">
+      <main id="contenu" className="page-accueil">
         <ChoixCommande config={config} maintenantServeur={Date.now()} preversion={preversion} />
       </main>
       <PiedDePage />

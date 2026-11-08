@@ -15,7 +15,7 @@ export default function Page() {
   return (
     <>
       <EnTete />
-      <main className="page-legale">
+      <main id="contenu" className="page-legale">
         <PageLegaleVue page={CONFIDENTIALITE} ebauche={!pagesLegalesValidees()} />
       </main>
       <PiedDePage />

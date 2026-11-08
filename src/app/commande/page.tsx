@@ -15,7 +15,7 @@ export default async function Commande() {
       <EnTete>
         <ResumeChoix />
       </EnTete>
-      <main className="page-commande">
+      <main id="contenu" className="page-commande">
         <Suspense>
           <PageCommande catalogue={catalogue} preversion={process.env.CONTEXTE_DEPLOIEMENT !== "production"}
             compte={compte && { email: compte.email, prenom: compte.prenom, nom: compte.nom, telephone: compte.telephone }}

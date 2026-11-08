@@ -15,7 +15,7 @@ export default async function Compte() {
   return (
     <>
       <EnTete />
-      <main className="page-compte">
+      <main id="contenu" className="page-compte">
         {donnees ? <EspaceCompte donnees={donnees} preversion={process.env.CONTEXTE_DEPLOIEMENT !== "production"} /> : <Connexion />}
       </main>
       <PiedDePage />
