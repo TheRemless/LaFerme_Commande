@@ -15,3 +15,9 @@ Décision de Jérémy du 8.11.2026 : « Oui, Pro au lancement ». Chiffres et so
   5. Prévenir Claude.
 - [ ] Claude : ouvrir `/api/diagnostic/latence` sur une préversion. Attendu : région `eu-central-1` et des lectures autour de 30 ms (350 ms aujourd'hui depuis l'Ohio).
 - [ ] Claude : une fois Francfort vérifié, retirer de la déclaration de confidentialité (`src/lib/legal/confidentialite.ts`, sous-traitants) la mention « Région de calcul des fonctions : États-Unis (Ohio) aujourd'hui » et indiquer Francfort. Netlify, Inc. reste une société américaine : la phrase sur le Swiss-U.S. Data Privacy Framework reste.
+
+## Référencement, une fois l'adresse définitive en ligne
+
+- [ ] Claude : passer l'accueil au test des résultats enrichis de Google (search.google.com/test/rich-results). Attendu : un `Restaurant` sans erreur.
+- [ ] Jérémy : déclarer le site dans Google Search Console (propriété du domaine), puis y soumettre `/sitemap.xml`. Claude explique chaque clic.
+- [ ] Claude : vérifier que `/robots.txt` ouvre l'accueil, la carte et les pages légales. Le plan du site doit les lister.

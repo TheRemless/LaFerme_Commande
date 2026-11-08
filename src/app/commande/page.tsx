@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { EnTete } from "@/components/EnTete";
 import { PiedDePage } from "@/components/PiedDePage";
@@ -5,8 +6,10 @@ import { ResumeChoix } from "@/components/ResumeChoix";
 import { PageCommande } from "@/components/commande/PageCommande";
 import { chargerCatalogue } from "@/lib/catalogue";
 import { compteCourant } from "@/lib/comptes/session";
+import { PRIVE } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Finaliser la commande, La Ferme", robots: PRIVE };
 
 export default async function Commande() {
   const [catalogue, compte] = await Promise.all([chargerCatalogue(), compteCourant()]);
