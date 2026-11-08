@@ -1,6 +1,6 @@
 import "server-only";
 import { chargerConfigService } from "@/lib/config-service";
-import { resendConfigure } from "@/lib/courriel/envoi";
+import { envoyerParResend, resendConfigure } from "@/lib/courriel/envoi";
 import { enregistrerCourriel, fonctionSql } from "@/lib/db/serveur";
 import { etatService } from "@/lib/service";
 import { rafraichirCaches } from "@/lib/tablette";
@@ -13,17 +13,12 @@ import { rafraichirCaches } from "@/lib/tablette";
 const TABLETTE_MUETTE_S = 180;
 
 // Courriel au restaurant (ALERTE_EMAIL). Sans Resend, gardé en base comme les autres courriels de test.
-async function alerter(sujet: string, lignes: string[]): Promise<void> {
+export async function alerter(sujet: string, lignes: string[]): Promise<void> {
   const texte = [...lignes, "", "Site de commande La Ferme"].join("\n");
+  const html = `<pre>${texte.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!)}</pre>`;
   const destinataire = process.env.ALERTE_EMAIL;
   if (resendConfigure() && destinataire) {
-    const rep = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: process.env.COURRIEL_EXPEDITEUR, to: [destinataire], subject: sujet, text: texte }),
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!rep.ok) throw new Error(`Resend a répondu ${rep.status}`);
+    await envoyerParResend(destinataire, sujet, texte, html, `alerte-${sujet}-${new Date().toISOString().slice(0, 16)}`);
   } else {
     console.error(`Alerte (aucun courriel configuré) : ${sujet}`);
   }
@@ -32,7 +27,7 @@ async function alerter(sujet: string, lignes: string[]): Promise<void> {
     destinataire: destinataire ?? "restaurant",
     sujet,
     texte,
-    html: `<pre>${texte.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!)}</pre>`,
+    html,
     fournisseur: resendConfigure() && destinataire ? "resend" : "doublure",
   });
 }

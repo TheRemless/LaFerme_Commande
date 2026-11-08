@@ -8,6 +8,7 @@ import { prixChf } from "@/lib/prix";
 import { Reglages } from "@/components/tablette/Reglages";
 import { TicketSecours } from "@/components/tablette/TicketSecours";
 import type { EtatImpression } from "@/lib/impression/service";
+import type { LigneTicket } from "@/lib/impression/ticket";
 import { heureDe as heure, jourGeneveDe as jourGeneve } from "@/lib/heures";
 import { heureTexte, jourTexte } from "@/lib/service";
 
@@ -296,7 +297,13 @@ function CarteCommande({
   taches: Tache[];
   agir: (corps: Record<string, unknown>) => Promise<void>;
 }) {
-  const [ticketOuvert, setTicketOuvert] = useState(false);
+  const [tickets, setTickets] = useState<{ station: string; contenu: LigneTicket[] }[] | null>(null);
+
+  // Le contenu des tickets n'est chargé qu'à la demande, pour garder la relecture de la file légère.
+  async function ouvrirTicket() {
+    const rep = await fetch(`/api/tablette/ticket?commande=${c.id}`, { cache: "no-store" }).catch(() => null);
+    if (rep?.ok) setTickets(await rep.json());
+  }
   // Dernière tâche de chaque poste : c'est elle qui dit où en est le ticket.
   const parPoste = (["pizza", "cuisine"] as const)
     .map((s) => taches.filter((t) => t.station === s).at(-1))
@@ -513,7 +520,7 @@ function CarteCommande({
             {parPoste.map((t) => `Ticket ${t.station} : ${ETAT_TACHE[t.etat]}${t.etat === "echec" && t.derniere_erreur ? ` (${t.derniere_erreur})` : ""}`).join(". ")}.
           </p>
           <div className="boutons-ligne">
-            <button type="button" className="bouton-second" onClick={() => setTicketOuvert(true)}>
+            <button type="button" className="bouton-second" onClick={ouvrirTicket}>
               Ticket
             </button>
             {c.statut !== "refusee" && (
@@ -531,7 +538,7 @@ function CarteCommande({
           </div>
         </div>
       )}
-      {ticketOuvert && <TicketSecours tickets={parPoste.map((t) => ({ station: t.station, contenu: t.contenu }))} fermer={() => setTicketOuvert(false)} />}
+      {tickets && <TicketSecours tickets={tickets} fermer={() => setTickets(null)} />}
 
       {c.statut === "refusee" && c.statut_paiement === "paye" && (
         <div className="tab-actions">

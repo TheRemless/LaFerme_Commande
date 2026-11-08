@@ -40,9 +40,18 @@ alter table commandes add column alerte_le timestamptz;
 
 insert into reglages (cle, valeur, proposition) values
   ('alerte_acceptation_minutes', '5', true),
-  ('tablette_vue_le', 'null', false),
-  ('surveillance_le', 'null', false),
   ('pause_auto', 'false', false);
+
+-- État interne de la surveillance : pas dans reglages (lisible par tous), une seule ligne, sans droit public.
+create table surveillance_etat (
+  id boolean primary key default true check (id),
+  tablette_vue_le timestamptz,
+  surveillance_le timestamptz
+);
+insert into surveillance_etat default values;
+alter table surveillance_etat enable row level security;
+revoke all on surveillance_etat from anon, authenticated;
+grant select, insert, update on surveillance_etat to service_role;
 
 alter table imprimantes enable row level security;
 alter table taches_impression enable row level security;
@@ -62,7 +71,8 @@ begin
   if not found then
     return null;
   end if;
-  if i.mac is not null and (p_mac is null or i.mac <> p_mac) then
+  -- Sans MAC, pas de liaison possible : refusé, comme une MAC étrangère.
+  if p_mac is null or (i.mac is not null and i.mac <> p_mac) then
     return null;
   end if;
   update imprimantes set
@@ -73,8 +83,9 @@ begin
   -- Une tâche envoyée mais jamais confirmée depuis 2 minutes repart (imprimante éteinte en cours de route).
   update taches_impression set etat = 'en_attente'
     where imprimante_id = i.id and etat = 'envoyee' and envoye_le < now() - interval '2 minutes';
+  -- Seulement une tâche en attente : celle en cours d'impression n'est pas réannoncée (sinon double ticket).
   select id into t from taches_impression
-    where imprimante_id = i.id and etat in ('en_attente', 'envoyee')
+    where imprimante_id = i.id and etat = 'en_attente'
     order by cree_le limit 1;
   return jsonb_build_object('imprimante', i.id, 'tache', t);
 end;
@@ -88,7 +99,7 @@ declare
   t taches_impression%rowtype;
 begin
   select * into i from imprimantes where jeton_hache = p_jeton_hache and actif;
-  if not found or (i.mac is not null and (p_mac is null or i.mac <> p_mac)) then
+  if not found or p_mac is null or i.mac is distinct from p_mac then
     return null;
   end if;
   update taches_impression set etat = 'envoyee', envoye_le = now()
@@ -102,26 +113,34 @@ end;
 $$;
 
 -- Fin d'une tâche (DELETE) : code 2xx imprimée ; sinon échec, remise en file jusqu'à trois tentatives.
-create function confirmer_tache(p_jeton_hache text, p_mac text, p_tache uuid, p_code text) returns boolean
+-- Renvoie le nouvel état ('imprimee', 'en_attente', 'echec') avec le numéro de commande, ou null.
+create function confirmer_tache(p_jeton_hache text, p_mac text, p_tache uuid, p_code text) returns jsonb
 language plpgsql as $$
 declare
   i imprimantes%rowtype;
+  t taches_impression%rowtype;
 begin
   select * into i from imprimantes where jeton_hache = p_jeton_hache and actif;
-  if not found or (i.mac is not null and (p_mac is null or i.mac <> p_mac)) then
-    return false;
+  if not found or p_mac is null or i.mac is distinct from p_mac then
+    return null;
   end if;
   if p_code like '2%' then
     update taches_impression set etat = 'imprimee', imprime_le = now()
-      where id = p_tache and imprimante_id = i.id and etat in ('en_attente', 'envoyee');
+      where id = p_tache and imprimante_id = i.id and etat in ('en_attente', 'envoyee')
+      returning * into t;
   else
     update taches_impression set
       tentatives = tentatives + 1,
       derniere_erreur = left(p_code, 60),
       etat = case when tentatives + 1 >= 3 then 'echec' else 'en_attente' end
-      where id = p_tache and imprimante_id = i.id and etat in ('en_attente', 'envoyee');
+      where id = p_tache and imprimante_id = i.id and etat in ('en_attente', 'envoyee')
+      returning * into t;
   end if;
-  return found;
+  if not found then
+    return null;
+  end if;
+  return jsonb_build_object('etat', t.etat, 'station', t.station, 'imprimante', i.nom, 'erreur', t.derniere_erreur,
+    'numero', (select numero from commandes where id = t.commande_id));
 end;
 $$;
 
@@ -156,9 +175,19 @@ language sql stable as $$
     ) order by i.station, i.id) from imprimantes i), '[]'::jsonb),
     'taches', coalesce((select jsonb_agg(jsonb_build_object(
       'id', t.id, 'commande_id', t.commande_id, 'station', t.station, 'etat', t.etat, 'reimpression', t.reimpression,
-      'tentatives', t.tentatives, 'derniere_erreur', t.derniere_erreur, 'cree_le', t.cree_le, 'contenu', t.contenu
+      'tentatives', t.tentatives, 'derniere_erreur', t.derniere_erreur, 'cree_le', t.cree_le
     ) order by t.cree_le) from taches_impression t where t.cree_le > now() - interval '18 hours'), '[]'::jsonb)
   );
+$$;
+
+-- Derniers tickets d'une commande (un par poste), pour l'affichage de secours sur la tablette.
+create function tickets_commande(p_commande uuid) returns jsonb
+language sql stable as $$
+  select coalesce(jsonb_agg(jsonb_build_object('station', x.station, 'contenu', x.contenu) order by x.station), '[]'::jsonb)
+  from (
+    select distinct on (station) station, contenu from taches_impression
+    where commande_id = p_commande order by station, cree_le desc
+  ) x;
 $$;
 
 -- Imprimantes, gérées depuis le back-office. Le jeton (en clair) n'est montré qu'une fois, à la création.
@@ -191,6 +220,13 @@ begin
     mac = case when p_jeton_hache is not null then null else mac end,
     actif = coalesce(p_actif, actif)
   where id = p_id;
+  -- Imprimante désactivée : ses tickets pas encore imprimés passent à une autre du même poste, sinon à la tablette.
+  if p_actif = false then
+    update taches_impression t set
+      imprimante_id = (select id from imprimantes where station = t.station and actif order by id limit 1),
+      etat = case when exists (select 1 from imprimantes where station = t.station and actif) then 'en_attente' else 'sans_imprimante' end
+    where t.imprimante_id = p_id and t.etat in ('en_attente', 'envoyee');
+  end if;
   insert into journal_gestion (personnel_id, personnel_nom, objet, cle, avant, apres)
     values (p_personnel, gerant_nom(p_personnel), 'imprimante', p_id::text,
       jsonb_build_object('actif', avant.actif),
@@ -225,23 +261,21 @@ $$;
 -- Signe de vie de la tablette (à chaque relecture de sa file).
 create function signe_tablette() returns void
 language sql as $$
-  update reglages set valeur = to_jsonb(now()) where cle = 'tablette_vue_le';
+  update surveillance_etat set tablette_vue_le = now();
 $$;
 
 -- Tablette sans signe de vie depuis p_secondes (jamais vue : pas encore en service, rien à signaler).
 create function tablette_muette(p_secondes integer) returns boolean
 language sql stable as $$
-  select valeur <> 'null'::jsonb and (valeur #>> '{}')::timestamptz < now() - make_interval(secs => p_secondes)
-  from reglages where cle = 'tablette_vue_le';
+  select coalesce(tablette_vue_le < now() - make_interval(secs => p_secondes), false) from surveillance_etat;
 $$;
 
 -- Une seule surveillance par minute, même si plusieurs déclencheurs arrivent en même temps.
 create function tour_de_surveillance() returns boolean
 language plpgsql as $$
 begin
-  update reglages set valeur = to_jsonb(now())
-    where cle = 'surveillance_le'
-      and (valeur = 'null'::jsonb or (valeur #>> '{}')::timestamptz < now() - interval '60 seconds');
+  update surveillance_etat set surveillance_le = now()
+    where surveillance_le is null or surveillance_le < now() - interval '60 seconds';
   return found;
 end;
 $$;
@@ -302,13 +336,13 @@ $$;
 
 revoke execute on function
   passage_imprimante(text, text, text), tache_pour_imprimante(text, text, uuid), confirmer_tache(text, text, uuid, text),
-  creer_taches_impression(uuid, jsonb, boolean), etat_impression(), ajouter_imprimante(text, station, text, uuid),
+  creer_taches_impression(uuid, jsonb, boolean), etat_impression(), tickets_commande(uuid), ajouter_imprimante(text, station, text, uuid),
   modifier_imprimante(smallint, text, boolean, uuid), regler_alerte(integer, uuid), signe_tablette(), tablette_muette(integer), tour_de_surveillance(),
   commandes_en_retard(), pause_automatique()
   from public, anon, authenticated;
 grant execute on function
   passage_imprimante(text, text, text), tache_pour_imprimante(text, text, uuid), confirmer_tache(text, text, uuid, text),
-  creer_taches_impression(uuid, jsonb, boolean), etat_impression(), ajouter_imprimante(text, station, text, uuid),
+  creer_taches_impression(uuid, jsonb, boolean), etat_impression(), tickets_commande(uuid), ajouter_imprimante(text, station, text, uuid),
   modifier_imprimante(smallint, text, boolean, uuid), regler_alerte(integer, uuid), signe_tablette(), tablette_muette(integer), tour_de_surveillance(),
   commandes_en_retard(), pause_automatique()
   to service_role;

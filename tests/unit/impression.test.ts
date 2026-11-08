@@ -90,6 +90,8 @@ describe("file d'impression (CloudPRNT)", () => {
     // Un autre appareil avec le même jeton est refusé.
     expect(await f("passage_imprimante($1, '00:11:62:00:00:01', '200 OK')", [jeton])).toBeNull();
     expect(await f("passage_imprimante($1, $2, '200 OK')", [h(), MAC])).toBeNull();
+    // Sans MAC : refusé, même avec le bon jeton.
+    expect(await f("passage_imprimante($1, null, '200 OK')", [jeton])).toBeNull();
 
     const cmd = await nouvelleCommande("a");
     await f("creer_taches_impression($1, $2, false)", [cmd, [{ station: "pizza", contenu: [{ t: "texte", texte: "test" }] }, { station: "cuisine", contenu: [] }]]);
@@ -97,7 +99,9 @@ describe("file d'impression (CloudPRNT)", () => {
     expect(p.tache).toMatch(/^[0-9a-f-]{36}$/);
     expect(await f("tache_pour_imprimante($1, $2, $3)", [jeton, MAC, p.tache])).toEqual([{ t: "texte", texte: "test" }]);
     expect(await f("tache_pour_imprimante($1, '00:11:62:00:00:01', $2)", [jeton, p.tache])).toBeNull();
-    expect(await f<boolean>("confirmer_tache($1, $2, $3, '200 OK')", [jeton, MAC, p.tache])).toBe(true);
+    // Pendant l'impression (avant la confirmation), le même ticket n'est pas réannoncé.
+    expect(await f("passage_imprimante($1, $2, '220 Printing')", [jeton, MAC])).toMatchObject({ tache: null });
+    expect(await f("confirmer_tache($1, $2, $3, '200 OK')", [jeton, MAC, p.tache])).toMatchObject({ etat: "imprimee", station: "pizza" });
     expect(await f("passage_imprimante($1, $2, '200 OK')", [jeton, MAC])).toMatchObject({ tache: null });
     // Sans imprimante cuisine : la tâche est marquée pour la tablette.
     const etats = (await db.query<{ station: string; etat: string }>("select station, etat from taches_impression where commande_id = $1 order by station", [cmd])).rows;
@@ -111,7 +115,9 @@ describe("file d'impression (CloudPRNT)", () => {
     const cmd = await nouvelleCommande("b");
     await f("creer_taches_impression($1, $2, false)", [cmd, [{ station: "cuisine", contenu: [] }]]);
     const { tache } = await f<{ tache: string }>("passage_imprimante($1, $2, '200 OK')", [jeton, "00:11:62:aa:bb:01"]);
-    for (let i = 0; i < 3; i++) await f("confirmer_tache($1, $2, $3, '520 Timeout')", [jeton, "00:11:62:aa:bb:01", tache]);
+    const resultats: { etat: string }[] = [];
+    for (let i = 0; i < 3; i++) resultats.push(await f("confirmer_tache($1, $2, $3, '520 Timeout')", [jeton, "00:11:62:aa:bb:01", tache]));
+    expect(resultats.map((r) => r.etat)).toEqual(["en_attente", "en_attente", "echec"]);
     expect((await db.query<{ etat: string; tentatives: number }>("select etat, tentatives from taches_impression where id = $1", [tache])).rows[0]).toEqual({ etat: "echec", tentatives: 3 });
 
     const cmd2 = await nouvelleCommande("c");
@@ -131,14 +137,19 @@ describe("file d'impression (CloudPRNT)", () => {
     await f("modifier_imprimante($1::smallint, $2, null, $3)", [id, nouveau, gerant]);
     expect(await f("passage_imprimante($1, $2, '200 OK')", [ancien, MAC])).toBeNull();
     expect(await f("passage_imprimante($1, '00:11:62:dd:ee:ff', '200 OK')", [nouveau])).not.toBeNull();
+    const cmd = await nouvelleCommande("desactivation");
+    await f("creer_taches_impression($1, $2, false)", [cmd, [{ station: "pizza", contenu: [] }]]);
     await f("modifier_imprimante($1::smallint, null, false, $2)", [id, gerant]);
     expect(await f("passage_imprimante($1, '00:11:62:dd:ee:ff', '200 OK')", [nouveau])).toBeNull();
+    // Le ticket ne reste pas bloqué sur l'imprimante désactivée.
+    const t = (await db.query<{ imprimante_id: number | null }>("select imprimante_id from taches_impression where commande_id = $1", [cmd])).rows[0];
+    expect(t.imprimante_id).not.toBe(id);
   });
 
   it("gestion des imprimantes réservée au gérant, aucun droit pour un visiteur", async () => {
     const service = (await db.query<{ id: string }>("select id from personnel where email = 'equipe-bureau@laferme.test'")).rows[0].id;
     await expect(f("ajouter_imprimante('X', 'pizza', $1, $2)", [h(), service])).rejects.toThrow(/gérant/);
-    for (const sql of ["select * from imprimantes", "select * from taches_impression", `select passage_imprimante('${h()}', null, '200')`]) {
+    for (const sql of ["select * from imprimantes", "select * from taches_impression", "select * from surveillance_etat", `select passage_imprimante('${h()}', null, '200')`]) {
       await expect(
         db.transaction(async (tx) => {
           await tx.exec("set local role anon");
@@ -162,7 +173,7 @@ describe("surveillance", () => {
     expect(await f<boolean>("tablette_muette(180)")).toBe(false); // jamais vue
     await f("signe_tablette()");
     expect(await f<boolean>("tablette_muette(180)")).toBe(false);
-    await db.query("update reglages set valeur = to_jsonb(now() - interval '5 minutes') where cle = 'tablette_vue_le'");
+    await db.query("update surveillance_etat set tablette_vue_le = now() - interval '5 minutes'");
     expect(await f<boolean>("tablette_muette(180)")).toBe(true);
     expect(await f<boolean>("pause_automatique()")).toBe(true);
     expect(await f<boolean>("pause_automatique()")).toBe(false);

@@ -35,9 +35,12 @@ export type EtatImpression = {
     tentatives: number;
     derniere_erreur: string | null;
     cree_le: string;
-    contenu: LigneTicket[];
   }[];
 };
+
+export function ticketsCommande(commandeId: string): Promise<{ station: "pizza" | "cuisine"; contenu: LigneTicket[] }[]> {
+  return fonctionSql("tickets_commande", { p_commande: commandeId });
+}
 
 export function etatImpression(): Promise<EtatImpression> {
   return fonctionSql<EtatImpression>("etat_impression", {});

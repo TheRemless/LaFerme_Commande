@@ -3,7 +3,7 @@ import { empreinte } from "@/lib/comptes/securite";
 import { fonctionSql } from "@/lib/db/serveur";
 import { pngTicket } from "@/lib/impression/png";
 import { texteTicket, type LigneTicket } from "@/lib/impression/ticket";
-import { executerSurveillance } from "@/lib/surveillance";
+import { alerter, executerSurveillance } from "@/lib/surveillance";
 
 // Star CloudPRNT (HTTP), d'après la référence du protocole Star (manuel v2.6.0) :
 // - POST : l'imprimante donne son état et demande s'il y a un ticket ({ jobReady, mediaTypes, jobToken }) ;
@@ -85,6 +85,18 @@ export async function DELETE(requete: Request, { params }: { params: Promise<{ j
   if (!tache || !TACHE.test(tache)) return new NextResponse(null, { status: 200 });
   // URLSearchParams décode déjà « 200%20OK » en « 200 OK ».
   const code = (q.get("code") ?? "").slice(0, 40);
-  await fonctionSql("confirmer_tache", { p_jeton_hache: hache, p_mac: mac(requete), p_tache: tache, p_code: code });
+  const r = await fonctionSql<{ etat: string; station: string; imprimante: string; erreur: string | null; numero: number } | null>("confirmer_tache", {
+    p_jeton_hache: hache,
+    p_mac: mac(requete),
+    p_tache: tache,
+    p_code: code,
+  });
+  // Troisième échec : le ticket ne repartira plus seul, le restaurant est prévenu.
+  if (r?.etat === "echec") {
+    await alerter(`Ticket ${r.station} de la commande ${r.numero} non imprimé`, [
+      `${r.imprimante} n'a pas pu imprimer le ticket ${r.station} de la commande ${r.numero} après trois essais (${r.erreur ?? "erreur inconnue"}).`,
+      "Touchez « Ticket » sur la tablette pour le lire, ou « Réimprimer » une fois l'imprimante réparée.",
+    ]).catch((e) => console.error(`Alerte non envoyée : ${e instanceof Error ? e.message : e}`));
+  }
   return new NextResponse(null, { status: 200 });
 }

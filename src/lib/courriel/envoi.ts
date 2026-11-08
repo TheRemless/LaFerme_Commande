@@ -11,7 +11,7 @@ export function resendConfigure(): boolean {
   return Boolean(process.env.RESEND_API_KEY && process.env.COURRIEL_EXPEDITEUR);
 }
 
-async function envoyerParResend(destinataire: string, sujet: string, texte: string, html: string, idempotence: string): Promise<void> {
+export async function envoyerParResend(destinataire: string, sujet: string, texte: string, html: string, idempotence: string): Promise<void> {
   const rep = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
