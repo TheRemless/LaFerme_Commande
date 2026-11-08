@@ -16,7 +16,7 @@ export default async function Courriels({ searchParams }: { searchParams: Promis
   return (
     <>
       <EnTete />
-      <main className="page-suivi">
+      <main id="contenu" className="page-suivi">
         <div className="suivi">
           <h1>Courriels de test, commande {c.numero}</h1>
           {liste.length === 0 && <p>Aucun courriel pour cette commande.</p>}

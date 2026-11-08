@@ -100,7 +100,7 @@ export function Reglages({ reglages, onChange }: Props) {
             className="bouton-second"
             disabled={envoi || reglages.preparation_minutes <= 5}
             onClick={() => regler({ preparation: reglages.preparation_minutes - 5 })}
-            aria-label="Cinq minutes de moins"
+            aria-label="−5 minutes de préparation"
           >
             −5
           </button>
@@ -110,7 +110,7 @@ export function Reglages({ reglages, onChange }: Props) {
             className="bouton-second"
             disabled={envoi || reglages.preparation_minutes >= 120}
             onClick={() => regler({ preparation: reglages.preparation_minutes + 5 })}
-            aria-label="Cinq minutes de plus"
+            aria-label="+5 minutes de préparation"
           >
             +5
           </button>

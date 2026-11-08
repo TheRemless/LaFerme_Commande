@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Back-office, La Ferme", robots: { in
 export default async function PageGestion() {
   const personnel = await personnelCourant();
   return (
-    <main className="page-tablette">
+    <main id="contenu" className="page-tablette">
       {!personnel ? (
         <ConnexionPersonnel titre="Back-office du restaurant" />
       ) : personnel.role !== "gerant" ? (

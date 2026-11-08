@@ -17,7 +17,7 @@ export default async function PaiementTest({ params }: { params: Promise<{ id: s
   return (
     <>
       <EnTete />
-      <main className="page-suivi">
+      <main id="contenu" className="page-suivi">
         <div className="suivi paiement-test">
           <p className="suivi-num">Paiement de test, aucun montant n&apos;est débité</p>
           <h1>

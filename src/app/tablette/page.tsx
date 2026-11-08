@@ -11,7 +11,7 @@ export default async function PageTablette() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const cle = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   return (
-    <main className="page-tablette">
+    <main id="contenu" className="page-tablette">
       {personnel ? <Tablette nom={personnel.nom} supabase={url && cle ? { url, cle } : null} /> : <ConnexionPersonnel />}
     </main>
   );

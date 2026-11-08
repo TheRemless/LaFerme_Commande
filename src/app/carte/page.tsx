@@ -24,7 +24,7 @@ export default async function PageCarte() {
         </p>
       )}
       {/* Sur les previews, data-source dit d'où vient la carte (Supabase ou base embarquée). */}
-      <main className="page-carte" data-source={preversion ? source : undefined}>
+      <main id="contenu" className="page-carte" data-source={preversion ? source : undefined}>
         <CarteCommande categories={categories} catalogue={catalogue} preversion={preversion} />
       </main>
       <PiedDePage />

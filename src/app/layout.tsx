@@ -25,7 +25,13 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="fr" className={archivo.variable}>
-      <body>{children}</body>
+      <body>
+        {/* Premier arrêt au clavier : passer l'en-tête et les catégories. */}
+        <a className="evitement" href="#contenu">
+          Aller au contenu
+        </a>
+        {children}
+      </body>
     </html>
   );
 }

@@ -15,7 +15,7 @@ export default async function Panier() {
       <EnTete>
         <ResumeChoix />
       </EnTete>
-      <main className="page-panier">
+      <main id="contenu" className="page-panier">
         <PagePanier catalogue={catalogue} preversion={process.env.CONTEXTE_DEPLOIEMENT !== "production"} />
       </main>
       <PiedDePage />
