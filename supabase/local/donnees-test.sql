@@ -6,4 +6,5 @@ insert into personnel (email, nom, role) values
   ('gerant-bureau@laferme.test', 'Gérant bureau', 'gerant'),
   ('gerant-mobile@laferme.test', 'Gérant mobile', 'gerant'),
   ('cuisine-bureau@laferme.test', 'Cuisine bureau', 'service'),
-  ('cuisine-mobile@laferme.test', 'Cuisine mobile', 'service');
+  ('cuisine-mobile@laferme.test', 'Cuisine mobile', 'service'),
+  ('impression@laferme.test', 'Test impression', 'gerant');

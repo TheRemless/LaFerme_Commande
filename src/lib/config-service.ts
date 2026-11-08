@@ -39,6 +39,8 @@ async function lireConfigService(): Promise<ConfigService> {
         active: typeof jusqua === "string",
         jusqua: typeof jusqua === "string" && jusqua !== "sans-fin" ? jusqua : null,
         livraisonFermee: reglages.find((r) => r.cle === "livraison_fermee")?.valeur === true,
+        // Pause mise par la surveillance (tablette muette pendant le service).
+        auto: reglages.find((r) => r.cle === "pause_auto")?.valeur === true,
       };
     })(),
   };

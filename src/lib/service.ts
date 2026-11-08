@@ -32,7 +32,7 @@ export type ConfigService = {
   fermetures: Fermeture[];
   reglages: Reglages;
   // Réglé depuis la tablette : pause des commandes en ligne (jusqu'à une heure, ou sans fin) et livraison fermée.
-  pause?: { jusqua: string | null; active: boolean; livraisonFermee: boolean };
+  pause?: { jusqua: string | null; active: boolean; livraisonFermee: boolean; auto?: boolean };
 };
 
 // ---------- Zones ----------
