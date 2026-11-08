@@ -20,4 +20,4 @@ Décision de Jérémy du 8.11.2026 : « Oui, Pro au lancement ». Chiffres et so
 
 - [ ] Claude : passer l'accueil au test des résultats enrichis de Google (search.google.com/test/rich-results). Attendu : un `Restaurant` sans erreur.
 - [ ] Jérémy : déclarer le site dans Google Search Console (propriété du domaine), puis y soumettre `/sitemap.xml`. Claude explique chaque clic.
-- [ ] Claude : vérifier que `/robots.txt` ouvre l'accueil, la carte et les pages légales, et que le plan du site les liste.
+- [ ] Claude : vérifier que `/robots.txt` ouvre l'accueil, la carte et les pages légales. Le plan du site doit les lister.
