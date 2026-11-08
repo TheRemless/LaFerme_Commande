@@ -21,7 +21,7 @@ export default async function Accueil() {
         </p>
       )}
       <main className="page-accueil">
-        <ChoixCommande config={config} maintenantServeur={Date.now()} />
+        <ChoixCommande config={config} maintenantServeur={Date.now()} preversion={preversion} />
       </main>
       <PiedDePage />
     </>

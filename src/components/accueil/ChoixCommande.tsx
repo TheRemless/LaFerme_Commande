@@ -8,6 +8,7 @@ import { ecrireChoix, lireChoix, type Quand, type ZoneChoisie } from "@/lib/choi
 import { prixCourt } from "@/lib/prix";
 import {
   creneaux,
+  depuisHeureGeneve,
   enMinutes,
   etatService,
   heureTexte,
@@ -30,7 +31,15 @@ export type AdresseEnregistree = { id: string; adresse: Adresse; details: Partia
 
 type ReponseAccueil = { maintenant: number; heureSimulee: string | null; adresses: AdresseEnregistree[] };
 
-export function ChoixCommande({ config, maintenantServeur }: { config: ConfigService; maintenantServeur: number }) {
+export function ChoixCommande({
+  config,
+  maintenantServeur,
+  preversion,
+}: {
+  config: ConfigService;
+  maintenantServeur: number;
+  preversion: boolean;
+}) {
   const router = useRouter();
   const ids = useId();
   const [mode, setMode] = useState<Mode>("livraison");
@@ -52,11 +61,14 @@ export function ChoixCommande({ config, maintenantServeur }: { config: ConfigSer
   // téléphone, puis celle du serveur, qui fait foi (l'horloge d'un téléphone peut être fausse).
   // Le même appel rapporte les adresses d'un client connecté.
   useLayoutEffect(() => {
-    let decalage = 0;
-    setMaintenant(new Date());
+    const heure = new URLSearchParams(window.location.search).get("heure");
+    // Préversion : ?heure=2026-11-10T19:05 (heure de Genève) simule un autre moment, dès le premier rendu.
+    const simulee = preversion && heure ? depuisHeureGeneve(heure) : null;
+    let decalage = simulee ? simulee.getTime() - Date.now() : 0;
+    setMaintenant(new Date(Date.now() + decalage));
+    if (simulee) setHeureSimulee(heure ?? undefined);
     const tic = window.setInterval(() => setMaintenant(new Date(Date.now() + decalage)), 30_000);
     const ctrl = new AbortController();
-    const heure = new URLSearchParams(window.location.search).get("heure");
     const depart = Date.now();
     fetch(`/api/accueil${heure ? `?heure=${encodeURIComponent(heure)}` : ""}`, { cache: "no-store", signal: ctrl.signal })
       .then((r) => (r.ok ? (r.json() as Promise<ReponseAccueil>) : Promise.reject(new Error(`accueil ${r.status}`))))
@@ -74,7 +86,7 @@ export function ChoixCommande({ config, maintenantServeur }: { config: ConfigSer
       ctrl.abort();
       window.clearInterval(tic);
     };
-  }, []);
+  }, [preversion]);
 
   // Reprendre le choix précédent (retour depuis la carte avec « Modifier »).
   useEffect(() => {

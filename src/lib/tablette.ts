@@ -176,7 +176,9 @@ export function rafraichirCaches(quoi: "config-service" | "catalogue"): void {
   try {
     revalidateTag(quoi);
     for (const chemin of PAGES_EN_CACHE[quoi]) revalidatePath(chemin);
-  } catch {
-    // Hors requête Next (tests) : rien à vider.
+  } catch (e) {
+    // Hors requête Next (tests unitaires) : rien à vider. Ailleurs, une purge ratée laisse les pages
+    // publiques en cache jusqu'à leur prochaine régénération (une minute) : on le note dans les journaux.
+    if (!process.env.VITEST) console.error(`Cache ${quoi} non vidé : ${e instanceof Error ? e.message : e}`);
   }
 }
