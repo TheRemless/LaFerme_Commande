@@ -9,7 +9,7 @@ const archivo = Archivo({
   display: "swap",
 });
 
-// Textes provisoires : ils passeront par redaction-fr avant la mise en ligne.
+// Titre relu (redaction-fr, lot 8a). Description, Open Graph et indexation : lot 8e.
 export const metadata: Metadata = {
   title: "La Ferme, livraison et à emporter",
   robots: { index: false, follow: false },
