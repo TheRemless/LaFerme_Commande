@@ -55,3 +55,14 @@ export async function exigerPersonnel(
 export function auteur(p: Personnel): string {
   return `tablette:${p.nom}`;
 }
+
+// Back-office : même contrôle, et rôle gérant exigé.
+export async function exigerGerant(
+  requete: Request,
+  options: { lecture?: boolean } = {},
+): Promise<{ personnel: Personnel } | { reponse: NextResponse }> {
+  const g = await exigerPersonnel(requete, options);
+  if ("reponse" in g) return g;
+  if (g.personnel.role !== "gerant") return { reponse: refus("Réservé au gérant.", 403) };
+  return g;
+}
