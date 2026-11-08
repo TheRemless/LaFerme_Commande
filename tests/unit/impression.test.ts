@@ -53,6 +53,12 @@ describe("ticket 80 mm", () => {
     expect(/^[\x0a\x20-\x7e]*$/.test(txt)).toBe(true);
   });
 
+  it("une note avec des caractères de contrôle ou du XML n'empêche pas le ticket de sortir", async () => {
+    const piege = { ...commande, lignes: [{ ...commande.lignes[0], details: ["« \u0001\u001b<svg onload=x> & \"ok\" »"] }] };
+    const png = await pngTicket(ticketsDeCommande(piege, { accepteLe: new Date() })[0].contenu);
+    expect([...png.slice(1, 4)].map((c) => String.fromCharCode(c)).join("")).toBe("PNG");
+  });
+
   it("l'image fait 576 points de large (80 mm à 203 dpi)", async () => {
     const png = await pngTicket(ticketsDeCommande(commande, { accepteLe: new Date() })[0].contenu);
     expect([...png.slice(1, 4)].map((c) => String.fromCharCode(c)).join("")).toBe("PNG");

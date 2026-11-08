@@ -133,8 +133,11 @@ const TAILLES = { 1: 26, 2: 40, 3: 60 } as const;
 // Largeur moyenne d'un caractère de DejaVu Sans Condensed, en part de la taille : sert au retour à la ligne.
 const CHASSE = 0.55;
 
+// Les caractères de contrôle sont interdits en XML : une note de client qui en contient ne doit pas
+// empêcher le ticket de sortir.
 function echapperXml(t: string): string {
-  return t.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+  // eslint-disable-next-line no-control-regex
+  return t.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]/g, "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 }
 
 export function svgTicket(lignes: LigneTicket[]): string {
