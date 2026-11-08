@@ -1,9 +1,10 @@
-import { unzipSync, strFromU8 } from "fflate";
+import { Unzip, UnzipInflate, strFromU8 } from "fflate";
 
 // Lecture minimale d'un fichier .xlsx : valeurs des cellules par onglet, sans formules ni styles.
 // Un .xlsx est une archive zip de XML. On lit le classeur (noms des onglets), les chaînes partagées et
 // la feuille demandée. Une formule rend sa dernière valeur calculée, s'il y en a une.
-// Taille décompressée plafonnée pour qu'un fichier piégé ne remplisse pas la mémoire.
+// Taille décompressée plafonnée, comptée sur les octets réellement produits (pas sur la taille que le
+// zip annonce), pour qu'un fichier piégé ne remplisse pas la mémoire.
 
 export type Valeur = string | number | null;
 export type Feuille = Map<number, Map<number, Valeur>>; // ligne → colonne → valeur (1 = A)
@@ -38,14 +39,30 @@ export class Classeur {
 
   constructor(octets: ArrayBuffer) {
     let total = 0;
-    this.fichiers = unzipSync(new Uint8Array(octets), {
-      filter: (f) => {
-        if (!/^xl\/(workbook\.xml|sharedStrings\.xml|_rels\/workbook\.xml\.rels|worksheets\/sheet\d+\.xml)$/.test(f.name)) return false;
-        total += f.originalSize;
+    this.fichiers = {};
+    const zip = new Unzip();
+    zip.register(UnzipInflate);
+    zip.onfile = (f) => {
+      if (!/^xl\/(workbook\.xml|sharedStrings\.xml|_rels\/workbook\.xml\.rels|worksheets\/sheet\d+\.xml)$/.test(f.name)) return;
+      const morceaux: Uint8Array[] = [];
+      f.ondata = (err, donnees, fin) => {
+        if (err) throw err;
+        total += donnees.length;
         if (total > LIMITE_OCTETS) throw new Error("Fichier trop volumineux une fois décompressé.");
-        return true;
-      },
-    });
+        morceaux.push(donnees);
+        if (fin) {
+          const tout = new Uint8Array(morceaux.reduce((n, m) => n + m.length, 0));
+          let i = 0;
+          for (const m of morceaux) {
+            tout.set(m, i);
+            i += m.length;
+          }
+          this.fichiers[f.name] = tout;
+        }
+      };
+      f.start();
+    };
+    zip.push(new Uint8Array(octets), true);
     const lire = (nom: string) => (this.fichiers[nom] ? strFromU8(this.fichiers[nom]) : null);
     const classeur = lire("xl/workbook.xml");
     const liens = lire("xl/_rels/workbook.xml.rels");

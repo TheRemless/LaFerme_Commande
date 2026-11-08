@@ -45,11 +45,14 @@ const dernierRang = (f: Feuille) => Math.max(1, ...f.keys());
 
 const chf = (c: number) => (c / 100).toFixed(2);
 
-// « Bœuf : Suisse; À fournir : jambon, thon » → provenance « Bœuf : Suisse », à fournir [jambon, thon].
+// « Bœuf : Suisse (carte de la salle); À fournir : jambon, thon » → provenance « Bœuf : Suisse »,
+// à fournir [jambon, thon]. Comme l'amorçage de la carte (scripts/seed_carte.py) : la source entre
+// parenthèses sert à Jérémy et n'est jamais affichée au client ; une provenance par ligne.
 function lireProvenance(t: string): { provenance: string; aFournir: string[] } {
-  const parts = t.split(";").map((x) => x.trim()).filter(Boolean);
+  const parts = t.split(/[;\n]/).map((x) => x.trim()).filter(Boolean);
   const aFournir = parts.filter((x) => /^à fournir\s*:/i.test(x)).flatMap((x) => x.replace(/^à fournir\s*:/i, "").split(",").map((y) => y.trim()).filter(Boolean));
-  return { provenance: parts.filter((x) => !/^à fournir\s*:/i.test(x)).join("; "), aFournir };
+  const connues = parts.filter((x) => !/^à fournir\s*:/i.test(x)).map((x) => x.split(" (")[0].trim()).filter(Boolean);
+  return { provenance: connues.join("\n"), aFournir };
 }
 
 function ouiNon(v: Valeur): boolean | null | "invalide" {
@@ -117,8 +120,9 @@ export function lireTableau(fichier: ArrayBuffer, actuelle: CarteActuelle): Aper
       if (provenance !== (p.provenance ?? "") || aFournir.join(",") !== p.provenances_a_fournir.join(",")) {
         champs.provenance = provenance;
         champs.provenances_a_fournir = aFournir;
-        const avant = [p.provenance, p.provenances_a_fournir.length ? `à fournir : ${p.provenances_a_fournir.join(", ")}` : ""].filter(Boolean).join("; ") || "vide";
-        changements.push({ champ: "Provenance", avant, apres: String(prov) });
+        const texte = (pr: string | null, af: string[]) =>
+          [pr?.replace(/\n/g, "; "), af.length ? `à fournir : ${af.join(", ")}` : ""].filter(Boolean).join("; ") || "vide";
+        changements.push({ champ: "Provenance", avant: texte(p.provenance, p.provenances_a_fournir), apres: texte(provenance, aFournir) });
       }
     }
     const all = cellule(carte, r, iAll);

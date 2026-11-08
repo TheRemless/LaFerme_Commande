@@ -22,6 +22,8 @@ export function BackOffice({ nom }: { nom: string }) {
   const router = useRouter();
   const [onglet, setOnglet] = useState<Onglet>("carte");
   const [carte, setCarte] = useState<DonneesCarte | null>(null);
+  // Change à chaque import appliqué : les fiches ouvertes repartent alors des nouvelles valeurs.
+  const [version, setVersion] = useState(0);
 
   const chargerCarte = useCallback(async () => {
     const rep = await fetch("/api/gestion/carte", { cache: "no-store" });
@@ -56,10 +58,17 @@ export function BackOffice({ nom }: { nom: string }) {
           </button>
         ))}
       </nav>
-      {onglet === "carte" && (carte ? <GestionCarte donnees={carte} recharger={chargerCarte} /> : <p className="aide">Chargement…</p>)}
+      {onglet === "carte" && (carte ? <GestionCarte donnees={carte} recharger={chargerCarte} version={version} /> : <p className="aide">Chargement…</p>)}
       {onglet === "supplements" && (carte ? <GestionSupplements donnees={carte} recharger={chargerCarte} /> : <p className="aide">Chargement…</p>)}
       {onglet === "service" && <GestionService />}
-      {onglet === "import" && <Import recharger={chargerCarte} />}
+      {onglet === "import" && (
+        <Import
+          recharger={async () => {
+            setVersion((v) => v + 1);
+            await chargerCarte();
+          }}
+        />
+      )}
       {onglet === "export" && <Export />}
       {onglet === "journal" && <Journal />}
     </div>
@@ -177,6 +186,27 @@ function Export() {
   const auj = jourGeneveDe(new Date());
   const [debut, setDebut] = useState(`${auj.slice(0, 7)}-01`);
   const [fin, setFin] = useState(auj);
+  const [erreur, setErreur] = useState<string | null>(null);
+
+  // Par requête : une période invalide ou une session terminée affiche un message, pas un faux fichier.
+  async function telecharger() {
+    setErreur(null);
+    try {
+      const rep = await fetch(`/api/gestion/export?debut=${encodeURIComponent(debut)}&fin=${encodeURIComponent(fin)}`);
+      if (!rep.ok) {
+        const r = (await rep.json().catch(() => ({}))) as { erreur?: string };
+        return setErreur(r.erreur ?? "Export impossible.");
+      }
+      const url = URL.createObjectURL(await rep.blob());
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = rep.headers.get("Content-Disposition")?.match(/filename="([^"]+)"/)?.[1] ?? "la-ferme-ventes.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setErreur("Pas de connexion. Réessayez.");
+    }
+  }
   return (
     <section className="ges-bloc">
       <h2>Export comptable</h2>
@@ -194,14 +224,51 @@ function Export() {
           <input id="export-fin" type="date" value={fin} onChange={(e) => setFin(e.target.value)} />
         </div>
       </div>
-      <a className="bouton-principal" href={`/api/gestion/export?debut=${debut}&fin=${fin}`} download>
+      <button type="button" className="bouton-principal" onClick={telecharger}>
         Télécharger le fichier CSV
-      </a>
+      </button>
+      {erreur && (
+        <p className="panier-alerte" role="alert">
+          {erreur}
+        </p>
+      )}
     </section>
   );
 }
 
 type Entree = { id: number; personnel_nom: string; objet: string; cle: string; avant: Record<string, unknown> | null; apres: Record<string, unknown> | null; le: string };
+
+const LIBELLES: Record<string, string> = {
+  nom: "Nom",
+  description: "Description",
+  prix_centimes: "Prix",
+  prix_a_valider: "Prix à valider",
+  commandable: "Commandable",
+  station: "Station",
+  photo: "Photo",
+  provenance: "Provenance",
+  provenances_a_fournir: "Provenances à fournir",
+  allergenes: "Allergènes",
+  actif: "Proposé",
+  frais_centimes: "Frais",
+  minimum_centimes: "Minimum",
+  delai_min: "Délai de",
+  delai_max: "Délai à",
+  active: "Zone ouverte",
+  proposition: "Proposition",
+  premiere_heure: "Première heure",
+  derniere_heure: "Dernière heure",
+  derniere_commande: "Dernière commande",
+  derniere_commande_pizzas: "Dernière pizza",
+};
+
+function valeurLisible(cle: string, v: unknown): string {
+  if (v === null || v === undefined || v === "") return "vide";
+  if (cle.endsWith("_centimes") && typeof v === "number") return (v / 100).toFixed(2);
+  if (typeof v === "boolean") return v ? "oui" : "non";
+  if (Array.isArray(v)) return v.join(", ") || "vide";
+  return String(v);
+}
 
 function resume(e: Entree): string {
   if (!e.avant || !e.apres || Array.isArray(e.avant) || Array.isArray(e.apres)) {
@@ -211,7 +278,9 @@ function resume(e: Entree): string {
     return `${JSON.stringify(e.avant)} → ${JSON.stringify(e.apres)}`;
   }
   const cles = Object.keys(e.apres).filter((k) => JSON.stringify(e.avant![k]) !== JSON.stringify(e.apres![k]));
-  return cles.length ? cles.map((k) => `${k} : ${JSON.stringify(e.avant![k])} → ${JSON.stringify(e.apres![k])}`).join(" ; ") : "Enregistré sans changement";
+  return cles.length
+    ? cles.map((k) => `${LIBELLES[k] ?? k} : ${valeurLisible(k, e.avant![k])} → ${valeurLisible(k, e.apres![k])}`).join(" ; ")
+    : "Enregistré sans changement";
 }
 
 function Journal() {

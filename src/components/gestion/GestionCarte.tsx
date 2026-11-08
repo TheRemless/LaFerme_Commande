@@ -35,7 +35,7 @@ function motifs(bloquants: string[]): string[] {
   return supplements.length ? [...autres, `${supplements.length} supplément${supplements.length > 1 ? "s" : ""} à valider`] : autres;
 }
 
-export function GestionCarte({ donnees, recharger }: { donnees: DonneesCarte; recharger: () => Promise<void> }) {
+export function GestionCarte({ donnees, recharger, version }: { donnees: DonneesCarte; recharger: () => Promise<void>; version: number }) {
   const [seulementBloquants, setSeulementBloquants] = useState(false);
   const [recherche, setRecherche] = useState("");
   const [ouvert, setOuvert] = useState<string | null>(null);
@@ -80,7 +80,9 @@ export function GestionCarte({ donnees, recharger }: { donnees: DonneesCarte; re
                     ))}
                   </span>
                 </button>
-                {ouvert === p.slug && <FichePlat plat={p} recharger={recharger} />}
+                {/* Après un import, la fiche repart des valeurs à jour (clé changée) ; après son propre
+                    enregistrement, elle garde ce qui vient d'être saisi, identique à la base. */}
+                {ouvert === p.slug && <FichePlat key={`${p.slug}-${version}`} plat={p} recharger={recharger} />}
               </li>
             ))}
           </ul>

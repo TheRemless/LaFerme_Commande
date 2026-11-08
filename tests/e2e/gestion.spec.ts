@@ -56,7 +56,7 @@ test("l'import du tableau montre les changements avant de les appliquer", async 
 test("l'export comptable se télécharge en CSV", async () => {
   await gestion.getByRole("button", { name: "Export comptable" }).click();
   const telechargement = gestion.waitForEvent("download");
-  await gestion.getByRole("link", { name: "Télécharger le fichier CSV" }).click();
+  await gestion.getByRole("button", { name: "Télécharger le fichier CSV" }).click();
   const fichier = await telechargement;
   expect(fichier.suggestedFilename()).toMatch(/^la-ferme-ventes-\d{4}-\d{2}-\d{2}-\d{4}-\d{2}-\d{2}\.csv$/);
   const morceaux: Buffer[] = [];

@@ -130,7 +130,9 @@ describe("import du tableau de validation", () => {
     const fichier = readFileSync("tests/fixtures/validation-remplie.xlsx");
     const a = await lireTableau(fichier.buffer.slice(fichier.byteOffset, fichier.byteOffset + fichier.byteLength) as ArrayBuffer, carte);
     expect(a.plats.find((p) => p.slug === "pizza-margherita")).toMatchObject({ prix_centimes: 1950, prix_valide: true, allergenes: "test-allergenes" });
-    expect(a.plats.find((p) => p.slug === "pizza-miss-italia")).toMatchObject({ provenance: "Jambon cru : Italie (test)", provenances_a_fournir: [] });
+    expect(a.plats.find((p) => p.slug === "pizza-miss-italia")).toMatchObject({ provenance: "Jambon cru : Italie", provenances_a_fournir: [] });
+    // Une provenance déjà en base, laissée telle quelle dans le tableau (avec sa source), ne change pas.
+    expect(a.plats.find((p) => p.slug === "pizza-la-ferme")).toBeUndefined();
     expect(a.options).toEqual([{ groupe: "supplements-pizza", nom: "Ananas", prix_centimes: 250, prix_valide: true, actif: false }]);
     expect(a.avertissements.join("\n")).toMatch(/Plat inventé/);
     expect(a.avertissements.join("\n")).toMatch(/peut-être/);
