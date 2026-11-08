@@ -54,6 +54,7 @@ export const CGV: PageLegale = {
       titre: "Allergènes et provenance",
       contenu: [
         "La provenance des viandes et des poissons est indiquée sur la fiche de chaque plat. Pour les allergènes, appelez-nous au 022 792 16 89 avant de commander.",
+        // Vrai tant que la carte en ligne n'a pas d'alcool (liste de mise en ligne, docs/mise-en-ligne.md).
         "Le site ne vend pas de boissons alcoolisées.",
       ],
     },

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { pagesLegalesValidees, pagesLegalesVisibles } from "@/lib/legal/acces";
+import { pageLegalePubliable, pagesLegalesValidees } from "@/lib/legal/acces";
 import { CGV } from "@/lib/legal/cgv";
 import { CONFIDENTIALITE } from "@/lib/legal/confidentialite";
 import { MENTIONS } from "@/lib/legal/mentions";
@@ -12,15 +12,18 @@ afterEach(() => {
 
 describe("ébauches légales", () => {
   it("restent fermées en production tant qu'elles ne sont pas validées", () => {
+    const complete = { titre: "T", misAJour: "", sections: [{ titre: "S", contenu: ["Tout est rempli."] }] };
     process.env.CONTEXTE_DEPLOIEMENT = "production";
     delete process.env.PAGES_LEGALES_VALIDEES;
-    expect(pagesLegalesVisibles()).toBe(false);
+    expect(pageLegalePubliable(complete)).toBe(false);
     process.env.PAGES_LEGALES_VALIDEES = "1";
-    expect(pagesLegalesVisibles()).toBe(true);
     expect(pagesLegalesValidees()).toBe(true);
+    expect(pageLegalePubliable(complete)).toBe(true);
+    // Validée mais encore trouée : toujours fermée.
+    expect(pageLegalePubliable(MENTIONS)).toBe(false);
     process.env.CONTEXTE_DEPLOIEMENT = "deploy-preview";
     delete process.env.PAGES_LEGALES_VALIDEES;
-    expect(pagesLegalesVisibles()).toBe(true);
+    expect(pageLegalePubliable(MENTIONS)).toBe(true);
   });
 
   it("signalent ce qui reste à fournir et n'inventent pas de faits interdits", () => {

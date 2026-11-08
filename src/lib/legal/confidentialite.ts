@@ -54,7 +54,7 @@ export const CONFIDENTIALITE: PageLegale = {
         [
           "Commandes : [durée à fixer avec la fiduciaire pour la part comptable].",
           "Compte client : jusqu'à sa suppression, que vous pouvez faire vous-même dans votre espace. Les commandes déjà passées restent alors dans la comptabilité, sans lien avec un compte.",
-          "Codes de connexion : supprimés après un jour. Sessions : 30 jours au plus. Journal des connexions : 6 mois.",
+          "Codes de connexion : valables 10 minutes, effacés ensuite lors du nettoyage régulier de la base. Sessions : valables 30 jours au plus. Journal des connexions : effacé après 6 mois, lors du même nettoyage.",
         ],
       ],
     },
@@ -67,7 +67,7 @@ export const CONFIDENTIALITE: PageLegale = {
     },
     {
       titre: "Sécurité",
-      contenu: ["Les échanges avec le site sont chiffrés. Les données des commandes et des comptes ne sont accessibles qu'au serveur du site. Les codes de connexion et les sessions ne sont gardés que sous forme d'empreinte."],
+      contenu: ["Les échanges avec le site sont chiffrés. Les données des commandes et des comptes ne sont accessibles qu'au serveur du site et au personnel du restaurant connecté à la tablette ou au back-office. Les codes de connexion et les sessions ne sont gardés que sous forme d'empreinte."],
     },
   ],
 };
