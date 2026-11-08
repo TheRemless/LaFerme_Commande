@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { BackOffice } from "@/components/gestion/BackOffice";
 import { ConnexionPersonnel } from "@/components/tablette/ConnexionPersonnel";
 import { personnelCourant } from "@/lib/personnel/session";
+import { PRIVE } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Back-office, La Ferme", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Back-office, La Ferme", robots: PRIVE };
 
 // Réservé au rôle gérant. Même connexion que la tablette.
 export default async function PageGestion() {

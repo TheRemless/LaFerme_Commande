@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { EnTete } from "@/components/EnTete";
 import { PiedDePage } from "@/components/PiedDePage";
@@ -8,8 +9,10 @@ import { reconcilier } from "@/lib/commandes";
 import { detailsLigne, quandTexte } from "@/lib/courriel/modeles";
 import { commandeParJeton } from "@/lib/db/serveur";
 import { prixChf, prixCourt } from "@/lib/prix";
+import { PRIVE } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Suivi de commande, La Ferme", robots: PRIVE };
 
 const ETAPES = {
   livraison: ["Reçue", "Acceptée", "En préparation", "En route", "Livrée"],

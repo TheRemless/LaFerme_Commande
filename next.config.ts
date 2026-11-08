@@ -14,6 +14,8 @@ const nextConfig: NextConfig = {
     // Netlify fournit CONTEXT pendant le build (production, deploy-preview, branch-deploy).
     // On le fige dans le code pour le connaître aussi à l'exécution. « local » sur ce poste.
     CONTEXTE_DEPLOIEMENT: process.env.CONTEXT ?? "local",
+    // Adresse publique pour les liens absolus (méta, plan du site, Schema.org) : src/lib/site.ts.
+    ADRESSE_SITE: process.env.URL_SITE ?? process.env.DEPLOY_PRIME_URL ?? "http://localhost:3000",
   },
 };
 

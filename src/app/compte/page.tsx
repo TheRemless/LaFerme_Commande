@@ -5,9 +5,10 @@ import { Connexion } from "@/components/compte/Connexion";
 import { EspaceCompte, type DonneesEspace } from "@/components/compte/EspaceCompte";
 import { compteCourant } from "@/lib/comptes/session";
 import { fonctionSql } from "@/lib/db/serveur";
+import { PRIVE } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Votre compte, La Ferme", robots: { index: false } };
+export const metadata: Metadata = { title: "Votre compte, La Ferme", robots: PRIVE };
 
 export default async function Compte() {
   const compte = await compteCourant();

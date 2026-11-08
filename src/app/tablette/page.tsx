@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import { ConnexionPersonnel } from "@/components/tablette/ConnexionPersonnel";
 import { Tablette } from "@/components/tablette/Tablette";
 import { personnelCourant } from "@/lib/personnel/session";
+import { PRIVE } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Tablette, La Ferme", robots: { index: false, follow: false } };
+// Manifeste à part : ajoutée à l'écran d'accueil, la tablette s'ouvre en plein écran sur /tablette.
+export const metadata: Metadata = { title: "Tablette, La Ferme", robots: PRIVE, manifest: "/tablette.webmanifest" };
 
 export default async function PageTablette() {
   const personnel = await personnelCourant();

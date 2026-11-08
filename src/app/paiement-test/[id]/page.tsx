@@ -1,11 +1,14 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { EnTete } from "@/components/EnTete";
 import { BoutonsTest } from "@/components/suivi/BoutonsTest";
 import { commandeParId } from "@/lib/db/serveur";
 import { passerelle } from "@/lib/paiement/passerelle";
 import { prixChf } from "@/lib/prix";
+import { PRIVE } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Paiement de test, La Ferme", robots: PRIVE };
 
 // Doublure de la page Stripe, pour les préversions sans compte Stripe. N'existe pas en production.
 export default async function PaiementTest({ params }: { params: Promise<{ id: string }> }) {

@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { EnTete } from "@/components/EnTete";
 import { commandeParJeton, courrielsDeCommande } from "@/lib/db/serveur";
+import { PRIVE } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Courriels de test, La Ferme", robots: PRIVE };
 
 // Préversion seulement : les courriels d'une commande gardés par la doublure (sans Resend).
 // Le jeton de suivi est exigé : on ne voit que les courriels de sa propre commande.

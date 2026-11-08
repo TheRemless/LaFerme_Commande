@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo } from "next/font/google";
+import { ADRESSE_SITE, DESCRIPTION_SITE, INDEXABLE, OPEN_GRAPH, PRIVE } from "@/lib/site";
 import "./globals.css";
 
 const archivo = Archivo({
@@ -9,10 +10,21 @@ const archivo = Archivo({
   display: "swap",
 });
 
-// Titre relu (redaction-fr, lot 8a). Description, Open Graph et indexation : lot 8e.
+// Titre relu au lot 8a, description et Open Graph au lot 8e (redaction-fr, faits du registre).
+// L'image de partage est src/app/opengraph-image.jpg (photo du shooting pro), le manifeste src/app/manifest.ts.
 export const metadata: Metadata = {
+  metadataBase: new URL(ADRESSE_SITE),
   title: "La Ferme, livraison et à emporter",
-  robots: { index: false, follow: false },
+  description: DESCRIPTION_SITE,
+  applicationName: "La Ferme",
+  robots: INDEXABLE ? { index: true, follow: true } : PRIVE,
+  openGraph: {
+    ...OPEN_GRAPH,
+    title: "La Ferme, livraison et à emporter",
+    description: DESCRIPTION_SITE,
+  },
+  twitter: { card: "summary_large_image" },
+  appleWebApp: { title: "La Ferme", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
