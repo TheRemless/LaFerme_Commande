@@ -308,7 +308,7 @@ function CarteCommande({ c, aujourdHui, agir }: { c: CommandeTablette; aujourdHu
             <strong>{c.mode === "livraison" ? "Livraison" : "À emporter"}</strong>, demandée {demande}
           </p>
           <p className="tab-meta">
-            Reçue à {heure(c.cree_le)}. {STATUT[c.statut] ?? c.statut}
+            Reçue {jourGeneve(c.cree_le) === aujourdHui ? "" : `le ${jourTexte(jourGeneve(c.cree_le))} `}à {heure(c.cree_le)}. {STATUT[c.statut] ?? c.statut}
             {c.heure_confirmee ? ` pour ${heure(c.heure_confirmee)}` : ""}.
           </p>
         </div>
