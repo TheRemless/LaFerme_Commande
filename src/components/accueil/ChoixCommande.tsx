@@ -12,6 +12,7 @@ import {
   etatService,
   heureTexte,
   jourTexte,
+  messagePause,
   zonePour,
   type ConfigService,
   type Mode,
@@ -152,7 +153,8 @@ export function ChoixCommande({
   const pretAdresse = mode === "retrait" || verdict.statut === "livrable";
   const pretDetails = mode === "retrait" || details.sonnette.trim() !== "";
   const asap = etat.etat === "ouvert" && !plusTard;
-  const quand: Quand = etat.etat === "fermeture" || etat.etat === "aucun-creneau"
+  const suspendu = messagePause(etat);
+  const quand: Quand = etat.etat === "fermeture" || etat.etat === "aucun-creneau" || suspendu
     ? { type: "aucun" }
     : asap
       ? { type: "asap" }
@@ -218,6 +220,17 @@ export function ChoixCommande({
             <span className="choix-sous">Route de Chancy 132, Onex</span>
           </button>
         </div>
+
+        {suspendu && (
+          <div className="verdict verdict-info" role="status">
+            <p className="verdict-titre">{suspendu}</p>
+            {etat.etat === "livraison-fermee" && (
+              <button type="button" className="bouton-second" onClick={() => setMode("retrait")}>
+                Commander à emporter
+              </button>
+            )}
+          </div>
+        )}
 
         {etat.etat === "fermeture" && (
           <div className="verdict verdict-info" role="status">

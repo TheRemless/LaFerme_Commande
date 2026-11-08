@@ -61,4 +61,4 @@ async function lireCatalogue(): Promise<Catalogue> {
 // Une minute de cache : un prix ou une rupture changés dans le back-office s'appliquent vite.
 export const chargerCatalogue = process.env.VITEST
   ? lireCatalogue
-  : unstable_cache(lireCatalogue, ["catalogue"], { revalidate: 60 });
+  : unstable_cache(lireCatalogue, ["catalogue"], { revalidate: 60, tags: ["catalogue"] });

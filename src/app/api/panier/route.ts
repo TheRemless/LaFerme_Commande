@@ -3,7 +3,7 @@ import { chargerCatalogue } from "@/lib/catalogue";
 import { chargerConfigService } from "@/lib/config-service";
 import { calculerPanier } from "@/lib/panier";
 import { lignesValides, quandValide } from "@/lib/validation";
-import { depuisHeureGeneve, enMinutes, heureTexte, instantGeneve, jourIso, quandPossible, type Zone } from "@/lib/service";
+import { depuisHeureGeneve, enMinutes, heureTexte, instantGeneve, jourIso, quandPossible, type Zone, messagePause, pauseEnCours } from "@/lib/service";
 import { zoneServeur } from "@/lib/zone-serveur";
 
 // Prix du panier calculé par le serveur à partir de la base : options, frais de zone, minimum, TVA,
@@ -39,7 +39,9 @@ export async function POST(requete: Request) {
   const maintenant = simulee ?? new Date();
   const quand = quandValide(corps.quand);
   let messageQuand: string | null = null;
-  if (lignes.length > 0 && !quandPossible(config, maintenant, mode, zone, totaux.pizzas_seulement, quand)) {
+  const pause = pauseEnCours(config, maintenant, mode);
+  if (pause) messageQuand = messagePause(pause);
+  else if (lignes.length > 0 && !quandPossible(config, maintenant, mode, zone, totaux.pizzas_seulement, quand)) {
     const pourPizzas = !totaux.pizzas_seulement && quandPossible(config, maintenant, mode, zone, true, quand);
     if (pourPizzas) {
       // Le service concerné est celui du moment demandé : aujourd'hui pour « dès que possible », sinon celui du créneau.
