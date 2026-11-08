@@ -1,0 +1,61 @@
+deploy-preview-12--boisterous-beijinho-c37e44.netlify.app  (3 tours, sondes en Suisse, ms)
+/                      TTFB médiane 350 (min 159, max 990, n=9)  villes ['Geneva', 'Zurich']  codes [200]
+    Zurich       990 /  1050  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Geneva       350 /   383  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Zurich       548 /   607  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Zurich       159 /   196  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Geneva       435 /   493  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Zurich       286 /   336  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Zurich       276 /   305  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Geneva       465 /   500  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Zurich       183 /   222  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+/carte                 TTFB médiane 672 (min 502, max 901, n=9)  villes ['Geneva', 'Zurich']  codes [200]
+    Zurich       515 /   574  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Geneva       638 /   886  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Zurich       802 /   829  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Zurich       672 /   705  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Geneva       643 /   672  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Zurich       675 /   715  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Zurich       502 /   522  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Geneva       901 /   931  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Zurich       721 /   748  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+/panier                TTFB médiane 346 (min 173, max 853, n=9)  villes ['Geneva', 'Zurich']  codes [200]
+    Zurich       430 /   470  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Geneva       346 /   376  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Zurich       853 /   889  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Zurich       290 /   326  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Geneva       387 /   420  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Zurich       173 /   207  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Zurich       179 /   217  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Geneva       594 /   635  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Zurich       185 /   222  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+/commande              TTFB médiane 293 (min 166, max 451, n=9)  villes ['Geneva', 'Zurich']  codes [200]
+    Zurich       421 /   455  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Geneva       171 /   226  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Zurich       276 /   305  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Zurich       293 /   316  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Geneva       166 /   200  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Zurich       296 /   324  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Zurich       286 /   326  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Geneva       314 /   345  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Zurich       451 /   480  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+/cgv                   TTFB médiane 262 (min 145, max 388, n=9)  villes ['Geneva', 'Zurich']  codes [200]
+    Zurich       145 /   175  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Geneva       267 /   309  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Zurich       262 /   290  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Zurich       276 /   303  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Geneva       388 /   426  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Zurich       147 /   186  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Zurich       262 /   287  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Geneva       286 /   317  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+    Zurich       253 /   281  "Netlify Durable"; fwd=bypass "Netlify Edge"; fwd=miss; fwd-status=200
+/logo-la-ferme.png     TTFB médiane 164 (min 10, max 258, n=9)  villes ['Geneva', 'Zurich']  codes [200]
+    Zurich       258 /   287  "Netlify Edge"; fwd=miss; fwd-status=200; stored
+    Geneva       203 /   245  "Netlify Edge"; fwd=miss; fwd-status=200; stored
+    Zurich        13 /    47  "Netlify Edge"; hit; ttl=31535832
+    Zurich       126 /   160  "Netlify Edge"; fwd=miss; fwd-status=200; stored
+    Geneva       217 /   261  "Netlify Edge"; fwd=miss; fwd-status=200; stored
+    Zurich       219 /   254  "Netlify Edge"; hit; ttl=31536000
+    Zurich        10 /   144  "Netlify Edge"; hit; ttl=31535994
+    Geneva       130 /   177  "Netlify Edge"; fwd=miss; fwd-status=200; stored
+    Zurich       164 /   197  "Netlify Edge"; fwd=miss; fwd-status=200; stored
