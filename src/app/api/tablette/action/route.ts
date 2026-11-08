@@ -23,6 +23,9 @@ function actionValide(c: Record<string, unknown>): Action | null {
     case "encaisser":
     case "rembourser":
       return { action: c.action };
+    case "reimprimer":
+      if (c.station !== undefined && c.station !== "pizza" && c.station !== "cuisine") return null;
+      return { action: "reimprimer", station: c.station as "pizza" | "cuisine" | undefined };
     default:
       return null;
   }

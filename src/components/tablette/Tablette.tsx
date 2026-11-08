@@ -6,6 +6,9 @@ import type { CommandeTablette } from "@/lib/tablette";
 import { poster } from "@/lib/requete-client";
 import { prixChf } from "@/lib/prix";
 import { Reglages } from "@/components/tablette/Reglages";
+import { TicketSecours } from "@/components/tablette/TicketSecours";
+import type { EtatImpression } from "@/lib/impression/service";
+import type { LigneTicket } from "@/lib/impression/ticket";
 import { heureDe as heure, jourGeneveDe as jourGeneve } from "@/lib/heures";
 import { heureTexte, jourTexte } from "@/lib/service";
 
@@ -15,8 +18,27 @@ import { heureTexte, jourTexte } from "@/lib/service";
 type Donnees = {
   maintenant: string;
   commandes: CommandeTablette[];
-  reglages: { pause: { active: boolean; jusqua: string | null; livraisonFermee: boolean } | null; preparation_minutes: number };
+  reglages: { pause: { active: boolean; jusqua: string | null; livraisonFermee: boolean; auto?: boolean } | null; preparation_minutes: number };
+  impression: EtatImpression;
 };
+
+type Tache = EtatImpression["taches"][number];
+
+const ETAT_TACHE: Record<Tache["etat"], string> = {
+  en_attente: "en file",
+  envoyee: "en cours",
+  imprimee: "imprimé",
+  echec: "échec",
+  sans_imprimante: "pas d'imprimante",
+};
+
+function etatImprimante(i: EtatImpression["imprimantes"][number]): string {
+  if (!i.en_ligne) return i.vue_le ? `hors ligne depuis ${heure(i.vue_le)}` : "jamais connectée";
+  if (i.statut_code?.startsWith("410")) return "plus de papier";
+  if (i.statut_code?.startsWith("420")) return "capot ouvert";
+  if (i.statut_code && !i.statut_code.startsWith("2")) return `erreur ${i.statut_code}`;
+  return "en ligne";
+}
 
 type Onglet = "traiter" | "cours" | "avance" | "terminees";
 
@@ -154,6 +176,8 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
   }
 
   const pause = donnees?.reglages.pause;
+  const imprimantes = (donnees?.impression.imprimantes ?? []).filter((i) => i.actif);
+  const imprimantesKo = imprimantes.filter((i) => etatImprimante(i) !== "en ligne");
   const enPause = pause?.active && (!pause.jusqua || new Date(pause.jusqua).getTime() > Date.now());
   const liste = listes[onglet];
   const ONGLETS: [Onglet, string][] = [
@@ -182,7 +206,8 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
         <div className="tab-etat">
           <strong>{enPause ? (pause?.jusqua ? `En pause jusqu'à ${heure(pause.jusqua)}` : "En pause") : "Commandes ouvertes"}</strong>
           <span>
-            {pause?.livraisonFermee ? "Livraison fermée. " : ""}Préparation {donnees?.reglages.preparation_minutes ?? "…"} min
+            {pause?.livraisonFermee ? "Livraison fermée. " : ""}Préparation {donnees?.reglages.preparation_minutes ?? "…"} min.{" "}
+            {imprimantes.length === 0 ? "Pas d'imprimante." : imprimantes.map((i) => `${i.nom} : ${etatImprimante(i)}`).join(". ") + "."}
           </span>
         </div>
         <button type="button" className="bouton-second" aria-expanded={reglagesOuverts} onClick={() => setReglagesOuverts((v) => !v)}>
@@ -199,6 +224,16 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
           Appelez Jérémy si ça dure.
         </p>
       )}
+      {pause?.auto && enPause && (
+        <p className="tab-alerte" role="alert">
+          Pause automatique : la tablette ne répondait plus pendant le service. Ouvrez les réglages et touchez « Reprendre les commandes ».
+        </p>
+      )}
+      {imprimantesKo.map((i) => (
+        <p key={i.id} className="tab-attente" role="alert">
+          {i.nom} : {etatImprimante(i)}. Les tickets attendent et sortiront à son retour. Touchez « Ticket » sur une commande pour l&apos;afficher ici.
+        </p>
+      ))}
       {listes.traiter.length > 0 && (
         <p className="tab-attente" role="status">
           {listes.traiter.length === 1 ? "1 commande à accepter" : `${listes.traiter.length} commandes à accepter`}
@@ -230,7 +265,14 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
       ) : (
         <ol className="tab-liste">
           {liste.map((c) => (
-            <CarteCommande key={c.id} c={c} aujourdHui={aujourdHui} agir={(corps) => agir(c.id, corps)} />
+            <CarteCommande
+              key={c.id}
+              c={c}
+              aujourdHui={aujourdHui}
+              maintenant={donnees.maintenant}
+              taches={(donnees.impression.taches ?? []).filter((t) => t.commande_id === c.id)}
+              agir={(corps) => agir(c.id, corps)}
+            />
           ))}
         </ol>
       )}
@@ -242,7 +284,31 @@ function decaler(iso: string, minutes: number): string {
   return new Date(new Date(iso).getTime() + minutes * 60_000).toISOString();
 }
 
-function CarteCommande({ c, aujourdHui, agir }: { c: CommandeTablette; aujourdHui: string; agir: (corps: Record<string, unknown>) => Promise<void> }) {
+function CarteCommande({
+  c,
+  aujourdHui,
+  maintenant,
+  taches,
+  agir,
+}: {
+  c: CommandeTablette;
+  aujourdHui: string;
+  maintenant: string;
+  taches: Tache[];
+  agir: (corps: Record<string, unknown>) => Promise<void>;
+}) {
+  const [tickets, setTickets] = useState<{ station: string; contenu: LigneTicket[] }[] | null>(null);
+
+  // Le contenu des tickets n'est chargé qu'à la demande, pour garder la relecture de la file légère.
+  async function ouvrirTicket() {
+    const rep = await fetch(`/api/tablette/ticket?commande=${c.id}`, { cache: "no-store" }).catch(() => null);
+    if (rep?.ok) setTickets(await rep.json());
+  }
+  // Dernière tâche de chaque poste : c'est elle qui dit où en est le ticket.
+  const parPoste = (["pizza", "cuisine"] as const)
+    .map((s) => taches.filter((t) => t.station === s).at(-1))
+    .filter((t): t is Tache => Boolean(t));
+  const attente = Math.floor((new Date(maintenant).getTime() - new Date(c.cree_le).getTime()) / 60_000);
   const [panneau, setPanneau] = useState<"aucun" | "refuser" | "heure">("aucun");
   // Décalage choisi à la main, appliqué à l'heure de base : celle-ci suit la proposition recalculée à chaque
   // vérification, pour ne jamais accepter avec une heure déjà passée.
@@ -310,6 +376,7 @@ function CarteCommande({ c, aujourdHui, agir }: { c: CommandeTablette; aujourdHu
           <p className="tab-meta">
             Reçue {jourGeneve(c.cree_le) === aujourdHui ? "" : `le ${jourTexte(jourGeneve(c.cree_le))} `}à {heure(c.cree_le)}. {STATUT[c.statut] ?? c.statut}
             {c.heure_confirmee ? ` pour ${heure(c.heure_confirmee)}` : ""}.
+            {c.statut === "nouvelle" && attente >= 3 && <strong className="tab-attend"> Attend depuis {attente} min.</strong>}
           </p>
         </div>
       </div>
@@ -446,6 +513,32 @@ function CarteCommande({ c, aujourdHui, agir }: { c: CommandeTablette; aujourdHu
           </button>
         </div>
       )}
+
+      {parPoste.length > 0 && (
+        <div className="tab-impression">
+          <p>
+            {parPoste.map((t) => `Ticket ${t.station} : ${ETAT_TACHE[t.etat]}${t.etat === "echec" && t.derniere_erreur ? ` (${t.derniere_erreur})` : ""}`).join(". ")}.
+          </p>
+          <div className="boutons-ligne">
+            <button type="button" className="bouton-second" onClick={ouvrirTicket}>
+              Ticket
+            </button>
+            {c.statut !== "refusee" && (
+              <button type="button" className="bouton-second" disabled={envoi} onClick={() => faire({ action: "reimprimer" })}>
+                Réimprimer
+              </button>
+            )}
+            {c.statut !== "refusee" &&
+              parPoste.length > 1 &&
+              parPoste.map((t) => (
+                <button key={t.station} type="button" className="lien" disabled={envoi} onClick={() => faire({ action: "reimprimer", station: t.station })}>
+                  Réimprimer {t.station}
+                </button>
+              ))}
+          </div>
+        </div>
+      )}
+      {tickets && <TicketSecours tickets={tickets} fermer={() => setTickets(null)} />}
 
       {c.statut === "refusee" && c.statut_paiement === "paye" && (
         <div className="tab-actions">

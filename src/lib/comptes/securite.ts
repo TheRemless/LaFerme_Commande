@@ -13,7 +13,7 @@ function cleHmac(): string {
   return "laferme-comptes:developpement-local";
 }
 
-export function empreinte(usage: "code" | "session" | "email" | "ip" | "email-personnel" | "session-personnel", valeur: string): string {
+export function empreinte(usage: "code" | "session" | "email" | "ip" | "email-personnel" | "session-personnel" | "imprimante", valeur: string): string {
   return createHmac("sha256", cleHmac()).update(`${usage}:${valeur}`).digest("hex");
 }
 

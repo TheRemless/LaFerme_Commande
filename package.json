@@ -14,7 +14,9 @@
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.15",
+    "@resvg/resvg-wasm": "2.6.2",
     "@supabase/supabase-js": "^2.119.0",
+    "dejavu-fonts-ttf": "2.37.3",
     "fflate": "0.8.2",
     "next": "15.5.29",
     "react": "19.1.0",

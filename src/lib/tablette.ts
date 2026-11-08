@@ -1,12 +1,13 @@
 import "server-only";
 import { revalidateTag } from "next/cache";
 import { rembourserCommande } from "@/lib/commandes";
+import { imprimerCommande } from "@/lib/impression/service";
 import { chargerCatalogue } from "@/lib/catalogue";
 import { chargerConfigService } from "@/lib/config-service";
 import { courrielAcceptation, courrielNouvelleHeure, courrielPrete, courrielRefus } from "@/lib/courriel/modeles";
 import { envoyerCourriel } from "@/lib/courriel/envoi";
 import { commandeParId, fonctionSql, type Commande } from "@/lib/db/serveur";
-import type { Catalogue } from "@/lib/panier";
+import { detailsTablette } from "@/lib/tablette-details";
 import { auteur, type Personnel } from "@/lib/personnel/session";
 import { hhmm } from "@/lib/heures";
 import { depuisHeureGeneve } from "@/lib/service";
@@ -42,14 +43,7 @@ export type CommandeTablette = {
 
 const PAS_MS = 5 * 60_000;
 
-export function detailsTablette(cat: Catalogue | null, l: { choix: Record<string, string[]>; retraits: string[]; note: string }): string[] {
-  const choix = Object.entries(l.choix ?? {}).flatMap(([g, noms]) => {
-    const groupe = cat && Object.hasOwn(cat.groupes, g) ? cat.groupes[g] : undefined;
-    const obligatoire = groupe ? groupe.choix_min >= 1 && groupe.choix_max === 1 : false;
-    return noms.map((n) => (obligatoire ? `CHOIX ${n}` : `+ ${n}`));
-  });
-  return [...choix, ...(l.retraits ?? []).map((r) => `SANS ${r}`), ...(l.note ? [`« ${l.note} »`] : [])];
-}
+export { detailsTablette } from "@/lib/tablette-details";
 
 // « Dès que possible » : maintenant + préparation (retrait) ou délai moyen de la zone (livraison), arrondi à 5 min.
 export async function fileTablette(maintenant = new Date()): Promise<CommandeTablette[]> {
@@ -112,6 +106,7 @@ export type Action =
   | { action: "statut"; vers: "en_preparation" | "prete" | "partie" | "terminee" }
   | { action: "heure"; heure: string }
   | { action: "encaisser" }
+  | { action: "reimprimer"; station?: "pizza" | "cuisine" }
   | { action: "rembourser" };
 
 export async function agir(commandeId: string, a: Action, p: Personnel): Promise<ResultatAction> {
@@ -123,7 +118,12 @@ export async function agir(commandeId: string, a: Action, p: Personnel): Promise
   switch (a.action) {
     case "accepter":
       ok = await fonctionSql<boolean>("changer_statut", { p_commande: commandeId, p_vers: "acceptee", p_par: par, p_heure: a.heure, p_motif: null });
-      if (ok) await prevenir(avant, courrielAcceptation(avant, a.heure));
+      if (ok) {
+        // L'acceptation, et elle seule, lance l'impression. Un ticket qui ne part pas ne défait pas l'acceptation :
+        // la tablette le montre et propose de réimprimer.
+        await imprimerCommande(commandeId).catch((e) => console.error(`Tickets non créés pour la commande ${avant.numero} : ${e instanceof Error ? e.message : e}`));
+        await prevenir(avant, courrielAcceptation(avant, a.heure));
+      }
       break;
     case "refuser": {
       ok = await fonctionSql<boolean>("changer_statut", { p_commande: commandeId, p_vers: "refusee", p_par: par, p_heure: null, p_motif: a.motif });
@@ -158,6 +158,11 @@ export async function agir(commandeId: string, a: Action, p: Personnel): Promise
       break;
     case "encaisser":
       ok = await fonctionSql<boolean>("marquer_encaisse", { p_commande: commandeId, p_par: par });
+      break;
+    case "reimprimer":
+      if (!["acceptee", "en_preparation", "prete", "partie", "terminee"].includes(avant.statut)) return { ok: false, message: "Seule une commande acceptée s'imprime." };
+      ok = (await imprimerCommande(commandeId, { reimpression: true, station: a.station })) > 0;
+      message = ok ? "Ticket renvoyé à l'imprimante." : "Rien à imprimer pour ce poste.";
       break;
   }
   if (ok) await signalerTablette();
