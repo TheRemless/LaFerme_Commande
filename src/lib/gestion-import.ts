@@ -117,7 +117,10 @@ export function lireTableau(fichier: ArrayBuffer, actuelle: CarteActuelle): Aper
     const prov = cellule(carte, r, iProv);
     if (prov !== null) {
       const { provenance, aFournir } = lireProvenance(String(prov));
-      if (provenance !== (p.provenance ?? "") || aFournir.join(",") !== p.provenances_a_fournir.join(",")) {
+      // Mêmes limites que la saisie à l'écran (champsPlat).
+      if (provenance.length > 300 || aFournir.length > 20 || aFournir.some((x) => x.length > 60)) {
+        apercu.avertissements.push(`Ligne ${r} (${nom}) : provenance trop longue, ignorée.`);
+      } else if (provenance !== (p.provenance ?? "") || aFournir.join(",") !== p.provenances_a_fournir.join(",")) {
         champs.provenance = provenance;
         champs.provenances_a_fournir = aFournir;
         const texte = (pr: string | null, af: string[]) =>
