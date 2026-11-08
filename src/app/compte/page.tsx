@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { EnTete } from "@/components/EnTete";
+import { PiedDePage } from "@/components/PiedDePage";
 import { Connexion } from "@/components/compte/Connexion";
 import { EspaceCompte, type DonneesEspace } from "@/components/compte/EspaceCompte";
 import { compteCourant } from "@/lib/comptes/session";
@@ -17,6 +18,7 @@ export default async function Compte() {
       <main className="page-compte">
         {donnees ? <EspaceCompte donnees={donnees} preversion={process.env.CONTEXTE_DEPLOIEMENT !== "production"} /> : <Connexion />}
       </main>
+      <PiedDePage />
     </>
   );
 }

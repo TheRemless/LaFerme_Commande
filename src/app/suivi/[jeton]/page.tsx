@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { EnTete } from "@/components/EnTete";
+import { PiedDePage } from "@/components/PiedDePage";
 import { Actualiser } from "@/components/suivi/Actualiser";
 import { CreerCompte } from "@/components/suivi/CreerCompte";
 import { chargerCatalogue } from "@/lib/catalogue";
@@ -146,6 +147,7 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
           )}
         </div>
       </main>
+      <PiedDePage />
     </>
   );
 }

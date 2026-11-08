@@ -1,4 +1,5 @@
 import { EnTete } from "@/components/EnTete";
+import { PiedDePage } from "@/components/PiedDePage";
 import { ResumeChoix } from "@/components/ResumeChoix";
 import { PagePanier } from "@/components/panier/PagePanier";
 import { chargerCatalogue } from "@/lib/catalogue";
@@ -16,6 +17,7 @@ export default async function Panier() {
       <main className="page-panier">
         <PagePanier catalogue={catalogue} preversion={process.env.CONTEXTE_DEPLOIEMENT !== "production"} />
       </main>
+      <PiedDePage />
     </>
   );
 }

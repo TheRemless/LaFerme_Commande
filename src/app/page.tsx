@@ -1,5 +1,6 @@
 import { ChoixCommande, type AdresseEnregistree } from "@/components/accueil/ChoixCommande";
 import { EnTete } from "@/components/EnTete";
+import { PiedDePage } from "@/components/PiedDePage";
 import { compteCourant } from "@/lib/comptes/session";
 import { chargerConfigService } from "@/lib/config-service";
 import { fonctionSql } from "@/lib/db/serveur";
@@ -31,6 +32,7 @@ export default async function Accueil({ searchParams }: { searchParams: Promise<
       <main className="page-accueil">
         <ChoixCommande config={config} maintenantServeur={maintenant} heureSimulee={simulee ? heure : undefined} adressesEnregistrees={adresses} />
       </main>
+      <PiedDePage />
     </>
   );
 }

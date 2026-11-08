@@ -1,4 +1,5 @@
 import { EnTete } from "@/components/EnTete";
+import { PiedDePage } from "@/components/PiedDePage";
 import { ResumeChoix } from "@/components/ResumeChoix";
 import { CarteCommande } from "@/components/carte/CarteCommande";
 import { chargerCarte } from "@/lib/carte";
@@ -25,6 +26,7 @@ export default async function PageCarte() {
       <main className="page-carte" data-source={preversion ? source : undefined}>
         <CarteCommande categories={categories} catalogue={catalogue} preversion={preversion} />
       </main>
+      <PiedDePage />
     </>
   );
 }
