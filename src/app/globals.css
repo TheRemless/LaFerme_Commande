@@ -2245,9 +2245,11 @@ body.fiche-ouverte {
   vertical-align: top;
   border-top: 1px solid var(--filet);
 }
-.ges-journal {
-  display: block;
+.ges-bloc:has(.ges-journal) {
   overflow-x: auto;
+}
+.ges-journal {
+  min-width: 640px;
 }
 .ges-diff {
   font-size: 13px;
