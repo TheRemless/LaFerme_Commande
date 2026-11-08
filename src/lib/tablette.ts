@@ -1,5 +1,5 @@
 import "server-only";
-import { revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { rembourserCommande } from "@/lib/commandes";
 import { imprimerCommande } from "@/lib/impression/service";
 import { chargerCatalogue } from "@/lib/catalogue";
@@ -169,10 +169,16 @@ export async function agir(commandeId: string, a: Action, p: Personnel): Promise
   return ok ? { ok, message } : { ok, message: message ?? "Cette commande a déjà changé. La liste se met à jour." };
 }
 
+// Pages publiques servies depuis le cache de Netlify et ce qu'elles lisent : on les vide avec les données.
+const PAGES_EN_CACHE = { "config-service": ["/"], catalogue: ["/carte", "/panier"] } as const;
+
 export function rafraichirCaches(quoi: "config-service" | "catalogue"): void {
   try {
     revalidateTag(quoi);
-  } catch {
-    // Hors requête Next (tests) : rien à vider.
+    for (const chemin of PAGES_EN_CACHE[quoi]) revalidatePath(chemin);
+  } catch (e) {
+    // Hors requête Next (tests unitaires) : rien à vider. Ailleurs, une purge ratée laisse les pages
+    // publiques en cache jusqu'à leur prochaine régénération (une minute) : on le note dans les journaux.
+    if (!process.env.VITEST) console.error(`Cache ${quoi} non vidé : ${e instanceof Error ? e.message : e}`);
   }
 }

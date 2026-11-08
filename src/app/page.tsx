@@ -1,25 +1,16 @@
-import { ChoixCommande, type AdresseEnregistree } from "@/components/accueil/ChoixCommande";
+import { ChoixCommande } from "@/components/accueil/ChoixCommande";
 import { EnTete } from "@/components/EnTete";
 import { PiedDePage } from "@/components/PiedDePage";
-import { compteCourant } from "@/lib/comptes/session";
 import { chargerConfigService } from "@/lib/config-service";
-import { fonctionSql } from "@/lib/db/serveur";
-import { depuisHeureGeneve } from "@/lib/service";
 
-// Horaires, fermetures et zones changent dans le back-office : lecture à chaque requête.
-export const dynamic = "force-dynamic";
+// Servie depuis le cache de Netlify, refaite au plus toutes les minutes et vidée dès qu'un horaire,
+// une zone ou une pause change (rafraichirCaches). L'heure du serveur et les adresses d'un client
+// connecté arrivent ensuite par /api/accueil.
+export const revalidate = 60;
 
-export default async function Accueil({ searchParams }: { searchParams: Promise<{ heure?: string }> }) {
-  const [config, compte] = await Promise.all([chargerConfigService(), compteCourant()]);
-  // Client connecté : ses adresses de livraison, à choisir d'un geste.
-  const adresses = compte
-    ? await fonctionSql<AdresseEnregistree[]>("adresses_compte_liste", { p_compte: compte.id }).catch(() => [])
-    : [];
+export default async function Accueil() {
+  const config = await chargerConfigService();
   const preversion = process.env.CONTEXTE_DEPLOIEMENT !== "production";
-  // Hors production, ?heure=2026-11-10T19:05 (heure de Genève) simule un autre moment pour tester les états.
-  const { heure } = await searchParams;
-  const simulee = preversion && heure ? depuisHeureGeneve(heure) : null;
-  const maintenant = simulee ? simulee.getTime() : Date.now();
   const propositions = config.zones.some((z) => z.proposition);
   return (
     <>
@@ -30,7 +21,7 @@ export default async function Accueil({ searchParams }: { searchParams: Promise<
         </p>
       )}
       <main className="page-accueil">
-        <ChoixCommande config={config} maintenantServeur={maintenant} heureSimulee={simulee ? heure : undefined} adressesEnregistrees={adresses} />
+        <ChoixCommande config={config} maintenantServeur={Date.now()} preversion={preversion} />
       </main>
       <PiedDePage />
     </>

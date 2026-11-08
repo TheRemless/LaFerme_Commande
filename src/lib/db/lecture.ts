@@ -1,5 +1,5 @@
 import "server-only";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { baseLocale, lireCommeVisiteur } from "@/lib/db/locale";
 
 // Tables et vues lisibles par un visiteur. Liste fermée : le nom finit dans une requête SQL locale.
@@ -31,12 +31,18 @@ export function sourceDonnees(): SourceDonnees {
   return configSupabase() ? "supabase" : "locale";
 }
 
+// Un seul client par instance de fonction : ses connexions restent ouvertes d'une requête à l'autre.
+let lecteur: { url: string; cle: string; client: SupabaseClient } | null = null;
+
 // Lit une table publique avec les droits d'un visiteur, depuis Supabase ou la base embarquée.
 export async function lirePublic<T>(nom: Lisible): Promise<T[]> {
   if (!LISIBLES.includes(nom)) throw new Error(`Lecture non autorisée : ${nom}`);
   const config = configSupabase();
   if (config) {
-    const supabase = createClient(config.url, config.cle, { auth: { persistSession: false } });
+    if (lecteur?.url !== config.url || lecteur.cle !== config.cle) {
+      lecteur = { ...config, client: createClient(config.url, config.cle, { auth: { persistSession: false } }) };
+    }
+    const supabase = lecteur.client;
     const { data, error } = await supabase.from(nom).select("*");
     if (error) throw new Error(`Lecture de ${nom} impossible : ${error.message}`);
     return data as T[];

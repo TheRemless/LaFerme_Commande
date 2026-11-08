@@ -1,5 +1,6 @@
 import "server-only";
-import { lirePublic, sourceDonnees, type SourceDonnees } from "@/lib/db/lecture";
+import { chargerDonneesCarte } from "@/lib/catalogue";
+import { sourceDonnees, type SourceDonnees } from "@/lib/db/lecture";
 
 // Une ligne de la vue carte_publique (supabase/migrations/20261105120000_carte.sql).
 export type LignePlat = {
@@ -38,7 +39,8 @@ export function regrouperParCategorie(lignes: LignePlat[]): Categorie[] {
     .map(({ slug, nom, plats }) => ({ slug, nom, plats: plats.sort((a, b) => a.ordre - b.ordre) }));
 }
 
+// Les plats viennent de la lecture en cache partagée avec le catalogue (src/lib/catalogue.ts).
 export async function chargerCarte(): Promise<{ categories: Categorie[]; source: SourceDonnees }> {
-  const lignes = await lirePublic<LignePlat>("carte_publique");
-  return { categories: regrouperParCategorie(lignes), source: sourceDonnees() };
+  const { plats } = await chargerDonneesCarte();
+  return { categories: regrouperParCategorie(plats), source: sourceDonnees() };
 }
