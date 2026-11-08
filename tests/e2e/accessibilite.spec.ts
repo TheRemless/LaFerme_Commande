@@ -30,6 +30,7 @@ const PAGES_SIMPLES = [
   ["mentions", "/mentions-legales"],
   ["cgv", "/cgv"],
   ["confidentialite", "/confidentialite"],
+  ["introuvable", "/suivi/jeton-inexistant-0000000000"],
 ] as const;
 
 for (const [nom, chemin] of PAGES_SIMPLES) {
@@ -98,6 +99,18 @@ test("clavier : lien d'évitement, fiche plat fermée par Échap, ajout annoncé
   await page.keyboard.press("Enter");
   await page.getByRole("dialog").getByRole("button", { name: /^Ajouter/ }).click();
   await expect(page.locator(".sr-only[role=status]")).toHaveText("Dans le panier : Margherita. 3 articles en tout.");
+
+  await page.goto("/panier");
+  const ligne = page.getByRole("group", { name: /^Quantité de .*Margherita/ });
+  await ligne.getByRole("button", { name: "Un de plus" }).click();
+  await expect(ligne.locator("[aria-live=polite]")).toHaveText("Quantité : 4");
+});
+
+test("page introuvable en français, avec le chemin du retour", async ({ page }) => {
+  const rep = await page.goto("/suivi/jeton-inexistant-0000000000");
+  expect(rep?.status()).toBe(404);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Page introuvable");
+  await expect(page.getByRole("link", { name: "Revenir à l'accueil" })).toBeVisible();
 });
 
 async function connecterPersonnel(page: Page, email: string) {

@@ -20,6 +20,8 @@ Référence : WCAG 2.1 niveaux A et AA, plus la taille des cibles de WCAG 2.2.
 | Ajout au panier silencieux pour un lecteur d'écran (la fiche se ferme) | 4.1.3 | Annonce « Dans le panier : Margherita. 3 articles en tout. » |
 | Boutons « −5 » et « +5 » de la tablette nommés « Cinq minutes de moins » | 2.5.3 | Nom qui commence par le texte visible : « −5 minutes de préparation » |
 | Logo, rappel du choix et liens « Modifier » de 24 à 35 px de haut | 2.5.8 | 44 px de haut au moins |
+| Quantités du panier changées sans annonce | 4.1.3 | Nouvelle quantité annoncée (« Quantité : 4 ») |
+| Page introuvable de Next.js, en anglais | 3.1.1 | Page en français, avec le retour à l'accueil et le numéro du restaurant |
 
 ## Vérifié à la main
 

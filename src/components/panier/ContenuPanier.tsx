@@ -73,11 +73,15 @@ export function ContenuPanier({
                   {calcul.erreur}
                 </p>
               )}
-              <div className="qte" aria-label={`Quantité de ${plat?.nom ?? l.slug}`}>
+              <div className="qte" role="group" aria-label={`Quantité de ${plat?.nom ?? l.slug}`}>
                 <button type="button" onClick={() => quantite(i, -1)} aria-label={l.qte === 1 ? "Retirer du panier" : "Un de moins"}>
                   −
                 </button>
-                <span>{l.qte}</span>
+                {/* Annoncée à chaque changement : le lecteur d'écran confirme le geste. */}
+                <span aria-live="polite" aria-atomic="true">
+                  <span className="sr-only">Quantité : </span>
+                  {l.qte}
+                </span>
                 <button type="button" onClick={() => quantite(i, 1)} aria-label="Un de plus">
                   +
                 </button>
