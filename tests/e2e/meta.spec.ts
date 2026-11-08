@@ -41,7 +41,9 @@ test("manifestes : site et tablette", async ({ page, request }) => {
   for (const icone of site.icons) expect((await request.get(icone.src)).status()).toBe(200);
   await page.goto("/tablette");
   await expect(page.locator('link[rel="manifest"]')).toHaveAttribute("href", "/tablette.webmanifest");
-  const tablette = await (await request.get("/tablette.webmanifest")).json();
+  const reponse = await request.get("/tablette.webmanifest");
+  expect(reponse.headers()["content-type"]).toContain("application/manifest+json");
+  const tablette = await reponse.json();
   expect(tablette).toMatchObject({ start_url: "/tablette", display: "fullscreen" });
   expect((await request.get("/apple-icon.png")).status()).toBe(200);
 });
