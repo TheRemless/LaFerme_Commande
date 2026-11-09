@@ -122,6 +122,7 @@ Un jour sans service, jamais pendant un service.
 - [ ] Jérémy : saisir les clés Stripe live et le secret du webhook live. Claude crée avec lui le webhook live vers `https://<domaine>/api/stripe/webhook` (mêmes quatre événements).
 - [ ] Claude : poser `PAGES_LEGALES_VALIDEES=1` (relecture faite) et `URL_SITE`.
 - [ ] Jérémy et Claude : relier le domaine à Netlify (DNS), attendre le certificat HTTPS.
+- [ ] Claude : retirer de `netlify.toml` la ligne `ignore` qui saute les builds de production de `main` (ajoutée le 9.11.2026 pour ne pas lancer de builds inutiles avant le lancement).
 - [ ] Claude : lancer le déploiement de production. Le build échoue si un plat reste à valider ou si `URL_SITE` manque.
 - [ ] Jérémy : passer une vraie commande de faible montant payée par TWINT, puis la refuser sur la tablette. Le remboursement doit arriver. Claude vérifie Stripe, la base, les tickets et les e-mails.
 

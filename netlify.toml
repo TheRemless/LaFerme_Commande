@@ -3,6 +3,10 @@
 [build]
   command = "npm run build"
   publish = ".next"
+  # Avant le lancement : aucun build de production. Netlify saute le build quand cette commande sort
+  # avec 0 (docs.netlify.com, « Ignore builds » : la variable BRANCH y est lisible). Les préversions des
+  # PR (branche autre que main) se construisent normalement. À retirer à la bascule (docs/mise-en-ligne.md).
+  ignore = 'if [ "$BRANCH" = "main" ]; then echo "Build de production sauté : site pas encore lancé."; exit 0; fi; exit 1'
 
 [build.environment]
   NODE_VERSION = "22"
