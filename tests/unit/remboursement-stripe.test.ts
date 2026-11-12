@@ -133,6 +133,18 @@ describe("S2-03 : remboursement après coup", () => {
     expect((await lignes(c))[0].statut).toBe("echec");
   });
 
+  it("échec annoncé après un « succeeded » : la ligne faite repasse en échec, sort de l'export, une alerte", async () => {
+    const c = await commandePayee("terminee");
+    await commandes.rembourserApresCoup(c, 1500, "Plat froid.", `cle-${randomUUID()}`, gerant);
+    const [l] = await lignes(c);
+    expect(l.statut).toBe("fait");
+    expect(await exporte(c)).toBe(true);
+    await envoyer(evenementRefund("evt_rb_8", l.stripe_refund_id!, "failed", "lost_or_stolen_card"));
+    expect((await lignes(c))[0].statut).toBe("echec");
+    expect(await exporte(c)).toBe(false);
+    expect(await alertes(await numero(c))).toBe(1);
+  });
+
   it("relancer une ligne déjà partie chez Stripe ne redemande rien à Stripe", async () => {
     process.env.DOUBLURE_REMBOURSEMENT = "pending";
     const c = await commandePayee("terminee");
@@ -165,6 +177,15 @@ describe("S2-03 : remboursement d'une commande refusée", () => {
     await envoyer(evenementRefund("evt_rb_5", l.stripe_refund_id!, "failed", "expired_or_canceled_card"));
     expect((await lignes(c))[0].statut).toBe("echec");
     expect(await alertes(await numero(c))).toBe(1);
+  });
+
+  it("refus après un manque déjà rendu : la ligne note ce qui restait, pas le total", async () => {
+    const c = await commandePayee("terminee");
+    await commandes.rembourserApresCoup(c, 1500, "Plat froid.", `cle-${randomUUID()}`, gerant);
+    const db = await baseLocale();
+    await db.query("update commandes set statut = 'refusee', motif = 'Fermé.' where id = $1", [c]);
+    expect((await commandes.rembourserCommande(c, "Fermé.")).rembourse).toBe(true);
+    expect((await lignes(c)).map((x) => x.montant_centimes)).toEqual([1500, 2500]);
   });
 
   it("confirmé tout de suite : ligne faite", async () => {
