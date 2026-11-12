@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { chargerCatalogue } from "@/lib/catalogue";
 import { chargerConfigService } from "@/lib/config-service";
-import { calculerPanier, memeLigne, type Catalogue, type LignePanier } from "@/lib/panier";
+import { calculerPanier, memeLigne, prixChoix, type Catalogue, type LignePanier } from "@/lib/panier";
 import { creneaux, etatService, quandPossible, type ConfigService } from "@/lib/service";
 
 // Catalogue lu dans la base embarquée : les montants attendus se déduisent du catalogue, jamais écrits ici.
@@ -24,6 +24,16 @@ describe("prix d'une ligne", () => {
     expect(t.lignes[0].unitaire_centimes).toBe(p.prix_centimes + a.prix_centimes + b.prix_centimes);
     expect(t.sous_total_centimes).toBe(2 * (p.prix_centimes + a.prix_centimes + b.prix_centimes));
     expect(t.valide).toBe(true);
+  });
+
+  it("donne le prix payé de chaque option, gardé avec la commande (S2-13)", () => {
+    const p = pizza();
+    const g = cat.groupes[p.groupes[0]];
+    const [a, b] = g.options.filter((o) => o.prix_centimes > 0);
+    const l = ligne(p.slug, { qte: 2, choix: { [g.slug]: [a.nom, b.nom] } });
+    const prix = prixChoix(cat, l);
+    expect(prix).toEqual({ [g.slug]: { [a.nom]: a.prix_centimes, [b.nom]: b.prix_centimes } });
+    expect(p.prix_centimes + prix[g.slug][a.nom] + prix[g.slug][b.nom]).toBe(calculerPanier(cat, [l], null).lignes[0].unitaire_centimes);
   });
 
   it("ne fait pas payer les retraits", () => {
