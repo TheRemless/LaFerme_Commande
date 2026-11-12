@@ -3418,3 +3418,115 @@ body.fiche-ouverte {
 .liv-confirmer .bouton-principal {
   width: auto;
 }
+
+/* ---------- Passe de cohérence de la vague 2 (audit design : D25, D26, écrans du personnel) ---------- */
+
+/* D26 : connexion du personnel (tablette, back-office, livreur). Centrée, lisible à un mètre sur la tablette. */
+.connexion-personnel {
+  max-width: 560px;
+  margin: 0 auto;
+}
+@media (min-width: 600px) {
+  .connexion-personnel {
+    padding-top: 12vh;
+  }
+  .connexion-personnel h1 {
+    font-size: 52px;
+  }
+  .connexion-personnel .connexion-panneau {
+    max-width: none;
+    padding: 28px;
+    font-size: 18px;
+  }
+  .connexion-personnel input {
+    min-height: 56px;
+    font-size: 20px;
+  }
+  .connexion-personnel label {
+    font-size: 16px;
+  }
+  .connexion-personnel .bouton-principal {
+    min-height: 56px;
+    font-size: 18px;
+  }
+}
+
+/* Petits textes d'aide du personnel : 15 px au lieu de 13 (lus de plus loin, dans une cuisine). */
+.gestion .aide,
+.tablette .aide,
+.tab-plats small,
+.ges-diff {
+  font-size: 15px;
+}
+
+/* D25 : états d'un plat au back-office en texte simple séparé par des virgules, plus en étiquettes.
+   Ce qui bloque la mise en ligne reste en gras. */
+.ges-etats {
+  display: block;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--encre-douce);
+}
+.ges-etats .ges-badge {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  font-size: inherit;
+  font-weight: 400;
+  background: none;
+  border: 0;
+}
+.ges-etats .ges-badge + .ges-badge::before {
+  content: ", ";
+  font-weight: 400;
+}
+.ges-etats .ges-badge-bloque {
+  font-weight: 600;
+  color: var(--encre);
+}
+
+/* Tableaux du back-office : cellules alignées sur la même ligne, chiffres à droite. */
+.ges-table th,
+.ges-table td {
+  vertical-align: middle;
+}
+.ges-table td > .lien {
+  min-height: 36px;
+}
+.ges-jours th:not(:first-child),
+.ges-jours td:not(:first-child) {
+  text-align: right;
+}
+
+/* Liens d'action du back-office (Retirer, Déconnecter partout, Fermer) : même hauteur de cible que les boutons. */
+.gestion .lien {
+  display: inline-flex;
+  align-items: center;
+  font-size: 15px;
+}
+
+/* Rubriques du back-office sur téléphone : une bande qui défile, comme les catégories de la carte. */
+@media (max-width: 899px) {
+  .ges-rubriques {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .ges-rubriques::-webkit-scrollbar {
+    display: none;
+  }
+  .ges-rubriques button {
+    flex: none;
+    white-space: nowrap;
+  }
+}
+
+/* Tablette, onglet Livraisons : boutons à la même taille que le reste de la tablette. */
+.liv-tablette .bouton-second {
+  min-height: 52px;
+  font-size: 18px;
+}
+.liv-tablette .tab-meta,
+.liv-tablette .liv-carte p {
+  font-size: 16px;
+}
