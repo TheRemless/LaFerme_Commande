@@ -276,7 +276,7 @@ test("client absent : signalé par le livreur, clos sans remboursement par la ta
   await expect(marco.locator(".liv-retiree")).toHaveCount(0);
 });
 
-test("commande annulée pendant la tournée (adresse introuvable) : remboursée, le livreur rapporte le sac", async ({ request }) => {
+test("commande annulée pendant la tournée (adresse introuvable) : remboursée, le livreur rapporte le sac", async ({ request, browser }) => {
   const c = await livraison(request, LIGNON);
   await ongletLivraisons().click();
   await aAttribuer(c).getByRole("button", { name: "À Marco" }).click();
@@ -289,10 +289,20 @@ test("commande annulée pendant la tournée (adresse introuvable) : remboursée,
   await expect(cours).toContainText("Livreur : Marco");
   // La tablette envoie l'état qu'elle affiche (SS-06) : attendre qu'elle ait relu « Partie ».
   await expect(cours.locator(".tab-meta")).toContainText("Partie", { timeout: 10_000 });
-  await cours.getByRole("button", { name: "Annuler la commande" }).click();
-  await cours.getByLabel("Autre motif").fill("Adresse introuvable, livreur revenu");
-  await cours.getByRole("button", { name: /^Annuler et rembourser/ }).click();
-  await expect(tablette.locator(".tab-message")).toContainText("remboursée");
+  // Annuler une livraison partie rembourse tout : gérant seulement (audit de sécurité 2, S2-01).
+  await expect(cours.getByRole("button", { name: "Annuler la commande" })).toHaveCount(0);
+  await expect(cours).toContainText("Seul le gérant peut annuler une livraison partie.");
+  const gerant = await (await browser.newContext({ baseURL: BASE, viewport: { width: 1024, height: 768 } })).newPage();
+  await connecter(gerant, "/tablette", "gerant-livraison@laferme.test");
+  await gerant.getByRole("button", { name: "Continuer sans son" }).click();
+  await gerant.getByRole("button", { name: /^En cours/ }).click();
+  const coursGerant = gerant.locator(".tab-commande", { has: gerant.locator(".tab-num", { hasText: new RegExp(`^${c}$`) }) });
+  await expect(coursGerant.locator(".tab-meta")).toContainText("Partie", { timeout: 10_000 });
+  await coursGerant.getByRole("button", { name: "Annuler la commande" }).click();
+  await coursGerant.getByLabel("Autre motif").fill("Adresse introuvable, livreur revenu");
+  await coursGerant.getByRole("button", { name: /^Annuler et rembourser/ }).click();
+  await expect(gerant.locator(".tab-message")).toContainText("remboursée");
+  await gerant.context().close();
 
   await marco.reload();
   await expect(arret(marco, c)).toHaveCount(0);

@@ -41,7 +41,12 @@ async function demander(email: string, ip: string): Promise<ResultatDemande> {
   return envoye ? { statut: "envoye" } : codeAffichable(code);
 }
 
-export async function verifierCodePersonnel(email: string, code: string, ip: string, ancienJeton: string | null): Promise<ResultatVerification> {
+export async function verifierCodePersonnel(
+  email: string,
+  code: string,
+  ip: string,
+  ancienJeton: string | null,
+): Promise<Exclude<ResultatVerification, { statut: "ok" }> | { statut: "ok"; jeton: string; role: string | null }> {
   const jeton = nouveauJeton();
   const r = await fonctionSql<{ statut: string; attente?: number; bloque?: boolean; jusqu_a?: string }>("verifier_code_personnel_limite", {
     p_email: email,
@@ -55,7 +60,11 @@ export async function verifierCodePersonnel(email: string, code: string, ip: str
   // 15e code faux sur une adresse de l'équipe : on prévient le membre et le restaurant (une fois par blocage).
   // Envoyé après la réponse : attendre les courriels ralentirait le 15e essai pour la seule équipe (S11).
   if (r.bloque && r.jusqu_a) await apresReponse(prevenirBlocage(email, r.jusqu_a).catch((e) => console.error(`Alerte de blocage non envoyée : ${e instanceof Error ? e.message : e}`)));
-  if (r.statut === "ok") return { statut: "ok", jeton };
+  if (r.statut === "ok") {
+    // Rôle de la session neuve : le cookie d'un livreur dure 12 heures (S2-15).
+    const p = await fonctionSql<{ role: string } | null>("personnel_de_session", { p_session_hache: empreinte("session-personnel", jeton) });
+    return { statut: "ok", jeton, role: p?.role ?? null };
+  }
   if (r.statut === "attente") return { statut: "attente", attente: r.attente ?? 60 };
   return { statut: "invalide" };
 }

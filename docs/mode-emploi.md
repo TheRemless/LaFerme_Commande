@@ -45,7 +45,7 @@ Payée en ligne, le montant lui est remboursé. À payer au comptoir, il est dé
 - Il veut changer sa commande. Ce n'est pas possible sur la tablette. Annuler la commande et lui demander de recommander.
 - Il veut annuler. Toucher « Annuler la commande », choisir « À la demande du client » puis toucher « Annuler et rembourser ». Le lien « Fermer » referme le panneau sans rien annuler.
 - La commande est déjà prête ou livrée. Noter son numéro et prévenir le gérant : il rembourse depuis le back-office, en entier ou en partie.
-- La livraison est partie. « Annuler la commande » reste possible et rembourse. Le livreur lit « annulée, rapportez le sac » sur son téléphone. Client absent : voir « Les livraisons » plus bas, rien n'est remboursé.
+- La livraison est partie. « Annuler la commande » reste possible pour le gérant seulement. Elle rembourse tout. Le livreur lit « annulée, rapportez le sac » sur son téléphone. Client absent : voir « Les livraisons » plus bas, rien n'est remboursé.
 
 ### Pendant le service (bouton « Pause, délai, ruptures »)
 
@@ -122,7 +122,7 @@ Client absent à la livraison : la commande est close sans remboursement, avec l
 
 ### Carte
 
-- Changer un prix. Chercher le plat, toucher sa ligne, écrire le prix (18 ou 18.50), laisser « Prix validé » coché, toucher « Enregistrer le plat ». Le site change tout de suite.
+- Changer un prix. Chercher le plat, toucher sa ligne, écrire le prix (18 ou 18.50), recocher « Prix validé » (la case se décoche dès que le prix change), toucher « Enregistrer le plat ». Le site change tout de suite.
 - Retirer un plat de la vente. Décocher « Commandable sur le site » puis enregistrer. Pour la journée seulement, utiliser « Épuisé » sur la tablette.
 - Retirer un plat de la carte pour de bon. Ouvrir sa fiche, toucher « Archiver ce plat » puis confirmer. Il part dans « Plats archivés » en bas de la page. Les anciennes commandes et l'export comptable ne changent pas. « Remettre à la carte » le ramène, hors de la vente : cocher « Commandable » pour le revendre.
 - Ajouter un plat. Toucher « Ajouter un plat » en haut. Catégorie, poste (pizza ou cuisine), nom, prix, puis les options (suppléments, choix des pâtes), les retraits gratuits, la provenance et les allergènes. Toucher « Créer le plat ». Il reste hors de la vente tant qu'il manque le prix validé, les allergènes ou une provenance à fournir. Sa fiche dit ce qui manque.
@@ -208,7 +208,7 @@ Client absent à la livraison : la commande est close sans remboursement, avec l
 
 Adresse : la page `/livreur` du site, sur votre téléphone. Ajoutez-la à l'écran d'accueil.
 
-Connexion avec votre e-mail et le code reçu par e-mail. Le gérant vous inscrit d'abord dans « Équipe ».
+Connexion avec votre e-mail et le code reçu par e-mail. Le gérant vous inscrit d'abord dans « Équipe ». La connexion dure 12 heures. Reconnectez-vous au début de chaque service.
 
 Restaurant : 022 792 16 89
 

@@ -314,11 +314,16 @@ export function FichePlat({ plat, donnees, recharger }: { plat: PlatGestion; don
     if (!erreur) await recharger();
   }
 
+  const prixInitial = chf(plat.prix_centimes);
   const champ = (cle: "nom" | "prix" | "provenance" | "a_fournir" | "allergenes") => ({
     id: `${ids}-${cle}`,
     value: f[cle],
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [cle]: e.target.value }),
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
+      // Nouveau prix : « Prix validé » se décoche, à recocher une fois le prix vérifié (audit de sécurité 2, S2-02).
+      setF(cle === "prix" ? { ...f, prix: e.target.value, prix_valide: e.target.value === prixInitial ? !plat.prix_a_valider : false } : { ...f, [cle]: e.target.value }),
   });
+  // Un plat en vente au prix validé dont le nouveau prix n'est pas validé sort de la vente (la base le fait).
+  const sortDeLaVente = !duJour && plat.commandable && !plat.prix_a_valider && !f.prix_valide;
   const retraitsAValider = plat.retraits.some((r) => r.a_valider);
   const doitEtreComplet = plat.origine !== "carte";
 
@@ -339,6 +344,7 @@ export function FichePlat({ plat, donnees, recharger }: { plat: PlatGestion; don
                 <span>Prix validé</span>
               </label>
             )}
+            {sortDeLaVente && <p className="aide">Prix pas encore validé. Le plat sort de la vente et y revient dès que la case est cochée.</p>}
           </div>
           <div className="champ champ-large">
             <label htmlFor={`${ids}-description`}>Description</label>

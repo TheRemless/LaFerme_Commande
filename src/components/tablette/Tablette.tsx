@@ -79,7 +79,7 @@ function sonner(ctx: AudioContext) {
   }
 }
 
-export function Tablette({ nom, supabase }: { nom: string; supabase: { url: string; cle: string } | null }) {
+export function Tablette({ nom, gerant = false, supabase }: { nom: string; gerant?: boolean; supabase: { url: string; cle: string } | null }) {
   const router = useRouter();
   const [donnees, setDonnees] = useState<Donnees | null>(null);
   const [dernierContact, setDernierContact] = useState<number | null>(null);
@@ -372,6 +372,7 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
               avance={avance}
               taches={(donnees.impression.taches ?? []).filter((t) => t.commande_id === c.id)}
               livraison={livraisonDe.get(c.id)}
+              gerant={gerant}
               agir={(corps) => agir(c.id, corps)}
               recharger={charger}
             />
@@ -396,6 +397,7 @@ function CarteCommande({
   avance,
   taches,
   livraison,
+  gerant,
   agir,
   recharger,
 }: {
@@ -405,6 +407,7 @@ function CarteCommande({
   avance: DelaisImpression;
   taches: Tache[];
   livraison?: { nom: string; rang: number; l: DonneesLivraisons["livraisons"][number] };
+  gerant: boolean;
   agir: (corps: Record<string, unknown>) => Promise<void>;
   recharger: () => Promise<void>;
 }) {
@@ -666,9 +669,14 @@ function CarteCommande({
               Il manque…
             </button>
           )}
-          {c.statut !== "prete" && (
+          {c.statut === "partie" && !gerant && (
+            // Livraison partie : l'annuler rembourse tout, donc gérant seulement (audit de sécurité 2, S2-01).
+            // Client absent : onglet Livraisons, sans remboursement.
+            <p className="aide">Seul le gérant peut annuler une livraison partie.</p>
+          )}
+          {c.statut !== "prete" && (c.statut !== "partie" || gerant) && (
             // À l'écart des autres boutons : elle annule la commande (et rembourse si elle est payée). Une
-            // livraison partie s'annule aussi (client absent, adresse introuvable) : le livreur le lit.
+            // livraison partie s'annule aussi (adresse introuvable), par le gérant : le livreur le lit.
             <>
               <span className="tab-saut" aria-hidden="true" />
               <button type="button" className="bouton-second tab-annuler" onClick={() => setPanneau("refuser")}>

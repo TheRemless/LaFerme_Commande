@@ -136,6 +136,7 @@ Hors des heures de service, avec Giuseppe ou l'équipe au comptoir, sur la prév
 
 Un jour sans service, jamais pendant un service.
 
+- [ ] **À faire avant d'activer TWINT en production (audit de sécurité 2, S2-03, pas encore codé).** Aujourd'hui, un remboursement est noté « fait » dès que Stripe l'accepte. S'il échoue ensuite (état `pending` puis `failed`, possible avec TWINT), personne ne le voit, alors que le client a reçu « remboursé ». Claude code avant la bascule : garder le remboursement « en cours » tant que Stripe ne dit pas `succeeded`, traiter l'événement `charge.refund.updated` dans le webhook (événement à ajouter chez Stripe, test et live) et alerter le restaurant sur `failed`. Essai en mode test avec la carte Stripe de remboursement en échec différé. Détail : [audits/securite-2.md](audits/securite-2.md#s2-03).
 - [ ] Jérémy : accord écrit pour la mise en production.
 - [ ] Jérémy (commande lancée par lui) : vider les données de test de la base. Claude prépare le fichier et dit ce qu'il fait. Avant, Jérémy dit si la commande « Moi Moi » doit rester. Contenu prévu :
   - commandes de test des préversions, avec leurs courriels et événements de paiement : `delete from courriels; delete from evenements_paiement; delete from remboursements; delete from commandes; delete from compteurs_jour;` (détail : [PROMPT.md](PROMPT.md) §11) ;
