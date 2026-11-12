@@ -1,0 +1,121 @@
+# Sauvegarde quotidienne de la base, chiffrée, gardée 30 jours (docs/sauvegardes.md).
+# Chaque nuit : copie de la base Supabase, restauration d'essai dans une base vide et comparaison avec
+# l'original, puis chiffrement pour la clé publique de Jérémy et dépôt comme artefact de ce passage.
+# GitHub n'a jamais la clé privée : il garde un fichier qu'il ne peut pas lire.
+# Coût : environ 2 minutes par nuit, 60 par mois (docs/filet.md).
+name: Sauvegarde de la base
+
+on:
+  schedule:
+    # 2h23 UTC : 3h23 en hiver, 4h23 en été à Genève. Pas à l'heure pile, où GitHub retarde les tâches.
+    - cron: "23 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: sauvegarde
+  cancel-in-progress: false
+
+env:
+  # Même version majeure que Supabase (supabase/config.toml) : pg_dump refuse une base plus récente que lui.
+  PG_VERSION: "17"
+
+jobs:
+  sauvegarde:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      # Base jetable, détruite avec le runner : on y restaure la copie pour prouver qu'elle se relit.
+      verification:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: verification
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - name: Réglages présents ?
+        id: reglages
+        env:
+          DB_URL: ${{ secrets.SUPABASE_URL_SAUVEGARDE }}
+          CLE_PUBLIQUE: ${{ vars.SAUVEGARDE_CLE_PUBLIQUE }}
+        run: |
+          if [ -z "$DB_URL" ] && [ -z "$CLE_PUBLIQUE" ]; then
+            echo "::warning::Sauvegarde pas encore réglée : secret SUPABASE_URL_SAUVEGARDE et variable SAUVEGARDE_CLE_PUBLIQUE à poser (docs/sauvegardes.md)."
+            echo "pret=non" >> "$GITHUB_OUTPUT"
+          elif [ -z "$DB_URL" ] || [ -z "$CLE_PUBLIQUE" ]; then
+            echo "::error::Un seul des deux réglages est posé : SUPABASE_URL_SAUVEGARDE et SAUVEGARDE_CLE_PUBLIQUE vont ensemble."
+            exit 1
+          else
+            echo "pret=oui" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.reglages.outputs.pret == 'oui'
+
+      - name: Outils (pg_dump ${{ env.PG_VERSION }}, age)
+        if: steps.reglages.outputs.pret == 'oui'
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          # Empreinte publiée de la clé du dépôt PostgreSQL (wiki.postgresql.org/wiki/Apt) : refus si elle change.
+          gpg --show-keys --with-colons /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc | grep -q '^fpr:::::::::B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8:$'
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends "postgresql-client-$PG_VERSION" age > /dev/null
+          echo "/usr/lib/postgresql/$PG_VERSION/bin" >> "$GITHUB_PATH"
+
+      - name: Copie, vérification et chiffrement
+        if: steps.reglages.outputs.pret == 'oui'
+        env:
+          DB_URL: ${{ secrets.SUPABASE_URL_SAUVEGARDE }}
+          CLE_PUBLIQUE: ${{ vars.SAUVEGARDE_CLE_PUBLIQUE }}
+          VERIFIER_URL: postgresql://postgres:verification@localhost:5432/postgres
+          SORTIE: ${{ runner.temp }}/sauvegarde
+        run: |
+          pg_dump --version
+          scripts/exploitation/sauvegarder.sh
+          {
+            echo "### Sauvegarde du $(date -u +%d.%m.%Y)"
+            echo
+            echo "Copie restaurée dans une base vide et identique à l'original. Lignes par table :"
+            echo
+            echo '```'
+            grep '^table ' "$SORTIE"/*.empreinte.txt | sed -E 's/ acl=[^ ]+//'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Dépôt de la copie chiffrée (30 jours)
+        if: steps.reglages.outputs.pret == 'oui'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sauvegarde-${{ github.run_id }}
+          path: ${{ runner.temp }}/sauvegarde/
+          retention-days: 30
+          compression-level: 0
+          if-no-files-found: error
+
+      # Le plan Free inclut 500 Mo d'artefacts : au-delà, les dépôts suivants échouent.
+      - name: Place prise par les artefacts
+        if: steps.reglages.outputs.pret == 'oui'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          total=$(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.expired | not) | .size_in_bytes] | add // 0' | paste -sd+ | bc)
+          mo=$((total / 1048576))
+          echo "Artefacts gardés : $mo Mo sur 500 inclus." >> "$GITHUB_STEP_SUMMARY"
+          if [ "$mo" -gt 400 ]; then echo "::warning::Artefacts : $mo Mo sur 500. Raccourcir la conservation (docs/sauvegardes.md)."; fi
+
+      # Facultatif : un service externe s'inquiète si ce signal manque une nuit (docs/filet.md).
+      - name: Signal de vie
+        if: always() && steps.reglages.outputs.pret == 'oui'
+        env:
+          PING: ${{ secrets.SAUVEGARDE_PING_URL }}
+          ISSUE: ${{ job.status }}
+        run: |
+          if [ -z "$PING" ]; then exit 0; fi
+          if [ "$ISSUE" = "success" ]; then curl -fsS -m 10 --retry 3 "$PING" > /dev/null; else curl -fsS -m 10 --retry 3 "$PING/fail" > /dev/null; fi

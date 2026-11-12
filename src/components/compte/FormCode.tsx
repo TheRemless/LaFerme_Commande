@@ -21,6 +21,10 @@ export function FormCode({ jeton, titreBouton = "Me connecter", onConnecte, api 
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
   const champCode = useRef<HTMLInputElement>(null);
+  // Bouton actif une fois la page prise en main par React. Un appui plus tôt envoyait le formulaire au
+  // navigateur, qui rechargeait la page sans demander de code (vu dans les tests sur un poste chargé).
+  const [pret, setPret] = useState(false);
+  useEffect(() => setPret(true), []);
 
   useEffect(() => {
     if (etape === "code") champCode.current?.focus();
@@ -80,7 +84,7 @@ export function FormCode({ jeton, titreBouton = "Me connecter", onConnecte, api 
           </div>
         )}
         {alerte}
-        <button type="submit" className="bouton-principal" disabled={envoi || (!jeton && email.trim().length < 5)}>
+        <button type="submit" className="bouton-principal" disabled={!pret || envoi || (!jeton && email.trim().length < 5)}>
           {envoi ? "Un instant…" : "Recevoir un code"}
         </button>
       </form>

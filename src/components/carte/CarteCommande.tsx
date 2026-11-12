@@ -2,11 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Categorie, LignePlat } from "@/lib/carte";
 import { lireChoix, type Choix } from "@/lib/choix";
+import { PHOTOS_SERREES, urlPhoto } from "@/lib/photos";
 import { calculerPanier, type Catalogue } from "@/lib/panier";
 import { usePanier, usePrixServeur } from "@/lib/panier-local";
+import { LIBELLE_SERVICE, momentDuChoix, motifPlatDuJour } from "@/lib/plat-du-jour";
+import { instantGeneve } from "@/lib/service";
 import { prixChf, prixCourt } from "@/lib/prix";
 import { nomAffiche } from "@/components/Plat";
 import { Icone } from "@/components/Icone";
@@ -14,7 +17,8 @@ import { FichePlat } from "@/components/carte/FichePlat";
 import { ContenuPanier } from "@/components/panier/ContenuPanier";
 
 export function CarteCommande({ categories, catalogue, preversion }: { categories: Categorie[]; catalogue: Catalogue; preversion: boolean }) {
-  const { lignes, charge, ajouter, quantite } = usePanier();
+  const panier = usePanier();
+  const { lignes, charge, ajouter, quantite } = panier;
   const reponse = usePrixServeur(lignes, charge);
   const [choix, setChoix] = useState<Choix | null>(null);
   const [ouvert, setOuvert] = useState<LignePlat | null>(null);
@@ -40,12 +44,47 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
         .filter((c) => c.plats.length > 0)
     : categories;
   const trouves = visibles.reduce((s, c) => s + c.plats.length, 0);
+  // Plat du jour : seulement pour un moment de ce jour-là et de son service.
+  const moment = choix ? momentDuChoix(choix.quand, choix.estimation, instantGeneve(new Date()).date) : null;
+
+  // Onglet de la catégorie lue (D20) : la section qui passe sous la barre des catégories devient active,
+  // et son onglet glisse dans la barre sur téléphone.
+  const [actif, setActif] = useState<string | null>(null);
+  const barre = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const sections = [...document.querySelectorAll<HTMLElement>("section.categorie")];
+    if (sections.length === 0) return;
+    let image = 0;
+    // Dernière section dont le haut est passé sous l'en-tête et la barre des catégories.
+    const lire = () => {
+      image = 0;
+      const limite = (barre.current?.getBoundingClientRect().bottom ?? 0) + 24;
+      const passees = sections.filter((s) => s.getBoundingClientRect().top <= limite);
+      setActif((passees.at(-1) ?? sections[0]).id);
+    };
+    const surDefilement = () => {
+      if (!image) image = window.requestAnimationFrame(lire);
+    };
+    lire();
+    window.addEventListener("scroll", surDefilement, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", surDefilement);
+      if (image) window.cancelAnimationFrame(image);
+    };
+  }, [visibles.length, q]);
+  useEffect(() => {
+    const lien = actif ? barre.current?.querySelector<HTMLElement>(`a[href="#${actif}"]`) : null;
+    if (lien && barre.current) {
+      const doux = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      barre.current.scrollTo({ left: lien.offsetLeft - 12, behavior: doux ? "smooth" : "auto" });
+    }
+  }, [actif]);
 
   return (
     <>
-      <nav className="cats" aria-label="Catégories">
+      <nav className="cats" aria-label="Catégories" ref={barre}>
         {visibles.map((c) => (
-          <a key={c.slug} href={`#${c.slug}`}>
+          <a key={c.slug} href={`#${c.slug}`} aria-current={actif === c.slug ? "true" : undefined}>
             {c.nom}
           </a>
         ))}
@@ -85,14 +124,17 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
             const avecPhoto = c.plats.filter((p) => p.photo);
             const sansPhoto = c.plats.filter((p) => !p.photo);
             const rendre = (p: LignePlat, j: number) => {
-              const motif = p.rupture_motif ?? (seulementPizzas && p.station !== "pizza" ? "Seulement les pizzas à cette heure" : null);
+              const motif =
+                p.rupture_motif ??
+                (seulementPizzas && p.station !== "pizza" ? "Seulement les pizzas à cette heure" : null) ??
+                (p.jour && p.jour_service && moment ? motifPlatDuJour({ date: p.jour, service: p.jour_service }, moment) : null);
               return (
                 <li key={p.slug} className={`plat ${p.photo ? "a-photo" : "sans-image"}${motif ? " epuise" : ""}`} data-slug={p.slug}>
                   <button type="button" className="plat-carte" onClick={() => setOuvert(p)} disabled={Boolean(motif)}>
                     {p.photo && (
-                      <span className="plat-media">
+                      <span className={`plat-media${PHOTOS_SERREES.includes(p.photo) ? " serre" : ""}`}>
                         <Image
-                          src={`/plats/${p.photo}`}
+                          src={urlPhoto(p.photo)}
                           alt=""
                           fill
                           sizes="(min-width: 1280px) 18vw, (min-width: 900px) 24vw, 50vw"
@@ -102,6 +144,7 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
                     )}
                     <span className="plat-txt">
                       <span className="plat-nom">{nomAffiche(p)}</span>
+                      {p.jour_service && <span className="plat-service">{LIBELLE_SERVICE[p.jour_service]}</span>}
                       {p.description && <span className="plat-desc">{p.description}</span>}
                       {motif && <span className="plat-rupture">{motif}</span>}
                     </span>
@@ -119,6 +162,7 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
               <section key={c.slug} id={c.slug} className="categorie" aria-labelledby={`${c.slug}-titre`}>
                 <h2 id={`${c.slug}-titre`}>{c.nom}</h2>
                 {c.slug === "pizzas" && !q && <p className="cat-note">Ajoutez ou retirez des ingrédients sur chaque pizza.</p>}
+                {c.slug === "plat-du-jour" && <p className="cat-note">Aujourd&apos;hui seulement.</p>}
                 {avecPhoto.length > 0 && <ul className="plats">{avecPhoto.map(rendre)}</ul>}
                 {sansPhoto.length > 0 && <ul className="plats plats-texte">{sansPhoto.map(rendre)}</ul>}
               </section>
@@ -127,7 +171,7 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
         </div>
         <aside className="panier-col" aria-label="Votre commande">
           <h2 className="panier-titre">Votre commande</h2>
-          <ContenuPanier lignes={lignes} quantite={quantite} catalogue={catalogue} choix={choix} reponse={reponse} preversion={preversion} />
+          <ContenuPanier lignes={lignes} quantite={quantite} catalogue={catalogue} choix={choix} reponse={reponse} preversion={preversion} suivi={panier} />
         </aside>
       </div>
       {nbArticles > 0 && (

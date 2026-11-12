@@ -14,7 +14,20 @@ export default async function PageTablette() {
   const cle = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   return (
     <main id="contenu" className="page-tablette">
-      {personnel ? <Tablette nom={personnel.nom} supabase={url && cle ? { url, cle } : null} /> : <ConnexionPersonnel />}
+      {!personnel ? (
+        <ConnexionPersonnel />
+      ) : personnel.role === "livreur" ? (
+        // Un livreur ne voit que ses livraisons, sur son téléphone : pas la file du restaurant.
+        <div className="connexion connexion-personnel">
+          <h1>Tablette du restaurant</h1>
+          <p>Votre compte est celui d&apos;un livreur. Vos livraisons sont sur une autre page.</p>
+          <a className="bouton-principal" href="/livreur">
+            Mes livraisons
+          </a>
+        </div>
+      ) : (
+        <Tablette nom={personnel.nom} supabase={url && cle ? { url, cle } : null} />
+      )}
     </main>
   );
 }

@@ -1,6 +1,6 @@
 // Contrôle des champs envoyés par le back-office. Tout ce qui n'est pas reconnu est ignoré ;
 // une valeur douteuse rend une erreur claire. Fonctions pures, testées sans base.
-import { PHOTOS } from "@/lib/photos";
+import { estPhotoEnvoyee, PHOTOS } from "@/lib/photos";
 
 export type Resultat<T> = { ok: true; valeur: T } | { ok: false; erreur: string };
 
@@ -49,8 +49,18 @@ export function champsPlat(v: unknown): Resultat<Record<string, unknown>> {
     p.station = c.station;
   }
   if ("photo" in c) {
-    if (c.photo !== "" && !PHOTOS.includes(c.photo as (typeof PHOTOS)[number])) return { ok: false, erreur: "Photo inconnue." };
+    // Une photo du shooting, ou une photo envoyée (la base vérifie qu'elle existe).
+    if (c.photo !== "" && !PHOTOS.includes(c.photo as (typeof PHOTOS)[number]) && !estPhotoEnvoyee(c.photo)) return { ok: false, erreur: "Photo inconnue." };
     p.photo = c.photo;
+  }
+  if ("categorie" in c) {
+    if (typeof c.categorie !== "string" || !SLUG.test(c.categorie)) return { ok: false, erreur: "Catégorie inconnue." };
+    p.categorie = c.categorie;
+  }
+  if ("groupes" in c) {
+    const g = groupes(c.groupes);
+    if (!g) return { ok: false, erreur: "Options inconnues." };
+    p.groupes = g;
   }
   if ("provenance" in c) {
     const t = texte(c.provenance, 300);
@@ -70,6 +80,87 @@ export function champsPlat(v: unknown): Resultat<Record<string, unknown>> {
   return Object.keys(p).length ? { ok: true, valeur: p } : { ok: false, erreur: "Rien à changer." };
 }
 
+const SLUG = /^[a-z0-9-]{1,80}$/;
+
+function groupes(v: unknown): string[] | null {
+  if (!Array.isArray(v) || v.length > 5 || v.some((x) => typeof x !== "string" || !SLUG.test(x))) return null;
+  return [...new Set(v as string[])];
+}
+
+function garder(c: Record<string, unknown>, cles: string[]): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(c).filter(([k]) => cles.includes(k)));
+}
+
+// Slug d'un nom : « Risotto aux cèpes » → « risotto-aux-cepes ». La base ajoute -2, -3 s'il est pris.
+export function slugDe(nom: string, max = 60): string {
+  const s = nom
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .replace(/œ/g, "oe")
+    .replace(/æ/g, "ae")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, max)
+    .replace(/-+$/, "");
+  return s || "plat";
+}
+
+// Nouveau plat : mêmes contrôles que la fiche, nom, prix et poste exigés. La base décide s'il peut
+// être en vente (verrou de mise en ligne).
+export function champsNouveauPlat(v: unknown): Resultat<Record<string, unknown>> {
+  const c = (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
+  if (typeof c.categorie !== "string" || !SLUG.test(c.categorie)) return { ok: false, erreur: "Choisissez une catégorie." };
+  for (const [cle, message] of [
+    ["nom", "Indiquez le nom du plat."],
+    ["prix", "Indiquez le prix."],
+    ["station", "Choisissez le poste : pizza ou cuisine."],
+  ] as const) {
+    if (!(cle in c) || c[cle] === "") return { ok: false, erreur: message };
+  }
+  const autorises = ["nom", "description", "prix", "prix_valide", "station", "provenance", "provenances_a_fournir", "allergenes", "commandable"];
+  const base = champsPlat(garder({ ...c, prix_valide: c.prix_valide === true, commandable: c.commandable === true }, autorises));
+  if (!base.ok) return base;
+  const retraits = c.retraits === undefined ? [] : nomsRetraits(c.retraits);
+  if (!retraits) return { ok: false, erreur: "Liste de retraits invalide." };
+  const g = c.groupes === undefined ? [] : groupes(c.groupes);
+  if (!g) return { ok: false, erreur: "Options inconnues." };
+  return { ok: true, valeur: { ...base.valeur, categorie: c.categorie, slug: slugDe(String(base.valeur.nom)), retraits, groupes: g } };
+}
+
+export type ServiceJour = "midi" | "soir" | "journee";
+
+// Plat du jour : nom, prix, poste, date (aujourd'hui ou plus tard, la base borne à 14 jours) et service.
+// Son prix est valable dès que le gérant le saisit (décision de Jérémy, 12.11.2026).
+export function champsPlatDuJour(v: unknown, aujourdhui: string): Resultat<Record<string, unknown>> {
+  const c = (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
+  const jour = dateValide(c.jour);
+  if (!jour || jour < aujourdhui) return { ok: false, erreur: "Date invalide : aujourd'hui ou un jour à venir." };
+  if (c.service !== "midi" && c.service !== "soir" && c.service !== "journee") return { ok: false, erreur: "Choisissez midi, soir ou les deux." };
+  for (const [cle, message] of [
+    ["nom", "Indiquez le nom du plat."],
+    ["prix", "Indiquez le prix."],
+    ["station", "Choisissez le poste : pizza ou cuisine."],
+  ] as const) {
+    if (!(cle in c) || c[cle] === "") return { ok: false, erreur: message };
+  }
+  // Le prix d'un plat du jour vaut dès la saisie : pas de « Prix validé » (la base le tient pour validé).
+  const autorises = ["nom", "description", "prix", "station", "provenance", "allergenes", "commandable"];
+  const base = champsPlat(garder({ ...c, commandable: c.commandable === true }, autorises));
+  if (!base.ok) return base;
+  return { ok: true, valeur: { ...base.valeur, jour, service: c.service, slug: `jour-${jour}-${slugDe(String(base.valeur.nom), 40)}` } };
+}
+
+export function nomCategorie(v: unknown): string | null {
+  const t = texte(v, 40);
+  return t ? t : null;
+}
+
+export function listeSlugs(v: unknown, max = 200): string[] | null {
+  if (!Array.isArray(v) || v.length > max || v.some((x) => typeof x !== "string" || !SLUG.test(x))) return null;
+  return v as string[];
+}
+
 export function champsOption(v: unknown): Resultat<Record<string, unknown>> {
   const c = (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
   const p: Record<string, unknown> = {};
@@ -87,6 +178,16 @@ export function champsOption(v: unknown): Resultat<Record<string, unknown>> {
     p.actif = c.actif;
   }
   return Object.keys(p).length ? { ok: true, valeur: p } : { ok: false, erreur: "Rien à changer." };
+}
+
+// Nouveau supplément d'un groupe existant : nom et prix.
+export function nouvelleOption(v: unknown): Resultat<{ nom: string; prix_centimes: number; prix_valide: boolean }> {
+  const c = (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
+  const nom = texte(c.nom, 60);
+  if (!nom) return { ok: false, erreur: "Indiquez le nom du supplément." };
+  const prix = centimes(c.prix);
+  if (prix === null) return { ok: false, erreur: "Prix invalide : un montant en francs, par exemple 2 ou 1.50." };
+  return { ok: true, valeur: { nom, prix_centimes: prix, prix_valide: c.prix_valide === true } };
 }
 
 export function nomsRetraits(v: unknown): string[] | null {

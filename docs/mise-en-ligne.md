@@ -14,6 +14,7 @@ Liste de contrôle du site de commande, à suivre dans l'ordre. Rien ne part en 
 8. Acheter une imprimante, la brancher, puis la deuxième une fois la première testée. Prévoir la tablette.
 9. Faire la recette en service fictif avec l'équipe.
 10. Donner l'accord écrit pour la bascule, puis faire le premier vrai paiement, remboursé.
+11. Poser les réglages de la sauvegarde dans GitHub, puis créer le moniteur UptimeRobot au lancement ([filet.md](filet.md)).
 
 Les clés (Stripe, Resend, Supabase) se saisissent directement dans Netlify. Jamais dans une conversation.
 
@@ -35,7 +36,8 @@ Les clés (Stripe, Resend, Supabase) se saisissent directement dans Netlify. Jam
 ### Entreprise et textes légaux
 
 - [ ] Jérémy : donner la raison sociale, la forme juridique, le numéro IDE, le numéro TVA (si assujetti) et l'adresse e-mail du restaurant (exigée par la LCD). Détail : [legal-sources.md](legal-sources.md).
-- [ ] Jérémy, avec la fiduciaire : durée de conservation des commandes, règle en cas d'absence du client à la livraison, annulation avant acceptation, for juridique. Détail : [legal-sources.md](legal-sources.md).
+- [ ] Jérémy, avec la fiduciaire : durée de conservation des commandes, annulation avant acceptation, for juridique. Détail : [legal-sources.md](legal-sources.md).
+- [ ] CGV, absence du client à la livraison : la règle est décidée (12.11.2026, PR #35) et le site l'applique déjà (livraison close sans remboursement automatique, e-mail au client, le gérant décide au cas par cas). Le paragraphe entre crochets de `src/lib/legal/cgv.ts` doit la décrire, relu par la fiduciaire. Détail : [legal-sources.md](legal-sources.md).
 - [ ] Jérémy : faire relire `/mentions-legales`, `/cgv` et `/confidentialite` par un professionnel, une fois les informations ci-dessus intégrées par Claude (phase 2). Détail : [legal-sources.md](legal-sources.md).
 - [ ] Jérémy : annoncer au SCAV (Service de la consommation et des affaires vétérinaires, Genève) le début de la livraison, avec la description du transport (contenants, maintien au chaud ou au froid, délai). Le formulaire en ligne de ge.ch n'a pas encore été consulté. Détail : [recherche/obligations_legales.md](recherche/obligations_legales.md).
 
@@ -52,6 +54,15 @@ Les clés (Stripe, Resend, Supabase) se saisissent directement dans Netlify. Jam
   3. Configure, choisir Frankfurt (`fra`), puis Save.
   4. Redéployer : Deploys, puis Trigger deploy, puis Deploy project. Les anciens déploiements gardent l'ancienne région.
   5. Prévenir Claude.
+
+### Sauvegardes et surveillance
+
+- [ ] Jérémy : créer la clé de chiffrement des sauvegardes sur son Mac, la ranger dans son gestionnaire de mots de passe et sur une clé USB. Détail : [sauvegardes.md](sauvegardes.md), « Mise en place », étape 1.
+- [ ] Jérémy : créer dans Supabase le rôle de lecture seule `sauvegarde` (SQL fourni), puis poser dans GitHub le secret `SUPABASE_URL_SAUVEGARDE` et la variable `SAUVEGARDE_CLE_PUBLIQUE`. Lancer une fois « Sauvegarde de la base » à la main et prévenir Claude. Détail : [sauvegardes.md](sauvegardes.md), étapes 2 et 3.
+- [ ] Jérémy : sur github.com, Settings, Notifications, vérifier que les échecs d'Actions arrivent par e-mail.
+- [ ] Jérémy, facultatif : contrôle Healthchecks.io pour la sauvegarde (secret `SAUVEGARDE_PING_URL`). Détail : [sauvegardes.md](sauvegardes.md), étape 4.
+- [ ] Jérémy : décider de passer GitHub en Pro pour protéger la branche `main` (prix à lire dans github.com/settings/billing). Sans Pro, la règle « aucune fusion sans vérifications vertes » la remplace. Détail : [filet.md](filet.md), « Protection de la branche main ».
+- [ ] Jérémy, avec la relecture juridique : citer ou non dans la déclaration de confidentialité les copies chiffrées de la base gardées 30 jours chez GitHub. Détail : [sauvegardes.md](sauvegardes.md), « Données de clients ».
 
 ### Matériel
 
@@ -117,6 +128,8 @@ Hors des heures de service, avec Giuseppe ou l'équipe au comptoir, sur la prév
 - [ ] Claude : parcours client sur un iPhone, un Android et un ordinateur, puis à 320 px de large.
 - [ ] Claude, avec un iPhone de Jérémy : parcours complet avec VoiceOver (accueil, carte, fiche, panier, commande, suivi). Détail : [accessibilite.md](accessibilite.md).
 - [ ] Claude, avec l'équipe : rejouer sur la vraie infrastructure les essais R-01 à R-18 de [audits/samedi-soir.md](audits/samedi-soir.md) (deux tablettes, double clic sur « Payer », pause datée puis tablette éteinte, veille de la tablette, imprimante débranchée, deux changements d'heure, temps des gestes, redéploiement pendant le service, tickets des commandes à l'avance sortis le jour J).
+- [ ] Équipe et Claude : jouer trois pages de [pannes.md](pannes.md) en service fictif (imprimante sans papier, tablette figée, retour à la version précédente chez Netlify sur une préversion), avec la page imprimée près de la tablette.
+- [ ] Claude : restaurer la dernière sauvegarde de GitHub dans une base Postgres vide et comparer à son empreinte. Détail : [sauvegardes.md](sauvegardes.md), « Restaurer ».
 - [ ] Jérémy : noter ce qui gêne l'équipe. Claude corrige avant la bascule.
 
 ## Phase 4 : bascule
@@ -134,6 +147,8 @@ Un jour sans service, jamais pendant un service.
 - [ ] Claude : retirer de `netlify.toml` la ligne `ignore` qui saute les builds de production de `main` (ajoutée le 9.11.2026 pour ne pas lancer de builds inutiles avant le lancement).
 - [ ] Claude : lancer le déploiement de production, par le build Netlify seulement (jamais un build du poste publié avec `netlify deploy`, que le site refuse). Le build échoue si un plat reste à valider, si `URL_SITE` ou `SECRET_COMPTES` manque, si `BASE_DE_TEST` est posée, ou s'il reste un membre en `.test`, une imprimante de test ou une commande passée sur une préversion.
 - [ ] Claude : après le déploiement, vérifier que `/api/diagnostic/latence` et `/paiement-test/<id>` répondent 404, que le cookie de session commence par `__Host-` et porte `Secure`, et relire `journal_gestion` (aucune modification de prix ou d'allergène faite par « Équipe test » sans explication).
+- [ ] Claude : vérifier `https://<domaine>/api/sante` : `"etat":"ok"`, `"contexte":"production"` et une surveillance passée il y a moins d'une minute (la fonction planifiée tourne). Noter l'adresse du site en tête de [pannes.md](pannes.md), puis l'imprimer pour le comptoir.
+- [ ] Jérémy : créer le moniteur UptimeRobot sur `https://<domaine>/api/sante`, alertes au restaurant et à Jérémy. Claude vérifie que l'alerte part. Détail : [filet.md](filet.md), section 2.
 - [ ] Jérémy : passer une vraie commande de faible montant payée par TWINT, puis la refuser sur la tablette. Le remboursement doit arriver. Claude vérifie Stripe, la base, les tickets et les e-mails.
 
 ## Phase 5 : après la bascule
@@ -145,3 +160,4 @@ Un jour sans service, jamais pendant un service.
 - [ ] Jérémy : garder Uber Eats en parallèle quelques mois, puis comparer le nombre de commandes et les frais. Détail : [PROMPT.md](PROMPT.md).
 - [ ] Jérémy : suivre la consommation de crédits Netlify le premier mois (attendu : environ 300 sans client). Détail : [performance.md](performance.md).
 - [ ] Claude, après un mois : bilan des commandes, des alertes, des coûts et des demandes de l'équipe.
+- [ ] Claude, chaque trimestre : rejouer la restauration de la dernière sauvegarde dans une base vide. Chaque mois : relire la place des artefacts (avertissement à 400 Mo) et les minutes GitHub consommées. Détail : [sauvegardes.md](sauvegardes.md), [filet.md](filet.md).

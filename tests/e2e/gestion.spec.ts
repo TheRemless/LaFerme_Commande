@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { SITE } from "./site";
 
 // Back-office : réservé au gérant. Un gérant de test par projet (supabase/local/donnees-test.sql).
 // L'import est seulement prévisualisé ici : l'appliquer changerait des prix pendant les autres tests
@@ -18,7 +19,7 @@ async function connecter(page: Page, email: string) {
 }
 
 test.beforeAll(async ({ browser }, info) => {
-  gestion = await browser.newPage({ baseURL: "http://localhost:3200" });
+  gestion = await browser.newPage({ baseURL: SITE });
   await connecter(gestion, `gerant-${info.project.name}@laferme.test`);
   await expect(gestion.getByRole("heading", { name: "Back-office" })).toBeVisible();
 });
@@ -31,16 +32,16 @@ test("un plat se modifie, ce qui bloque s'affiche, la modification va au journal
   await expect(gestion.locator(".ges-bloquants")).toContainText("bloquent la mise en ligne");
   await gestion.getByRole("button", { name: "Carte", exact: true }).click();
   await gestion.getByLabel("Chercher un plat").fill("tonno");
-  await gestion.getByRole("button", { name: /^Pizza tonno/ }).click();
+  await gestion.getByRole("button", { name: /^Pizza Tonno/ }).click();
   const fiche = gestion.locator(".ges-fiche");
   await fiche.getByLabel("Allergènes").fill("gluten, lait, poisson (test)");
   await fiche.getByRole("button", { name: "Enregistrer le plat" }).click();
   await expect(fiche.getByText("Enregistré.")).toBeVisible();
-  await expect(gestion.getByRole("button", { name: /^Pizza tonno/ })).not.toContainText("allergènes manquants");
+  await expect(gestion.getByRole("button", { name: /^Pizza Tonno/ })).not.toContainText("allergènes manquants");
 
   await gestion.getByRole("button", { name: "Journal" }).click();
-  await expect(gestion.locator(".ges-journal")).toContainText("pizza-tonno");
-  await expect(gestion.locator(".ges-journal")).toContainText("gluten, lait, poisson (test)");
+  await expect(gestion.locator(".ges-journal-liste")).toContainText("Plat Pizza Tonno");
+  await expect(gestion.locator(".ges-journal-liste")).toContainText("gluten, lait, poisson (test)");
 });
 
 test("l'import du tableau montre les changements avant de les appliquer", async () => {
@@ -76,7 +77,7 @@ test("une zone se valide, les horaires et les fermetures s'affichent", async () 
 
 // Audit du gérant, G02 et G04 : une commande livrée se retrouve par le nom et se rembourse en partie.
 test("une commande passée se retrouve et se rembourse en partie", async ({}, info) => {
-  const ORIGINE = { Origin: "http://localhost:3200" };
+  const ORIGINE = { Origin: SITE };
   const prenom = `Remb${info.project.name}`;
   const rep = await gestion.request.post("/api/commandes", {
     headers: ORIGINE,
@@ -137,6 +138,27 @@ test("un membre de l'équipe s'ajoute puis se retire", async ({}, info) => {
   await expect(gestion.getByRole("heading", { name: "Anciens membres" })).toBeVisible();
 });
 
+// Audit du gérant, vague 2 : fermer un seul soir, puis le rouvrir depuis le journal (G11).
+test("un soir se ferme, puis se rouvre par le journal", async ({}, info) => {
+  const jour = info.project.name === "bureau" ? "2027-01-05" : "2027-01-12";
+  await gestion.getByRole("button", { name: "Livraison et horaires" }).click();
+  const bloc = gestion.locator(".ges-bloc", { has: gestion.getByRole("heading", { name: "Fermetures" }) });
+  await bloc.getByLabel("Fermer").selectOption("soir");
+  await bloc.getByLabel("Le", { exact: true }).fill(jour);
+  await bloc.getByLabel("Motif (pour vous)").fill(`Soirée privée ${info.project.name}`);
+  await bloc.getByRole("button", { name: "Ajouter la fermeture" }).click();
+  await expect(bloc.getByText("Fermeture ajoutée.")).toBeVisible();
+  await expect(bloc).toContainText(`le soir, Soirée privée ${info.project.name}`);
+
+  await gestion.getByRole("button", { name: "Journal" }).click();
+  const ligne = gestion.locator(".ges-journal-liste li", { hasText: `Soirée privée ${info.project.name}` }).first();
+  await ligne.getByRole("button", { name: "Annuler" }).click();
+  await ligne.getByRole("button", { name: "Oui, remettre l'ancienne valeur" }).click();
+  await expect(gestion.getByText("Ancienne valeur remise.")).toBeVisible();
+  await gestion.getByRole("button", { name: "Livraison et horaires" }).click();
+  await expect(gestion.locator(".ges-bloc", { has: gestion.getByRole("heading", { name: "Fermetures" }) })).not.toContainText(`Soirée privée ${info.project.name}`);
+});
+
 test("le back-office est fermé au personnel de service, aux clients et aux autres sites", async ({ page, request }, info) => {
   await connecter(page, `cuisine-${info.project.name}@laferme.test`);
   await expect(page.getByText("Réservé au gérant.")).toBeVisible();
@@ -145,11 +167,11 @@ test("le back-office est fermé au personnel de service, aux clients et aux autr
   expect((await request.get("/api/gestion/carte")).status()).toBe(401);
   expect((await request.get("/api/gestion/export?debut=2026-01-01&fin=2026-12-31")).status()).toBe(401);
   // Équipe et commandes passées : gérant seulement, requête du site seulement (audit du gérant).
-  const commeService = { Cookie: `laferme-personnel=${service.value}`, Origin: "http://localhost:3200" };
+  const commeService = { Cookie: `laferme-personnel=${service.value}`, Origin: SITE };
   expect((await request.get("/api/gestion/personnel", { headers: commeService })).status()).toBe(403);
   expect((await request.post("/api/gestion/personnel", { headers: commeService, data: { action: "ajouter", email: "x@y.ch", nom: "X", role: "gerant" } })).status()).toBe(403);
   expect((await request.post("/api/gestion/commandes", { headers: commeService, data: { action: "liste" } })).status()).toBe(403);
-  expect((await request.post("/api/gestion/commandes", { headers: { Origin: "http://localhost:3200" }, data: { action: "liste" } })).status()).toBe(401);
+  expect((await request.post("/api/gestion/commandes", { headers: { Origin: SITE }, data: { action: "liste" } })).status()).toBe(401);
   const gerant = (await gestion.context().cookies()).find((c) => c.name === "laferme-personnel")!;
   const pirate = await request.post("/api/gestion/carte", {
     headers: { Origin: "https://pirate.example", Cookie: `laferme-personnel=${gerant.value}` },

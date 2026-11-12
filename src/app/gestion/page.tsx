@@ -17,9 +17,9 @@ export default async function PageGestion() {
       ) : personnel.role !== "gerant" ? (
         <div className="connexion connexion-personnel">
           <h1>Back-office du restaurant</h1>
-          <p>Réservé au gérant. Votre compte donne accès à la tablette.</p>
-          <a className="bouton-second" href="/tablette">
-            Ouvrir la tablette
+          <p>Réservé au gérant. Votre compte donne accès {personnel.role === "livreur" ? "à vos livraisons" : "à la tablette"}.</p>
+          <a className="bouton-second" href={personnel.role === "livreur" ? "/livreur" : "/tablette"}>
+            {personnel.role === "livreur" ? "Mes livraisons" : "Ouvrir la tablette"}
           </a>
         </div>
       ) : (

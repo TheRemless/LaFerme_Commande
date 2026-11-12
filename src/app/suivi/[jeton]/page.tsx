@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { EnTete } from "@/components/EnTete";
+import { Icone } from "@/components/Icone";
 import { PiedDePage } from "@/components/PiedDePage";
 import { Actualiser } from "@/components/suivi/Actualiser";
 import { CreerCompte } from "@/components/suivi/CreerCompte";
@@ -11,8 +12,10 @@ import { heureTexte } from "@/lib/service";
 import { reconcilier } from "@/lib/commandes";
 import { detailsLigne, quandTexte } from "@/lib/courriel/modeles";
 import { commandeParJeton } from "@/lib/db/serveur";
+import { nomClient } from "@/lib/nom-plat";
 import { prixChf, prixCourt } from "@/lib/prix";
 import { PRIVE } from "@/lib/site";
+import { MOTIF_CLIENT_ABSENT } from "@/lib/livraisons-textes";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Suivi de commande, La Ferme", robots: PRIVE };
@@ -38,7 +41,9 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
   const cat = await chargerCatalogue().catch(() => null);
   const estimation = c.heure_confirmee ? null : await chargerConfigService().then((config) => estimationAsap(config, c!)).catch(() => null);
 
-  const position = POSITION[c.statut] ?? -1;
+  // Livraison close, client absent : pas « Livrée » (décision de Jérémy du 12.11.2026).
+  const nonRemise = c.statut === "terminee" && c.motif === MOTIF_CLIENT_ABSENT;
+  const position = nonRemise ? -1 : (POSITION[c.statut] ?? -1);
   const termine = ["terminee", "refusee", "annulee"].includes(c.statut);
   const enregistree = c.statut !== "paiement_en_attente" && c.statut !== "annulee";
   const paiement =
@@ -82,6 +87,12 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
               </p>
             </>
           )}
+          {nonRemise && (
+            <>
+              <h1>Commande non remise</h1>
+              <p className="suivi-change">Notre livreur est passé chez vous avec votre commande. Personne n&apos;a répondu et il est reparti avec la commande.</p>
+            </>
+          )}
           {position >= 0 && (
             <>
               <h1>
@@ -103,7 +114,9 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
               <ol className="etapes">
                 {ETAPES[c.mode].map((t, i) => (
                   <li key={t} className={i < position ? "fait" : i === position ? "en-cours" : ""} aria-current={i === position ? "step" : undefined}>
-                    <span className="puce" aria-hidden="true" />
+                    <span className="puce" aria-hidden="true">
+                      {i < position && <Icone nom="ok" />}
+                    </span>
                     <span className="etape-t">{t}</span>
                   </li>
                 ))}
@@ -119,7 +132,7 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
                 <li className="ligne" key={l.position}>
                   <div className="ligne-haut">
                     <span className="ligne-nom">
-                      {l.qte} × {l.nom}
+                      {l.qte} × {nomClient(l.nom, l.station === "pizza")}
                     </span>
                     <span className="ligne-prix">{prixCourt(l.total_centimes)}</span>
                   </div>

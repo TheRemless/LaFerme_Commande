@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useId, useState } from "react";
 import { heureDe, jourGeneveDe } from "@/lib/heures";
+import { nouvelleCle } from "@/lib/cle";
 import { prixChf as chf } from "@/lib/prix";
 import { poster } from "@/lib/requete-client";
 import { ajouterJours, jourTexte } from "@/lib/service";
@@ -61,10 +62,6 @@ const EVENEMENT: Record<string, string> = {
   encaisse: "Encaissée",
   remboursement: "Remboursement",
 };
-
-function nouvelleCle(): string {
-  return typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
-}
 
 export function GestionCommandes() {
   const ids = useId();
@@ -311,7 +308,7 @@ function FicheCommande({ id, apresRemboursement }: { id: string; apresRemboursem
       <p>
         <strong>Total {chf(f.total_centimes)}</strong>, {PAIEMENT[f.statut_paiement] ?? f.statut_paiement}.
         {f.rembourse_centimes > 0 ? ` Déjà remboursé : ${chf(f.rembourse_centimes)}.` : ""}
-        {f.motif && f.statut === "refusee" ? ` Motif : ${f.motif}` : ""}
+        {f.motif && (f.statut === "refusee" || f.statut === "terminee") ? ` Motif : ${f.motif}` : ""}
       </p>
 
       <details>

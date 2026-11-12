@@ -1,15 +1,18 @@
+import { TELEPHONE_RESTAURANT } from "@/lib/livraisons-textes";
 import type { Commande } from "@/lib/db/serveur";
 import type { Catalogue } from "@/lib/panier";
 import { prixChf, prixCourt } from "@/lib/prix";
 import { heureDe } from "@/lib/heures";
 import { heureTexte, jourTexte } from "@/lib/service";
 import { MOTIF_DEMANDE_CLIENT } from "@/lib/motifs";
+import { nomClient } from "@/lib/nom-plat";
+import { ADRESSE_SITE } from "@/lib/site";
 
 // Textes des courriels, passés par redaction-fr (voix de Giuseppe : direct, factuel).
 // Rien d'autre que des faits du registre (adresse, téléphone) et le contenu de la commande.
 
 const RESTAURANT = "Restaurant La Ferme, Route de Chancy 132, 1213 Onex";
-const TELEPHONE = "022 792 16 89";
+const TELEPHONE = TELEPHONE_RESTAURANT;
 
 function echapper(t: string): string {
   return t.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -43,6 +46,20 @@ function phraseAnnulation(c: Commande, motif: string): { texte: string; html: st
   };
 }
 
+// Mise en page commune des courriels (audit design, D17) : logo en tête, encre sur blanc, bouton noir pour le
+// suivi. Arial, parce que les polices du site ne passent pas dans toutes les messageries. La version texte
+// de chaque courriel reste la référence ; le HTML n'ajoute que la mise en forme.
+function enveloppe(corps: string, origine: string): string {
+  return `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#1c1b1a;max-width:560px">
+<p style="margin:0 0 20px"><img src="${echapper(origine)}/logo-la-ferme.png" width="120" height="40" alt="La Ferme" style="display:block;border:0"></p>
+${corps}
+<p style="margin-top:24px;padding-top:12px;border-top:1px solid #dcdcd8;color:#55524f;font-size:13px">${RESTAURANT}</p></div>`;
+}
+
+function bouton(url: string, texte: string): string {
+  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:16px 0"><tr><td style="background:#1c1b1a;border-radius:4px"><a href="${echapper(url)}" style="display:inline-block;padding:12px 22px;color:#ffffff;font-weight:700;text-decoration:none">${texte}</a></td></tr></table>`;
+}
+
 function lienSuivi(c: Commande): string {
   return `${c.origine}/suivi/${c.jeton_suivi}`;
 }
@@ -58,7 +75,7 @@ function modeTexte(c: Commande, estimation: number | null = null): string {
 
 export function courrielConfirmation(c: Commande, cat: Catalogue | null, estimation: number | null = null) {
   const paiement = c.moyen_paiement === "comptoir" ? `À payer au comptoir en venant la chercher, ${prixChf(c.total_centimes)}.` : `Payée en ligne, ${prixChf(c.total_centimes)}.`;
-  const lignes = c.lignes.map((l) => ({ titre: `${l.qte} × ${l.nom}`, prix: prixCourt(l.total_centimes), details: detailsLigne(cat, l) }));
+  const lignes = c.lignes.map((l) => ({ titre: `${l.qte} × ${nomClient(l.nom, l.station === "pizza")}`, prix: prixCourt(l.total_centimes), details: detailsLigne(cat, l) }));
   const sommes = [
     ["Sous-total", prixChf(c.sous_total_centimes)],
     ...(c.mode === "livraison" ? [["Livraison", prixChf(c.frais_centimes)]] : []),
@@ -83,7 +100,7 @@ export function courrielConfirmation(c: Commande, cat: Catalogue | null, estimat
     "",
     RESTAURANT,
   ].join("\n");
-  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#1c1b1a;max-width:560px">
+  const html = enveloppe(`
 <p>Bonjour ${echapper(c.client_prenom)},</p>
 <p>Nous avons bien reçu votre commande n° <strong>${c.numero}</strong>.<br>${echapper(modeTexte(c, estimation))}<br>Le restaurant vous confirme l'heure dès qu'il l'accepte.</p>
 <table style="width:100%;border-collapse:collapse">${lignes
@@ -93,11 +110,14 @@ export function courrielConfirmation(c: Commande, cat: Catalogue | null, estimat
         .join("")}</td><td style="padding:6px 0;border-top:1px solid #ddd;text-align:right;vertical-align:top">${l.prix}</td></tr>`,
     )
     .join("")}${sommes
-    .map(([a, b]) => `<tr><td style="padding:4px 0">${echapper(a)}</td><td style="padding:4px 0;text-align:right">${b}</td></tr>`)
+    .map(([a, b]) => {
+      const fort = a === "Total" ? ";font-weight:700;font-size:17px" : "";
+      return `<tr><td style="padding:4px 0${fort}">${echapper(a)}</td><td style="padding:4px 0;text-align:right${fort}">${b}</td></tr>`;
+    })
     .join("")}</table>
 <p>${echapper(paiement)}</p>
-<p><a href="${echapper(lienSuivi(c))}">Suivre la commande</a><br>Une question ? ${TELEPHONE}</p>
-<p style="color:#55524f;font-size:13px">${RESTAURANT}</p></div>`;
+${bouton(lienSuivi(c), "Suivre la commande")}
+<p>Une question ? ${TELEPHONE}</p>`, c.origine);
   return { sujet, texte, html };
 }
 
@@ -116,12 +136,11 @@ export function courrielRefusRemboursementEnCours(c: Commande, motif: string) {
     "",
     RESTAURANT,
   ].join("\n");
-  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#1c1b1a;max-width:560px">
+  const html = enveloppe(`
 <p>Bonjour ${echapper(c.client_prenom)},</p>
 <p>${phraseAnnulation(c, motif).html}</p>
 <p>${remboursement}</p>
-<p>Une question ? Appelez-nous au ${TELEPHONE}.</p>
-<p style="color:#55524f;font-size:13px">${RESTAURANT}</p></div>`;
+<p>Une question ? Appelez-nous au ${TELEPHONE}.</p>`, c.origine);
   return { sujet, texte, html };
 }
 
@@ -137,12 +156,11 @@ export function courrielRemboursement(c: Commande, motif: string) {
     "",
     RESTAURANT,
   ].join("\n");
-  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#1c1b1a;max-width:560px">
+  const html = enveloppe(`
 <p>Bonjour ${echapper(c.client_prenom)},</p>
 <p>${phraseAnnulation(c, motif).html}</p>
 <p>Nous vous remboursons ${prixChf(c.total_centimes)} sur le moyen de paiement utilisé. Le délai dépend de votre banque.</p>
-<p>Une question ? ${TELEPHONE}</p>
-<p style="color:#55524f;font-size:13px">${RESTAURANT}</p></div>`;
+<p>Une question ? ${TELEPHONE}</p>`, c.origine);
   return { sujet, texte, html };
 }
 
@@ -161,14 +179,13 @@ export function courrielCode(code: string) {
     "",
     RESTAURANT,
   ].join("\n");
-  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#1c1b1a;max-width:560px">
+  const html = enveloppe(`
 <p>Bonjour,</p>
 <p>Votre code pour vous connecter au site de commande de La Ferme est le</p>
 <p style="font-size:28px;font-weight:700;letter-spacing:4px;margin:8px 0">${echapper(code)}</p>
 <p>Il est valable 10 minutes et ne sert qu'une fois.</p>
 <p>Si vous n'avez rien demandé, ne faites rien. Sans ce code, personne n'entre dans votre compte.</p>
-<p>Une question ? ${TELEPHONE}</p>
-<p style="color:#55524f;font-size:13px">${RESTAURANT}</p></div>`;
+<p>Une question ? ${TELEPHONE}</p>`, ADRESSE_SITE);
   return { sujet, texte, html };
 }
 
@@ -188,8 +205,14 @@ export function courrielBlocagePersonnel(quand: string) {
     RESTAURANT,
   ];
   const texte = lignes.join("\n");
-  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#1c1b1a;max-width:560px">
-${lignes.filter((l) => l !== "").map((l) => `<p>${echapper(l)}</p>`).join("\n")}</div>`;
+  // Même mise en page que les courriels aux clients (logo, pied commun qui porte déjà l'adresse du restaurant).
+  const html = enveloppe(
+    lignes
+      .filter((l) => l !== "" && l !== RESTAURANT)
+      .map((l) => `<p>${echapper(l)}</p>`)
+      .join("\n"),
+    ADRESSE_SITE,
+  );
   return { sujet, texte, html };
 }
 
@@ -207,11 +230,11 @@ function courrielCourt(c: Commande, sujet: string, phrases: string[], avecSuivi 
     "",
     RESTAURANT,
   ].join("\n");
-  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#1c1b1a;max-width:560px">
+  const html = enveloppe(`
 <p>Bonjour ${echapper(c.client_prenom)},</p>
 ${phrases.map((p) => `<p>${echapper(p)}</p>`).join("\n")}
-<p>${avecSuivi ? `<a href="${echapper(lienSuivi(c))}">Suivre la commande</a><br>` : ""}Une question ? ${TELEPHONE}</p>
-<p style="color:#55524f;font-size:13px">${RESTAURANT}</p></div>`;
+${avecSuivi ? bouton(lienSuivi(c), "Suivre la commande") : ""}
+<p>Une question ? ${TELEPHONE}</p>`, c.origine);
   return { sujet, texte, html };
 }
 
@@ -237,6 +260,17 @@ export function courrielPrete(c: Commande) {
   ]);
 }
 
+// Livraison close, client absent (décision de Jérémy du 12.11.2026) : factuel, sans promesse. Le gérant
+// décide ensuite d'un éventuel remboursement depuis le back-office. Pas de lien de suivi (rien à suivre).
+export function courrielClientAbsent(c: Commande, passageIso: string) {
+  return courrielCourt(
+    c,
+    `Commande ${c.numero} non remise, La Ferme`,
+    [`Notre livreur est passé chez vous vers ${heureDe(passageIso)} avec votre commande n° ${c.numero}.`, "Personne n'a répondu et il est reparti avec la commande."],
+    false,
+  );
+}
+
 // Refus d'une commande qui n'a pas été payée en ligne (paiement au comptoir) : rien à rembourser.
 export function courrielRefus(c: Commande, motif: string) {
   return courrielCourt(c, `Commande ${c.numero} annulée, La Ferme`, [phraseAnnulation(c, motif).texte, "Rien n'a été débité."], false);
@@ -255,4 +289,22 @@ export function courrielRemboursementGeste(c: Commande, montantCentimes: number,
     motif,
     "La somme revient sur le moyen de paiement utilisé. Le délai dépend de votre banque.",
   ], false);
+}
+
+// Un plat ou un supplément manque sur une commande acceptée (audit du gérant, G07). Le client apprend ce qui
+// manque, ce qui lui est rendu, et que le reste est préparé. moyen : stripe (remboursé), deduction (au comptoir,
+// pas encore payé), especes (déjà payé au comptoir, rendu sur place).
+export function courrielManque(c: Commande, description: string, montantCentimes: number, moyen: "stripe" | "especes" | "deduction", resteCentimes: number) {
+  const montant = prixChf(montantCentimes);
+  const argent =
+    moyen === "stripe"
+      ? [`Nous vous remboursons ${montant}.`, "La somme revient sur le moyen de paiement utilisé. Le délai dépend de votre banque."]
+      : moyen === "deduction"
+        ? [`Vous payez ${prixChf(resteCentimes)} au comptoir au lieu de ${prixChf(c.total_centimes)}.`]
+        : [`Nous vous rendons ${montant} au comptoir.`];
+  return courrielCourt(c, `Il manque une partie de votre commande ${c.numero}, La Ferme`, [
+    `Nous ne pouvons pas préparer toute votre commande n° ${c.numero}. Il manque ${description}.`,
+    ...argent,
+    "Le reste de la commande est préparé comme prévu.",
+  ]);
 }

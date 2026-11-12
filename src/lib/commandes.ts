@@ -1,7 +1,8 @@
 import "server-only";
 import { chargerCatalogue } from "@/lib/catalogue";
 import { estimationAsap } from "@/lib/estimation";
-import { courrielConfirmation, courrielRemboursement, courrielRemboursementGeste } from "@/lib/courriel/modeles";
+import { courrielConfirmation, courrielManque, courrielRemboursement, courrielRemboursementGeste } from "@/lib/courriel/modeles";
+import { prixChf } from "@/lib/prix";
 import { envoyerCourriel } from "@/lib/courriel/envoi";
 import { chargerConfigService } from "@/lib/config-service";
 import { appliquerPaiement, commandeParId, fonctionSql, type Commande } from "@/lib/db/serveur";
@@ -32,7 +33,15 @@ async function envoyerConfirmation(c: Commande): Promise<void> {
 export function avertissementsPaiement(c: Commande, config: ConfigService, cat: Catalogue | null, maintenant = new Date()): string[] {
   const a: string[] = [];
   if (pauseEnCours(config, maintenant, c.mode)) a.push("Payée pendant la pause des commandes en ligne.");
-  const epuises = [...new Set(c.lignes.filter((l) => cat?.plats[l.plat_slug]?.rupture_motif).map((l) => l.nom))];
+  const epuises = [
+    ...new Set([
+      ...c.lignes.filter((l) => cat?.plats[l.plat_slug]?.rupture_motif).map((l) => l.nom),
+      // Supplément épuisé entre la commande et le paiement (audit du gérant, G07).
+      ...c.lignes.flatMap((l) =>
+        Object.entries(l.choix ?? {}).flatMap(([g, noms]) => noms.filter((n) => cat?.groupes[g]?.options.find((o) => o.nom === n)?.rupture)),
+      ),
+    ]),
+  ];
   if (epuises.length) a.push(`Épuisé depuis la commande : ${epuises.join(", ")}.`);
   const zone = config.zones.find((z) => z.numero === c.zone_numero);
   const quand = c.quand_type === "creneau" && c.quand_date && c.quand_minutes !== null ? { type: "creneau" as const, date: c.quand_date, minutes: c.quand_minutes } : { type: "asap" as const };
@@ -126,7 +135,7 @@ type LigneRemboursement = {
   id: string;
   commande_id: string;
   montant_centimes: number;
-  moyen: "stripe" | "especes";
+  moyen: "stripe" | "especes" | "deduction";
   statut: "en_cours" | "fait" | "echec";
   erreur: string | null;
   deja?: boolean;
@@ -184,27 +193,10 @@ export async function rembourserApresCoup(
   }
   const c = await commandeParId(commandeId);
   if (!c) return { ok: false, message: "Commande introuvable." };
-  let envoyer = r.statut === "fait" && !r.deja && r.moyen === "stripe";
-  if (r.moyen === "stripe" && r.statut === "en_cours") {
-    try {
-      const pi = c.stripe_payment_intent ?? "";
-      const s = remboursementSimule(pi, cle) ?? (await passerelle().rembourser(pi, { montantCentimes, cle }));
-      r = await fonctionSql<LigneRemboursement>("terminer_remboursement", { p_id: r.id, p_ok: true, p_refund_id: s.id, p_erreur: null });
-      envoyer = r.statut === "fait" && r.change === true;
-    } catch (e) {
-      const detail = e instanceof Error ? e.message : String(e);
-      // Relance d'un geste déjà en cours (double appui, deuxième onglet), ou Stripe sans réponse claire (délai,
-      // réseau, erreur de son côté) : le remboursement a pu partir. On ne le marque pas en échec ; une relance
-      // plus tard, même clé, le termine sans doublon. Seul un refus net de Stripe le passe en échec.
-      if (r.deja || !refusNetStripe(e)) {
-        console.error(`Relance du remboursement de la commande ${c.numero} pas encore aboutie : ${detail}`);
-        return { ok: false, message: "Ce remboursement est encore en cours chez Stripe. Rechargez la fiche dans une minute." };
-      }
-      console.error(`Remboursement de la commande ${c.numero} refusé par Stripe : ${detail}`);
-      await fonctionSql("terminer_remboursement", { p_id: r.id, p_ok: false, p_refund_id: null, p_erreur: detail });
-      return { ok: false, message: "Stripe a refusé le remboursement. Rien n'a été rendu. Réessayez plus tard ou vérifiez dans Stripe." };
-    }
-  }
+  const stripe = await rembourserChezStripe(r, c, montantCentimes, cle);
+  if ("refus" in stripe) return stripe.refus;
+  r = stripe.r;
+  const envoyer = stripe.envoyer;
   if (envoyer) {
     const m = courrielRemboursementGeste(c, montantCentimes, motif);
     await envoyerCourriel({ commandeId: c.id, destinataire: c.client_email, ...m }).catch((e) =>
@@ -215,4 +207,94 @@ export async function rembourserApresCoup(
   const montant = (montantCentimes / 100).toFixed(2);
   if (r.moyen === "especes") return { ok: true, message: `CHF ${montant} notés comme rendus en espèces.` };
   return { ok: true, message: r.deja && !envoyer ? `Remboursement de CHF ${montant} déjà fait.` : `CHF ${montant} remboursés. Le client reçoit un e-mail.` };
+}
+
+// Remboursement Stripe d'une ligne « en cours » (G02 et manque signalé, G07). La clé du geste sert de clé
+// d'idempotence chez Stripe. Seul un refus net de Stripe passe la ligne en échec ; une relance ou une réponse
+// ambiguë (délai, réseau) la laisse en cours, à relancer avec la même clé, sans doublon.
+async function rembourserChezStripe(
+  r: LigneRemboursement,
+  c: Commande,
+  montantCentimes: number,
+  cle: string,
+): Promise<{ r: LigneRemboursement; envoyer: boolean } | { refus: { ok: false; message: string } }> {
+  if (r.moyen !== "stripe" || r.statut !== "en_cours") return { r, envoyer: r.statut === "fait" && !r.deja && r.moyen === "stripe" };
+  try {
+    const pi = c.stripe_payment_intent ?? "";
+    const s = remboursementSimule(pi, cle) ?? (await passerelle().rembourser(pi, { montantCentimes, cle }));
+    const fini = await fonctionSql<LigneRemboursement>("terminer_remboursement", { p_id: r.id, p_ok: true, p_refund_id: s.id, p_erreur: null });
+    return { r: fini, envoyer: fini.statut === "fait" && fini.change === true };
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : String(e);
+    if (r.deja || !refusNetStripe(e)) {
+      console.error(`Relance du remboursement de la commande ${c.numero} pas encore aboutie : ${detail}`);
+      return { refus: { ok: false, message: "Ce remboursement est encore en cours chez Stripe. Rechargez dans une minute." } };
+    }
+    console.error(`Remboursement de la commande ${c.numero} refusé par Stripe : ${detail}`);
+    await fonctionSql("terminer_remboursement", { p_id: r.id, p_ok: false, p_refund_id: null, p_erreur: detail });
+    return { refus: { ok: false, message: "Stripe a refusé le remboursement. Rien n'a été rendu. Réessayez plus tard ou vérifiez dans Stripe." } };
+  }
+}
+
+// ---------- Manque signalé depuis la tablette (audit du gérant, G07 option A) ----------
+
+export type ElementManque = { ligne: number; qte: number } | { ligne: number; groupe: string; nom: string };
+
+const ERREURS_MANQUE: Record<string, string> = {
+  deja_signale: "C'est déjà signalé pour cette commande.",
+  ligne_inconnue: "Choix invalide. Rechargez la page.",
+  option_absente: "Choix invalide. Rechargez la page.",
+  elements_invalides: "Choisissez ce qui manque.",
+  statut_non_remboursable: "Acceptez d'abord la commande.",
+  reserve_au_gerant: "Commande déjà prête ou partie : seul le gérant peut rembourser ce qui manque.",
+  pas_encaissee: "Commande pas payée, ou déjà remboursée.",
+  montant_trop_eleve: "Plus rien à rembourser sur cette commande.",
+  personnel_inactif: "Session terminée. Reconnectez-vous.",
+  cle_reutilisee: "Rechargez la page puis recommencez.",
+  cle_invalide: "Rechargez la page puis recommencez.",
+  commande_inconnue: "Commande introuvable.",
+};
+
+// Calcule (confirmer = false) ou rembourse (confirmer = true) ce qui manque sur une commande acceptée. Le montant
+// vient de la base. Payée en ligne : Stripe ; au comptoir pas encore payé : déduit de ce qu'il reste à encaisser.
+export async function signalerManque(
+  commandeId: string,
+  elements: ElementManque[],
+  cle: string,
+  personnelId: string,
+  confirmer: boolean,
+): Promise<{ ok: boolean; message: string; montant_centimes?: number; description?: string }> {
+  let r: LigneRemboursement & { description: string; montant_centimes: number };
+  try {
+    r = await fonctionSql("signaler_manque", { p_commande: commandeId, p_elements: elements, p_cle: cle, p_personnel: personnelId, p_confirmer: confirmer });
+  } catch (e) {
+    const m = e instanceof Error ? e.message : String(e);
+    const k = Object.keys(ERREURS_MANQUE).find((x) => m.includes(x));
+    if (k) return { ok: false, message: ERREURS_MANQUE[k] };
+    throw e;
+  }
+  const montant = prixChf(r.montant_centimes);
+  if (!confirmer) {
+    return { ok: true, montant_centimes: r.montant_centimes, description: r.description, message: `À rembourser : ${montant} (${r.description}).` };
+  }
+  const c = await commandeParId(commandeId);
+  if (!c) return { ok: false, message: "Commande introuvable." };
+  const stripe = await rembourserChezStripe(r, c, r.montant_centimes, cle);
+  if ("refus" in stripe) return stripe.refus;
+  const envoyer = r.moyen === "stripe" ? stripe.envoyer : !r.deja;
+  // Ce qui reste à encaisser au comptoir, tous les manques déduits.
+  const deduit = r.moyen === "deduction"
+    ? (await fonctionSql<{ commande_id: string; deduit_centimes: number }[]>("manques_en_cours", {})).find((x) => x.commande_id === c.id)?.deduit_centimes ?? r.montant_centimes
+    : 0;
+  if (envoyer) {
+    const m = courrielManque(c, r.description, r.montant_centimes, r.moyen, c.total_centimes - deduit);
+    await envoyerCourriel({ commandeId: c.id, destinataire: c.client_email, ...m }).catch((e) =>
+      console.error(`Courriel du manque non envoyé pour la commande ${c.numero} : ${e instanceof Error ? e.message : e}`),
+    );
+  }
+  await signalerTablette();
+  const base = { ok: true, montant_centimes: r.montant_centimes, description: r.description };
+  if (r.moyen === "deduction") return { ...base, message: `${montant} déduits. À encaisser : ${prixChf(c.total_centimes - deduit)}. Le client est prévenu par e-mail.` };
+  if (r.moyen === "especes") return { ...base, message: `Rendez ${montant} au client en espèces. Le client est prévenu par e-mail.` };
+  return { ...base, message: `${montant} remboursés. Le client est prévenu par e-mail.` };
 }

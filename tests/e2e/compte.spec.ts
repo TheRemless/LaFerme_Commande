@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { SITE } from "./site";
 
 // Comptes clients : connexion par code (affiché à l'écran par la doublure, adresses en .test seulement),
 // case « créer mon compte », historique, recommander, export, déconnexion et suppression.
@@ -7,7 +8,8 @@ let n = 0;
 // Chaque test a son e-mail et son « IP » (x-forwarded-for, cru seulement sur le poste local) :
 // les limites de débit d'un test ne gênent pas les autres.
 async function identite(page: Page, nom: string) {
-  const id = `${nom}-${test.info().project.name}-${Date.now()}-${++n}`;
+  // Le tirage au hasard évite que deux processus de test (même milliseconde, même compteur) aient le même e-mail.
+  const id = `${nom}-${test.info().project.name}-${Date.now()}-${++n}-${Math.random().toString(36).slice(2, 8)}`;
   await page.setExtraHTTPHeaders({ "x-forwarded-for": `10.6.${n}.${Math.floor(Math.random() * 250)}` });
   return `${id}@laferme.test`;
 }
@@ -86,7 +88,7 @@ test("commande en invité avec « créer mon compte », code sur le suivi, puis 
   await page.getByRole("link", { name: "Voir mon compte" }).click();
   await expect(page.getByRole("heading", { name: "Bonjour Léa" })).toBeVisible();
   await expect(page.locator(".ancienne-num")).toHaveText(numero);
-  await expect(page.locator(".ancienne-lignes")).toContainText("2 × Pizza Margherita");
+  await expect(page.locator(".ancienne-lignes")).toContainText("2 × Margherita");
   await expect(page.getByLabel("Téléphone")).toHaveValue("079 000 00 00");
 
   // Recommander avec un panier en cours : confirmation d'abord.
@@ -96,10 +98,11 @@ test("commande en invité avec « créer mon compte », code sur le suivi, puis 
   await page.getByRole("button", { name: "Recommander la même chose" }).click();
   await page.getByRole("button", { name: "Garder mon panier" }).click();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("laferme.panier.v1")!).lignes[0].qte)).toBe(5);
-  // Puis on remplace : mêmes plats que la commande, prix actuels, retour à la carte.
+  // Puis on remplace : mêmes plats que la commande, prix actuels, panier contrôlé à l'heure choisie (CM-19).
   await page.getByRole("button", { name: "Recommander la même chose" }).click();
   await page.getByRole("button", { name: "Remplacer mon panier" }).click();
-  await expect(page).toHaveURL(/\/carte/);
+  await expect(page).toHaveURL(/\/panier/);
+  await expect(page.getByText("2 plats remis dans votre panier.")).toBeVisible();
   const panier = await page.evaluate(() => JSON.parse(localStorage.getItem("laferme.panier.v1") ?? "{}"));
   expect(panier.lignes).toEqual([{ slug: "pizza-margherita", qte: 2, choix: {}, retraits: [], note: "" }]);
 });
@@ -160,7 +163,7 @@ test("deux appareils, puis « déconnecter tous mes appareils »", async ({ page
   const email = await identite(page, "partout");
   await seConnecter(page, email);
   await page.waitForTimeout(31_000);
-  const autre = await browser.newPage({ baseURL: "http://localhost:3200" });
+  const autre = await browser.newPage({ baseURL: SITE });
   await autre.setExtraHTTPHeaders({ "x-forwarded-for": `10.7.${n}.1` });
   await seConnecter(autre, email);
   await page.reload();
@@ -189,7 +192,7 @@ test("le serveur refuse les requêtes d'un autre site et sans session", async ({
   expect((await request.post("/api/compte/connexion", { ...ailleurs, data: { email: "a@laferme.test", code: "123456" } })).status()).toBe(403);
   // Sans en-tête Origin ni Sec-Fetch-Site : refusé aussi.
   expect((await request.post("/api/compte/code", { data: { email: "a@laferme.test" } })).status()).toBe(403);
-  const site = { headers: { Origin: "http://localhost:3200" } };
+  const site = { headers: { Origin: SITE } };
   expect((await request.post("/api/compte/supprimer", { ...site, data: { confirmer: true } })).status()).toBe(401);
   expect((await request.post("/api/compte/recommander", { ...site, data: { commande: "00000000-0000-0000-0000-000000000000" } })).status()).toBe(401);
   expect((await request.get("/api/compte/export")).status()).toBe(401);
@@ -198,7 +201,7 @@ test("le serveur refuse les requêtes d'un autre site et sans session", async ({
 test("même réponse pour un compte existant et un e-mail inconnu", async ({ page, request }) => {
   const email = await identite(page, "enum");
   await seConnecter(page, email);
-  const site = { Origin: "http://localhost:3200" };
+  const site = { Origin: SITE };
   const demande = (adresse: string, ip: string) => request.post("/api/compte/code", { headers: { ...site, "x-forwarded-for": ip }, data: { email: adresse } });
   // L'e-mail inconnu reçoit lui aussi un premier code : les deux sont alors dans le même état.
   expect((await demande(`x-${email}`, "10.8.0.3")).status()).toBe(200);

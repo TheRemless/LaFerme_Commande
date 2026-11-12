@@ -1,0 +1,91 @@
+# Vérifications de chaque PR et de main : lint, types, Vitest, puis build avec la base embarquée et Playwright.
+# Rien ne parle à Supabase, Stripe ni Resend : aucun secret n'est lu ici.
+# Coût : environ 2 jobs de 2 à 7 minutes par passage, arrondis à la minute (docs/filet.md).
+name: Vérifications
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Un nouveau push sur la même PR annule le passage en cours : on ne paie pas des minutes pour un commit dépassé.
+concurrency:
+  group: verifications-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "22"
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  code:
+    name: Lint, types et Vitest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Lint
+        run: npx eslint
+      - name: Types
+        run: npx tsc --noEmit
+      - name: Vitest
+        run: npx vitest run
+
+  e2e:
+    name: Build (base embarquée) et Playwright
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+
+      # Navigateur gardé en cache, clé = version exacte de Playwright installée.
+      - id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: cache-navigateurs
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium
+      - name: Chromium
+        if: steps.cache-navigateurs.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+      - name: Dépendances système de Chromium
+        if: steps.cache-navigateurs.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      # Cache du compilateur de Next : le build suivant ne recompile que ce qui a changé.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .next/cache
+          key: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**', 'next.config.*') }}
+          restore-keys: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
+
+      # Le serveur de test (playwright.config.ts) lance BASE_LOCALE=1 npm run build : le build de la base
+      # embarquée, avec son contrôle de mise en ligne, est vérifié ici.
+      - name: Playwright
+        run: npx playwright test
+
+      - name: Rapport en cas d'échec
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: rapport-playwright
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

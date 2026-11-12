@@ -13,6 +13,7 @@ const LISIBLES = [
   "horaires",
   "fermetures",
   "reglages",
+  "ouvertures",
 ] as const;
 export type Lisible = (typeof LISIBLES)[number];
 export type SourceDonnees = "supabase" | "locale";

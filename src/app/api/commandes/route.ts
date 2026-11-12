@@ -6,7 +6,8 @@ import { chargerConfigService } from "@/lib/config-service";
 import { detailsLigne } from "@/lib/courriel/modeles";
 import { commandeParId, ConfigurationManquante, creerCommande, fonctionSql, lierSessionPaiement } from "@/lib/db/serveur";
 import { origineSure } from "@/lib/origine";
-import { calculerPanier } from "@/lib/panier";
+import { calculerPanier, platDe } from "@/lib/panier";
+import { erreurPlatsDuJour, momentDe } from "@/lib/plat-du-jour";
 import { paiementDisponible, passerelle } from "@/lib/paiement/passerelle";
 import { comptoirPermis } from "@/lib/plafond-comptoir";
 import { prixPhrase } from "@/lib/prix";
@@ -16,6 +17,7 @@ import { compteCourant, jetonSession } from "@/lib/comptes/session";
 import { empreinte, ipDe } from "@/lib/comptes/securite";
 import { champClientInvalide, cleValide, clientValide, MESSAGE_CHAMP, detailsValides, lignesValides, quandValide } from "@/lib/validation";
 import { zoneServeur, type AdresseRetenue } from "@/lib/zone-serveur";
+import { nomClient } from "@/lib/nom-plat";
 
 // Passage de la commande. Le serveur refait tous les contrôles avec la base : contenu et prix, adresse
 // retrouvée dans le registre fédéral, zone, minimum, heure. Il enregistre la commande, puis renvoie
@@ -81,7 +83,7 @@ export async function POST(requete: Request) {
 
   const totaux = calculerPanier(catalogue, lignes, zone ? { frais_centimes: zone.frais_centimes, minimum_centimes: zone.minimum_centimes } : null);
   const erreurLigne = totaux.lignes.find((l) => l.erreur);
-  if (erreurLigne) return refus(`${erreurLigne.nom} : ${erreurLigne.erreur}`);
+  if (erreurLigne) return refus(`${nomClient(erreurLigne.nom, platDe(catalogue, erreurLigne.slug)?.categorie_slug === "pizzas")} : ${erreurLigne.erreur}`);
   if (totaux.manque_minimum_centimes > 0) return refus("Le minimum de livraison n'est pas atteint.");
   // Au comptoir, rien n'est payé avant le retrait : au-delà du plafond (réglage en base), en ligne seulement.
   if (moyen === "comptoir" && !comptoirPermis(totaux.total_centimes, config.plafondComptoirCentimes)) {
@@ -97,6 +99,9 @@ export async function POST(requete: Request) {
   if (!quandPossible(config, maintenant, mode, zone, totaux.pizzas_seulement, quand)) {
     return refus("Ce moment n'est plus disponible. Choisissez une autre heure.");
   }
+  // Plat du jour : seulement le jour dit et pour son service.
+  const jourRefuse = erreurPlatsDuJour(catalogue, lignes, momentDe(config, maintenant, mode, zone, totaux.pizzas_seulement, quand));
+  if (jourRefuse) return refus(`${jourRefuse} Retirez-le ou choisissez une autre heure.`);
 
   // Au comptoir, rien n'est payé avant le retrait : on limite les commandes en attente (audit, S5).
   // Les tests de bout en bout (même téléphone, même IP) coupent la limite ; la production le refuse.

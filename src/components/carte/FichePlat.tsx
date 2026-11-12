@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useId, useRef, useState } from "react";
 import type { LignePlat } from "@/lib/carte";
 import { LIMITES, prixUnitaire, type Catalogue, type LignePanier } from "@/lib/panier";
+import { urlPhoto } from "@/lib/photos";
 import { prixChf, prixCourt } from "@/lib/prix";
 import { nomAffiche } from "@/components/Plat";
 import { Icone } from "@/components/Icone";
@@ -89,7 +90,7 @@ export function FichePlat({
         </button>
         {plat.photo ? (
           <div className="fiche-media">
-            <Image src={`/plats/${plat.photo}`} alt={nomAffiche(plat)} fill sizes="(min-width: 900px) 460px, 100vw" />
+            <Image src={urlPhoto(plat.photo)} alt={nomAffiche(plat)} fill sizes="(min-width: 900px) 460px, 100vw" />
           </div>
         ) : (
           <div className="fiche-media fiche-sans-photo" aria-hidden="true">
@@ -134,7 +135,9 @@ export function FichePlat({
                 <div className="options-grille">
                   {visibles.map((o) => {
                     const coche = choisis.includes(o.nom);
-                    const bloque = !unique && !coche && choisis.length >= g.choix_max;
+                    // Supplément épuisé pour aujourd'hui (tablette, audit du gérant G07) : on peut seulement le décocher.
+                    const epuise = Boolean(o.rupture) && !coche;
+                    const bloque = epuise || (!unique && !coche && choisis.length >= g.choix_max);
                     return (
                       <label key={o.nom} className={`option${bloque ? " bloque" : ""}`}>
                         <input
@@ -145,7 +148,11 @@ export function FichePlat({
                           onChange={() => basculer(g.slug, o.nom, g.choix_max)}
                         />
                         <span>{o.nom}</span>
-                        {o.prix_centimes > 0 && <span className="opt-prix">+{prixCourt(o.prix_centimes)}</span>}
+                        {epuise ? (
+                          <span className="opt-prix">épuisé aujourd&apos;hui</span>
+                        ) : (
+                          o.prix_centimes > 0 && <span className="opt-prix">+{prixCourt(o.prix_centimes)}</span>
+                        )}
                       </label>
                     );
                   })}

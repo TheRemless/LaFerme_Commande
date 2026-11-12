@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Flyer A5 La Ferme</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="supports.css" />
+    <style>
+      @page {
+        size: 154mm 216mm;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Recto -->
+    <section class="feuille a5 recto" aria-label="Recto">
+      <img class="photo" src="../../../public/accueil.jpg" alt="Pizzas, pâtes et burger de La Ferme vus du dessus" />
+      <div class="panneau">
+        <img class="logo" src="../../../public/logo-la-ferme.png" alt="La Ferme" />
+        <h1>On livre nous-mêmes.</h1>
+        <p class="accroche">
+          Les pizzas au feu de bois de La Ferme, à Onex. Vous commandez sur notre site, nos livreurs vous les apportent.
+          Ou vous passez les chercher.
+        </p>
+        <div class="commander">
+          <div class="qr" data-qr="qrFlyer"></div>
+          <div>
+            <h2>Commander en ligne</h2>
+            <p class="adresse" data-champ="adresseAffichee"></p>
+            <p class="offre"><span data-champ="offre"></span> avec le code <span data-champ="code"></span></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Verso -->
+    <section class="feuille a5 verso" aria-label="Verso">
+      <div class="haut">
+        <h2>Livraison ou à emporter</h2>
+        <p class="parcours">
+          Sur le site, vous choisissez d'abord livraison ou retrait, puis votre adresse. La carte s'affiche ensuite. Pas
+          besoin de créer un compte. Vous pouvez aussi commander à l'avance, même quand on est fermé.
+        </p>
+        <div class="blocs">
+          <div class="bloc">
+            <h3>On livre à</h3>
+            <p data-champ="communes"></p>
+            <p class="discret">Les frais et le minimum de commande s'affichent sur le site selon votre adresse.</p>
+          </div>
+          <div class="bloc">
+            <h3>À emporter</h3>
+            <p>Route de Chancy 132, 1213 Onex. Places bleues tout autour et parking de la salle communale.</p>
+            <p>Paiement en ligne par TWINT ou carte, ou au comptoir jusqu'à CHF 100.</p>
+          </div>
+          <div class="bloc horaires">
+            <h3>Horaires</h3>
+            <p data-champ="horaires"></p>
+          </div>
+        </div>
+      </div>
+      <div class="bande">
+        <img class="plat" src="../../../public/plats/margherita.jpg" alt="Pizza Margherita" />
+        <div class="droite">
+          <h3>Commander en ligne</h3>
+          <div class="qr" data-qr="qrFlyer"></div>
+          <div>
+            <p class="adresse" data-champ="adresseAffichee"></p>
+            <p>Une question ?</p>
+            <p class="tel">022 792 16 89</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+    <script src="champs.js"></script>
+    <script src="remplir.js"></script>
+  </body>
+</html>

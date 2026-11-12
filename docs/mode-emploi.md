@@ -1,6 +1,6 @@
 # Mode d'emploi
 
-Deux pages à imprimer. La première se colle en cuisine près de la tablette, la seconde reste avec le gérant. Elles décrivent le site tel qu'il est au 14.11.2026. Le numéro à appeler reste à remplir.
+Trois pages à imprimer. La première se colle en cuisine près de la tablette, la deuxième reste avec le gérant, la troisième se donne à chaque livreur. Elles décrivent le site tel qu'il est au 16.11.2026. Le numéro à appeler reste à remplir.
 
 ---
 
@@ -26,33 +26,54 @@ Ne pas toucher « Continuer sans son ». Sans son, personne n'entend les command
 
 ### Pendant la préparation (onglet « En cours »)
 
-- Toucher « Prête au comptoir » ou « Partie en livraison ». Le client reçoit un e-mail.
+- Toucher « Prête au comptoir ». Le client reçoit un e-mail.
 - À emporter payé au comptoir : quand le client paie et part, toucher « Retirée et payée ».
-- En livraison, toucher « Livrée » au retour du livreur.
+- En livraison, donner la commande à un livreur dans l'onglet « Livraisons ». Il touche « Je pars » puis « Livrée » sur son téléphone. Sans téléphone, toucher ici « Partie en livraison » puis « Livrée » à son retour.
 - « Changer l'heure » envoie la nouvelle heure au client.
+
+### Il manque un plat ou un supplément sur une commande
+
+1. Accepter la commande si ce n'est pas fait, puis l'ouvrir dans « En cours ».
+2. Toucher « Il manque… » et choisir ce qui manque (le plat entier, ou un supplément sur un plat).
+3. Toucher « Calculer le montant ». La tablette affiche ce qui sera rendu.
+4. Toucher « Confirmer et prévenir le client ». Le client reçoit un e-mail avec ce qui manque et le montant.
+
+Payée en ligne, le montant lui est remboursé. À payer au comptoir, il est déduit : la carte affiche le nouveau montant à encaisser. Le reste de la commande se prépare normalement. Une fois la commande prête ou partie, seul le gérant peut le faire.
 
 ### Un client appelle
 
 - Il veut changer sa commande. Ce n'est pas possible sur la tablette. Annuler la commande et lui demander de recommander.
 - Il veut annuler. Toucher « Annuler la commande », choisir « À la demande du client » puis toucher « Annuler et rembourser ». Le lien « Fermer » referme le panneau sans rien annuler.
-- La commande est déjà prête, partie ou livrée. Noter son numéro et prévenir le gérant : il rembourse depuis le back-office, en entier ou en partie.
+- La commande est déjà prête ou livrée. Noter son numéro et prévenir le gérant : il rembourse depuis le back-office, en entier ou en partie.
+- La livraison est partie. « Annuler la commande » reste possible et rembourse. Le livreur lit « annulée, rapportez le sac » sur son téléphone. Client absent : voir « Les livraisons » plus bas, rien n'est remboursé.
 
 ### Pendant le service (bouton « Pause, délai, ruptures »)
 
 - Trop de monde. Toucher « Pause 30 min », « Pause 1 h » ou « Pause jusqu'à reprise ». Les commandes déjà reçues restent à faire.
 - La cuisine prend du retard. Toucher +5 sous « Retard ce soir ». Le retard s'ajoute aux heures annoncées aux clients, à emporter et en livraison. Il revient à zéro dans la nuit.
 - Pas de livreur. Toucher « Fermer la livraison ». Le retrait reste ouvert. La livraison se rouvre toute seule la nuit.
-- Un plat est fini. Chercher le plat puis toucher « Disponible », qui devient « Épuisé ». Il revient tout seul le lendemain.
-- Une commande déjà reçue contient ce plat. Appeler le client, puis refuser avec le motif « Un des plats commandés est épuisé. ». Il peut recommander autre chose.
-- Les suppléments (burrata, jambon…) ne se mettent pas en rupture ici. Prévenir le gérant.
+- Un plat ou un supplément est fini (burrata, jambon…). Le chercher puis toucher « Disponible », qui devient « Épuisé ». Il revient tout seul le lendemain.
 - Toucher « Fermer les réglages » pour revoir les commandes.
+
+### Les livraisons (onglet « Livraisons »)
+
+- À gauche, les livraisons acceptées sans livreur. Toucher « À Marco » (le prénom du livreur) pour la lui donner.
+- À droite, la tournée de chaque livreur dans l'ordre de passage. Le site le propose : zone 1 avant zone 2, même rue puis même NPA à la suite, sans faire attendre une heure promise plus tôt.
+- Changer l'ordre. Toucher « Plus tôt » ou « Plus tard ». « Reprendre l'ordre proposé » revient au calcul du site.
+- Changer de livreur. Toucher « Donner à… ». L'ancien livreur ne voit plus l'adresse et lit qu'elle a été donnée à un autre.
+- « Reprendre » remet la commande à gauche, sans livreur.
+- Sous le prénom, on lit s'il a la page ouverte sur son téléphone et combien de livraisons sont en route.
+- Problème signalé (client absent, adresse introuvable). Un bandeau jaune s'affiche. Appeler le client ou le livreur. Si ça s'arrange, toucher « Problème réglé ».
+- Client absent qui ne répond pas. Toucher « Client absent : clore » puis « Oui, clore sans rembourser ». Rien n'est remboursé. Le client reçoit un e-mail « commande non remise » et le gérant une alerte. Le gérant décide ensuite dans le back-office.
+- Adresse introuvable ou autre problème sans solution. Annuler la commande dans « En cours ». Payée en ligne, elle est remboursée.
 
 ### Les onglets
 
 | Onglet | Ce qu'il montre |
 |---|---|
 | À accepter | Les commandes qui attendent une réponse |
-| En cours | Les commandes acceptées |
+| En cours | Les commandes acceptées, avec le livreur de chaque livraison |
+| Livraisons | Les livraisons à donner et la tournée de chaque livreur |
 | À l'avance | Les commandes pour un autre jour. Les accepter le jour même, car le ticket sort dès qu'on accepte |
 | Terminées | Les commandes finies ou refusées aujourd'hui. Une commande au comptoir oubliée y garde son bouton « Encaissée » |
 
@@ -62,7 +83,7 @@ Ne pas toucher « Continuer sans son ». Sans son, personne n'entend les command
 2. Bandeau « Pas de connexion depuis… ». Vérifier le Wi-Fi de la tablette. Les nouvelles commandes ne s'affichent plus. Au bout de 3 minutes, le site met les commandes en ligne en pause tout seul.
 3. Imprimante « plus de papier », « capot ouvert » ou « hors ligne ». Changer le rouleau, fermer le capot ou vérifier le câble et l'interrupteur. Les tickets en attente sortent quand elle revient. En attendant, toucher « Ticket » sur la commande pour la lire sur la tablette. Si un ticket est en « échec », toucher « Réimprimer ».
 4. Bandeau « Pause automatique ». La tablette n'a pas répondu pendant le service. Ouvrir « Pause, délai, ruptures » puis toucher « Reprendre les commandes ».
-5. La tablette demande un e-mail. Elle a été déconnectée. Entrer l'e-mail de l'équipe, lire le code reçu par e-mail puis le taper. Ne jamais toucher « Déconnexion » pendant un service.
+5. La tablette demande un e-mail. Elle a été déconnectée. Entrer l'e-mail de l'équipe, lire le code reçu par e-mail puis le taper. « Déconnexion » demande une confirmation : répondre « Non » pendant un service.
 
 ---
 
@@ -89,33 +110,59 @@ Le back-office s'ouvre sur « Commandes ». Les autres rubriques sont juste en d
 
 Le remboursement n'est possible qu'une fois la commande prête, partie ou livrée. Avant, on l'annule sur la tablette.
 
+Client absent à la livraison : la commande est close sans remboursement, avec le motif « Client absent à la livraison. » et une alerte par e-mail au gérant. Ouvrir la commande et décider au cas par cas (rien, une partie ou tout).
+
 ### Équipe
 
-- Ajouter quelqu'un. Prénom, e-mail, accès « Tablette » ou « Tablette et back-office », puis « Ajouter ». Il se connecte avec son e-mail et le code reçu.
+- Ajouter quelqu'un. Prénom, e-mail, accès « Tablette », « Tablette et back-office » ou « Livreur », puis « Ajouter ». Il se connecte avec son e-mail et le code reçu.
+- Un livreur ne voit que ses livraisons en cours, sur la page `/livreur`. Il n'ouvre ni la tablette ni le back-office.
 - Quelqu'un part. Toucher « Retirer » puis confirmer. Son accès est coupé tout de suite.
-- Tablette perdue ou téléphone changé. Toucher « Déconnecter partout ».
+- Tablette perdue ou téléphone changé (celui d'un livreur aussi). Toucher « Déconnecter partout ».
 - Il reste toujours au moins un gérant.
 
 ### Carte
 
 - Changer un prix. Chercher le plat, toucher sa ligne, écrire le prix (18 ou 18.50), laisser « Prix validé » coché, toucher « Enregistrer le plat ». Le site change tout de suite.
 - Retirer un plat de la vente. Décocher « Commandable sur le site » puis enregistrer. Pour la journée seulement, utiliser « Épuisé » sur la tablette.
-- Changer la photo. Choisir un nom dans la liste « Photo ». Une nouvelle photo passe par le numéro ci-dessus.
+- Retirer un plat de la carte pour de bon. Ouvrir sa fiche, toucher « Archiver ce plat » puis confirmer. Il part dans « Plats archivés » en bas de la page. Les anciennes commandes et l'export comptable ne changent pas. « Remettre à la carte » le ramène, hors de la vente : cocher « Commandable » pour le revendre.
+- Ajouter un plat. Toucher « Ajouter un plat » en haut. Catégorie, poste (pizza ou cuisine), nom, prix, puis les options (suppléments, choix des pâtes), les retraits gratuits, la provenance et les allergènes. Toucher « Créer le plat ». Il reste hors de la vente tant qu'il manque le prix validé, les allergènes ou une provenance à fournir. Sa fiche dit ce qui manque.
+- Envoyer une photo. Sur la fiche du plat, toucher « Envoyer une photo » et choisir une photo du téléphone ou de l'ordinateur. Elle est recadrée comme les photos du shooting et s'affiche tout de suite. Une photo trop petite est refusée. « Retirer la photo » l'enlève. Seulement des photos du restaurant : jamais une image trouvée sur Internet ou sur Uber Eats.
+- Une photo du shooting se choisit encore dans la liste « Photo du shooting ».
+- Changer un plat de catégorie. Choisir la catégorie sur sa fiche puis enregistrer. Il se range à la fin.
+- Changer l'ordre des plats. Toucher « Changer l'ordre » à côté du nom de la catégorie, puis « Monter » ou « Descendre ». Toucher « Terminer l'ordre » à la fin.
+- Catégories. Toucher « Catégories et leur ordre ». On y renomme une catégorie, on la monte ou la descend, on en ajoute une. Une catégorie neuve s'affiche sur le site dès qu'un de ses plats est en vente.
 - Allergènes, provenance et description se changent sur la même fiche.
 - Retraits gratuits. Les écrire séparés par des virgules puis toucher « Enregistrer les retraits ». Ce bouton est à part du bouton du plat.
+
+### Plat du jour
+
+1. Ouvrir « Plat du jour ».
+2. Choisir le jour (aujourd'hui ou plus tard) et le service : midi, soir ou les deux.
+3. Écrire le nom, le prix, la description, le poste qui le prépare, la provenance et les allergènes.
+4. Toucher « Publier le plat du jour ». Il s'affiche en tête de la carte ce jour-là et disparaît seul le lendemain. Il s'imprime au poste choisi comme les autres plats.
+
+- Un plat du jour « midi » ne se commande que pour une heure de midi, « soir » pour une heure du soir.
+- Le prix vaut dès qu'on l'écrit, sans case à cocher. Sans allergènes, le plat est enregistré mais pas mis en vente.
+- Pour l'arrêter dans la journée, ouvrir sa ligne, décocher « Commandable sur le site » puis enregistrer. Ou « Épuisé » sur la tablette.
 
 ### Suppléments et pâtes
 
 - Chaque supplément a son prix, sa case « Validé » et sa case « Proposé ». Décocher « Proposé » le retire du site jusqu'à ce qu'on le recoche.
 - Toucher « Enregistrer » sur la ligne du supplément.
+- Ajouter un supplément. Sous la liste, écrire le nom et le prix puis toucher « Ajouter ». Il est proposé tout de suite sur les plats qui ont cette option. Sans « Prix validé », il bloque la mise en ligne.
 
 ### Livraison et horaires
 
 - Zone. Frais, minimum, délai annoncé, zone ouverte ou non, puis « Enregistrer la zone ». Les communes ne se changent pas ici.
 - Délai de préparation habituel. Le temps annoncé pour un retrait « dès que possible ». Un soir chargé, on ajoute plutôt du retard sur la tablette.
 - Horaires. Quatre heures par service, puis « Enregistrer » sur la ligne du service.
-- Fermeture (jour férié, vacances). En bas de la page, remplir « Du », « Au (inclus) » et le motif, puis « Ajouter la fermeture ». Une fermeture couvre des jours entiers. Pour fermer un seul service, mettre la tablette en « Pause jusqu'à reprise ».
-- Avant une fermeture, regarder l'onglet « À l'avance » de la tablette. Les commandes déjà prises pour ces jours restent. Les annuler une par une.
+- Fermeture (jour férié, vacances). Dans « Fermetures », choisir « Des journées entières », remplir « Du », « Au (inclus) » et le motif, puis « Ajouter la fermeture ».
+- Fermer un seul service. Choisir « Un midi » ou « Un soir », le jour et le motif. Les clients ne peuvent plus choisir ce moment.
+- Si des commandes sont déjà prises pour ce moment, le back-office donne leurs numéros. Les annuler sur la tablette, onglet « À l'avance ».
+- Ouvrir un jour normalement fermé (un dimanche de fête) ou changer les heures d'un service ce jour-là. Dans « Ouvertures exceptionnelles », choisir le jour, le service, les quatre heures et le motif. Les clients peuvent choisir ce moment tout de suite.
+- « Supprimer » une fermeture ou une ouverture demande une confirmation.
+- Communes d'une zone. Sous chaque zone, « Retirer » une commune, ou écrire un NPA et une localité puis « Ajouter à la zone ». Écrire la localité comme sur l'adresse officielle (Petit-Lancy, Le Lignon).
+- Paiement au comptoir. Le montant le plus haut qu'un client peut payer au comptoir (100 francs au départ). Au-delà, il paie en ligne.
 
 ### Imprimantes
 
@@ -138,14 +185,12 @@ Le remboursement n'est possible qu'une fois la commande prête, partie ou livré
 ### Journal
 
 - Qui a changé quoi et quand, remboursements et équipe compris.
-- Il n'y a pas de bouton pour revenir en arrière. Lire l'ancienne valeur et la retaper.
+- Une erreur de prix, de zone, d'horaire, de fermeture ou de commune. Toucher « Annuler » sur la ligne, puis « Oui, remettre l'ancienne valeur ». Si la valeur a changé depuis, le back-office refuse : corriger à la main.
+- L'équipe, les remboursements et l'import du tableau ne s'annulent pas depuis le journal.
 
 ### Ce qui ne se fait pas ici (appeler le numéro ci-dessus)
 
-- Ajouter un plat, un supplément ou une catégorie, ou un plat du jour.
-- Envoyer une nouvelle photo.
-- Changer les communes d'une zone.
-- Fermer un seul service à une date donnée.
+- Ajouter un nouveau groupe d'options (autre que les suppléments et le choix des pâtes).
 - Remplacer une imprimante.
 
 ### Que faire si…
@@ -156,3 +201,43 @@ Le remboursement n'est possible qu'une fois la commande prête, partie ou livré
 4. « Stripe a refusé le remboursement ». Rien n'a été rendu. Réessayer plus tard. « Encore en cours chez Stripe » : attendre une minute, rouvrir la commande puis toucher « Relancer » sur la ligne du remboursement. Il ne part jamais deux fois. Si ça dure, appeler le numéro ci-dessus.
 5. Une commande au comptoir manque dans l'export. Elle n'a pas été notée comme encaissée. Sur la tablette, onglet « Terminées » le jour même, toucher « Encaissée ».
 6. Un e-mail « Connexion bloquée 24 heures » arrive. Quelqu'un a tapé 15 codes faux avec cette adresse. Les appareils déjà connectés continuent de marcher. Pour se connecter ailleurs, attendre l'heure donnée dans l'e-mail ou passer par un appareil déjà connecté.
+
+---
+
+## Page 3. Le téléphone du livreur
+
+Adresse : la page `/livreur` du site, sur votre téléphone. Ajoutez-la à l'écran d'accueil.
+
+Connexion avec votre e-mail et le code reçu par e-mail. Le gérant vous inscrit d'abord dans « Équipe ».
+
+Restaurant : 022 792 16 89
+
+### Ce que vous voyez
+
+- Vos livraisons du moment, dans l'ordre de passage. Le chiffre noir est le rang, la grande heure est celle promise au client.
+- Pour chacune : l'adresse, l'étage, le nom sur la sonnette, le code d'entrée, la consigne du client, le nombre d'articles et le paiement. Aujourd'hui tout est payé en ligne, rien à encaisser.
+- « Itinéraire » ouvre Plans (iPhone) ou votre appli de navigation (Android).
+- « Appeler… » appelle le client.
+- Une livraison livrée disparaît. Une livraison que le restaurant donne à un autre livreur aussi.
+
+### Les trois gestes
+
+1. « Je pars » quand vous quittez le restaurant. Le client reçoit un e-mail « en route ». Avec plusieurs sacs, « Je pars avec les 2 » (ou 3) fait tout d'un coup.
+2. « Livrée » quand le client a son sac.
+3. « Problème » si ça coince. Choisir « Client absent », « Adresse introuvable » ou « Autre », écrire un mot si besoin, puis « Prévenir le restaurant ». La tablette affiche un bandeau. Attendez l'appel du restaurant ou appelez-le.
+
+### Que faire si…
+
+1. « Pas de réseau ». Continuez. Vos gestes partent seuls au retour du signal, une seule fois. Ne fermez pas la page avant.
+2. « N° 12 annulée. Ne la livrez pas, rapportez le sac au restaurant. » Rapportez le sac puis touchez « Compris ».
+3. « N° 12 close, client absent. » Le restaurant n'a pas pu joindre le client. Rapportez le sac puis touchez « Compris ».
+4. « N° 12 donnée à un autre livreur ». Si vous avez le sac, appelez le restaurant. Puis touchez « Compris ».
+5. La page demande un e-mail. Vous êtes déconnecté. Reconnectez-vous : vos livraisons en cours sont toujours là.
+6. Téléphone perdu ou volé. Appelez le restaurant tout de suite. Le gérant touche « Déconnecter partout ».
+
+### Vos données et celles des clients
+
+- Vous ne voyez que vos livraisons en cours, plus rien une fois livrées.
+- Le site garde la trace de chaque geste (qui, quoi, quand) et de chaque adresse affichée sur votre téléphone.
+- Le site ne suit pas votre position. Seul le lien « Itinéraire » transmet l'adresse à votre appli de navigation.
+- Ne faites pas de capture d'écran d'une adresse ou d'un code d'entrée.

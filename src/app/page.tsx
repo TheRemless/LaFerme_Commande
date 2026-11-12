@@ -15,6 +15,11 @@ export const metadata: Metadata = {
   openGraph: { ...OPEN_GRAPH, title: "La Ferme, livraison et à emporter", description: DESCRIPTION_SITE, url: "/" },
 };
 
+// Réseau lent (CM-21) : tant que le JavaScript de la page n'est pas arrivé, un tap sur « Livraison » ou
+// « À emporter » est gardé ici, puis appliqué par ChoixCommande dès qu'elle répond.
+const TAP_AVANT_CHARGEMENT =
+  'document.addEventListener("click",function(e){if(window.__laFermePret)return;var b=e.target&&e.target.closest&&e.target.closest("[data-mode]");if(b)window.__laFermeMode=b.getAttribute("data-mode")},true);';
+
 export default async function Accueil() {
   const config = await chargerConfigService();
   const preversion = process.env.CONTEXTE_DEPLOIEMENT !== "production";
@@ -28,6 +33,7 @@ export default async function Accueil() {
           Préversion : zones, frais, horaires et prix proposés, en attente de validation.
         </p>
       )}
+      <script dangerouslySetInnerHTML={{ __html: TAP_AVANT_CHARGEMENT }} />
       <main id="contenu" className="page-accueil">
         <ChoixCommande config={config} maintenantServeur={Date.now()} preversion={preversion} />
       </main>

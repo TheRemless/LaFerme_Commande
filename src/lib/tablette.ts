@@ -45,6 +45,9 @@ export type CommandeTablette = {
   lignes: { nom: string; qte: number; station: "pizza" | "cuisine"; choix: Record<string, string[]>; retraits: string[]; note: string; details: string[] }[];
   // Calculée ici : heure demandée par le client, ou au plus tôt pour « dès que possible ».
   heure_proposee: string;
+  // Manques signalés (audit du gérant, G07) : montant remboursé ou déduit, et ce qui manquait.
+  deduit_centimes?: number;
+  manques?: string[];
 };
 
 const PAS_MS = 5 * 60_000;
@@ -53,10 +56,12 @@ export { detailsTablette } from "@/lib/tablette-details";
 
 // « Dès que possible » : maintenant + préparation (retrait) ou délai moyen de la zone (livraison), arrondi à 5 min.
 export async function fileTablette(maintenant = new Date()): Promise<CommandeTablette[]> {
-  const [brut, config, cat] = await Promise.all([
+  const [brut, config, cat, manques] = await Promise.all([
     fonctionSql<(Omit<CommandeTablette, "heure_proposee" | "lignes"> & { lignes: Omit<CommandeTablette["lignes"][number], "details">[] })[]>("file_tablette", {}),
     chargerConfigService(),
     chargerCatalogue().catch(() => null),
+    // Absente tant que la base n'est pas migrée : la file passe quand même.
+    fonctionSql<{ commande_id: string; deduit_centimes: number; manques: string[] }[]>("manques_en_cours", {}).catch(() => []),
   ]);
   return brut.map((brute) => {
     // Options écrites comme sur le ticket : CHOIX pour un choix obligatoire, + pour un supplément, SANS pour un retrait.
@@ -70,7 +75,8 @@ export async function fileTablette(maintenant = new Date()): Promise<CommandeTab
       const delai = c.mode === "livraison" && zone ? Math.round((zone.delai_min + zone.delai_max) / 2) : config.reglages.preparation_minutes;
       proposee = new Date(Math.ceil((maintenant.getTime() + delai * 60_000) / PAS_MS) * PAS_MS);
     }
-    return { ...c, heure_proposee: proposee.toISOString() };
+    const m = manques.find((x) => x.commande_id === c.id);
+    return { ...c, heure_proposee: proposee.toISOString(), ...(m ? { deduit_centimes: m.deduit_centimes, manques: m.manques } : {}) };
   });
 }
 
@@ -145,7 +151,11 @@ export async function agir(commandeId: string, a: Action, p: Personnel): Promise
       }
       break;
     case "refuser": {
-      ok = await changerStatut(commandeId, "refusee", par, { motif: a.motif, de: a.de });
+      // Livraison partie (client absent, adresse introuvable) : fonction à part, le livreur le lit sur son téléphone.
+      ok =
+        avant.statut === "partie"
+          ? (a.de === undefined || a.de === "partie") && (await fonctionSql<boolean>("annuler_commande_partie", { p_commande: commandeId, p_par: par, p_motif: a.motif }))
+          : await changerStatut(commandeId, "refusee", par, { motif: a.motif, de: a.de });
       if (!ok) break;
       // Commande déjà acceptée : la cuisine a peut-être son ticket. Les tickets en file partent, et chaque
       // poste qui a déjà le sien reçoit « ANNULÉE » (SS-03).

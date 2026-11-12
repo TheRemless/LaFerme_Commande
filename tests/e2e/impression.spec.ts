@@ -1,17 +1,18 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
+import { SITE } from "./site";
 
 // Faux client Star CloudPRNT : joue le rôle de l'imprimante (POST, GET, DELETE) contre le vrai serveur.
 // Un seul projet : la file d'impression est commune, deux faux clients se prendraient leurs tickets.
 test.describe.configure({ mode: "serial" });
 
-const ORIGINE = { Origin: "http://localhost:3200" };
+const ORIGINE = { Origin: SITE };
 const MAC = "00:11:62:12:34:56";
 let gerant: APIRequestContext;
 let url: string;
 
 test.beforeAll(async ({ playwright }, info) => {
   test.skip(info.project.name !== "bureau", "file d'impression partagée : un seul projet");
-  gerant = await playwright.request.newContext({ baseURL: "http://localhost:3200", extraHTTPHeaders: ORIGINE });
+  gerant = await playwright.request.newContext({ baseURL: SITE, extraHTTPHeaders: ORIGINE });
   const c = await (await gerant.post("/api/personnel/code", { data: { email: "impression@laferme.test" } })).json();
   expect((await gerant.post("/api/personnel/connexion", { data: { email: "impression@laferme.test", code: c.codePreversion } })).ok()).toBe(true);
   const r = await gerant.post("/api/gestion/imprimantes", { data: { type: "ajouter", nom: "Imprimante pizza", station: "pizza" } });

@@ -11,4 +11,13 @@ insert into personnel (email, nom, role) values
   ('cuisine-mobile@laferme.test', 'Cuisine mobile', 'service'),
   ('impression@laferme.test', 'Test impression', 'gerant'),
   ('a11y-bureau@laferme.test', 'Test accessibilité bureau', 'gerant'),
-  ('a11y-mobile@laferme.test', 'Test accessibilité mobile', 'gerant');
+  ('a11y-mobile@laferme.test', 'Test accessibilité mobile', 'gerant'),
+  -- Carte gérée au back-office (tests/e2e/gestion-carte.spec.ts) : comptes à part, un code par 30 s et par e-mail.
+  ('carte-bureau@laferme.test', 'Carte bureau', 'gerant'),
+  ('carte-mobile@laferme.test', 'Carte mobile', 'gerant');
+
+-- Livreurs des essais (tests/e2e/livreurs.spec.ts) et la tablette qui leur donne les commandes.
+insert into personnel (email, nom, role) values
+  ('livraison@laferme.test', 'Test livraison', 'service'),
+  ('marco@laferme.test', 'Marco', 'livreur'),
+  ('ines@laferme.test', 'Inès', 'livreur');

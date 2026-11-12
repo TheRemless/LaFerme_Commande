@@ -6,7 +6,9 @@
   # Avant le lancement : aucun build de production. Netlify saute le build quand cette commande sort
   # avec 0 (docs.netlify.com, « Ignore builds » : la variable BRANCH y est lisible). Les préversions des
   # PR (branche autre que main) se construisent normalement. À retirer à la bascule (docs/mise-en-ligne.md).
-  ignore = 'if [ "$BRANCH" = "main" ]; then echo "Build de production sauté : site pas encore lancé."; exit 0; fi; exit 1'
+  # Les PR de Dependabot (mises à jour de dépendances) n'ont pas de préversion : les vérifications GitHub
+  # (docs/filet.md) les testent, et elles n'occupent pas la file de builds de Netlify.
+  ignore = 'if [ "$BRANCH" = "main" ]; then echo "Build de production sauté : site pas encore lancé."; exit 0; fi; case "$BRANCH $HEAD" in *dependabot/*) echo "Préversion sautée : PR Dependabot."; exit 0;; esac; exit 1'
 
 [build.environment]
   NODE_VERSION = "22"

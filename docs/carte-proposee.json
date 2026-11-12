@@ -172,7 +172,7 @@
   {
    "id": "pizza-miss-italia",
    "categorie": "Pizzas",
-   "nom": "Pizza miss Italia",
+   "nom": "Pizza Miss Italia",
    "description": "Sauce tomate, Mozzarella, Burratina, rucola, tomates cerises, jambon cru et Scaglie Grana.",
    "descriptionSite": "Sauce tomate, Mozzarella, Burratina, rucola, tomates cerises, jambon cru et Scaglie Grana.",
    "prixUber": 29,
@@ -206,7 +206,7 @@
   {
    "id": "pizza-prosciutto",
    "categorie": "Pizzas",
-   "nom": "Pizza prosciutto",
+   "nom": "Pizza Prosciutto",
    "description": "Sauce tomate, Mozzarella et jambon cuit.",
    "descriptionSite": "Sauce tomate, Mozzarella et jambon cuit.",
    "prixUber": 22,
@@ -304,7 +304,7 @@
   {
    "id": "pizza-tonno",
    "categorie": "Pizzas",
-   "nom": "Pizza tonno",
+   "nom": "Pizza Tonno",
    "description": "Sauce tomate, Mozzarella et thon.",
    "descriptionSite": "Sauce tomate, Mozzarella et thon.",
    "prixUber": 22,
@@ -334,7 +334,7 @@
   {
    "id": "pizza-peppino",
    "categorie": "Pizzas",
-   "nom": "Pizza peppino",
+   "nom": "Pizza Peppino",
    "description": "Sauce tomate, Mozzarella, Burrata, mortadelle, tomates cerises et rucola.",
    "descriptionSite": "Sauce tomate, Mozzarella, Burrata, mortadelle, tomates cerises et rucola.",
    "prixUber": 27,
@@ -367,7 +367,7 @@
   {
    "id": "pizza-vegetarienne",
    "categorie": "Pizzas",
-   "nom": "Pizza végétarienne",
+   "nom": "Pizza Végétarienne",
    "description": "Sauce tomate, Mozzarella, champignons, aubergines, artichauts et tomates fraîches.",
    "descriptionSite": "Sauce tomate, Mozzarella, champignons, aubergines, artichauts et tomates fraîches.",
    "prixUber": 25,
@@ -398,7 +398,7 @@
   {
    "id": "pizza-rucola",
    "categorie": "Pizzas",
-   "nom": "Pizza rucola",
+   "nom": "Pizza Rucola",
    "description": "Sauce tomate, Mozzarella, rucola, tomates cerises et Parmesan.",
    "descriptionSite": "Sauce tomate, Mozzarella, rucola, tomates cerises et Parmesan.",
    "prixUber": 23,
@@ -428,7 +428,7 @@
   {
    "id": "pizza-melanzana",
    "categorie": "Pizzas",
-   "nom": "Pizza melanzana",
+   "nom": "Pizza Melanzana",
    "description": "Sauce tomate, Mozzarella et aubergines.",
    "descriptionSite": "Sauce tomate, Mozzarella et aubergines.",
    "prixUber": 21,
@@ -456,7 +456,7 @@
   {
    "id": "pizza-norvegienne",
    "categorie": "Pizzas",
-   "nom": "Pizza norvégienne",
+   "nom": "Pizza Norvégienne",
    "description": "Sauce tomate, Mozzarella, saumon fumé, oignons et câpres.",
    "descriptionSite": "Sauce tomate, Mozzarella, saumon fumé, oignons et câpres.",
    "prixUber": 28,
@@ -610,7 +610,7 @@
   {
    "id": "pizza-bresaola",
    "categorie": "Pizzas",
-   "nom": "Pizza bresaola",
+   "nom": "Pizza Bresaola",
    "description": "Sauce tomate, Mozzarella, bresaola, burratina, rucola, tomates cerises et Scaglie Grana.",
    "descriptionSite": "Sauce tomate, Mozzarella, bresaola, burratina, rucola, tomates cerises et Scaglie Grana.",
    "prixUber": 29,
@@ -675,7 +675,7 @@
   {
    "id": "pizza-funghi",
    "categorie": "Pizzas",
-   "nom": "Pizza funghi",
+   "nom": "Pizza Funghi",
    "description": "Sauce tomate, Mozzarella et champignons de Paris.",
    "descriptionSite": "Sauce tomate, Mozzarella et champignons de Paris.",
    "prixUber": 21,
@@ -733,7 +733,7 @@
   {
    "id": "pizza-stromboli",
    "categorie": "Pizzas",
-   "nom": "Pizza stromboli",
+   "nom": "Pizza Stromboli",
    "description": "Sauce tomate, Mozzarella, saucisse sicilienne au fenouil et aubergines.",
    "descriptionSite": "Sauce tomate, Mozzarella, saucisse sicilienne au fenouil et aubergines.",
    "prixUber": 25,
@@ -1197,7 +1197,7 @@
   {
    "id": "paccheri-alla-salsiccia-siciliana-et-polpette-de-boeuf",
    "categorie": "Pâtes",
-   "nom": "Paccheri alla salsiccia siciliana et polpette de bœuf",
+   "nom": "Paccheri alla salsiccia siciliana e polpette de bœuf",
    "description": "Saucisse au fenouil et boulettes bœuf.",
    "descriptionSite": "Saucisse au fenouil et boulettes bœuf.",
    "prixUber": 27,
@@ -1691,7 +1691,7 @@
   {
    "id": "risotto-noix-de-saint-jacques",
    "categorie": "Pâtes",
-   "nom": "Risotto noix de Saint Jacques",
+   "nom": "Risotto noix de Saint-Jacques",
    "description": "Gambas safranée.",
    "descriptionSite": "Gambas safranée.",
    "prixUber": 33,
@@ -1835,7 +1835,7 @@
   {
    "id": "pasta-al-pomodoro-et-basilico",
    "categorie": "Pâtes",
-   "nom": "Pasta al pomodoro et basilico",
+   "nom": "Pasta al pomodoro e basilico",
    "description": "Pâtes au choix.",
    "descriptionSite": "Pâtes au choix.",
    "prixUber": 23,
@@ -1859,7 +1859,7 @@
   {
    "id": "rigatoni-alla-parmigiana-et-burrata",
    "categorie": "Pâtes",
-   "nom": "Rigatoni alla parmigiana et Burrata",
+   "nom": "Rigatoni alla parmigiana e Burrata",
    "description": "",
    "descriptionSite": "",
    "prixUber": 27,

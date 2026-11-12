@@ -24,4 +24,5 @@ Voir `docs/recherche/obligations_legales.md` (LCD art. 3 al. 1 let. s et art. 8,
 - Raison sociale, forme juridique, numéro IDE, numéro TVA (si assujetti), adresse e-mail du restaurant (exigée par la LCD).
 - Durée de conservation des commandes (avec la fiduciaire).
 - Absence du client à la livraison, annulation avant acceptation, for juridique.
+- Absence du client à la livraison, règle décidée par Jérémy le 12.11.2026 et appliquée par le site (PR #35) : la livraison est close sans remboursement automatique, le client reçoit un e-mail « commande non remise », le gérant décide au cas par cas d'un remboursement total, partiel ou d'aucun depuis le back-office. Les CGV (`src/lib/legal/cgv.ts`, paragraphe entre crochets sur l'absence du client) doivent décrire ce cas avant la mise en ligne, à faire relire par la fiduciaire.
 - Contrats de traitement (DPA) signés avec chaque prestataire, et région des fonctions Netlify (Francfort avec le plan Pro).

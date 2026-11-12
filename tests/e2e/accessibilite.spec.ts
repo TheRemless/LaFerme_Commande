@@ -35,6 +35,7 @@ const PAGES_SIMPLES = [
   ["compte", "/compte"],
   ["tablette", "/tablette"],
   ["gestion", "/gestion"],
+  ["livreur", "/livreur"],
   ["mentions", "/mentions-legales"],
   ["cgv", "/cgv"],
   ["confidentialite", "/confidentialite"],
@@ -115,9 +116,17 @@ test("clavier : lien d'évitement, fiche plat fermée par Échap, ajout annoncé
 });
 
 test("page introuvable en français, avec le chemin du retour", async ({ page }) => {
-  const rep = await page.goto("/suivi/jeton-inexistant-0000000000");
+  const rep = await page.goto("/page-qui-n-existe-pas");
   expect(rep?.status()).toBe(404);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Page introuvable");
+  await expect(page.getByRole("link", { name: "Revenir à l'accueil" })).toBeVisible();
+});
+
+test("lien de suivi inconnu : commande introuvable, avec l'endroit où trouver le bon lien", async ({ page }) => {
+  const rep = await page.goto("/suivi/jeton-inexistant-0000000000");
+  expect(rep?.status()).toBe(404);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Commande introuvable");
+  await expect(page.getByText("e-mail de confirmation")).toBeVisible();
   await expect(page.getByRole("link", { name: "Revenir à l'accueil" })).toBeVisible();
 });
 
@@ -136,9 +145,14 @@ test("axe : tablette et back-office connectés", async ({ page }, info) => {
   await connecterPersonnel(page, `a11y-${info.project.name}@laferme.test`);
   await page.getByRole("button", { name: "Continuer sans son" }).click();
   await expect(page.getByRole("button", { name: /^À accepter/ })).toBeVisible();
+  // Après la connexion (router.refresh), la page doit garder son titre. Avec les métadonnées en flux, Next le
+  // retirait parfois sans le remettre (next.config.ts, htmlLimitedBots).
+  await expect(page).toHaveTitle("Tablette, La Ferme");
   await controler(page, "tablette-file");
   await page.getByRole("button", { name: "Pause, délai, ruptures" }).click();
   await controler(page, "tablette-reglages");
+  await page.getByRole("button", { name: /^Livraisons/ }).click();
+  await controler(page, "tablette-livraisons");
   await page.goto("/gestion");
   await expect(page.locator("h1").first()).toBeVisible();
   await controler(page, "gestion");

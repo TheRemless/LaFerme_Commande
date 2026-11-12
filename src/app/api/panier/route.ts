@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { chargerCatalogue } from "@/lib/catalogue";
 import { chargerConfigService } from "@/lib/config-service";
 import { calculerPanier } from "@/lib/panier";
+import { erreurPlatsDuJour, momentDe } from "@/lib/plat-du-jour";
 import { lignesValides, quandValide } from "@/lib/validation";
 import { depuisHeureGeneve, enMinutes, heureTexte, instantGeneve, jourIso, quandPossible, type Zone, messagePause, messageSansCreneau, pauseEnCours } from "@/lib/service";
 import { zoneServeur } from "@/lib/zone-serveur";
@@ -60,6 +61,11 @@ export async function POST(requete: Request) {
     } else {
       messageQuand = "Ce moment n'est plus disponible. Choisissez une autre heure.";
     }
+  }
+
+  if (messageQuand === null && lignes.length > 0) {
+    const jourRefuse = erreurPlatsDuJour(catalogue, lignes, momentDe(config, maintenant, mode, zone, totaux.pizzas_seulement, quand));
+    if (jourRefuse) messageQuand = `${jourRefuse} Retirez-le ou choisissez une autre heure.`;
   }
 
   return NextResponse.json({

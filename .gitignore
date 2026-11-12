@@ -5,6 +5,7 @@ dist/
 coverage/
 playwright-report/
 test-results/
+test-results-*/
 .vercel/
 .supabase/
 supabase/.temp/

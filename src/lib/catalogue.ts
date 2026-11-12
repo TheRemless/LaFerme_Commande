@@ -3,6 +3,7 @@ import { unstable_cache } from "next/cache";
 import type { LignePlat } from "@/lib/carte";
 import { lirePublic } from "@/lib/db/lecture";
 import type { Catalogue, GroupeCatalogue } from "@/lib/panier";
+import { dateDe } from "@/lib/plat-du-jour";
 
 type LigneGroupe = { plat_slug: string; groupe_slug: string; ordre: number };
 type LigneOption = {
@@ -14,6 +15,8 @@ type LigneOption = {
   prix_centimes: number;
   prix_a_valider: boolean;
   ordre: number;
+  // Rupture du jour (audit du gérant, G07). Absente tant que la base n'est pas migrée.
+  rupture?: boolean;
 };
 type LigneRetrait = { plat_slug: string; nom: string; a_valider: boolean; ordre: number };
 type LigneReglage = { cle: string; valeur: unknown };
@@ -56,7 +59,7 @@ function construireCatalogue({ plats, liens, options, retraits, reglages }: Donn
   const groupes: Record<string, GroupeCatalogue> = {};
   for (const o of [...options].sort((a, b) => a.ordre - b.ordre)) {
     groupes[o.groupe_slug] ??= { slug: o.groupe_slug, nom: o.groupe_nom, choix_min: o.choix_min, choix_max: o.choix_max, options: [] };
-    groupes[o.groupe_slug].options.push({ nom: o.nom, prix_centimes: o.prix_centimes, prix_a_valider: o.prix_a_valider });
+    groupes[o.groupe_slug].options.push({ nom: o.nom, prix_centimes: o.prix_centimes, prix_a_valider: o.prix_a_valider, rupture: o.rupture === true });
   }
   const catalogue: Catalogue = { plats: {}, groupes, tauxTvaPourcent: taux };
   for (const p of plats) {
@@ -68,6 +71,7 @@ function construireCatalogue({ plats, liens, options, retraits, reglages }: Donn
       prix_a_valider: p.prix_a_valider,
       station: p.station,
       rupture_motif: p.rupture_motif,
+      jour: p.jour && p.jour_service ? { date: dateDe(p.jour as string | Date), service: p.jour_service } : null,
       groupes: liens
         .filter((l) => l.plat_slug === p.slug)
         .sort((a, b) => a.ordre - b.ordre)

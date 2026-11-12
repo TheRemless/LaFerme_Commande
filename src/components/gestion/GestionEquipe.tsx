@@ -8,9 +8,9 @@ import { jourTexte } from "@/lib/service";
 // L'équipe (audit du gérant, G03) : qui peut se connecter à la tablette, qui au back-office.
 // Retirer coupe l'accès tout de suite. Il reste toujours au moins un gérant (contrôlé en base).
 
-type Membre = { id: string; email: string; nom: string; role: "service" | "gerant"; actif: boolean; sessions: number; derniere_connexion: string | null };
+type Membre = { id: string; email: string; nom: string; role: "service" | "gerant" | "livreur"; actif: boolean; sessions: number; derniere_connexion: string | null };
 
-const ROLES = { service: "Tablette", gerant: "Tablette et back-office" } as const;
+const ROLES = { service: "Tablette", gerant: "Tablette et back-office", livreur: "Livreur (ses livraisons sur son téléphone)" } as const;
 
 export function GestionEquipe() {
   const ids = useId();
@@ -74,6 +74,7 @@ export function GestionEquipe() {
                 <select id={`${ids}-role-${m.id}`} value={m.role} disabled={envoi || m.id === d.moi} onChange={(e) => agir({ action: "modifier", id: m.id, role: e.target.value })}>
                   <option value="service">{ROLES.service}</option>
                   <option value="gerant">{ROLES.gerant}</option>
+                  <option value="livreur">{ROLES.livreur}</option>
                 </select>
                 {m.sessions > 0 && (
                   <button type="button" className="lien" disabled={envoi} onClick={() => agir({ action: "couper", id: m.id })}>
@@ -122,6 +123,7 @@ export function GestionEquipe() {
             <select id={`${ids}-role`} value={nouveau.role} onChange={(e) => setNouveau({ ...nouveau, role: e.target.value as Membre["role"] })}>
               <option value="service">{ROLES.service}</option>
               <option value="gerant">{ROLES.gerant}</option>
+              <option value="livreur">{ROLES.livreur}</option>
             </select>
           </div>
           <button type="submit" className="bouton-principal champ-large" disabled={envoi}>

@@ -4,12 +4,13 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 import { lireChoix, type Choix } from "@/lib/choix";
-import type { Catalogue } from "@/lib/panier";
+import { platDe, type Catalogue } from "@/lib/panier";
 import { usePanier, usePrixServeur } from "@/lib/panier-local";
 import { comptoirPermis } from "@/lib/plafond-comptoir";
 import { prixChf, prixCourt, prixPhrase } from "@/lib/prix";
 import { heureTexte, jourTexte } from "@/lib/service";
 import { ContenuPanier } from "@/components/panier/ContenuPanier";
+import { nomAffiche } from "@/components/Plat";
 import { champClientInvalide, MESSAGE_CHAMP, type ChampClient } from "@/lib/validation";
 
 type Moyen = "en_ligne" | "comptoir";
@@ -39,7 +40,8 @@ function raisonBlocage(
   if (reponse.message_quand) return { texte: reponse.message_quand, lien: "/", action: "Changer l'heure" };
   const ligne = reponse.lignes.find((l) => l.erreur);
   if (ligne) {
-    const texte = catalogue.plats[ligne.slug] ? `${ligne.nom}. ${ligne.erreur}` : (ligne.erreur ?? "");
+    const plat = platDe(catalogue, ligne.slug);
+    const texte = plat ? `${nomAffiche(plat)}. ${ligne.erreur}` : (ligne.erreur ?? "");
     return { texte, lien: "/panier", action: "Modifier le panier" };
   }
   const minimum = choix?.mode === "livraison" ? choix.zone?.minimum_centimes : undefined;
@@ -60,8 +62,12 @@ type CompteConnu = { email: string; prenom: string; nom: string; telephone: stri
 export function PageCommande({ catalogue, preversion, compte }: { catalogue: Catalogue; preversion: boolean; compte: CompteConnu }) {
   const ids = useId();
   const annule = useSearchParams().get("annule") === "1";
-  const { lignes, charge, quantite } = usePanier();
-  const reponse = usePrixServeur(lignes, charge);
+  const panier = usePanier();
+  const { lignes, charge, quantite } = panier;
+  // Commande refusée par le serveur (plat épuisé, créneau complet entre-temps) : le récapitulatif et le
+  // bouton se recalculent tout de suite, sans recharger la page.
+  const [relance, setRelance] = useState(0);
+  const reponse = usePrixServeur(lignes, charge, relance);
   const [choix, setChoix] = useState<Choix | null>(null);
   const [client, setClient] = useState({
     prenom: compte?.prenom ?? "",
@@ -73,6 +79,8 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
   const [moyen, setMoyen] = useState<Moyen>("en_ligne");
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
+  // Créneau devenu complet entre le choix et le paiement : le refus mène au choix de l'heure.
+  const [creneauComplet, setCreneauComplet] = useState(false);
   const [champFaux, setChampFaux] = useState<ChampClient | null>(null);
 
   useEffect(() => setChoix(lireChoix()), []);
@@ -126,6 +134,7 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
     }
     setEnvoi(true);
     setErreur(null);
+    setCreneauComplet(false);
     try {
       const rep = await fetch("/api/commandes", {
         method: "POST",
@@ -143,12 +152,15 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
           creerCompte: !compte && creerCompte,
         }),
       });
-      const r = (await rep.json()) as { redirection?: string; erreur?: string };
+      // Une erreur du serveur sans réponse lisible (base injoignable) n'est pas une coupure du réseau du client.
+      const r = (await rep.json().catch(() => ({}))) as { redirection?: string; erreur?: string };
       if (r.redirection) {
         window.location.assign(r.redirection);
         return;
       }
-      setErreur(r.erreur ?? "La commande n'est pas passée. Réessayez.");
+      setErreur(r.erreur ?? "La commande n'est pas passée. Réessayez dans un instant ou appelez-nous au 022 792 16 89.");
+      setCreneauComplet(rep.status === 409);
+      setRelance((n) => n + 1);
     } catch {
       setErreur("Pas de connexion. Vérifiez le réseau et réessayez.");
     }
@@ -317,12 +329,19 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
               <Link href="/confidentialite">confidentialité</Link> en ébauche, à faire relire.
             </p>
           )}
-          {erreur && (
+          {/* Après un refus, le panier recalculé peut donner la vraie raison, avec son lien : elle passe devant. */}
+          {erreur && !raison && (
             <p className="panier-alerte" role="alert">
               {erreur}
+              {creneauComplet && (
+                <>
+                  {" "}
+                  <Link href="/">Changer l&apos;heure</Link>
+                </>
+              )}
             </p>
           )}
-          {!erreur && raison && (
+          {raison && (
             <p className="panier-alerte" role="status">
               {raison.texte} <Link href={raison.lien}>{raison.action}</Link>
             </p>
@@ -338,7 +357,7 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
 
         <aside className="commande-recap" aria-label="Récapitulatif">
           <h2>Récapitulatif</h2>
-          <ContenuPanier lignes={lignes} quantite={quantite} catalogue={catalogue} choix={choix} reponse={reponse} preversion={false} sansBouton />
+          <ContenuPanier lignes={lignes} quantite={quantite} catalogue={catalogue} choix={choix} reponse={reponse} preversion={false} sansBouton suivi={panier} />
           <Link className="lien" href="/carte">
             Modifier la commande
           </Link>
