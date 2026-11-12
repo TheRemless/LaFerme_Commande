@@ -15,9 +15,21 @@ Corrigés dans la branche `claude/audit-client-mystere-908f44`, captures avant e
 | CM-01 à CM-10 | corrigés, avec tests |
 | CM-13, CM-14, CM-16, CM-17, CM-18, CM-20 | corrigés (textes et aides) |
 | CM-25 | essayé puis retiré : « CHF » casse le bloc de zone sur deux lignes en mobile, à reprendre au lot design |
-| CM-11, CM-15, CM-19, CM-21, CM-22, CM-23, CM-26 | restent (confort, ou côté service, ou lot design) |
+| CM-11, CM-15, CM-19, CM-21, CM-22, CM-23, CM-26 | corrigés le 12.11.2026 (vague 2), avec tests, captures dans `docs/rendus/client-conforts/` (détail plus bas) |
 | CM-12, CM-24 | décisions de Jérémy (Châtelaine en zone 2 par le NPA, recherche et plats populaires) |
-| Créneau complet (capacité ajoutée par la PR #20) | reste : refusé au paiement mais encore proposé dans le sélecteur. Il faut une fonction SQL qui liste les créneaux pleins, donc une migration |
+| Créneau complet (capacité ajoutée par la PR #20) | corrigé par la PR #24 : le créneau plein n'est plus proposé. Parcours de bout en bout revérifié en local (seconde tournée) |
+
+### Vague 2 (12.11.2026) : conforts restants
+
+| Constat | Correction |
+|---|---|
+| CM-11 | Retour arrière après le paiement de test : la page de paiement renvoie au suivi au lieu de « Page introuvable ». Avec Stripe, le retour mène à la page Stripe déjà payée (à revoir avec la clé de test) |
+| CM-15 | Panier de plus de 24 h : « Votre panier précédent avait plus de 24 heures. Il a été vidé. », une fois, là où le panier est visible |
+| CM-19 | « Recommander la même chose » mène au panier, qui contrôle tout de suite l'heure choisie, avec « 2 plats remis dans votre panier. » |
+| CM-21 | Réseau lent : un tap sur « Livraison » ou « À emporter » et une adresse tapée avant la fin du chargement sont gardés et appliqués dès que la page répond |
+| CM-22 | Un seul nom par plat pour le client (« Margherita ») au suivi, dans l'e-mail, dans le compte et dans les messages d'erreur. Stripe et les tickets de cuisine gardent le nom complet |
+| CM-23 | « − » sur la dernière unité : « Margherita n'est plus dans le panier. Annuler », la ligne revient avec ses options et sa note |
+| CM-26 | Téléphone : après le choix de l'adresse ou d'« À emporter », la page monte juste assez pour montrer « Voir la carte ». La hauteur de la photo d'accueil reste au lot design |
 
 ## Les 10 constats les plus importants
 

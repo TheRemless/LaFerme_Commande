@@ -1,4 +1,5 @@
-import { calculerPanier, type Catalogue, type LignePanier } from "@/lib/panier";
+import { calculerPanier, platDe, type Catalogue, type LignePanier } from "@/lib/panier";
+import { nomClient } from "@/lib/nom-plat";
 
 // « Recommander la même chose » : les lignes d'une ancienne commande, contrôlées contre la carte du jour.
 // Un plat retiré, en rupture ou dont une option n'existe plus est laissé de côté avec la raison ;
@@ -25,12 +26,12 @@ export function recommander(cat: Catalogue, anciennes: AncienneLigne[]): Recomma
   calcul.lignes.forEach((l, i) => {
     const ancienne = anciennes[i];
     if (l.erreur) {
-      r.retirees.push({ nom: ancienne.nom, raison: l.erreur });
+      r.retirees.push({ nom: nomClient(ancienne.nom, /^Pizza /.test(ancienne.nom)), raison: l.erreur });
       return;
     }
     r.lignes.push(candidates[i]);
     if (l.unitaire_centimes !== ancienne.unitaire_centimes) {
-      r.prix.push({ nom: l.nom, avant_centimes: ancienne.unitaire_centimes, apres_centimes: l.unitaire_centimes });
+      r.prix.push({ nom: nomClient(l.nom, platDe(cat, l.slug)?.categorie_slug === "pizzas"), avant_centimes: ancienne.unitaire_centimes, apres_centimes: l.unitaire_centimes });
     }
   });
   return r;

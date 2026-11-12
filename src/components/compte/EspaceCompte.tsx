@@ -7,7 +7,8 @@ import { useId, useState } from "react";
 import { adresseTexte, type Adresse, type Details } from "@/lib/adresse";
 import { lireChoix } from "@/lib/choix";
 import type { Recommande } from "@/lib/comptes/recommander";
-import { panierVide, remplacerPanier } from "@/lib/panier-local";
+import { annoncerPlatsRemis, panierVide, remplacerPanier } from "@/lib/panier-local";
+import { nomClient } from "@/lib/nom-plat";
 import { prixChf } from "@/lib/prix";
 
 export type DonneesEspace = {
@@ -45,8 +46,13 @@ function Recommander({ commandeId }: { commandeId: string }) {
     if (!r.ok) return setEtat({ erreur: String(r.donnees.erreur ?? "Impossible pour le moment. Réessayez.") });
     const rec = r.donnees as unknown as Recommande;
     if (rec.lignes.length > 0) remplacerPanier(rec.lignes);
-    // Rien à signaler : on part directement. Sinon on dit d'abord ce qui a changé.
-    if (rec.retirees.length === 0 && rec.prix.length === 0) return router.push(lireChoix() ? "/carte" : "/");
+    // Rien à signaler : on part directement au panier, qui contrôle l'heure choisie (CM-19). Sinon on dit
+    // d'abord ce qui a changé.
+    if (rec.retirees.length === 0 && rec.prix.length === 0) {
+      if (!lireChoix()) return router.push("/");
+      annoncerPlatsRemis(rec.lignes);
+      return router.push("/panier");
+    }
     setEtat(rec);
   }
 
@@ -97,7 +103,7 @@ function Recommander({ commandeId }: { commandeId: string }) {
       {etat.lignes.length > 0 ? (
         <>
           <p>Le reste est dans votre panier.</p>
-          <Link className="bouton-principal" href={choix ? "/carte" : "/"}>
+          <Link className="bouton-principal" href={choix ? "/panier" : "/"}>
             {choix ? "Voir le panier" : "Choisir livraison ou à emporter"}
           </Link>
         </>
@@ -203,7 +209,7 @@ export function EspaceCompte({ donnees, preversion }: { donnees: DonneesEspace; 
                     <ul className="ancienne-lignes">
                       {c.lignes.map((l, i) => (
                         <li key={i}>
-                          {l.qte} × {l.nom}
+                          {l.qte} × {nomClient(l.nom, /^Pizza /.test(l.nom))}
                         </li>
                       ))}
                     </ul>

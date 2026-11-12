@@ -60,7 +60,8 @@ type CompteConnu = { email: string; prenom: string; nom: string; telephone: stri
 export function PageCommande({ catalogue, preversion, compte }: { catalogue: Catalogue; preversion: boolean; compte: CompteConnu }) {
   const ids = useId();
   const annule = useSearchParams().get("annule") === "1";
-  const { lignes, charge, quantite } = usePanier();
+  const panier = usePanier();
+  const { lignes, charge, quantite } = panier;
   const reponse = usePrixServeur(lignes, charge);
   const [choix, setChoix] = useState<Choix | null>(null);
   const [client, setClient] = useState({
@@ -338,7 +339,7 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
 
         <aside className="commande-recap" aria-label="Récapitulatif">
           <h2>Récapitulatif</h2>
-          <ContenuPanier lignes={lignes} quantite={quantite} catalogue={catalogue} choix={choix} reponse={reponse} preversion={false} sansBouton />
+          <ContenuPanier lignes={lignes} quantite={quantite} catalogue={catalogue} choix={choix} reponse={reponse} preversion={false} sansBouton suivi={panier} />
           <Link className="lien" href="/carte">
             Modifier la commande
           </Link>
