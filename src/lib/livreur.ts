@@ -1,9 +1,11 @@
 import "server-only";
-import { courrielPrete } from "@/lib/courriel/modeles";
+import { courrielClientAbsent, courrielPrete } from "@/lib/courriel/modeles";
 import { envoyerCourriel } from "@/lib/courriel/envoi";
 import { commandeParId, fonctionSql } from "@/lib/db/serveur";
 import { auteur, type Personnel } from "@/lib/personnel/session";
 import { signalerTablette } from "@/lib/tablette";
+import { alerter } from "@/lib/surveillance";
+import { prixChf } from "@/lib/prix";
 import { deplacer, proposerOrdre, type ArretTournee } from "@/lib/tournee";
 
 // Livreurs : la tablette attribue et range, le téléphone du livreur montre ses livraisons en cours et
@@ -27,7 +29,7 @@ export type LivraisonLivreur = {
   probleme_detail: string | null;
 };
 
-export type RetireeLivreur = { commande_id: string; numero: number; raison: "annulee" | "reattribuee" | "retiree"; partie: boolean };
+export type RetireeLivreur = { commande_id: string; numero: number; raison: "annulee" | "reattribuee" | "retiree" | "client_absent"; partie: boolean };
 export type Probleme = "client_absent" | "adresse_introuvable" | "autre";
 export type Geste = "partie" | "livree" | "probleme" | "compris";
 
@@ -94,7 +96,8 @@ export type ActionLivraison =
   | { action: "retirer"; commande: string }
   | { action: "deplacer"; commande: string; livreur: string; sens: -1 | 1 }
   | { action: "proposer"; livreur: string }
-  | { action: "regler_probleme"; commande: string };
+  | { action: "regler_probleme"; commande: string }
+  | { action: "client_absent"; commande: string };
 
 const arrets = (livreur: string) => fonctionSql<(ArretTournee & { ordre_manuel: boolean })[]>("livraisons_a_ordonner", { p_livreur: livreur });
 const ordonner = (livreur: string, commandes: string[], manuel: boolean, par: string) =>
@@ -133,6 +136,24 @@ export async function agirLivraison(a: ActionLivraison, p: Personnel): Promise<{
     case "regler_probleme":
       ok = await fonctionSql<boolean>("regler_probleme_livraison", { p_commande: a.commande, p_par: par });
       break;
+    case "client_absent": {
+      // Close sans remboursement : le client reçoit un e-mail factuel, le gérant une alerte et décide.
+      const passage = await fonctionSql<string | null>("clore_client_absent", { p_commande: a.commande, p_par: par });
+      ok = passage !== null;
+      if (!ok) break;
+      const c = await commandeParId(a.commande);
+      if (c) {
+        await envoyerCourriel({ commandeId: c.id, destinataire: c.client_email, ...courrielClientAbsent(c, passage!) }).catch((e) =>
+          console.error(`Courriel « non remise » non envoyé : ${e instanceof Error ? e.message : e}`),
+        );
+        await alerter(`Commande ${c.numero} : client absent à la livraison`, [
+          `La commande ${c.numero} (${prixChf(c.total_centimes)}) n'a pas pu être remise : client absent. Elle n'est pas remboursée.`,
+          "Ouvrez-la dans le back-office, rubrique « Commandes », pour décider d'un remboursement total, partiel ou d'aucun.",
+        ]).catch((e) => console.error(`Alerte non envoyée : ${e instanceof Error ? e.message : e}`));
+      }
+      message = "Livraison close sans remboursement. Le client est prévenu, le gérant décide dans le back-office.";
+      break;
+    }
   }
   if (ok) await signalerTablette();
   return ok ? { ok, message } : { ok, message: message ?? "Cette livraison a déjà changé. La liste se met à jour." };

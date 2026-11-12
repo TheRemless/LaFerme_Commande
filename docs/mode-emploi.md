@@ -45,7 +45,7 @@ Payée en ligne, le montant lui est remboursé. À payer au comptoir, il est dé
 - Il veut changer sa commande. Ce n'est pas possible sur la tablette. Annuler la commande et lui demander de recommander.
 - Il veut annuler. Toucher « Annuler la commande », choisir « À la demande du client » puis toucher « Annuler et rembourser ». Le lien « Fermer » referme le panneau sans rien annuler.
 - La commande est déjà prête ou livrée. Noter son numéro et prévenir le gérant : il rembourse depuis le back-office, en entier ou en partie.
-- La livraison est partie. « Annuler la commande » reste possible. Le livreur lit « annulée, rapportez le sac » sur son téléphone.
+- La livraison est partie. « Annuler la commande » reste possible et rembourse. Le livreur lit « annulée, rapportez le sac » sur son téléphone. Client absent : voir « Les livraisons » plus bas, rien n'est remboursé.
 
 ### Pendant le service (bouton « Pause, délai, ruptures »)
 
@@ -63,7 +63,9 @@ Payée en ligne, le montant lui est remboursé. À payer au comptoir, il est dé
 - Changer de livreur. Toucher « Donner à… ». L'ancien livreur ne voit plus l'adresse et lit qu'elle a été donnée à un autre.
 - « Reprendre » remet la commande à gauche, sans livreur.
 - Sous le prénom, on lit s'il a la page ouverte sur son téléphone et combien de livraisons sont en route.
-- Problème signalé (client absent, adresse introuvable). Un bandeau jaune s'affiche. Appeler le client ou le livreur. Si ça s'arrange, toucher « Problème réglé ». Sinon, annuler la commande dans « En cours ». Payée en ligne, elle est remboursée.
+- Problème signalé (client absent, adresse introuvable). Un bandeau jaune s'affiche. Appeler le client ou le livreur. Si ça s'arrange, toucher « Problème réglé ».
+- Client absent qui ne répond pas. Toucher « Client absent : clore » puis « Oui, clore sans rembourser ». Rien n'est remboursé. Le client reçoit un e-mail « commande non remise » et le gérant une alerte. Le gérant décide ensuite dans le back-office.
+- Adresse introuvable ou autre problème sans solution. Annuler la commande dans « En cours ». Payée en ligne, elle est remboursée.
 
 ### Les onglets
 
@@ -107,6 +109,8 @@ Le back-office s'ouvre sur « Commandes ». Les autres rubriques sont juste en d
 4. Toucher « Rembourser ». L'argent revient sur sa carte ou son TWINT. Payée au comptoir, rendre l'argent en espèces : le site le note.
 
 Le remboursement n'est possible qu'une fois la commande prête, partie ou livrée. Avant, on l'annule sur la tablette.
+
+Client absent à la livraison : la commande est close sans remboursement, avec le motif « Client absent à la livraison. » et une alerte par e-mail au gérant. Ouvrir la commande et décider au cas par cas (rien, une partie ou tout).
 
 ### Équipe
 
@@ -226,9 +230,10 @@ Restaurant : 022 792 16 89
 
 1. « Pas de réseau ». Continuez. Vos gestes partent seuls au retour du signal, une seule fois. Ne fermez pas la page avant.
 2. « N° 12 annulée. Ne la livrez pas, rapportez le sac au restaurant. » Rapportez le sac puis touchez « Compris ».
-3. « N° 12 donnée à un autre livreur ». Si vous avez le sac, appelez le restaurant. Puis touchez « Compris ».
-4. La page demande un e-mail. Vous êtes déconnecté. Reconnectez-vous : vos livraisons en cours sont toujours là.
-5. Téléphone perdu ou volé. Appelez le restaurant tout de suite. Le gérant touche « Déconnecter partout ».
+3. « N° 12 close, client absent. » Le restaurant n'a pas pu joindre le client. Rapportez le sac puis touchez « Compris ».
+4. « N° 12 donnée à un autre livreur ». Si vous avez le sac, appelez le restaurant. Puis touchez « Compris ».
+5. La page demande un e-mail. Vous êtes déconnecté. Reconnectez-vous : vos livraisons en cours sont toujours là.
+6. Téléphone perdu ou volé. Appelez le restaurant tout de suite. Le gérant touche « Déconnecter partout ».
 
 ### Vos données et celles des clients
 

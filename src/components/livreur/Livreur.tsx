@@ -191,7 +191,9 @@ export function Livreur({ nom, supabase }: { nom: string; supabase: { url: strin
         <div key={r.commande_id} className="liv-retiree" role="alert">
           <p>
             <strong>N° {r.numero} </strong>
-            {r.raison === "annulee"
+            {r.raison === "client_absent"
+              ? "close, client absent. Rapportez le sac au restaurant."
+              : r.raison === "annulee"
               ? r.partie
                 ? "annulée. Ne la livrez pas, rapportez le sac au restaurant."
                 : "annulée. Ne la prenez pas."

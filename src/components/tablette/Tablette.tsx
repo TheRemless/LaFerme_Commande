@@ -14,6 +14,7 @@ import { heureTexte, jourTexte } from "@/lib/service";
 import { MOTIFS_REFUS } from "@/lib/motifs";
 import { nouvelleCle } from "@/lib/cle";
 import type { DonneesLivraisons } from "@/lib/livreur";
+import { MOTIF_CLIENT_ABSENT } from "@/lib/livraisons-textes";
 import { OngletLivraisons, livraisonsEnCours, problemeTexte } from "@/components/tablette/Livraisons";
 
 // Tablette posée en cuisine : file des commandes, alerte sonore, accepter, refuser, statuts.
@@ -441,7 +442,7 @@ function CarteCommande({
     en_preparation: "En préparation",
     prete: "Prête au comptoir",
     partie: "Partie",
-    terminee: c.mode === "livraison" ? "Livrée" : "Retirée",
+    terminee: c.motif === MOTIF_CLIENT_ABSENT ? "Non remise, client absent (le gérant décide d'un remboursement)" : c.mode === "livraison" ? "Livrée" : "Retirée",
     refusee: "Refusée",
   };
 

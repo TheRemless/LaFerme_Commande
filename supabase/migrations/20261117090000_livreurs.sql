@@ -127,7 +127,7 @@ create table livraisons (
   attribuee_le timestamptz not null default now(),
   attribuee_par text not null,
   retiree_le timestamptz,
-  raison_retrait text check (raison_retrait in ('reattribuee', 'retiree', 'annulee')),
+  raison_retrait text check (raison_retrait in ('reattribuee', 'retiree', 'annulee', 'client_absent')),
   -- Le livreur a lu « retirée » ou « annulée » sur son téléphone.
   retrait_vu_le timestamptz,
   probleme text check (probleme in ('client_absent', 'adresse_introuvable', 'autre')),
@@ -320,6 +320,32 @@ begin
 end;
 $$;
 
+-- Client absent (décision de Jérémy du 12.11.2026) : la livraison partie est close SANS remboursement.
+-- La commande passe à « terminee » avec le motif fixe ci-dessous (lu par le suivi du client et le
+-- back-office, où le gérant décide au cas par cas d'un remboursement total ou partiel). Le livreur lit
+-- « close, client absent, rapportez le sac ». Renvoie l'heure du problème signalé (ou maintenant), null
+-- si la commande n'était pas partie.
+create function clore_client_absent(p_commande uuid, p_par text) returns timestamptz
+language plpgsql as $$
+declare
+  c commandes%rowtype;
+  l livraisons%rowtype;
+begin
+  select * into c from commandes where id = p_commande for update;
+  if not found or c.statut <> 'partie' or c.mode <> 'livraison' then
+    return null;
+  end if;
+  update commandes set statut = 'terminee', termine_le = now(), motif = 'Client absent à la livraison.' where id = p_commande;
+  insert into evenements_commande (commande_id, de, vers, par, detail) values (p_commande, 'partie', 'terminee', p_par, 'client absent');
+  update livraisons set retiree_le = now(), raison_retrait = 'client_absent'
+    where commande_id = p_commande and retiree_le is null
+    returning * into l;
+  insert into journal_livraisons (commande_id, personnel_id, par, evenement, detail)
+    values (p_commande, l.livreur_id, p_par, 'client_absent', 'close sans remboursement');
+  return coalesce(l.probleme_le, now());
+end;
+$$;
+
 -- ---------- Téléphone du livreur ----------
 
 -- Les livraisons en cours du livreur, dans l'ordre, avec seulement ce qu'il faut pour livrer. Une
@@ -361,7 +387,7 @@ begin
       ) order by o.numero)
       from livraisons l join commandes o on o.id = l.commande_id
       where l.livreur_id = p_livreur and l.retrait_vu_le is null and l.attribuee_le > now() - interval '12 hours'
-        and ((l.retiree_le is not null and l.raison_retrait in ('reattribuee', 'retiree')
+        and ((l.retiree_le is not null and l.raison_retrait in ('reattribuee', 'retiree', 'client_absent')
               -- Rendue au même livreur entre-temps : elle est dans sa liste, pas d'alerte.
               and not exists (select 1 from livraisons y where y.commande_id = l.commande_id and y.livreur_id = p_livreur and y.retiree_le is null))
           or (l.retiree_le is null and o.statut in ('refusee', 'annulee')))
@@ -475,13 +501,13 @@ language sql stable as $$
 $$;
 
 revoke execute on function
-  annuler_commande_partie(uuid, text, text),
+  annuler_commande_partie(uuid, text, text), clore_client_absent(uuid, text),
   livreurs_tablette(), livraisons_a_ordonner(uuid), attribuer_livraison(uuid, uuid, text), retirer_livraison(uuid, text),
   ordonner_livraisons(uuid, uuid[], boolean, text), regler_probleme_livraison(uuid, text), livraisons_livreur(uuid),
   geste_livreur(text, uuid, uuid, text, text, text), journal_livraison(uuid)
   from public, anon, authenticated;
 grant execute on function
-  annuler_commande_partie(uuid, text, text),
+  annuler_commande_partie(uuid, text, text), clore_client_absent(uuid, text),
   livreurs_tablette(), livraisons_a_ordonner(uuid), attribuer_livraison(uuid, uuid, text), retirer_livraison(uuid, text),
   ordonner_livraisons(uuid, uuid[], boolean, text), regler_probleme_livraison(uuid, text), livraisons_livreur(uuid),
   geste_livreur(text, uuid, uuid, text, text, text), journal_livraison(uuid)

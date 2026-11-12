@@ -9,7 +9,8 @@ Le restaurant livre avec ses propres livreurs salariés. La tablette leur donne 
 | Rôle « livreur » | back-office, « Équipe » | Même connexion par code e-mail que l'équipe. Un livreur n'ouvre ni `/tablette` ni `/gestion` ni leurs routes (403). La tablette n'ouvre pas `/api/livreur` |
 | Onglet « Livraisons » | tablette | Commandes acceptées sans livreur, tournée de chaque livreur, ordre proposé ou à la main, réattribution, reprise, problème signalé, livreur connecté ou non |
 | Page `/livreur` | téléphone | Livraisons en cours dans l'ordre, heure promise, adresse, étage, sonnette, code, consigne, appel du client, contenu résumé, paiement, itinéraire. Gestes « Je pars », « Livrée », « Problème » |
-| Annulation d'une commande partie | tablette, « En cours » | Nouveau : « Annuler la commande » reste possible une fois partie (client absent, adresse introuvable). Remboursée comme toute annulation. Le livreur lit « annulée, rapportez le sac » |
+| Annulation d'une commande partie | tablette, « En cours » | Nouveau : « Annuler la commande » reste possible une fois partie (adresse introuvable, autre). Remboursée comme toute annulation (fonction `annuler_commande_partie`). Le livreur lit « annulée, rapportez le sac » |
+| Client absent | tablette, « Livraisons » | Décision de Jérémy (12.11.2026) : pas de remboursement automatique. « Client absent : clore » termine la commande avec le motif « Client absent à la livraison. », e-mail factuel au client (« non remise »), alerte au gérant qui décide dans le back-office (remboursement total, partiel ou aucun). Le suivi du client affiche « Commande non remise ». Le livreur lit « close, client absent, rapportez le sac » |
 
 Une tournée n'est pas une table : ce sont les livraisons en cours d'un livreur, rangées par position. Pas de « tournée fermée » à gérer : une commande livrée sort de la liste, une nouvelle s'ajoute à la fin puis l'ordre est recalculé (sauf ordre fait à la main).
 
@@ -28,7 +29,7 @@ Chaque geste part avec une clé tirée au hasard par le téléphone. Sans résea
 - Le livreur ne voit que ses livraisons en cours : commande acceptée, en préparation ou partie, attribuée à lui. Livrée, réattribuée, reprise ou annulée : l'adresse disparaît. Il garde seulement « N° 12 annulée » ou « donnée à un autre livreur » jusqu'à « Compris ».
 - Sur le téléphone : prénom et téléphone du client, adresse, étage, sonnette, code, consigne. Pas de nom de famille, pas d'e-mail, pas de plats ni de prix.
 - Rien n'est mis en cache (`Cache-Control: no-store, private`). Les adresses restent en mémoire de la page, jamais dans le stockage du téléphone.
-- Journal `journal_livraisons` : attribution, réattribution, reprise, ordre, chaque geste, et la première fois qu'une adresse s'affiche sur le téléphone d'un livreur (« vue »). Les changements de statut restent aussi dans `evenements_commande` avec l'auteur `livreur:Prénom`.
+- Journal `journal_livraisons` : attribution, réattribution, reprise, ordre, chaque geste ainsi que la première fois qu'une adresse s'affiche sur le téléphone d'un livreur (« vue »). Les changements de statut restent aussi dans `evenements_commande` avec l'auteur `livreur:Prénom`.
 - Le lien « Itinéraire » transmet l'adresse seule (rue, numéro, NPA, localité) à l'appli de navigation du téléphone : Plans sur iPhone, `geo:` sur Android (l'appli choisie par le livreur), Google Maps ailleurs.
 - La tablette voit l'heure de la dernière mise à jour de la page `/livreur` de chaque livreur (`activite_livreurs`), pas sa position.
 

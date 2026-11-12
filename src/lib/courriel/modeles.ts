@@ -260,6 +260,17 @@ export function courrielPrete(c: Commande) {
   ]);
 }
 
+// Livraison close, client absent (décision de Jérémy du 12.11.2026) : factuel, sans promesse. Le gérant
+// décide ensuite d'un éventuel remboursement depuis le back-office. Pas de lien de suivi (rien à suivre).
+export function courrielClientAbsent(c: Commande, passageIso: string) {
+  return courrielCourt(
+    c,
+    `Commande ${c.numero} non remise, La Ferme`,
+    [`Notre livreur est passé chez vous vers ${heureDe(passageIso)} avec votre commande n° ${c.numero}.`, "Personne n'a répondu et il est reparti avec la commande."],
+    false,
+  );
+}
+
 // Refus d'une commande qui n'a pas été payée en ligne (paiement au comptoir) : rien à rembourser.
 export function courrielRefus(c: Commande, motif: string) {
   return courrielCourt(c, `Commande ${c.numero} annulée, La Ferme`, [phraseAnnulation(c, motif).texte, "Rien n'a été débité."], false);

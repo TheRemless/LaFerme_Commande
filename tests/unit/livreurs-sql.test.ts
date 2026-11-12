@@ -44,7 +44,7 @@ async function livraison(statut = "acceptee", adresse = { rue: "Avenue du Gros-C
     },
   ]);
   const c = r.rows[0].id;
-  await db.query("update commandes set statut = $2, heure_confirmee = now() + interval '30 minutes' where id = $1", [c, statut]);
+  await db.query("update commandes set statut = $2, heure_confirmee = now() + interval '30 minutes', stripe_payment_intent = 'pi_test' where id = $1", [c, statut]);
   return c;
 }
 
@@ -204,6 +204,31 @@ describe("gestes", () => {
     expect((await geste("cle-annul-000000003", marco, c, "compris")).ok).toBe(true);
     expect((await liste(marco)).retirees).toEqual([]);
     expect((await f<{ livraisons: { commande_id: string }[] }>("livreurs_tablette()")).livraisons.map((x) => x.commande_id)).toEqual([autre]);
+  });
+
+  it("client absent clos par la tablette : terminée sans remboursement, motif fixe, le livreur lit « close »", async () => {
+    const c = await livraison();
+    await attribuer(c, marco);
+    // Pas encore partie : rien à clore.
+    expect(await f<string | null>("clore_client_absent($1, 'tablette:Test')", [c])).toBeNull();
+    await geste("cle-clos-0000000001", marco, c, "partie");
+    await geste("cle-clos-0000000002", marco, c, "probleme", "client_absent", null);
+    const passage = await f<string | null>("clore_client_absent($1, 'tablette:Test')", [c]);
+    expect(passage).toBeTruthy();
+    const o = (await db.query<{ statut: string; statut_paiement: string; motif: string }>("select statut, statut_paiement, motif from commandes where id = $1", [c])).rows[0];
+    expect(o).toEqual({ statut: "terminee", statut_paiement: "paye", motif: "Client absent à la livraison." });
+    expect(await f<string | null>("clore_client_absent($1, 'tablette:Test')", [c])).toBeNull();
+    const m = await liste(marco);
+    expect(m.livraisons).toEqual([]);
+    expect(m.retirees).toEqual([{ commande_id: c, numero: expect.any(Number), raison: "client_absent", partie: true }]);
+    expect((await geste("cle-clos-0000000003", marco, c, "compris")).ok).toBe(true);
+    expect((await liste(marco)).retirees).toEqual([]);
+    // Le gérant peut ensuite rembourser après coup (commande terminée).
+    const g = await id("equipe@laferme.test");
+    const r = await f<{ statut?: string; erreur?: string }>("demander_remboursement($1, 1000, 'Geste client absent', 'cle-remb-absent', $2)", [c, g]);
+    expect(r.statut).toBe("en_cours");
+    const journal = await f<{ evenement: string }[]>("journal_livraison($1)", [c]);
+    expect(journal.map((j) => j.evenement)).toContain("client_absent");
   });
 
   it("livreur déconnecté en tournée : ses livraisons l'attendent à sa reconnexion", async () => {

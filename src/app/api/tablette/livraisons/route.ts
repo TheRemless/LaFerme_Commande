@@ -21,6 +21,8 @@ function actionValide(c: Record<string, unknown>): ActionLivraison | null {
       return livreur ? { action: "proposer", livreur } : null;
     case "regler_probleme":
       return commande ? { action: "regler_probleme", commande } : null;
+    case "client_absent":
+      return commande ? { action: "client_absent", commande } : null;
     default:
       return null;
   }

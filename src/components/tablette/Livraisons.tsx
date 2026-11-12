@@ -127,6 +127,7 @@ function Tournee({
   envoi: boolean;
   faire: (corps: Record<string, unknown>) => Promise<void>;
 }) {
+  const [confirmer, setConfirmer] = useState<string | null>(null);
   const actives = livraisons.filter((x) => EN_COURS.includes(x.commande_statut));
   const annulees = livraisons.filter((x) => !EN_COURS.includes(x.commande_statut));
   const parties = actives.filter((x) => x.commande_statut === "partie").length;
@@ -178,9 +179,35 @@ function Tournee({
                   )}
                   {x.probleme && (
                     <p className="liv-souci-texte">
-                      Problème à {x.probleme_le ? heure(x.probleme_le) : "…"} : {problemeTexte(x)}. Appelez le client ou {livreur.nom}, puis touchez « Problème réglé » ou annulez la commande
-                      dans « En cours ».
+                      Problème à {x.probleme_le ? heure(x.probleme_le) : "…"} : {problemeTexte(x)}. Appelez le client ou {livreur.nom}, puis touchez « Problème réglé »
+                      {x.probleme === "client_absent" && x.commande_statut === "partie"
+                        ? " s'il répond, ou « Client absent : clore » s'il ne répond pas."
+                        : " ou annulez la commande dans « En cours »."}
                     </p>
+                  )}
+                  {confirmer === x.commande_id && (
+                    <div className="liv-confirmer">
+                      <p>
+                        Clore le n° {x.numero} sans le livrer ni le rembourser ? Le client reçoit un e-mail « non remise », le gérant décide ensuite d&apos;un remboursement dans
+                        le back-office.
+                      </p>
+                      <div className="boutons-ligne">
+                        <button
+                          type="button"
+                          className="bouton-principal"
+                          disabled={envoi}
+                          onClick={async () => {
+                            await faire({ action: "client_absent", commande: x.commande_id });
+                            setConfirmer(null);
+                          }}
+                        >
+                          Oui, clore sans rembourser
+                        </button>
+                        <button type="button" className="lien" onClick={() => setConfirmer(null)}>
+                          Garder
+                        </button>
+                      </div>
+                    </div>
                   )}
                   <div className="boutons-ligne">
                     <button
@@ -204,6 +231,11 @@ function Tournee({
                     {x.probleme && (
                       <button type="button" className="bouton-second" disabled={envoi} onClick={() => faire({ action: "regler_probleme", commande: x.commande_id })}>
                         Problème réglé
+                      </button>
+                    )}
+                    {x.probleme === "client_absent" && x.commande_statut === "partie" && confirmer !== x.commande_id && (
+                      <button type="button" className="bouton-second" disabled={envoi} onClick={() => setConfirmer(x.commande_id)}>
+                        Client absent : clore
                       </button>
                     )}
                     {autres.map((a) => (

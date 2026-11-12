@@ -3396,3 +3396,14 @@ body.fiche-ouverte {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+.liv-confirmer {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  background: var(--blanc);
+  border: 2px solid var(--encre);
+  border-radius: 4px;
+}
+.liv-confirmer .bouton-principal {
+  width: auto;
+}

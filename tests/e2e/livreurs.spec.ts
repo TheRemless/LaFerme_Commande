@@ -204,7 +204,7 @@ test("réseau coupé : Je pars attend, repart seul, un seul e-mail au client", a
   expect(courriels.match(new RegExp(`<h2>Commande ${c} en route`, "g"))?.length).toBe(1);
 });
 
-test("client absent signalé, puis commande annulée pendant la tournée", async ({ request }) => {
+test("client absent : signalé par le livreur, clos sans remboursement par la tablette", async ({ request }) => {
   const c = await livraison(request, LIGNON);
   await ongletLivraisons().click();
   await aAttribuer(c).getByRole("button", { name: "À Marco" }).click();
@@ -223,12 +223,47 @@ test("client absent signalé, puis commande annulée pendant la tournée", async
   await expect(tournee("Marco").locator(".liv-souci")).toContainText("Sonné deux fois");
   await tablette.screenshot({ path: "test-results/livreurs/tablette-1024-probleme.png", fullPage: true });
 
-  // Le restaurant annule la commande partie (remboursée).
+  // Décision de Jérémy (12.11.2026) : clore sans rembourser, le gérant décide ensuite.
+  await tournee("Marco").getByRole("button", { name: "Client absent : clore" }).click();
+  await expect(tournee("Marco").locator(".liv-confirmer")).toContainText("sans le livrer ni le rembourser");
+  await tablette.screenshot({ path: "test-results/livreurs/tablette-1024-client-absent.png", fullPage: true });
+  await axe(tablette, "tablette-client-absent");
+  await tournee("Marco").getByRole("button", { name: "Oui, clore sans rembourser" }).click();
+  await expect(tablette.locator(".tab-message")).toContainText("Livraison close sans remboursement");
+
+  await tablette.getByRole("button", { name: /^Terminées/ }).click();
+  const terminee = tablette.locator(".tab-commande", { has: tablette.locator(".tab-num", { hasText: new RegExp(`^${c}$`) }) });
+  await expect(terminee).toContainText("Non remise, client absent");
+  await expect(terminee).toContainText("Payée en ligne");
+  await expect(terminee).not.toContainText("Remboursée");
+
+  // Le client : suivi « Commande non remise », un e-mail factuel, aucun remboursement annoncé.
+  const suivi = await (await request.get(`/suivi/${jetons.get(c)}`)).text();
+  expect(suivi).toContain("Commande non remise");
+  const courriels = await (await request.get(`/dev/courriels?jeton=${jetons.get(c)}`)).text();
+  expect(courriels).toContain(`<h2>Commande ${c} non remise, La Ferme`);
+  expect(courriels).not.toMatch(/rembours/i);
+
+  await marco.reload();
+  await expect(arret(marco, c)).toHaveCount(0);
+  await expect(marco.locator(".liv-retiree")).toContainText(`N° ${c} close, client absent. Rapportez le sac au restaurant.`);
+  await marco.getByRole("button", { name: "Compris" }).click();
+  await expect(marco.locator(".liv-retiree")).toHaveCount(0);
+});
+
+test("commande annulée pendant la tournée (adresse introuvable) : remboursée, le livreur rapporte le sac", async ({ request }) => {
+  const c = await livraison(request, LIGNON);
+  await ongletLivraisons().click();
+  await aAttribuer(c).getByRole("button", { name: "À Marco" }).click();
+  await marco.reload();
+  await arret(marco, c).getByRole("button", { name: "Je pars" }).click();
+  await expect(arret(marco, c)).toContainText("En route.");
+
   await tablette.getByRole("button", { name: /^En cours/ }).click();
   const cours = tablette.locator(".tab-commande", { has: tablette.locator(".tab-num", { hasText: new RegExp(`^${c}$`) }) });
   await expect(cours).toContainText("Livreur : Marco");
   await cours.getByRole("button", { name: "Annuler la commande" }).click();
-  await cours.getByLabel("Autre motif").fill("Client absent, livreur revenu");
+  await cours.getByLabel("Autre motif").fill("Adresse introuvable, livreur revenu");
   await cours.getByRole("button", { name: /^Annuler et rembourser/ }).click();
   await expect(tablette.locator(".tab-message")).toContainText("remboursée");
 
