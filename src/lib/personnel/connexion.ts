@@ -1,7 +1,7 @@
 import "server-only";
 import { after } from "next/server";
 import { courrielBlocagePersonnel, courrielCode } from "@/lib/courriel/modeles";
-import { envoyerCodeParCourriel, envoyerParResend, resendConfigure } from "@/lib/courriel/envoi";
+import { courrielConfigure, envoyerCodeParCourriel, envoyerParSmtp } from "@/lib/courriel/envoi";
 import { enregistrerCourriel, fonctionSql } from "@/lib/db/serveur";
 import { codeAffichable, refusSansCourriel, type ResultatDemande, type ResultatVerification } from "@/lib/comptes/connexion";
 import { empreinte, ipCourt, nouveauCode, nouveauJeton } from "@/lib/comptes/securite";
@@ -9,7 +9,8 @@ import { heureTexte, instantGeneve, jourTexte } from "@/lib/service";
 import { alerter } from "@/lib/surveillance";
 
 // Audit de sécurité, S11 : une adresse inconnue répondait aussitôt, une adresse de l'équipe après l'envoi
-// par Resend. Toute demande dure désormais au moins ce temps, ce qui couvre un envoi ordinaire.
+// du courriel. Deux protections : toute demande dure au moins ce temps, et le courriel part après la
+// réponse (un envoi SMTP dure plusieurs échanges avec le serveur, plus que ce plancher depuis un autre continent).
 export const DUREE_MIN_DEMANDE_MS = 1500;
 
 // Connexion du personnel par code e-mail. Mêmes règles que les clients (docs/comptes.md), mais seules
@@ -18,7 +19,7 @@ export const DUREE_MIN_DEMANDE_MS = 1500;
 export async function demanderCodePersonnel(email: string, ip: string): Promise<ResultatDemande> {
   const refus = refusSansCourriel(email);
   if (refus) return refus;
-  // Même plancher en cas d'erreur (Resend en panne) : un refus rapide trahirait aussi une adresse de l'équipe.
+  // Même plancher en cas d'erreur (base en panne) : un refus rapide trahirait aussi une adresse de l'équipe.
   const [r] = await Promise.allSettled([demander(email, ip), new Promise((ok) => setTimeout(ok, DUREE_MIN_DEMANDE_MS))]);
   if (r.status === "rejected") throw r.reason;
   return r.value;
@@ -37,7 +38,19 @@ async function demander(email: string, ip: string): Promise<ResultatDemande> {
   if (attente > 0) return { statut: "attente", attente };
   // Adresse inconnue : même réponse, aucun courriel (on n'écrit pas à quelqu'un qui n'est pas de l'équipe).
   if (attente < 0) return { statut: "envoye" };
-  const envoye = await envoyerCodeParCourriel({ destinataire: email, ...courrielCode(code) });
+  const courriel = { destinataire: email, ...courrielCode(code) };
+  if (courrielConfigure()) {
+    // Après la réponse : ni la durée de l'envoi ni son échec ne distinguent une adresse de l'équipe (S11).
+    // Le code n'apparaît dans aucun journal, seul le code de réponse du serveur d'envoi.
+    await apresReponse(
+      envoyerCodeParCourriel(courriel).then(
+        () => undefined,
+        (e) => console.error(`Code du personnel non envoyé : ${e instanceof Error ? e.message : e}`),
+      ),
+    );
+    return { statut: "envoye" };
+  }
+  const envoye = await envoyerCodeParCourriel(courriel);
   return envoye ? { statut: "envoye" } : codeAffichable(code);
 }
 
@@ -73,9 +86,9 @@ async function prevenirBlocage(email: string, jusquA: string): Promise<void> {
   const fin = instantGeneve(new Date(jusquA));
   const quand = `${jourTexte(fin.date)} à ${heureTexte(fin.minutes)}`;
   const m = courrielBlocagePersonnel(quand);
-  const resend = resendConfigure();
-  if (resend) await envoyerParResend(email, m.sujet, m.texte, m.html, `blocage-${empreinte("email-personnel", email).slice(0, 16)}-${jusquA}`);
-  await enregistrerCourriel({ commande_id: null, destinataire: email, sujet: m.sujet, texte: m.texte, html: m.html, fournisseur: resend ? "resend" : "doublure" });
+  const smtp = courrielConfigure();
+  if (smtp) await envoyerParSmtp(email, m.sujet, m.texte, m.html);
+  await enregistrerCourriel({ commande_id: null, destinataire: email, sujet: m.sujet, texte: m.texte, html: m.html, fournisseur: smtp ? "smtp" : "doublure" });
   await alerter("Adresse de l'équipe bloquée 24 heures, La Ferme", [
     `L'adresse ${email} a reçu 15 codes faux sur la tablette ou le back-office.`,
     `La connexion par code est bloquée jusqu'au ${quand}. Les appareils déjà connectés restent connectés.`,

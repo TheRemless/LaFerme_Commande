@@ -1,6 +1,6 @@
 import "server-only";
 import { courrielCode } from "@/lib/courriel/modeles";
-import { envoyerCodeParCourriel, resendConfigure } from "@/lib/courriel/envoi";
+import { courrielConfigure, envoyerCodeParCourriel } from "@/lib/courriel/envoi";
 import { commandeParJeton, fonctionSql } from "@/lib/db/serveur";
 import { empreinte, ipCourt, nouveauCode, nouveauJeton } from "@/lib/comptes/securite";
 import { baseDeTest } from "@/lib/environnement";
@@ -8,7 +8,7 @@ import { baseDeTest } from "@/lib/environnement";
 // Demande et vérification d'un code de connexion. Les limites de débit et le compte vivent en base
 // (demander_code, verifier_code) ; ici, les empreintes et l'envoi du courriel.
 
-// Sans Resend, aucun e-mail ne part. Le code ne s'affiche à l'écran que sur une base de test (base
+// Sans serveur d'envoi, aucun e-mail ne part. Le code ne s'affiche à l'écran que sur une base de test (base
 // embarquée, ou projet déclaré par BASE_DE_TEST=1) et pour une adresse en .test. Sur une préversion qui
 // écrit dans la vraie base, jamais : n'importe qui entrerait dans un compte, ou dans la tablette avec un
 // membre de test (audit de sécurité, S1).
@@ -22,9 +22,9 @@ export type ResultatDemande =
   | { statut: "adresse-preversion" }
   | { statut: "envoi-indisponible" };
 
-// Sans Resend hors production : aucun code possible sur la vraie base, adresse en .test exigée sur une base de test.
+// Sans serveur d'envoi hors production : aucun code possible sur la vraie base, adresse en .test exigée sur une base de test.
 export function refusSansCourriel(email: string): ResultatDemande | null {
-  if (resendConfigure() || process.env.CONTEXTE_DEPLOIEMENT === "production") return null;
+  if (courrielConfigure() || process.env.CONTEXTE_DEPLOIEMENT === "production") return null;
   if (!baseDeTest()) return { statut: "envoi-indisponible" };
   return adresseDeTest(email) ? null : { statut: "adresse-preversion" };
 }

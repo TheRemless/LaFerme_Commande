@@ -4,7 +4,7 @@ Ce qui empêche une erreur de partir en ligne, ce qui prévient quand quelque ch
 
 ## 1. Vérifications GitHub (intégration continue)
 
-`.github/workflows/verifications.yml`, à chaque PR vers `main` (sauf brouillon ou fichiers `.md` seuls), à chaque fusion dans `main` (lint, types et Vitest seulement) et à la demande. Détail et raisons : section 4. Aucun secret : rien ne parle à Supabase, Stripe ni Resend.
+`.github/workflows/verifications.yml`, à chaque PR vers `main` (sauf brouillon ou fichiers `.md` seuls), à chaque fusion dans `main` (lint, types et Vitest seulement) et à la demande. Détail et raisons : section 4. Aucun secret : rien ne parle à Supabase, Stripe ni au serveur d'envoi des e-mails.
 
 | Job | Contenu |
 |---|---|

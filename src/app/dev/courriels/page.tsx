@@ -7,7 +7,7 @@ import { PRIVE } from "@/lib/site";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Courriels de test, La Ferme", robots: PRIVE };
 
-// Préversion seulement : les courriels d'une commande gardés par la doublure (sans Resend).
+// Préversion seulement : les courriels d'une commande gardés par la doublure (sans serveur d'envoi).
 // Le jeton de suivi est exigé : on ne voit que les courriels de sa propre commande.
 export default async function Courriels({ searchParams }: { searchParams: Promise<{ jeton?: string }> }) {
   if (process.env.CONTEXTE_DEPLOIEMENT === "production") notFound();

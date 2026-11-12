@@ -10,13 +10,13 @@ Liste de contrôle du site de commande, à suivre dans l'ordre. Rien ne part en 
 4. Faire relire les trois pages légales par un professionnel.
 5. Annoncer la livraison au SCAV.
 6. Choisir le nom de domaine et donner l'accès à ses réglages DNS.
-7. Ouvrir Stripe (TWINT), Resend (domaine d'envoi), Supabase Pro et Netlify Pro, puis régler Netlify sur Francfort.
+7. Ouvrir Stripe (TWINT), créer l'adresse d'envoi chez Infomaniak, Supabase Pro et Netlify Pro, puis régler Netlify sur Francfort.
 8. Acheter une imprimante, la brancher, puis la deuxième une fois la première testée. Prévoir la tablette.
 9. Faire la recette en service fictif avec l'équipe.
 10. Donner l'accord écrit pour la bascule, puis faire le premier vrai paiement, remboursé.
 11. Poser les réglages de la sauvegarde dans GitHub, puis créer le moniteur UptimeRobot au lancement ([filet.md](filet.md)).
 
-Les clés (Stripe, Resend, Supabase) se saisissent directement dans Netlify. Jamais dans une conversation.
+Les clés et mots de passe (Stripe, Infomaniak, Supabase) se saisissent directement dans Netlify. Jamais dans une conversation.
 
 ## Phase 1 : ce que Jérémy fournit ou crée
 
@@ -45,7 +45,8 @@ Les clés (Stripe, Resend, Supabase) se saisissent directement dans Netlify. Jam
 
 - [ ] Jérémy : choisir le nom de domaine. restaurantlaferme.ch est encore chez Wix : ce site devient-il le site principal ou un sous-domaine (par exemple commande.restaurantlaferme.ch) ? Donner l'accès aux réglages DNS. Détail : [PROMPT.md](PROMPT.md) §12.
 - [ ] Jérémy : ouvrir le compte Stripe, activer TWINT, regarder si Apple Pay et Google Pay s'activent simplement (sinon le site ne les annonce pas). Saisir dans Netlify la clé de test `sk_test_…` pour les préversions (elle ne sert qu'une fois les préversions branchées sur le projet de test, phase 3). Les clés live viennent à la bascule (phase 4).
-- [ ] Jérémy : ouvrir Resend, ajouter le domaine d'envoi et ses enregistrements DNS, puis saisir dans Netlify `RESEND_API_KEY` et `COURRIEL_EXPEDITEUR` (production et préversions). Détail : [comptes.md](comptes.md).
+- [ ] Jérémy : chez Infomaniak, créer l'adresse d'envoi du site et un mot de passe d'appareil, puis saisir dans Netlify `SMTP_UTILISATEUR`, `SMTP_MOT_DE_PASSE` et `COURRIEL_EXPEDITEUR` (production et préversions). Vérifier la limite d'envoi par jour de la boîte. Détail : [comptes.md](comptes.md).
+- [ ] Claude : une fois l'envoi branché, mesurer la durée d'un envoi depuis une préversion (Ohio) puis depuis Francfort. Les e-mails de commande partent avant la réponse du site : un envoi lent ralentit d'autant l'acceptation sur la tablette.
 - [ ] Jérémy : passer Supabase en Pro (pas de mise en pause du projet). Au passage, créer si possible un projet de test à Zurich pour les préversions.
 - [ ] Jérémy : passer Netlify en Pro (20 $ par mois pour l'équipe, prix relevé le 8.11.2026 sur netlify.com/pricing). Activer la recharge automatique des crédits, ou au moins lire les alertes à 50 %, 75 % et 90 % : crédits épuisés, le site est mis en pause. Détail : [performance.md](performance.md).
 - [ ] Jérémy : régler la région des fonctions sur Francfort. Détail : [performance.md](performance.md).
@@ -89,7 +90,7 @@ Claude donne les noms et les contextes, Jérémy saisit les valeurs secrètes.
 | `URL_SITE` (https://domaine, sans barre finale) | oui | non | Claude |
 | `STRIPE_SECRET_KEY` | clé live, à la bascule | clé de test | Jérémy |
 | `STRIPE_WEBHOOK_SECRET` | celle du webhook live | celle du webhook de test | Jérémy |
-| `RESEND_API_KEY`, `COURRIEL_EXPEDITEUR` | oui | oui | Jérémy |
+| `SMTP_UTILISATEUR`, `SMTP_MOT_DE_PASSE`, `COURRIEL_EXPEDITEUR` | oui | oui | Jérémy |
 | `ALERTE_EMAIL` | oui | facultatif | Claude |
 | `SECRET_COMPTES` (32 octets aléatoires) | oui, obligatoire (le build échoue sans), propre à la production | non | Jérémy |
 | `PAGES_LEGALES_VALIDEES` = `1` | seulement après la relecture juridique | non | Claude |
@@ -98,7 +99,7 @@ Claude donne les noms et les contextes, Jérémy saisit les valeurs secrètes.
 
 - [ ] Jérémy et Claude : saisir les variables du tableau. Détail : [comptes.md](comptes.md).
 - [ ] Jérémy : lancer la migration `20261112090000_correctifs_securite.sql` (`npx supabase db push --remote`). Elle retire le gérant de test de la vraie base, plafonne les essais de code par jour, limite les commandes au comptoir et retire aux visiteurs les droits d'écriture. Détail : [audits/securite.md](audits/securite.md).
-- [ ] Jérémy : se créer le premier accès gérant avec sa propre adresse e-mail, une seule fois : dans Supabase, ouvrir le projet, SQL Editor, puis exécuter `insert into personnel (email, nom, role) values ('<son adresse en minuscules>', 'Jérémy', 'gerant');`. Les autres membres (Giuseppe, l'équipe) s'ajoutent ensuite dans le back-office, rubrique « Équipe ». Le code arrive par e-mail une fois Resend branché (préversions et production). Sans Resend, aucune connexion n'est possible sur une préversion branchée sur la vraie base.
+- [ ] Jérémy : se créer le premier accès gérant avec sa propre adresse e-mail, une seule fois : dans Supabase, ouvrir le projet, SQL Editor, puis exécuter `insert into personnel (email, nom, role) values ('<son adresse en minuscules>', 'Jérémy', 'gerant');`. Les autres membres (Giuseppe, l'équipe) s'ajoutent ensuite dans le back-office, rubrique « Équipe ». Le code arrive par e-mail une fois l'envoi branché (préversions et production). Sans lui, aucune connexion n'est possible sur une préversion branchée sur la vraie base.
 - [ ] Jérémy : lancer la migration `20261114090000_correctifs_gerant.sql` (`npx supabase db push --remote`). Elle ajoute l'équipe, le remboursement après coup, la liste des commandes, le retard du soir et la remise à zéro de chaque nuit. Détail : [audits/gerant.md](audits/gerant.md).
 - [ ] Jérémy : lancer la migration `20261115090000_plafond_comptoir.sql` (même commande, elle part avec les autres). Elle pose le plafond de CHF 100 par commande payée au comptoir et le fait revérifier par la base. Sans elle, le site ne propose plus le paiement au comptoir.
 

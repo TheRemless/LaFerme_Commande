@@ -1,6 +1,6 @@
 import "server-only";
 import { chargerConfigService } from "@/lib/config-service";
-import { envoyerParResend, resendConfigure } from "@/lib/courriel/envoi";
+import { courrielConfigure, envoyerParSmtp } from "@/lib/courriel/envoi";
 import { enregistrerCourriel, fonctionSql } from "@/lib/db/serveur";
 import { imprimerCommandesDues } from "@/lib/impression/service";
 import { etatService, type ConfigService } from "@/lib/service";
@@ -16,13 +16,13 @@ import { rafraichirCaches } from "@/lib/tablette";
 
 const TABLETTE_MUETTE_S = 180;
 
-// Courriel au restaurant (ALERTE_EMAIL). Sans Resend, gardé en base comme les autres courriels de test.
+// Courriel au restaurant (ALERTE_EMAIL). Sans serveur d'envoi, gardé en base comme les autres courriels de test.
 export async function alerter(sujet: string, lignes: string[]): Promise<void> {
   const texte = [...lignes, "", "Site de commande La Ferme"].join("\n");
   const html = `<pre>${texte.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!)}</pre>`;
   const destinataire = process.env.ALERTE_EMAIL;
-  if (resendConfigure() && destinataire) {
-    await envoyerParResend(destinataire, sujet, texte, html, `alerte-${sujet}-${new Date().toISOString().slice(0, 16)}`);
+  if (courrielConfigure() && destinataire) {
+    await envoyerParSmtp(destinataire, sujet, texte, html);
   } else {
     console.error(`Alerte (aucun courriel configuré) : ${sujet}`);
   }
@@ -32,7 +32,7 @@ export async function alerter(sujet: string, lignes: string[]): Promise<void> {
     sujet,
     texte,
     html,
-    fournisseur: resendConfigure() && destinataire ? "resend" : "doublure",
+    fournisseur: courrielConfigure() && destinataire ? "smtp" : "doublure",
   });
 }
 
