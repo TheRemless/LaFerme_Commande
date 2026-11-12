@@ -1908,7 +1908,9 @@ body.fiche-ouverte {
   background: var(--blanc);
   border: 1px solid var(--filet);
 }
+/* Jaune de la tablette : ce qui attend une réponse (commande à accepter, avertissement), comme sur la maquette. */
 .tablette {
+  --jaune-attente: #f5e6a3;
   max-width: 1400px;
   margin: 0 auto;
   padding: 0 16px 48px;
@@ -1992,11 +1994,11 @@ body.fiche-ouverte {
 }
 .tab-attente {
   font-size: 22px;
-  background: #f5e6a3;
+  background: var(--jaune-attente);
 }
 .tab-message {
   background: var(--blanc);
-  border-left: 4px solid var(--basilic);
+  border: 2px solid var(--encre);
 }
 .tab-onglets {
   display: flex;
@@ -2052,9 +2054,9 @@ body.fiche-ouverte {
   border: 1px solid #cfcfcb;
   border-radius: 4px;
 }
+/* Nouvelle commande : cadre noir épais, sans liseré de couleur (audit design, D05). */
 .tab-nouvelle {
   border: 3px solid var(--encre);
-  box-shadow: inset 6px 0 0 #e9cf5b;
 }
 .tab-terminee,
 .tab-refusee {
@@ -2062,9 +2064,40 @@ body.fiche-ouverte {
 }
 .tab-tete {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 16px;
   align-items: center;
+}
+.tab-promise {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin: 0;
+  font-size: 56px;
+  font-weight: 700;
+  font-stretch: 62%;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.tab-promise span {
+  margin-bottom: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  font-stretch: 100%;
+  color: var(--encre-douce);
+}
+/* Sur un téléphone, l'heure promise passe sous le numéro, sur toute la largeur. */
+@media (max-width: 599px) {
+  .tab-tete {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .tab-promise {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 12px;
+    font-size: 44px;
+  }
 }
 .tab-num {
   margin: 0;
@@ -2082,6 +2115,7 @@ body.fiche-ouverte {
   font-size: 22px;
 }
 .tab-meta {
+  font-size: 16px;
   color: var(--encre-douce);
 }
 .tab-corps {
@@ -2095,14 +2129,30 @@ body.fiche-ouverte {
   padding: 0;
   list-style: none;
 }
+.tab-ligne-tete {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
 .tab-ligne-nom {
   font-size: 22px;
   font-weight: 700;
+}
+/* Poste qui prépare la ligne, comme sur la maquette : on voit ce qui part au four ou en cuisine. */
+.tab-poste {
+  flex: none;
+  padding: 2px 8px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1.5px solid var(--encre);
+  border-radius: 3px;
 }
 .tab-opts {
   margin: 2px 0 0 18px;
   padding: 0;
   list-style: none;
+  font-size: 18px;
   font-weight: 600;
 }
 .tab-client p {
@@ -2125,9 +2175,12 @@ body.fiche-ouverte {
   min-height: 64px;
   font-size: 20px;
 }
-.tab-actions .lien {
-  min-height: 48px;
-  font-size: 16px;
+.tab-actions .bouton-second {
+  min-height: 56px;
+  font-size: 18px;
+}
+.tab-actions .tab-annuler {
+  margin-left: auto;
 }
 .tab-actions-ligne {
   flex-direction: row;
@@ -2586,12 +2639,12 @@ body.fiche-ouverte {
   padding: 10px 14px;
   font-size: 18px;
   font-weight: 700;
-  background: #f5e6a3;
+  background: var(--jaune-attente);
   border-radius: 4px;
 }
 .tab-attend {
   color: var(--encre);
-  background: #f5e6a3;
+  background: var(--jaune-attente);
   padding: 0 4px;
 }
 /* Ticket de secours : blanc sur fond sombre, en grand, lisible à un mètre. */

@@ -417,6 +417,13 @@ function CarteCommande({
             {c.statut === "nouvelle" && attente >= 3 && <strong className="tab-attend"> Attend depuis {attente} min.</strong>}
           </p>
         </div>
+        {/* Une fois acceptée, l'heure promise se lit à un mètre (audit design, D05, maquette de la tablette). */}
+        {c.heure_confirmee && ACCEPTEES.includes(c.statut) && (
+          <p className="tab-promise">
+            <span>Heure annoncée au client</span>
+            {heure(c.heure_confirmee)}
+          </p>
+        )}
       </div>
 
       {c.avertissement && c.statut === "nouvelle" && <p className="tab-avertissement">{c.avertissement}</p>}
@@ -425,8 +432,11 @@ function CarteCommande({
         <ul className="tab-lignes">
           {c.lignes.map((l, i) => (
             <li key={i}>
-              <span className="tab-ligne-nom">
-                {l.qte} × {l.nom}
+              <span className="tab-ligne-tete">
+                <span className="tab-ligne-nom">
+                  {l.qte} × {l.nom}
+                </span>
+                <span className="tab-poste">{l.station === "pizza" ? "Pizza" : "Cuisine"}</span>
               </span>
               {l.details.length > 0 && (
                 <ul className="tab-opts">
@@ -452,7 +462,7 @@ function CarteCommande({
               {c.details_livraison && (
                 <>
                   <br />
-                  {[c.details_livraison.etage && `${c.details_livraison.etage} étage`, `sonnette ${c.details_livraison.sonnette}`, c.details_livraison.code && `code ${c.details_livraison.code}`]
+                  {[c.details_livraison.etage && `étage ${c.details_livraison.etage}`, `sonnette ${c.details_livraison.sonnette}`, c.details_livraison.code && `code ${c.details_livraison.code}`]
                     .filter(Boolean)
                     .join(", ")}
                   {c.details_livraison.instructions && (
@@ -475,7 +485,7 @@ function CarteCommande({
           <button type="button" className="bouton-principal" disabled={envoi} onClick={() => faire({ action: "accepter", heure: heureChoisie, de: c.statut })}>
             Accepter pour {heure(heureChoisie)}
           </button>
-          <button type="button" className="lien" onClick={() => setPanneau("refuser")}>
+          <button type="button" className="bouton-second" onClick={() => setPanneau("refuser")}>
             Refuser
           </button>
         </div>
@@ -504,7 +514,7 @@ function CarteCommande({
                 ? `Annuler et rembourser ${prixChf(c.total_centimes)}`
                 : "Annuler la commande"}
           </button>
-          <button type="button" className="lien" onClick={() => setPanneau("aucun")}>
+          <button type="button" className="bouton-second" onClick={() => setPanneau("aucun")}>
             Fermer
           </button>
         </div>
@@ -544,11 +554,12 @@ function CarteCommande({
               Encaissée
             </button>
           )}
-          <button type="button" className="lien" onClick={() => setPanneau("heure")}>
+          <button type="button" className="bouton-second" onClick={() => setPanneau("heure")}>
             Changer l&apos;heure
           </button>
           {c.statut !== "prete" && c.statut !== "partie" && (
-            <button type="button" className="lien" onClick={() => setPanneau("refuser")}>
+            // À l'écart des autres boutons : elle annule la commande (et rembourse si elle est payée).
+            <button type="button" className="bouton-second tab-annuler" onClick={() => setPanneau("refuser")}>
               Annuler la commande
             </button>
           )}
@@ -570,7 +581,7 @@ function CarteCommande({
           <button type="button" className="bouton-principal" disabled={envoi} onClick={() => faire({ action: "heure", heure: heureChoisie })}>
             Changer pour {heure(heureChoisie)}
           </button>
-          <button type="button" className="lien" onClick={() => setPanneau("aucun")}>
+          <button type="button" className="bouton-second" onClick={() => setPanneau("aucun")}>
             Fermer
           </button>
         </div>
@@ -597,7 +608,7 @@ function CarteCommande({
             {c.statut !== "refusee" &&
               parPoste.length > 1 &&
               parPoste.map((t) => (
-                <button key={t.station} type="button" className="lien" disabled={envoi} onClick={() => faire({ action: "reimprimer", station: t.station })}>
+                <button key={t.station} type="button" className="bouton-second" disabled={envoi} onClick={() => faire({ action: "reimprimer", station: t.station })}>
                   Réimprimer {t.station}
                 </button>
               ))}
