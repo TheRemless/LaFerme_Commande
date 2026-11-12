@@ -6,7 +6,7 @@ import { chargerConfigService } from "@/lib/config-service";
 import { detailsLigne } from "@/lib/courriel/modeles";
 import { commandeParId, ConfigurationManquante, creerCommande, fonctionSql, lierSessionPaiement } from "@/lib/db/serveur";
 import { origineSure } from "@/lib/origine";
-import { calculerPanier, platDe } from "@/lib/panier";
+import { calculerPanier, platDe, prixChoix } from "@/lib/panier";
 import { erreurPlatsDuJour, momentDe } from "@/lib/plat-du-jour";
 import { paiementDisponible, passerelle } from "@/lib/paiement/passerelle";
 import { comptoirPermis } from "@/lib/plafond-comptoir";
@@ -154,6 +154,7 @@ export async function POST(requete: Request) {
         unitaire_centimes: l.unitaire_centimes,
         total_centimes: l.total_centimes,
         choix: l.choix,
+        prix_choix: prixChoix(catalogue, l),
         retraits: l.retraits,
         note: l.note.trim(),
       })),

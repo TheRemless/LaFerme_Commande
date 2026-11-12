@@ -82,6 +82,17 @@ function erreurLigne(cat: Catalogue, l: LignePanier): string | undefined {
   return undefined;
 }
 
+// Prix de chaque option choisie, pour un plat (groupe → option → centimes). Gardé avec la ligne de la
+// commande : un manque se rembourse au prix payé, même si le supplément change de prix ensuite (S2-13).
+export function prixChoix(cat: Catalogue, l: LignePanier): Record<string, Record<string, number>> {
+  const prix: Record<string, Record<string, number>> = {};
+  for (const [g, noms] of Object.entries(l.choix)) {
+    prix[g] = {};
+    for (const n of noms) prix[g][n] = groupeDe(cat, g)?.options.find((o) => o.nom === n)?.prix_centimes ?? 0;
+  }
+  return prix;
+}
+
 export function prixUnitaire(cat: Catalogue, l: LignePanier): number {
   const plat = platDe(cat, l.slug);
   if (!plat) return 0;
