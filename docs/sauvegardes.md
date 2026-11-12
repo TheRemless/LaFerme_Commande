@@ -22,7 +22,7 @@ Source : supabase.com/docs/guides/platform/backups et supabase.com/pricing, lues
 
 1. Copie de la base (schémas `public` et `supabase_migrations` : toutes les tables du site et la liste des migrations passées) avec `pg_dump` 17, par un rôle qui ne peut que lire.
 2. Restauration d'essai dans une base Postgres vide, détruite à la fin du passage. La copie est comparée à l'original : nombre de lignes de chaque table, droits, sécurité par ligne, règles d'accès, droits des fonctions. Le moindre écart fait échouer la sauvegarde.
-3. Chiffrement avec `age` pour la clé publique de Jérémy. La copie en clair ne quitte jamais la mémoire du runner GitHub, détruit après le passage.
+3. Chiffrement avec `age` pour la clé publique de Jérémy. La copie en clair reste en mémoire et dans la base d'essai du runner GitHub, détruits après le passage.
 4. Dépôt du fichier chiffré comme artefact du passage, effacé par GitHub après 30 jours. Un petit fichier `….empreinte.txt` l'accompagne (noms des tables, nombre de lignes, droits : aucune donnée de client) pour vérifier une restauration.
 
 GitHub garde un fichier qu'il ne peut pas lire : la clé privée n'est que chez Jérémy. Si elle se perd, les sauvegardes sont illisibles. Si quelqu'un vole le compte GitHub, il peut effacer les sauvegardes mais pas les lire.
