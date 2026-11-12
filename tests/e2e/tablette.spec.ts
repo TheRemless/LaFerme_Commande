@@ -136,7 +136,7 @@ test("supplément épuisé : refusé à la commande, puis revient", async ({ req
 test("rupture du jour : le plat est grisé sur la carte, puis revient", async ({ page }) => {
   await tablette.getByRole("button", { name: "Pause, délai, ruptures" }).click();
   await tablette.getByLabel("Chercher un plat").fill("miss Italia");
-  const ligne = tablette.locator(".tab-plats li", { hasText: "Pizza miss Italia" });
+  const ligne = tablette.locator(".tab-plats li", { hasText: "Pizza Miss Italia" });
   await ligne.getByRole("button", { name: "Disponible" }).click();
   await expect(ligne.getByRole("button", { name: "Épuisé" })).toBeVisible();
   await page.addInitScript(() =>

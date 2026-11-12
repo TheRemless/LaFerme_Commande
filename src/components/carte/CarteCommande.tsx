@@ -5,9 +5,11 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Categorie, LignePlat } from "@/lib/carte";
 import { lireChoix, type Choix } from "@/lib/choix";
-import { PHOTOS_SERREES } from "@/lib/photos";
+import { PHOTOS_SERREES, urlPhoto } from "@/lib/photos";
 import { calculerPanier, type Catalogue } from "@/lib/panier";
 import { usePanier, usePrixServeur } from "@/lib/panier-local";
+import { LIBELLE_SERVICE, momentDuChoix, motifPlatDuJour } from "@/lib/plat-du-jour";
+import { instantGeneve } from "@/lib/service";
 import { prixChf, prixCourt } from "@/lib/prix";
 import { nomAffiche } from "@/components/Plat";
 import { Icone } from "@/components/Icone";
@@ -42,6 +44,8 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
         .filter((c) => c.plats.length > 0)
     : categories;
   const trouves = visibles.reduce((s, c) => s + c.plats.length, 0);
+  // Plat du jour : seulement pour un moment de ce jour-là et de son service.
+  const moment = choix ? momentDuChoix(choix.quand, choix.estimation, instantGeneve(new Date()).date) : null;
 
   // Onglet de la catégorie lue (D20) : la section qui passe sous la barre des catégories devient active,
   // et son onglet glisse dans la barre sur téléphone.
@@ -120,14 +124,17 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
             const avecPhoto = c.plats.filter((p) => p.photo);
             const sansPhoto = c.plats.filter((p) => !p.photo);
             const rendre = (p: LignePlat, j: number) => {
-              const motif = p.rupture_motif ?? (seulementPizzas && p.station !== "pizza" ? "Seulement les pizzas à cette heure" : null);
+              const motif =
+                p.rupture_motif ??
+                (seulementPizzas && p.station !== "pizza" ? "Seulement les pizzas à cette heure" : null) ??
+                (p.jour && p.jour_service && moment ? motifPlatDuJour({ date: p.jour, service: p.jour_service }, moment) : null);
               return (
                 <li key={p.slug} className={`plat ${p.photo ? "a-photo" : "sans-image"}${motif ? " epuise" : ""}`} data-slug={p.slug}>
                   <button type="button" className="plat-carte" onClick={() => setOuvert(p)} disabled={Boolean(motif)}>
                     {p.photo && (
                       <span className={`plat-media${PHOTOS_SERREES.includes(p.photo) ? " serre" : ""}`}>
                         <Image
-                          src={`/plats/${p.photo}`}
+                          src={urlPhoto(p.photo)}
                           alt=""
                           fill
                           sizes="(min-width: 1280px) 18vw, (min-width: 900px) 24vw, 50vw"
@@ -137,6 +144,7 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
                     )}
                     <span className="plat-txt">
                       <span className="plat-nom">{nomAffiche(p)}</span>
+                      {p.jour_service && <span className="plat-service">{LIBELLE_SERVICE[p.jour_service]}</span>}
                       {p.description && <span className="plat-desc">{p.description}</span>}
                       {motif && <span className="plat-rupture">{motif}</span>}
                     </span>
@@ -154,6 +162,7 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
               <section key={c.slug} id={c.slug} className="categorie" aria-labelledby={`${c.slug}-titre`}>
                 <h2 id={`${c.slug}-titre`}>{c.nom}</h2>
                 {c.slug === "pizzas" && !q && <p className="cat-note">Ajoutez ou retirez des ingrédients sur chaque pizza.</p>}
+                {c.slug === "plat-du-jour" && <p className="cat-note">Aujourd&apos;hui seulement.</p>}
                 {avecPhoto.length > 0 && <ul className="plats">{avecPhoto.map(rendre)}</ul>}
                 {sansPhoto.length > 0 && <ul className="plats plats-texte">{sansPhoto.map(rendre)}</ul>}
               </section>

@@ -141,5 +141,8 @@ describe("import du tableau de validation", () => {
     const vierge = readFileSync("docs/validation-carte.xlsx");
     const b = await lireTableau(vierge.buffer.slice(vierge.byteOffset, vierge.byteOffset + vierge.byteLength) as ArrayBuffer, carte);
     expect(b.plats.some((p) => "prix_centimes" in p)).toBe(false);
+    // Le tableau garde les anciens noms (« Pasta al pomodoro et basilico », « Pizza miss Italia ») :
+    // depuis les noms harmonisés, chaque ligne retrouve encore son plat par le slug.
+    expect(b.avertissements.filter((x) => x.includes("n'existe pas"))).toEqual([]);
   });
 });

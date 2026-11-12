@@ -2,6 +2,7 @@ import "server-only";
 import { chargerDonneesCarte } from "@/lib/catalogue";
 import { sourceDonnees, type SourceDonnees } from "@/lib/db/lecture";
 import { PHOTOS_RETIREES } from "@/lib/photos";
+import { dateDe } from "@/lib/plat-du-jour";
 
 // Une ligne de la vue carte_publique (supabase/migrations/20261105120000_carte.sql).
 export type LignePlat = {
@@ -21,6 +22,9 @@ export type LignePlat = {
   allergenes: string | null;
   a_options: boolean;
   station: "pizza" | "cuisine";
+  // Plat du jour : date (lue en texte ou en Date selon la base) et service. Null pour la carte.
+  jour?: string | null;
+  jour_service?: "midi" | "soir" | "journee" | null;
 };
 
 export type Categorie = { slug: string; nom: string; plats: LignePlat[] };
@@ -34,7 +38,11 @@ export function regrouperParCategorie(lignes: LignePlat[]): Categorie[] {
       parSlug.set(l.categorie_slug, c);
     }
     // Une photo retirée (salade mêlée, hors shooting) peut rester inscrite en base : on ne l'affiche pas.
-    c.plats.push({ ...l, photo: l.photo && !PHOTOS_RETIREES.includes(l.photo) ? l.photo : null });
+    c.plats.push({
+      ...l,
+      photo: l.photo && !PHOTOS_RETIREES.includes(l.photo) ? l.photo : null,
+      jour: l.jour ? dateDe(l.jour as string | Date) : null,
+    });
   }
   return [...parSlug.values()]
     .sort((a, b) => a.ordre - b.ordre)

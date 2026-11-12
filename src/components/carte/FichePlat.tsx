@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useId, useRef, useState } from "react";
 import type { LignePlat } from "@/lib/carte";
 import { LIMITES, prixUnitaire, type Catalogue, type LignePanier } from "@/lib/panier";
+import { urlPhoto } from "@/lib/photos";
 import { prixChf, prixCourt } from "@/lib/prix";
 import { nomAffiche } from "@/components/Plat";
 import { Icone } from "@/components/Icone";
@@ -89,7 +90,7 @@ export function FichePlat({
         </button>
         {plat.photo ? (
           <div className="fiche-media">
-            <Image src={`/plats/${plat.photo}`} alt={nomAffiche(plat)} fill sizes="(min-width: 900px) 460px, 100vw" />
+            <Image src={urlPhoto(plat.photo)} alt={nomAffiche(plat)} fill sizes="(min-width: 900px) 460px, 100vw" />
           </div>
         ) : (
           <div className="fiche-media fiche-sans-photo" aria-hidden="true">

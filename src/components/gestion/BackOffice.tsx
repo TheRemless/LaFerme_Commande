@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { GestionCarte, GestionSupplements, type DonneesCarte } from "@/components/gestion/GestionCarte";
+import { GestionCarte, GestionPlatDuJour, GestionSupplements, type DonneesCarte } from "@/components/gestion/GestionCarte";
 import { GestionCommandes } from "@/components/gestion/GestionCommandes";
 import { GestionEquipe } from "@/components/gestion/GestionEquipe";
 import { GestionImprimantes } from "@/components/gestion/GestionImprimantes";
@@ -11,11 +11,12 @@ import { heureDe, jourGeneveDe } from "@/lib/heures";
 import { poster } from "@/lib/requete-client";
 import { jourTexte } from "@/lib/service";
 
-type Onglet = "commandes" | "carte" | "supplements" | "service" | "imprimantes" | "equipe" | "import" | "export" | "journal";
+type Onglet = "commandes" | "carte" | "jour" | "supplements" | "service" | "imprimantes" | "equipe" | "import" | "export" | "journal";
 
 const ONGLETS: [Onglet, string][] = [
   ["commandes", "Commandes"],
   ["carte", "Carte"],
+  ["jour", "Plat du jour"],
   ["supplements", "Suppléments et pâtes"],
   ["service", "Livraison et horaires"],
   ["imprimantes", "Imprimantes"],
@@ -68,6 +69,7 @@ export function BackOffice({ nom }: { nom: string }) {
       {onglet === "commandes" && <GestionCommandes />}
       {onglet === "equipe" && <GestionEquipe />}
       {onglet === "carte" && (carte ? <GestionCarte donnees={carte} recharger={chargerCarte} version={version} /> : <p className="aide">Chargement…</p>)}
+      {onglet === "jour" && (carte ? <GestionPlatDuJour donnees={carte} recharger={chargerCarte} /> : <p className="aide">Chargement…</p>)}
       {onglet === "supplements" && (carte ? <GestionSupplements donnees={carte} recharger={chargerCarte} /> : <p className="aide">Chargement…</p>)}
       {onglet === "service" && <GestionService />}
       {onglet === "imprimantes" && <GestionImprimantes />}
@@ -276,6 +278,16 @@ function quoi(e: Entree): string {
   switch (e.objet) {
     case "plat":
       return `Plat ${String((e.apres ?? e.avant)?.nom ?? e.cle)}`;
+    case "plat_ajoute":
+      return `Plat ajouté ${String(e.apres?.nom ?? e.cle)}`;
+    case "plat_archive":
+      return `Plat ${e.cle}`;
+    case "plat_du_jour":
+      return `Plat du jour ${String(e.apres?.nom ?? e.cle)}`;
+    case "categorie":
+      return `Catégorie ${e.cle}`;
+    case "photo":
+      return `Photo ${e.cle}`;
     case "option":
       return `Supplément ${e.cle.split("/").slice(1).join("/")}`;
     case "zone":
@@ -314,6 +326,10 @@ const LIBELLES: Record<string, string> = {
   provenance: "Provenance",
   provenances_a_fournir: "Provenances à fournir",
   allergenes: "Allergènes",
+  categorie_id: "Catégorie",
+  groupes: "Options",
+  archive_le: "Archivé le",
+  jour_service: "Service",
   actif: "Proposé",
   frais_centimes: "Frais",
   minimum_centimes: "Minimum",
@@ -363,6 +379,7 @@ function resume(e: Entree): string {
     if (!ap) return `Retirée de la zone ${av.zone_numero}`;
     return `Zone ${av.zone_numero} → zone ${ap.zone_numero}`;
   }
+  if (e.objet === "plat_archive") return e.apres?.archive ? "Archivé" : "Remis à la carte";
   if (e.objet === "remboursement" && e.apres) {
     const a = e.apres as { montant_centimes?: number; motif?: string; moyen?: string };
     return `Commande ${e.cle} : CHF ${((a.montant_centimes ?? 0) / 100).toFixed(2)} remboursés${a.moyen === "especes" ? " en espèces" : ""}. ${a.motif ?? ""}`;

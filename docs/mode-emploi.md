@@ -107,14 +107,32 @@ Le remboursement n'est possible qu'une fois la commande prête, partie ou livré
 
 - Changer un prix. Chercher le plat, toucher sa ligne, écrire le prix (18 ou 18.50), laisser « Prix validé » coché, toucher « Enregistrer le plat ». Le site change tout de suite.
 - Retirer un plat de la vente. Décocher « Commandable sur le site » puis enregistrer. Pour la journée seulement, utiliser « Épuisé » sur la tablette.
-- Changer la photo. Choisir un nom dans la liste « Photo ». Une nouvelle photo passe par le numéro ci-dessus.
+- Retirer un plat de la carte pour de bon. Ouvrir sa fiche, toucher « Archiver ce plat » puis confirmer. Il part dans « Plats archivés » en bas de la page. Les anciennes commandes et l'export comptable ne changent pas. « Remettre à la carte » le ramène, hors de la vente : cocher « Commandable » pour le revendre.
+- Ajouter un plat. Toucher « Ajouter un plat » en haut. Catégorie, poste (pizza ou cuisine), nom, prix, puis les options (suppléments, choix des pâtes), les retraits gratuits, la provenance et les allergènes. Toucher « Créer le plat ». Il reste hors de la vente tant qu'il manque le prix validé, les allergènes ou une provenance à fournir. Sa fiche dit ce qui manque.
+- Envoyer une photo. Sur la fiche du plat, toucher « Envoyer une photo » et choisir une photo du téléphone ou de l'ordinateur. Elle est recadrée comme les photos du shooting et s'affiche tout de suite. Une photo trop petite est refusée. « Retirer la photo » l'enlève. Seulement des photos du restaurant : jamais une image trouvée sur Internet ou sur Uber Eats.
+- Une photo du shooting se choisit encore dans la liste « Photo du shooting ».
+- Changer un plat de catégorie. Choisir la catégorie sur sa fiche puis enregistrer. Il se range à la fin.
+- Changer l'ordre des plats. Toucher « Changer l'ordre » à côté du nom de la catégorie, puis « Monter » ou « Descendre ». Toucher « Terminer l'ordre » à la fin.
+- Catégories. Toucher « Catégories et leur ordre ». On y renomme une catégorie, on la monte ou la descend, on en ajoute une. Une catégorie neuve s'affiche sur le site dès qu'un de ses plats est en vente.
 - Allergènes, provenance et description se changent sur la même fiche.
 - Retraits gratuits. Les écrire séparés par des virgules puis toucher « Enregistrer les retraits ». Ce bouton est à part du bouton du plat.
+
+### Plat du jour
+
+1. Ouvrir « Plat du jour ».
+2. Choisir le jour (aujourd'hui ou plus tard) et le service : midi, soir ou les deux.
+3. Écrire le nom, le prix, la description, le poste qui le prépare, la provenance et les allergènes.
+4. Toucher « Publier le plat du jour ». Il s'affiche en tête de la carte ce jour-là et disparaît seul le lendemain. Il s'imprime au poste choisi comme les autres plats.
+
+- Un plat du jour « midi » ne se commande que pour une heure de midi, « soir » pour une heure du soir.
+- Le prix vaut dès qu'on l'écrit, sans case à cocher. Sans allergènes, le plat est enregistré mais pas mis en vente.
+- Pour l'arrêter dans la journée, ouvrir sa ligne, décocher « Commandable sur le site » puis enregistrer. Ou « Épuisé » sur la tablette.
 
 ### Suppléments et pâtes
 
 - Chaque supplément a son prix, sa case « Validé » et sa case « Proposé ». Décocher « Proposé » le retire du site jusqu'à ce qu'on le recoche.
 - Toucher « Enregistrer » sur la ligne du supplément.
+- Ajouter un supplément. Sous la liste, écrire le nom et le prix puis toucher « Ajouter ». Il est proposé tout de suite sur les plats qui ont cette option. Sans « Prix validé », il bloque la mise en ligne.
 
 ### Livraison et horaires
 
@@ -155,8 +173,7 @@ Le remboursement n'est possible qu'une fois la commande prête, partie ou livré
 
 ### Ce qui ne se fait pas ici (appeler le numéro ci-dessus)
 
-- Ajouter un plat, un supplément ou une catégorie, ou un plat du jour.
-- Envoyer une nouvelle photo.
+- Ajouter un nouveau groupe d'options (autre que les suppléments et le choix des pâtes).
 - Remplacer une imprimante.
 
 ### Que faire si…

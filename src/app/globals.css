@@ -264,6 +264,14 @@ ul {
   font-stretch: 62%;
   line-height: 1.05;
 }
+/* Plat du jour : son service (midi, soir), sous le nom */
+.plat-service {
+  display: block;
+  margin-top: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--blanc);
+}
 .plat-desc {
   display: -webkit-box;
   margin-top: 4px;
@@ -2546,6 +2554,75 @@ body.fiche-ouverte {
 }
 .ges-retraits .champ {
   flex: 1 1 320px;
+}
+.ges-fiche-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.ges-categorie-tete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+.ges-ligne-ordre {
+  grid-template-columns: minmax(0, 1fr) auto;
+  cursor: default;
+}
+.ges-fleches {
+  display: flex;
+  gap: 6px;
+}
+.ges-groupes {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.ges-groupes legend {
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+.ges-categories > .bouton-second {
+  align-self: flex-start;
+}
+/* Photo d'un plat : aperçu au format des vignettes de la carte (4:3) */
+.ges-photo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 20px;
+  padding-top: 14px;
+  border-top: 1px solid var(--filet);
+}
+.ges-photo-apercu {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: 0 0 240px;
+  aspect-ratio: 4 / 3;
+  background: var(--beton);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.ges-photo-apercu img {
+  object-fit: cover;
+}
+.ges-photo-apercu .aide {
+  color: var(--blanc);
+}
+.ges-photo-actions {
+  display: flex;
+  flex: 1 1 260px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+.ges-photo-actions label {
+  font-weight: 600;
+}
+.ges-photo-actions .aide {
+  margin: 0;
 }
 .ges-options li {
   display: flex;

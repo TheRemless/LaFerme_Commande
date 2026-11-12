@@ -15,6 +15,8 @@ export type PlatCatalogue = {
   rupture_motif: string | null;
   groupes: string[];
   retraits: RetraitCatalogue[];
+  // Plat du jour : sa date et son service. Absent pour les plats de la carte.
+  jour?: { date: string; service: "midi" | "soir" | "journee" } | null;
 };
 export type Catalogue = {
   plats: Record<string, PlatCatalogue>;

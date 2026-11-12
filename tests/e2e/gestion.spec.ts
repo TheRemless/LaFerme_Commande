@@ -32,15 +32,15 @@ test("un plat se modifie, ce qui bloque s'affiche, la modification va au journal
   await expect(gestion.locator(".ges-bloquants")).toContainText("bloquent la mise en ligne");
   await gestion.getByRole("button", { name: "Carte", exact: true }).click();
   await gestion.getByLabel("Chercher un plat").fill("tonno");
-  await gestion.getByRole("button", { name: /^Pizza tonno/ }).click();
+  await gestion.getByRole("button", { name: /^Pizza Tonno/ }).click();
   const fiche = gestion.locator(".ges-fiche");
   await fiche.getByLabel("Allergènes").fill("gluten, lait, poisson (test)");
   await fiche.getByRole("button", { name: "Enregistrer le plat" }).click();
   await expect(fiche.getByText("Enregistré.")).toBeVisible();
-  await expect(gestion.getByRole("button", { name: /^Pizza tonno/ })).not.toContainText("allergènes manquants");
+  await expect(gestion.getByRole("button", { name: /^Pizza Tonno/ })).not.toContainText("allergènes manquants");
 
   await gestion.getByRole("button", { name: "Journal" }).click();
-  await expect(gestion.locator(".ges-journal-liste")).toContainText("Plat Pizza tonno");
+  await expect(gestion.locator(".ges-journal-liste")).toContainText("Plat Pizza Tonno");
   await expect(gestion.locator(".ges-journal-liste")).toContainText("gluten, lait, poisson (test)");
 });
 
