@@ -1,0 +1,5743 @@
+{
+  "debut": "2026-11-12T01:00:15.285Z",
+  "duree_s": 2204.443,
+  "poll_imprimante_ms": 2000,
+  "clients": [
+    {
+      "etiquette": "C01",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "t": 10.009,
+      "status": 200,
+      "erreur": null,
+      "ms": 8,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "etiquette": "C02",
+      "plan": "normal",
+      "mode": "livraison",
+      "moyen": "en_ligne",
+      "t": 22.603,
+      "status": 200,
+      "erreur": null,
+      "ms": 601,
+      "quand": {
+        "type": "asap"
+      },
+      "id": "b4a808be-ac63-4ffd-a09e-40ba0e8c77c6",
+      "paiement": {
+        "issue": "paye",
+        "status": 200,
+        "t": 24.112
+      }
+    },
+    {
+      "etiquette": "C03",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "en_ligne",
+      "t": 34.012,
+      "status": 200,
+      "erreur": null,
+      "ms": 11,
+      "quand": {
+        "type": "asap"
+      },
+      "id": "2a94cdad-3664-4faa-a1d6-742cac7f94aa",
+      "paiement": {
+        "issue": "paye",
+        "status": 200,
+        "t": 35.52
+      }
+    },
+    {
+      "etiquette": "C04",
+      "plan": "normal",
+      "mode": "livraison",
+      "moyen": "en_ligne",
+      "t": 46.01,
+      "status": 200,
+      "erreur": null,
+      "ms": 8,
+      "quand": {
+        "type": "asap"
+      },
+      "id": "426a0002-3312-4d49-aac2-9b821715f29a",
+      "paiement": {
+        "issue": "paye",
+        "status": 200,
+        "t": 47.516
+      }
+    },
+    {
+      "etiquette": "C05",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "t": 58.005,
+      "status": 200,
+      "erreur": null,
+      "ms": 5,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "etiquette": "C06",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "t": 70.012,
+      "status": 200,
+      "erreur": null,
+      "ms": 11,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "etiquette": "C07",
+      "plan": "normal",
+      "mode": "livraison",
+      "moyen": "en_ligne",
+      "t": 82.634,
+      "status": 200,
+      "erreur": null,
+      "ms": 633,
+      "quand": {
+        "type": "asap"
+      },
+      "id": "818b7235-b482-4a62-bae6-5c17980b2b50",
+      "paiement": {
+        "issue": "paye",
+        "status": 200,
+        "t": 84.142
+      }
+    },
+    {
+      "etiquette": "C08",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "en_ligne",
+      "t": 94.01,
+      "status": 200,
+      "erreur": null,
+      "ms": 8,
+      "quand": {
+        "type": "asap"
+      },
+      "id": "f94f0c2d-46be-4d82-8ec6-09822f6de66c",
+      "paiement": {
+        "issue": "paye",
+        "status": 200,
+        "t": 95.515
+      }
+    },
+    {
+      "etiquette": "C09",
+      "plan": "normal",
+      "mode": "livraison",
+      "moyen": "en_ligne",
+      "t": 130.01,
+      "status": 200,
+      "erreur": null,
+      "ms": 9,
+      "quand": {
+        "type": "asap"
+      },
+      "id": "42311919-bfe7-405b-8465-ca5f6f9879b3",
+      "paiement": {
+        "issue": "paye",
+        "status": 200,
+        "t": 131.524
+      }
+    },
+    {
+      "etiquette": "C10",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "en_ligne",
+      "t": 130.013,
+      "status": 200,
+      "erreur": null,
+      "ms": 11,
+      "quand": {
+        "type": "asap"
+      },
+      "id": "8d3efd18-402e-4d5c-bcdf-ecc947992f24",
+      "paiement": {
+        "issue": "paye",
+        "status": 200,
+        "t": 131.529
+      }
+    },
+    {
+      "etiquette": "C11",
+      "plan": "normal",
+      "mode": "livraison",
+      "moyen": "en_ligne",
+      "t": 130.016,
+      "status": 200,
+      "erreur": null,
+      "ms": 14,
+      "quand": {
+        "type": "asap"
+      },
+      "id": "8fc75b60-f517-484b-834a-03d8943a31eb",
+      "paiement": {
+        "issue": "paye",
+        "status": 200,
+        "t": 131.533
+      }
+    },
+    {
+      "etiquette": "C12",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "t": 130.02,
+      "status": 200,
+      "erreur": null,
+      "ms": 18,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "etiquette": "C13",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "t": 130.023,
+      "status": 200,
+      "erreur": null,
+      "ms": 21,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "etiquette": "C14",
+      "plan": "course-acc",
+      "mode": "retrait",
+      "moyen": "en_ligne",
+      "t": 150.009,
+      "status": 200,
+      "erreur": null,
+      "ms": 8,
+      "quand": {
+        "type": "asap"
+      },
+      "id": "79a3f000-508f-477f-b33a-98293e84361b",
+      "paiement": {
+        "issue": "paye",
+        "status": 200,
+        "t": 151.515
+      }
+    },
+    {
+      "etiquette": "C15",
+      "plan": "course-acc",
+      "mode": "retrait",
+      "moyen": "en_ligne",
+      "t": 150.013,
+      "status": 200,
+      "erreur": null,
+      "ms": 4,
+      "quand": {
+        "type": "asap"
+      },
+      "id": "a3f627c7-b4d0-420b-8226-a94065bc5df9",
+      "paiement": {
+        "issue": "paye",
+        "status": 200,
+        "t": 151.519
+      }
+    },
+    {
+      "etiquette": "C16",
+      "plan": "course-acc",
+      "mode": "retrait",
+      "moyen": "en_ligne",
+      "t": 150.017,
+      "status": 200,
+      "erreur": null,
+      "ms": 4,
+      "quand": {
+        "type": "asap"
+      },
+      "id": "f04fa0ed-1682-4b4b-9072-e27632d0b912",
+      "paiement": {
+        "issue": "paye",
+        "status": 200,
+        "t": 151.522
+      }
+    },
+    {
+      "etiquette": "C17",
+      "plan": "course-acc-ref",
+      "mode": "retrait",
+      "moyen": "en_ligne",
+      "t": 150.022,
+      "status": 200,
+      "erreur": null,
+      "ms": 5,
+      "quand": {
+        "type": "asap"
+      },
+      "id": "0fb45315-e5c1-4ddc-8527-db7c91394e26",
+      "paiement": {
+        "issue": "paye",
+        "status": 200,
+        "t": 151.525
+      }
+    },
+    {
+      "etiquette": "C18",
+      "plan": "course-acc-ref",
+      "mode": "retrait",
+      "moyen": "en_ligne",
+      "t": 150.027,
+      "status": 200,
+      "erreur": null,
+      "ms": 4,
+      "quand": {
+        "type": "asap"
+      },
+      "id": "05274aca-b183-4fdb-9fd7-0432c408c000",
+      "paiement": {
+        "issue": "paye",
+        "status": 200,
+        "t": 151.532
+      }
+    },
+    {
+      "etiquette": "C19",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "en_ligne",
+      "t": 190.007,
+      "status": 200,
+      "erreur": null,
+      "ms": 5,
+      "quand": {
+        "type": "asap"
+      },
+      "id": "b88feab2-99ff-402c-bdf9-9cb0b9d4823e",
+      "paiement": {
+        "issue": "paye",
+        "status": 200,
+        "t": 230.027
+      }
+    },
+    {
+      "etiquette": "C20",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "t": 205.007,
+      "status": 422,
+      "erreur": "Lasagne de bœuf : Épuisé pour aujourd'hui.",
+      "ms": 3,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "etiquette": "C21",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "t": 250.008,
+      "status": 200,
+      "erreur": null,
+      "ms": 5,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "etiquette": "C22",
+      "plan": "normal",
+      "mode": "livraison",
+      "moyen": "en_ligne",
+      "t": 260.012,
+      "status": 200,
+      "erreur": null,
+      "ms": 9,
+      "quand": {
+        "type": "asap"
+      },
+      "id": "b82f71c4-81f9-4446-b96c-b034fa498c6a",
+      "paiement": {
+        "issue": "paye",
+        "status": 200,
+        "t": 261.521
+      }
+    },
+    {
+      "etiquette": "C23",
+      "plan": "annule-apres",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "t": 270.012,
+      "status": 200,
+      "erreur": null,
+      "ms": 12,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "etiquette": "C24",
+      "plan": "normal",
+      "mode": "livraison",
+      "moyen": "en_ligne",
+      "t": 280.012,
+      "status": 200,
+      "erreur": null,
+      "ms": 11,
+      "quand": {
+        "type": "asap"
+      },
+      "id": "1509c14a-6523-4d4b-8483-5bac12891091",
+      "paiement": {
+        "issue": "paye",
+        "status": 200,
+        "t": 281.523
+      }
+    },
+    {
+      "etiquette": "C25",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "t": 290.007,
+      "status": 200,
+      "erreur": null,
+      "ms": 5,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "etiquette": "C26",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "t": 320.012,
+      "status": 200,
+      "erreur": null,
+      "ms": 11,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "etiquette": "C27",
+      "plan": "normal",
+      "mode": "livraison",
+      "moyen": "en_ligne",
+      "t": 320.016,
+      "status": 200,
+      "erreur": null,
+      "ms": 15,
+      "quand": {
+        "type": "asap"
+      },
+      "id": "20f9101a-9df5-4330-a019-44451a7c516e",
+      "paiement": {
+        "issue": "paye",
+        "status": 200,
+        "t": 321.527
+      }
+    },
+    {
+      "etiquette": "C28",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "t": 320.021,
+      "status": 200,
+      "erreur": null,
+      "ms": 19,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "etiquette": "C30",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "t": 320.026,
+      "status": 200,
+      "erreur": null,
+      "ms": 24,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "etiquette": "C29",
+      "plan": "normal",
+      "mode": "livraison",
+      "moyen": "en_ligne",
+      "t": 320.029,
+      "status": 200,
+      "erreur": null,
+      "ms": 28,
+      "quand": {
+        "type": "asap"
+      },
+      "id": "bbea03e4-743a-4f13-b4dc-4e326f8c47b8",
+      "paiement": {
+        "issue": "paye",
+        "status": 200,
+        "t": 321.538
+      }
+    },
+    {
+      "etiquette": "C31",
+      "plan": "laisser",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "t": 470.012,
+      "status": 200,
+      "erreur": null,
+      "ms": 9,
+      "quand": {
+        "type": "creneau",
+        "date": "2026-11-12",
+        "minutes": 1380
+      }
+    },
+    {
+      "etiquette": "C32",
+      "plan": "laisser",
+      "mode": "livraison",
+      "moyen": "en_ligne",
+      "t": 470.019,
+      "status": 200,
+      "erreur": null,
+      "ms": 6,
+      "quand": {
+        "type": "creneau",
+        "date": "2026-11-12",
+        "minutes": 1380
+      },
+      "id": "9d252790-4a56-4784-8c90-0d1fac17a6b4",
+      "paiement": {
+        "issue": "paye",
+        "status": 200,
+        "t": 471.526
+      }
+    },
+    {
+      "etiquette": "C33",
+      "plan": "laisser",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "t": 470.025,
+      "status": 200,
+      "erreur": null,
+      "ms": 6,
+      "quand": {
+        "type": "creneau",
+        "date": "2026-11-12",
+        "minutes": 1380
+      }
+    },
+    {
+      "etiquette": "C34",
+      "plan": "laisser",
+      "mode": "livraison",
+      "moyen": "en_ligne",
+      "t": 470.03,
+      "status": 200,
+      "erreur": null,
+      "ms": 5,
+      "quand": {
+        "type": "creneau",
+        "date": "2026-11-12",
+        "minutes": 1380
+      },
+      "id": "dce91ad8-e3bc-470e-a284-2229999ea1f2",
+      "paiement": {
+        "issue": "paye",
+        "status": 200,
+        "t": 471.535
+      }
+    },
+    {
+      "etiquette": "C35",
+      "plan": "laisser",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "t": 470.036,
+      "status": 200,
+      "erreur": null,
+      "ms": 6,
+      "quand": {
+        "type": "creneau",
+        "date": "2026-11-12",
+        "minutes": 1380
+      }
+    },
+    {
+      "etiquette": "C36",
+      "plan": "laisser",
+      "mode": "livraison",
+      "moyen": "en_ligne",
+      "t": 470.04,
+      "status": 200,
+      "erreur": null,
+      "ms": 4,
+      "quand": {
+        "type": "creneau",
+        "date": "2026-11-12",
+        "minutes": 1380
+      },
+      "id": "592f6df5-70c0-4014-97ad-0cb734d0d7a8",
+      "paiement": {
+        "issue": "paye",
+        "status": 200,
+        "t": 471.543
+      }
+    },
+    {
+      "etiquette": "C37",
+      "plan": "laisser",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "t": 470.046,
+      "status": 200,
+      "erreur": null,
+      "ms": 7,
+      "quand": {
+        "type": "creneau",
+        "date": "2026-11-12",
+        "minutes": 1380
+      }
+    },
+    {
+      "etiquette": "C38",
+      "plan": "laisser",
+      "mode": "livraison",
+      "moyen": "en_ligne",
+      "t": 470.051,
+      "status": 200,
+      "erreur": null,
+      "ms": 5,
+      "quand": {
+        "type": "creneau",
+        "date": "2026-11-12",
+        "minutes": 1380
+      },
+      "id": "d7ac107e-6b8f-452a-b760-189fbd9f28ab",
+      "paiement": {
+        "issue": "paye",
+        "status": 200,
+        "t": 471.557
+      }
+    },
+    {
+      "etiquette": "C39",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "t": 470.055,
+      "status": 200,
+      "erreur": null,
+      "ms": 3,
+      "quand": {
+        "type": "creneau",
+        "date": "2026-11-14",
+        "minutes": 1170
+      }
+    },
+    {
+      "etiquette": "C40",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "t": 470.059,
+      "status": 200,
+      "erreur": null,
+      "ms": 4,
+      "quand": {
+        "type": "creneau",
+        "date": "2026-11-14",
+        "minutes": 1170
+      }
+    },
+    {
+      "etiquette": "C41",
+      "plan": "refus",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "t": 525.009,
+      "status": 422,
+      "erreur": "Les commandes en ligne reprennent à 2h23. En attendant, commandez par téléphone au 022 792 16 89.",
+      "ms": 7,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "etiquette": "C42",
+      "plan": "refus",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "t": 1429.997,
+      "status": 200,
+      "erreur": null,
+      "ms": 11,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "etiquette": "C43",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "t": 1430.005,
+      "status": 422,
+      "erreur": "Lasagne de bœuf : Épuisé pour aujourd'hui.",
+      "ms": 5,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "etiquette": "C44",
+      "plan": "normal",
+      "mode": "livraison",
+      "moyen": "en_ligne",
+      "t": 1430.011,
+      "status": 200,
+      "erreur": null,
+      "ms": 6,
+      "quand": {
+        "type": "asap"
+      },
+      "id": "53c830f1-394b-4ad2-a84a-c7039528bfa7",
+      "paiement": {
+        "issue": "paye",
+        "status": 200,
+        "t": 1431.521
+      }
+    },
+    {
+      "etiquette": "C45",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "t": 1460.007,
+      "status": 200,
+      "erreur": null,
+      "ms": 5,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "etiquette": "C46",
+      "plan": "refus",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "t": 1520.022,
+      "status": 200,
+      "erreur": null,
+      "ms": 20,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "etiquette": "C47",
+      "plan": "refus",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "t": 1580.011,
+      "status": 200,
+      "erreur": null,
+      "ms": 10,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "etiquette": "C48",
+      "plan": "refus",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "t": 1640.02,
+      "status": 200,
+      "erreur": null,
+      "ms": 19,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "etiquette": "C49",
+      "plan": "refus",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "t": 1700.007,
+      "status": 200,
+      "erreur": null,
+      "ms": 6,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "etiquette": "C50",
+      "plan": "refus",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "t": 1760.038,
+      "status": 200,
+      "erreur": null,
+      "ms": 36,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "etiquette": "C51",
+      "plan": "refus",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "t": 1850.028,
+      "status": 200,
+      "erreur": null,
+      "ms": 27,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "etiquette": "C52",
+      "plan": "refus",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "t": 1910.005,
+      "status": 200,
+      "erreur": null,
+      "ms": 5,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "etiquette": "C53",
+      "plan": "refus",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "t": 1970.027,
+      "status": 200,
+      "erreur": null,
+      "ms": 26,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "etiquette": "C54",
+      "plan": "refus",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "t": 2030.013,
+      "status": 422,
+      "erreur": "Les commandes en ligne sont en pause. Commandez par téléphone au 022 792 16 89.",
+      "ms": 11,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "etiquette": "C55",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "en_ligne",
+      "t": 2060.01,
+      "status": 200,
+      "erreur": null,
+      "ms": 8,
+      "quand": {
+        "type": "asap"
+      },
+      "id": "71d5f9dd-bcd8-4dae-aed9-224754745745",
+      "paiement": {
+        "issue": "paye",
+        "status": 200,
+        "t": 2061.522
+      }
+    },
+    {
+      "etiquette": "C56",
+      "plan": "normal",
+      "mode": "livraison",
+      "moyen": "en_ligne",
+      "t": 2068.006,
+      "status": 200,
+      "erreur": null,
+      "ms": 6,
+      "quand": {
+        "type": "asap"
+      },
+      "id": "d8518e05-0639-43e8-889b-6a7e28fe7e2d",
+      "paiement": {
+        "issue": "paye",
+        "status": 200,
+        "t": 2069.517
+      }
+    },
+    {
+      "etiquette": "C57",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "t": 2076.008,
+      "status": 200,
+      "erreur": null,
+      "ms": 6,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "etiquette": "C58",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "t": 2084.007,
+      "status": 422,
+      "erreur": "Lasagne de bœuf : Épuisé pour aujourd'hui.",
+      "ms": 6,
+      "quand": {
+        "type": "asap"
+      }
+    }
+  ],
+  "commandes_tablette": [
+    {
+      "etiquette": "C01",
+      "numero": 1,
+      "statut": "terminee",
+      "paiement": "encaisse",
+      "mode": "retrait",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T01:25:00+00:00",
+      "lignes": [
+        "2 Pizza Margherita [pizza] + Ananas / + Anchois / SANS Origan / « bien cuite »",
+        "1 Lasagne de bœuf [cuisine] « sans œufs, très chaud »"
+      ]
+    },
+    {
+      "etiquette": "C02",
+      "numero": 2,
+      "statut": "terminee",
+      "paiement": "paye",
+      "mode": "livraison",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T01:40:00+00:00",
+      "lignes": [
+        "1 Pizza Margherita [pizza] ",
+        "1 Pizza prosciutto [pizza] ",
+        "1 Pasta al pesto [cuisine] CHOIX Penne"
+      ]
+    },
+    {
+      "etiquette": "C03",
+      "numero": 3,
+      "statut": "terminee",
+      "paiement": "paye",
+      "mode": "retrait",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T01:25:00+00:00",
+      "lignes": [
+        "1 Pizza prosciutto [pizza] "
+      ]
+    },
+    {
+      "etiquette": "C04",
+      "numero": 4,
+      "statut": "terminee",
+      "paiement": "paye",
+      "mode": "livraison",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T01:40:00+00:00",
+      "lignes": [
+        "1 Queues de gambas décortiquées poêlées à la crème de safran [cuisine] ",
+        "1 Salade de chèvre chaud [cuisine] "
+      ]
+    },
+    {
+      "etiquette": "C05",
+      "numero": 5,
+      "statut": "terminee",
+      "paiement": "encaisse",
+      "mode": "retrait",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T01:25:00+00:00",
+      "lignes": [
+        "1 Pasta al pesto [cuisine] CHOIX Penne",
+        "1 Pizza Margherita [pizza] "
+      ]
+    },
+    {
+      "etiquette": "C06",
+      "numero": 6,
+      "statut": "terminee",
+      "paiement": "encaisse",
+      "mode": "retrait",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T01:25:00+00:00",
+      "lignes": [
+        "2 Pizza Margherita [pizza] + Ananas / + Anchois / SANS Origan / « bien cuite »",
+        "1 Lasagne de bœuf [cuisine] « sans œufs, très chaud »"
+      ]
+    },
+    {
+      "etiquette": "C07",
+      "numero": 7,
+      "statut": "terminee",
+      "paiement": "paye",
+      "mode": "livraison",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T01:40:00+00:00",
+      "lignes": [
+        "1 Pizza Margherita [pizza] ",
+        "1 Pizza prosciutto [pizza] ",
+        "1 Pasta al pesto [cuisine] CHOIX Penne"
+      ]
+    },
+    {
+      "etiquette": "C08",
+      "numero": 8,
+      "statut": "terminee",
+      "paiement": "paye",
+      "mode": "retrait",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T01:25:00+00:00",
+      "lignes": [
+        "1 Pizza prosciutto [pizza] "
+      ]
+    },
+    {
+      "etiquette": "C09",
+      "numero": 9,
+      "statut": "terminee",
+      "paiement": "paye",
+      "mode": "livraison",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T01:40:00+00:00",
+      "lignes": [
+        "1 Pizza Margherita [pizza] ",
+        "1 Pizza prosciutto [pizza] ",
+        "1 Pasta al pesto [cuisine] CHOIX Penne"
+      ]
+    },
+    {
+      "etiquette": "C10",
+      "numero": 10,
+      "statut": "terminee",
+      "paiement": "paye",
+      "mode": "retrait",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T01:25:00+00:00",
+      "lignes": [
+        "1 Pizza prosciutto [pizza] "
+      ]
+    },
+    {
+      "etiquette": "C11",
+      "numero": 11,
+      "statut": "terminee",
+      "paiement": "paye",
+      "mode": "livraison",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T01:40:00+00:00",
+      "lignes": [
+        "1 Queues de gambas décortiquées poêlées à la crème de safran [cuisine] ",
+        "1 Salade de chèvre chaud [cuisine] "
+      ]
+    },
+    {
+      "etiquette": "C12",
+      "numero": 12,
+      "statut": "terminee",
+      "paiement": "encaisse",
+      "mode": "retrait",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T01:25:00+00:00",
+      "lignes": [
+        "1 Pasta al pesto [cuisine] CHOIX Penne",
+        "1 Pizza Margherita [pizza] "
+      ]
+    },
+    {
+      "etiquette": "C13",
+      "numero": 13,
+      "statut": "terminee",
+      "paiement": "encaisse",
+      "mode": "retrait",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T01:25:00+00:00",
+      "lignes": [
+        "2 Pizza Margherita [pizza] + Ananas / + Anchois / SANS Origan / « bien cuite »",
+        "1 Lasagne de bœuf [cuisine] « sans œufs, très chaud »"
+      ]
+    },
+    {
+      "etiquette": "C14",
+      "numero": 14,
+      "statut": "terminee",
+      "paiement": "paye",
+      "mode": "retrait",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T01:25:00+00:00",
+      "lignes": [
+        "1 Pizza Margherita [pizza] ",
+        "1 Pasta al pesto [cuisine] CHOIX Penne"
+      ]
+    },
+    {
+      "etiquette": "C15",
+      "numero": 15,
+      "statut": "terminee",
+      "paiement": "paye",
+      "mode": "retrait",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T01:25:00+00:00",
+      "lignes": [
+        "1 Pizza Margherita [pizza] ",
+        "1 Pasta al pesto [cuisine] CHOIX Penne"
+      ]
+    },
+    {
+      "etiquette": "C16",
+      "numero": 16,
+      "statut": "terminee",
+      "paiement": "paye",
+      "mode": "retrait",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T01:25:00+00:00",
+      "lignes": [
+        "1 Pizza Margherita [pizza] ",
+        "1 Pasta al pesto [cuisine] CHOIX Penne"
+      ]
+    },
+    {
+      "etiquette": "C17",
+      "numero": 17,
+      "statut": "refusee",
+      "paiement": "rembourse",
+      "mode": "retrait",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T01:25:00+00:00",
+      "lignes": [
+        "1 Pizza Margherita [pizza] ",
+        "1 Pasta al pesto [cuisine] CHOIX Penne"
+      ]
+    },
+    {
+      "etiquette": "C18",
+      "numero": 18,
+      "statut": "refusee",
+      "paiement": "rembourse",
+      "mode": "retrait",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T01:25:00+00:00",
+      "lignes": [
+        "1 Pizza Margherita [pizza] ",
+        "1 Pasta al pesto [cuisine] CHOIX Penne"
+      ]
+    },
+    {
+      "etiquette": "C19",
+      "numero": 19,
+      "statut": "terminee",
+      "paiement": "paye",
+      "mode": "retrait",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T01:25:00+00:00",
+      "lignes": [
+        "1 Lasagne de bœuf [cuisine] « sans œufs, très chaud »"
+      ]
+    },
+    {
+      "etiquette": "C21",
+      "numero": 20,
+      "statut": "terminee",
+      "paiement": "encaisse",
+      "mode": "retrait",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T01:25:00+00:00",
+      "lignes": [
+        "1 Pasta al pesto [cuisine] CHOIX Penne",
+        "1 Pizza Margherita [pizza] "
+      ]
+    },
+    {
+      "etiquette": "C22",
+      "numero": 21,
+      "statut": "terminee",
+      "paiement": "paye",
+      "mode": "livraison",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T01:40:00+00:00",
+      "lignes": [
+        "1 Queues de gambas décortiquées poêlées à la crème de safran [cuisine] ",
+        "1 Salade de chèvre chaud [cuisine] "
+      ]
+    },
+    {
+      "etiquette": "C23",
+      "numero": 22,
+      "statut": "refusee",
+      "paiement": "a_encaisser_retrait",
+      "mode": "retrait",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T01:25:00+00:00",
+      "lignes": [
+        "1 Pasta al pesto [cuisine] CHOIX Penne",
+        "1 Pizza Margherita [pizza] "
+      ]
+    },
+    {
+      "etiquette": "C24",
+      "numero": 23,
+      "statut": "terminee",
+      "paiement": "paye",
+      "mode": "livraison",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T01:45:00+00:00",
+      "lignes": [
+        "1 Queues de gambas décortiquées poêlées à la crème de safran [cuisine] ",
+        "1 Salade de chèvre chaud [cuisine] "
+      ]
+    },
+    {
+      "etiquette": "C25",
+      "numero": 24,
+      "statut": "terminee",
+      "paiement": "encaisse",
+      "mode": "retrait",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T01:30:00+00:00",
+      "lignes": [
+        "1 Pasta al pesto [cuisine] CHOIX Penne",
+        "1 Pizza Margherita [pizza] "
+      ]
+    },
+    {
+      "etiquette": "C26",
+      "numero": 25,
+      "statut": "terminee",
+      "paiement": "encaisse",
+      "mode": "retrait",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T01:30:00+00:00",
+      "lignes": [
+        "1 Pasta al pesto [cuisine] CHOIX Penne",
+        "1 Pizza Margherita [pizza] "
+      ]
+    },
+    {
+      "etiquette": "C27",
+      "numero": 26,
+      "statut": "terminee",
+      "paiement": "paye",
+      "mode": "livraison",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T01:45:00+00:00",
+      "lignes": [
+        "1 Queues de gambas décortiquées poêlées à la crème de safran [cuisine] ",
+        "1 Salade de chèvre chaud [cuisine] "
+      ]
+    },
+    {
+      "etiquette": "C28",
+      "numero": 27,
+      "statut": "terminee",
+      "paiement": "encaisse",
+      "mode": "retrait",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T01:30:00+00:00",
+      "lignes": [
+        "1 Pasta al pesto [cuisine] CHOIX Penne",
+        "1 Pizza Margherita [pizza] "
+      ]
+    },
+    {
+      "etiquette": "C30",
+      "numero": 28,
+      "statut": "terminee",
+      "paiement": "encaisse",
+      "mode": "retrait",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T01:30:00+00:00",
+      "lignes": [
+        "1 Pasta al pesto [cuisine] CHOIX Penne",
+        "1 Pizza Margherita [pizza] "
+      ]
+    },
+    {
+      "etiquette": "C29",
+      "numero": 29,
+      "statut": "terminee",
+      "paiement": "paye",
+      "mode": "livraison",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T01:45:00+00:00",
+      "lignes": [
+        "1 Queues de gambas décortiquées poêlées à la crème de safran [cuisine] ",
+        "1 Salade de chèvre chaud [cuisine] "
+      ]
+    },
+    {
+      "etiquette": "C31",
+      "numero": 30,
+      "statut": "acceptee",
+      "paiement": "a_encaisser_retrait",
+      "mode": "retrait",
+      "quand": "2026-11-12 1380",
+      "heure_confirmee": "2026-11-12T22:00:00+00:00",
+      "lignes": [
+        "1 Pizza Margherita [pizza] "
+      ]
+    },
+    {
+      "etiquette": "C32",
+      "numero": 31,
+      "statut": "acceptee",
+      "paiement": "paye",
+      "mode": "livraison",
+      "quand": "2026-11-12 1380",
+      "heure_confirmee": "2026-11-12T22:00:00+00:00",
+      "lignes": [
+        "1 Pizza Margherita [pizza] ",
+        "1 Pizza prosciutto [pizza] "
+      ]
+    },
+    {
+      "etiquette": "C33",
+      "numero": 32,
+      "statut": "acceptee",
+      "paiement": "a_encaisser_retrait",
+      "mode": "retrait",
+      "quand": "2026-11-12 1380",
+      "heure_confirmee": "2026-11-12T22:00:00+00:00",
+      "lignes": [
+        "1 Pizza Margherita [pizza] "
+      ]
+    },
+    {
+      "etiquette": "C34",
+      "numero": 33,
+      "statut": "acceptee",
+      "paiement": "paye",
+      "mode": "livraison",
+      "quand": "2026-11-12 1380",
+      "heure_confirmee": "2026-11-12T22:00:00+00:00",
+      "lignes": [
+        "1 Pizza Margherita [pizza] ",
+        "1 Pizza prosciutto [pizza] "
+      ]
+    },
+    {
+      "etiquette": "C35",
+      "numero": 34,
+      "statut": "acceptee",
+      "paiement": "a_encaisser_retrait",
+      "mode": "retrait",
+      "quand": "2026-11-12 1380",
+      "heure_confirmee": "2026-11-12T22:00:00+00:00",
+      "lignes": [
+        "1 Pizza Margherita [pizza] "
+      ]
+    },
+    {
+      "etiquette": "C36",
+      "numero": 35,
+      "statut": "acceptee",
+      "paiement": "paye",
+      "mode": "livraison",
+      "quand": "2026-11-12 1380",
+      "heure_confirmee": "2026-11-12T22:00:00+00:00",
+      "lignes": [
+        "1 Pizza Margherita [pizza] ",
+        "1 Pizza prosciutto [pizza] "
+      ]
+    },
+    {
+      "etiquette": "C37",
+      "numero": 36,
+      "statut": "acceptee",
+      "paiement": "a_encaisser_retrait",
+      "mode": "retrait",
+      "quand": "2026-11-12 1380",
+      "heure_confirmee": "2026-11-12T22:00:00+00:00",
+      "lignes": [
+        "1 Pizza Margherita [pizza] "
+      ]
+    },
+    {
+      "etiquette": "C38",
+      "numero": 37,
+      "statut": "acceptee",
+      "paiement": "paye",
+      "mode": "livraison",
+      "quand": "2026-11-12 1380",
+      "heure_confirmee": "2026-11-12T22:00:00+00:00",
+      "lignes": [
+        "1 Pizza Margherita [pizza] ",
+        "1 Pizza prosciutto [pizza] "
+      ]
+    },
+    {
+      "etiquette": "C39",
+      "numero": 38,
+      "statut": "nouvelle",
+      "paiement": "a_encaisser_retrait",
+      "mode": "retrait",
+      "quand": "2026-11-14 1170",
+      "heure_confirmee": null,
+      "lignes": [
+        "1 Pizza Margherita [pizza] "
+      ]
+    },
+    {
+      "etiquette": "C40",
+      "numero": 39,
+      "statut": "nouvelle",
+      "paiement": "a_encaisser_retrait",
+      "mode": "retrait",
+      "quand": "2026-11-14 1170",
+      "heure_confirmee": null,
+      "lignes": [
+        "1 Pizza Margherita [pizza] "
+      ]
+    },
+    {
+      "etiquette": "C42",
+      "numero": 40,
+      "statut": "refusee",
+      "paiement": "a_encaisser_retrait",
+      "mode": "retrait",
+      "quand": "asap",
+      "heure_confirmee": null,
+      "lignes": [
+        "1 Pizza Margherita [pizza] "
+      ]
+    },
+    {
+      "etiquette": "C44",
+      "numero": 41,
+      "statut": "terminee",
+      "paiement": "paye",
+      "mode": "livraison",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T02:00:00+00:00",
+      "lignes": [
+        "1 Pizza Margherita [pizza] ",
+        "1 Pizza prosciutto [pizza] ",
+        "1 Pasta al pesto [cuisine] CHOIX Penne"
+      ]
+    },
+    {
+      "etiquette": "C45",
+      "numero": 42,
+      "statut": "terminee",
+      "paiement": "encaisse",
+      "mode": "retrait",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T01:50:00+00:00",
+      "lignes": [
+        "1 Pizza Margherita [pizza] "
+      ]
+    },
+    {
+      "etiquette": "C46",
+      "numero": 43,
+      "statut": "refusee",
+      "paiement": "a_encaisser_retrait",
+      "mode": "retrait",
+      "quand": "asap",
+      "heure_confirmee": null,
+      "lignes": [
+        "1 Pizza Margherita [pizza] "
+      ]
+    },
+    {
+      "etiquette": "C47",
+      "numero": 44,
+      "statut": "refusee",
+      "paiement": "a_encaisser_retrait",
+      "mode": "retrait",
+      "quand": "asap",
+      "heure_confirmee": null,
+      "lignes": [
+        "1 Pizza Margherita [pizza] "
+      ]
+    },
+    {
+      "etiquette": "C48",
+      "numero": 45,
+      "statut": "refusee",
+      "paiement": "a_encaisser_retrait",
+      "mode": "retrait",
+      "quand": "asap",
+      "heure_confirmee": null,
+      "lignes": [
+        "1 Pizza Margherita [pizza] "
+      ]
+    },
+    {
+      "etiquette": "C49",
+      "numero": 46,
+      "statut": "refusee",
+      "paiement": "a_encaisser_retrait",
+      "mode": "retrait",
+      "quand": "asap",
+      "heure_confirmee": null,
+      "lignes": [
+        "1 Pizza Margherita [pizza] "
+      ]
+    },
+    {
+      "etiquette": "C50",
+      "numero": 47,
+      "statut": "refusee",
+      "paiement": "a_encaisser_retrait",
+      "mode": "retrait",
+      "quand": "asap",
+      "heure_confirmee": null,
+      "lignes": [
+        "1 Pizza Margherita [pizza] "
+      ]
+    },
+    {
+      "etiquette": "C51",
+      "numero": 48,
+      "statut": "refusee",
+      "paiement": "a_encaisser_retrait",
+      "mode": "retrait",
+      "quand": "asap",
+      "heure_confirmee": null,
+      "lignes": [
+        "1 Pizza Margherita [pizza] "
+      ]
+    },
+    {
+      "etiquette": "C52",
+      "numero": 49,
+      "statut": "refusee",
+      "paiement": "a_encaisser_retrait",
+      "mode": "retrait",
+      "quand": "asap",
+      "heure_confirmee": null,
+      "lignes": [
+        "1 Pizza Margherita [pizza] "
+      ]
+    },
+    {
+      "etiquette": "C53",
+      "numero": 50,
+      "statut": "refusee",
+      "paiement": "a_encaisser_retrait",
+      "mode": "retrait",
+      "quand": "asap",
+      "heure_confirmee": null,
+      "lignes": [
+        "1 Pizza Margherita [pizza] "
+      ]
+    },
+    {
+      "etiquette": "C55",
+      "numero": 51,
+      "statut": "terminee",
+      "paiement": "paye",
+      "mode": "retrait",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T01:55:00+00:00",
+      "lignes": [
+        "1 Pizza prosciutto [pizza] "
+      ]
+    },
+    {
+      "etiquette": "C56",
+      "numero": 52,
+      "statut": "terminee",
+      "paiement": "paye",
+      "mode": "livraison",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T02:10:00+00:00",
+      "lignes": [
+        "1 Queues de gambas décortiquées poêlées à la crème de safran [cuisine] ",
+        "1 Salade de chèvre chaud [cuisine] "
+      ]
+    },
+    {
+      "etiquette": "C57",
+      "numero": 53,
+      "statut": "terminee",
+      "paiement": "encaisse",
+      "mode": "retrait",
+      "quand": "asap",
+      "heure_confirmee": "2026-11-12T01:55:00+00:00",
+      "lignes": [
+        "1 Pasta al pesto [cuisine] CHOIX Penne",
+        "1 Pizza Margherita [pizza] "
+      ]
+    }
+  ],
+  "numeros": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53
+  ],
+  "doublons_numeros": [],
+  "vues": [
+    {
+      "premiere": 10.137,
+      "etiquette": "C01",
+      "numero": 1
+    },
+    {
+      "premiere": 25.162,
+      "etiquette": "C02",
+      "numero": 2
+    },
+    {
+      "premiere": 40.18,
+      "etiquette": "C03",
+      "numero": 3
+    },
+    {
+      "premiere": 50.196,
+      "etiquette": "C04",
+      "numero": 4
+    },
+    {
+      "premiere": 60.228,
+      "etiquette": "C05",
+      "numero": 5
+    },
+    {
+      "premiere": 70.239,
+      "etiquette": "C06",
+      "numero": 6
+    },
+    {
+      "premiere": 85.263,
+      "etiquette": "C07",
+      "numero": 7
+    },
+    {
+      "premiere": 100.286,
+      "etiquette": "C08",
+      "numero": 8
+    },
+    {
+      "premiere": 130.344,
+      "etiquette": "C12",
+      "numero": 12
+    },
+    {
+      "premiere": 130.344,
+      "etiquette": "C13",
+      "numero": 13
+    },
+    {
+      "premiere": 135.352,
+      "etiquette": "C09",
+      "numero": 9
+    },
+    {
+      "premiere": 135.352,
+      "etiquette": "C10",
+      "numero": 10
+    },
+    {
+      "premiere": 135.352,
+      "etiquette": "C11",
+      "numero": 11
+    },
+    {
+      "premiere": 155.382,
+      "etiquette": "C14",
+      "numero": 14
+    },
+    {
+      "premiere": 155.382,
+      "etiquette": "C15",
+      "numero": 15
+    },
+    {
+      "premiere": 155.382,
+      "etiquette": "C16",
+      "numero": 16
+    },
+    {
+      "premiere": 155.382,
+      "etiquette": "C17",
+      "numero": 17
+    },
+    {
+      "premiere": 155.382,
+      "etiquette": "C18",
+      "numero": 18
+    },
+    {
+      "premiere": 230.557,
+      "etiquette": "C19",
+      "numero": 19
+    },
+    {
+      "premiere": 250.598,
+      "etiquette": "C21",
+      "numero": 20
+    },
+    {
+      "premiere": 265.633,
+      "etiquette": "C22",
+      "numero": 21
+    },
+    {
+      "premiere": 270.64,
+      "etiquette": "C23",
+      "numero": 22
+    },
+    {
+      "premiere": 285.66,
+      "etiquette": "C24",
+      "numero": 23
+    },
+    {
+      "premiere": 290.669,
+      "etiquette": "C25",
+      "numero": 24
+    },
+    {
+      "premiere": 320.759,
+      "etiquette": "C26",
+      "numero": 25
+    },
+    {
+      "premiere": 320.759,
+      "etiquette": "C28",
+      "numero": 27
+    },
+    {
+      "premiere": 320.759,
+      "etiquette": "C30",
+      "numero": 28
+    },
+    {
+      "premiere": 325.772,
+      "etiquette": "C27",
+      "numero": 26
+    },
+    {
+      "premiere": 325.772,
+      "etiquette": "C29",
+      "numero": 29
+    },
+    {
+      "premiere": 471.103,
+      "etiquette": "C31",
+      "numero": 30
+    },
+    {
+      "premiere": 471.103,
+      "etiquette": "C33",
+      "numero": 32
+    },
+    {
+      "premiere": 471.103,
+      "etiquette": "C35",
+      "numero": 34
+    },
+    {
+      "premiere": 471.103,
+      "etiquette": "C37",
+      "numero": 36
+    },
+    {
+      "premiere": 471.103,
+      "etiquette": "C39",
+      "numero": 38
+    },
+    {
+      "premiere": 471.103,
+      "etiquette": "C40",
+      "numero": 39
+    },
+    {
+      "premiere": 476.118,
+      "etiquette": "C32",
+      "numero": 31
+    },
+    {
+      "premiere": 476.118,
+      "etiquette": "C34",
+      "numero": 33
+    },
+    {
+      "premiere": 476.118,
+      "etiquette": "C36",
+      "numero": 35
+    },
+    {
+      "premiere": 476.118,
+      "etiquette": "C38",
+      "numero": 37
+    },
+    {
+      "premiere": 1433.684,
+      "etiquette": "C42",
+      "numero": 40
+    },
+    {
+      "premiere": 1433.684,
+      "etiquette": "C44",
+      "numero": 41
+    },
+    {
+      "premiere": 1763.845,
+      "etiquette": "C45",
+      "numero": 42
+    },
+    {
+      "premiere": 1763.845,
+      "etiquette": "C46",
+      "numero": 43
+    },
+    {
+      "premiere": 1763.845,
+      "etiquette": "C47",
+      "numero": 44
+    },
+    {
+      "premiere": 1763.845,
+      "etiquette": "C48",
+      "numero": 45
+    },
+    {
+      "premiere": 1763.845,
+      "etiquette": "C49",
+      "numero": 46
+    },
+    {
+      "premiere": 1763.845,
+      "etiquette": "C50",
+      "numero": 47
+    },
+    {
+      "premiere": 2033.972,
+      "etiquette": "C51",
+      "numero": 48
+    },
+    {
+      "premiere": 2033.972,
+      "etiquette": "C52",
+      "numero": 49
+    },
+    {
+      "premiere": 2033.972,
+      "etiquette": "C53",
+      "numero": 50
+    },
+    {
+      "premiere": 2064.057,
+      "etiquette": "C55",
+      "numero": 51
+    },
+    {
+      "premiere": 2074.086,
+      "etiquette": "C56",
+      "numero": 52
+    },
+    {
+      "premiere": 2079.1,
+      "etiquette": "C57",
+      "numero": 53
+    }
+  ],
+  "tickets": [
+    {
+      "t": 16.2,
+      "station": "pizza",
+      "jeton": "689ea0b4-fe8e-4c31-8aaf-34b11762e5d7",
+      "numero": 1,
+      "reimpression": false,
+      "png_octets": 46282,
+      "png_status": 200
+    },
+    {
+      "t": 16.2,
+      "station": "cuisine",
+      "jeton": "ddfc755c-ffbf-46f1-9e63-091fbc268114",
+      "numero": 1,
+      "reimpression": false,
+      "png_octets": 43582,
+      "png_status": 200
+    },
+    {
+      "t": 32.3,
+      "station": "cuisine",
+      "jeton": "3952da0b-9bb4-46c2-b521-4dd1a6b3b6ed",
+      "numero": 2,
+      "reimpression": false,
+      "png_octets": 55632,
+      "png_status": 200
+    },
+    {
+      "t": 32.3,
+      "station": "pizza",
+      "jeton": "a7e7264a-76b3-41ee-afac-970409c8bcf0",
+      "numero": 2,
+      "reimpression": false,
+      "png_octets": 56893,
+      "png_status": 200
+    },
+    {
+      "t": 46.4,
+      "station": "pizza",
+      "jeton": "5a20d762-4db3-434b-83e4-a45d5f0d52e8",
+      "numero": 3,
+      "reimpression": false,
+      "png_octets": 31822,
+      "png_status": 200
+    },
+    {
+      "t": 54.4,
+      "station": "cuisine",
+      "jeton": "08552fd5-ed05-46e9-a3ce-a7b5c0297f50",
+      "numero": 4,
+      "reimpression": false,
+      "png_octets": 68319,
+      "png_status": 200
+    },
+    {
+      "t": 70.5,
+      "station": "pizza",
+      "jeton": "c00a73cd-2882-4434-904b-a2be732c72c9",
+      "numero": 5,
+      "reimpression": false,
+      "png_octets": 37819,
+      "png_status": 200
+    },
+    {
+      "t": 70.5,
+      "station": "cuisine",
+      "jeton": "9406feed-2209-425f-9537-4d25cd06c269",
+      "numero": 5,
+      "reimpression": false,
+      "png_octets": 41171,
+      "png_status": 200
+    },
+    {
+      "t": 78.5,
+      "station": "pizza",
+      "jeton": "d7ca1a5b-b18d-4aea-84e6-8bb9dc6a8c54",
+      "numero": 6,
+      "reimpression": false,
+      "png_octets": 46496,
+      "png_status": 200
+    },
+    {
+      "t": 78.5,
+      "station": "cuisine",
+      "jeton": "8023041b-7cbe-4a86-99d3-390d342b2f52",
+      "numero": 6,
+      "reimpression": false,
+      "png_octets": 43831,
+      "png_status": 200
+    },
+    {
+      "t": 88.6,
+      "station": "cuisine",
+      "jeton": "400dcb92-1ac1-4bf4-b144-e56139aa9965",
+      "numero": 7,
+      "reimpression": false,
+      "png_octets": 55928,
+      "png_status": 200
+    },
+    {
+      "t": 88.6,
+      "station": "pizza",
+      "jeton": "b9cd7f5f-7483-4911-95ec-d836e1234e77",
+      "numero": 7,
+      "reimpression": false,
+      "png_octets": 57172,
+      "png_status": 200
+    },
+    {
+      "t": 108.6,
+      "station": "pizza",
+      "jeton": "1eaca2f5-89a5-42cb-a5ba-c7b2011f95fd",
+      "numero": 8,
+      "reimpression": false,
+      "png_octets": 32086,
+      "png_status": 200
+    },
+    {
+      "t": 136.7,
+      "station": "cuisine",
+      "jeton": "ef8e43dd-52fd-4494-9df4-f9732657c3a1",
+      "numero": 13,
+      "reimpression": false,
+      "png_octets": 43345,
+      "png_status": 200
+    },
+    {
+      "t": 136.8,
+      "station": "pizza",
+      "jeton": "cb66dc4f-de91-4c55-8377-5bfde93efa79",
+      "numero": 13,
+      "reimpression": false,
+      "png_octets": 45959,
+      "png_status": 200
+    },
+    {
+      "t": 138.8,
+      "station": "cuisine",
+      "jeton": "1b37cd1f-52ed-44c7-b67f-13984ff48f48",
+      "numero": 12,
+      "reimpression": false,
+      "png_octets": 40650,
+      "png_status": 200
+    },
+    {
+      "t": 138.8,
+      "station": "pizza",
+      "jeton": "03ceeea2-0037-45c7-a36a-9d5bce2a18d9",
+      "numero": 12,
+      "reimpression": false,
+      "png_octets": 37297,
+      "png_status": 200
+    },
+    {
+      "t": 138.8,
+      "station": "pizza",
+      "jeton": "c1ee172e-99dc-47e4-9192-965dfd2558c0",
+      "numero": 10,
+      "reimpression": false,
+      "png_octets": 31487,
+      "png_status": 200
+    },
+    {
+      "t": 140.8,
+      "station": "cuisine",
+      "jeton": "86a28763-4b50-41de-9f9a-c4b57aa6a179",
+      "numero": 11,
+      "reimpression": false,
+      "png_octets": 68331,
+      "png_status": 200
+    },
+    {
+      "t": 142.8,
+      "station": "pizza",
+      "jeton": "39bc841a-6ccf-4a2d-a020-fb167acebe51",
+      "numero": 9,
+      "reimpression": false,
+      "png_octets": 57708,
+      "png_status": 200
+    },
+    {
+      "t": 142.9,
+      "station": "cuisine",
+      "jeton": "acef099e-d735-4a94-a837-575ddd360305",
+      "numero": 9,
+      "reimpression": false,
+      "png_octets": 56363,
+      "png_status": 200
+    },
+    {
+      "t": 158.9,
+      "station": "pizza",
+      "jeton": "f67a63fb-8cfe-40bf-ae72-d96d42332480",
+      "numero": 15,
+      "reimpression": false,
+      "png_octets": 35793,
+      "png_status": 200
+    },
+    {
+      "t": 158.9,
+      "station": "cuisine",
+      "jeton": "2d938cb6-a8d4-4691-84ab-666e755bb4d5",
+      "numero": 15,
+      "reimpression": false,
+      "png_octets": 39151,
+      "png_status": 200
+    },
+    {
+      "t": 158.9,
+      "station": "pizza",
+      "jeton": "ffb33681-5bfb-474c-ba00-4442610228cd",
+      "numero": 14,
+      "reimpression": false,
+      "png_octets": 35689,
+      "png_status": 200
+    },
+    {
+      "t": 158.9,
+      "station": "cuisine",
+      "jeton": "7317bfd9-dcb7-48e2-b508-d73b9835580b",
+      "numero": 14,
+      "reimpression": false,
+      "png_octets": 39064,
+      "png_status": 200
+    },
+    {
+      "t": 161,
+      "station": "pizza",
+      "jeton": "25e0aec4-d03b-4229-8807-eef275148eb8",
+      "numero": 18,
+      "reimpression": false,
+      "png_octets": 36024,
+      "png_status": 200
+    },
+    {
+      "t": 161,
+      "station": "cuisine",
+      "jeton": "69563aeb-f523-4ed2-aa14-6675ffb2cff9",
+      "numero": 18,
+      "reimpression": false,
+      "png_octets": 39371,
+      "png_status": 200
+    },
+    {
+      "t": 165,
+      "station": "pizza",
+      "jeton": "0d759ec6-43b1-4021-ae47-5926fe3de713",
+      "numero": 17,
+      "reimpression": false,
+      "png_octets": 35486,
+      "png_status": 200
+    },
+    {
+      "t": 165,
+      "station": "cuisine",
+      "jeton": "c4afce54-83d5-4875-ad5c-64596cfd24da",
+      "numero": 17,
+      "reimpression": false,
+      "png_octets": 38871,
+      "png_status": 200
+    },
+    {
+      "t": 165,
+      "station": "pizza",
+      "jeton": "ff7cf686-b396-4833-9f3b-51c3941aad0c",
+      "numero": 16,
+      "reimpression": false,
+      "png_octets": 35942,
+      "png_status": 200
+    },
+    {
+      "t": 165,
+      "station": "cuisine",
+      "jeton": "1bc3d3a2-8522-42c3-bb76-3a6e13061e14",
+      "numero": 16,
+      "reimpression": false,
+      "png_octets": 39271,
+      "png_status": 200
+    },
+    {
+      "t": 235.3,
+      "station": "cuisine",
+      "jeton": "732d1ae4-de30-4c10-ad17-bf49b5f7e954",
+      "numero": 19,
+      "reimpression": false,
+      "png_octets": 37442,
+      "png_status": 200
+    },
+    {
+      "t": 253.3,
+      "station": "pizza",
+      "jeton": "77f6a6fb-f171-4831-bc7a-9e6d5c5ff5f6",
+      "numero": 20,
+      "reimpression": false,
+      "png_octets": 37556,
+      "png_status": 200
+    },
+    {
+      "t": 273.4,
+      "station": "pizza",
+      "jeton": "f660f6f0-1bf9-4373-a988-cdde0a015be8",
+      "numero": 22,
+      "reimpression": false,
+      "png_octets": 37404,
+      "png_status": 200
+    },
+    {
+      "t": 299.5,
+      "station": "pizza",
+      "jeton": "2a962470-c6d2-4d0d-9ba7-985bde09ae55",
+      "numero": 24,
+      "reimpression": false,
+      "png_octets": 37484,
+      "png_status": 200
+    },
+    {
+      "t": 327.6,
+      "station": "pizza",
+      "jeton": "470d7339-b67f-4bbb-a9ac-5fea63a52ff4",
+      "numero": 28,
+      "reimpression": false,
+      "png_octets": 37687,
+      "png_status": 200
+    },
+    {
+      "t": 327.7,
+      "station": "pizza",
+      "jeton": "89703f90-851f-406a-9f6f-cdd323a4a99f",
+      "numero": 25,
+      "reimpression": false,
+      "png_octets": 37663,
+      "png_status": 200
+    },
+    {
+      "t": 329.7,
+      "station": "pizza",
+      "jeton": "062ec0e5-3973-4f3e-8652-5a85e880947e",
+      "numero": 27,
+      "reimpression": false,
+      "png_octets": 37434,
+      "png_status": 200
+    },
+    {
+      "t": 393.9,
+      "station": "pizza",
+      "jeton": "f660f6f0-1bf9-4373-a988-cdde0a015be8",
+      "numero": 22,
+      "reimpression": false,
+      "png_octets": 37404,
+      "png_status": 200
+    },
+    {
+      "t": 431.5,
+      "station": "cuisine",
+      "jeton": "47905712-8b62-445a-b5b9-6491c974fadf",
+      "numero": 20,
+      "reimpression": false,
+      "png_octets": 40928,
+      "png_status": 200
+    },
+    {
+      "t": 431.5,
+      "station": "cuisine",
+      "jeton": "81e7f7a3-3f80-4d01-8dec-0dd26ba4875d",
+      "numero": 22,
+      "reimpression": false,
+      "png_octets": 40837,
+      "png_status": 200
+    },
+    {
+      "t": 431.5,
+      "station": "cuisine",
+      "jeton": "8c3e5469-62dd-49ea-bd76-7f91c0a9d9f8",
+      "numero": 21,
+      "reimpression": false,
+      "png_octets": 67998,
+      "png_status": 200
+    },
+    {
+      "t": 431.5,
+      "station": "cuisine",
+      "jeton": "9c0e3ba9-b5d4-4e72-9a90-444d20c3d86a",
+      "numero": 23,
+      "reimpression": false,
+      "png_octets": 68222,
+      "png_status": 200
+    },
+    {
+      "t": 431.5,
+      "station": "cuisine",
+      "jeton": "e0452df3-a825-4056-8dc7-a2248a746124",
+      "numero": 24,
+      "reimpression": false,
+      "png_octets": 40918,
+      "png_status": 200
+    },
+    {
+      "t": 431.6,
+      "station": "cuisine",
+      "jeton": "82367e11-dd2a-4b3e-910c-df27a0f97a6a",
+      "numero": 28,
+      "reimpression": false,
+      "png_octets": 41099,
+      "png_status": 200
+    },
+    {
+      "t": 431.6,
+      "station": "cuisine",
+      "jeton": "19cf4c4e-2eb5-455e-bbfe-617779173e6b",
+      "numero": 25,
+      "reimpression": false,
+      "png_octets": 41063,
+      "png_status": 200
+    },
+    {
+      "t": 431.6,
+      "station": "cuisine",
+      "jeton": "d0702a24-2b3c-400e-88df-92ee81fe1b49",
+      "numero": 26,
+      "reimpression": false,
+      "png_octets": 68726,
+      "png_status": 200
+    },
+    {
+      "t": 431.6,
+      "station": "cuisine",
+      "jeton": "14aad6e6-276a-4200-8295-f92d6753208c",
+      "numero": 27,
+      "reimpression": false,
+      "png_octets": 40887,
+      "png_status": 200
+    },
+    {
+      "t": 431.6,
+      "station": "cuisine",
+      "jeton": "a174aa04-79d4-4d2a-ae50-5cd724c7e941",
+      "numero": 29,
+      "reimpression": false,
+      "png_octets": 68888,
+      "png_status": 200
+    },
+    {
+      "t": 474.2,
+      "station": "pizza",
+      "jeton": "e140f072-c298-417b-b1be-c898383cbeb1",
+      "numero": 36,
+      "reimpression": false,
+      "png_octets": 33679,
+      "png_status": 200
+    },
+    {
+      "t": 476.2,
+      "station": "pizza",
+      "jeton": "e7681751-c788-4ca4-8e7a-231c07512993",
+      "numero": 32,
+      "reimpression": false,
+      "png_octets": 33550,
+      "png_status": 200
+    },
+    {
+      "t": 480.3,
+      "station": "pizza",
+      "jeton": "33007976-8f18-44ff-a30a-4a82e200dd40",
+      "numero": 34,
+      "reimpression": false,
+      "png_octets": 33560,
+      "png_status": 200
+    },
+    {
+      "t": 480.3,
+      "station": "pizza",
+      "jeton": "474c9de9-d82b-4dbd-9f61-0b4d76128dbd",
+      "numero": 30,
+      "reimpression": false,
+      "png_octets": 33714,
+      "png_status": 200
+    },
+    {
+      "t": 480.3,
+      "station": "pizza",
+      "jeton": "630d2d70-01b5-4646-8308-9a69ccc98a8c",
+      "numero": 35,
+      "reimpression": false,
+      "png_octets": 52663,
+      "png_status": 200
+    },
+    {
+      "t": 480.3,
+      "station": "pizza",
+      "jeton": "0ab932ed-72f0-4731-bab0-c434fe72fe9d",
+      "numero": 33,
+      "reimpression": false,
+      "png_octets": 52633,
+      "png_status": 200
+    },
+    {
+      "t": 482.4,
+      "station": "pizza",
+      "jeton": "91e7aebe-bd3e-472f-97f4-9c528cee07d0",
+      "numero": 37,
+      "reimpression": false,
+      "png_octets": 52493,
+      "png_status": 200
+    },
+    {
+      "t": 486.4,
+      "station": "pizza",
+      "jeton": "279c5ad9-f1c2-4914-83a0-8b1f4fd8741a",
+      "numero": 31,
+      "reimpression": false,
+      "png_octets": 52510,
+      "png_status": 200
+    },
+    {
+      "t": 1441,
+      "station": "cuisine",
+      "jeton": "c8a224dd-66e8-43b9-acad-3d2a2435d151",
+      "numero": 41,
+      "reimpression": false,
+      "png_octets": 55161,
+      "png_status": 200
+    },
+    {
+      "t": 1441.6,
+      "station": "pizza",
+      "jeton": "e1fa96cb-5ff6-4093-bbc5-a1130c4810c2",
+      "numero": 41,
+      "reimpression": false,
+      "png_octets": 56507,
+      "png_status": 200
+    },
+    {
+      "t": 1775,
+      "station": "pizza",
+      "jeton": "7a5bd4c9-a53d-4c4b-9db2-d2bff87461cf",
+      "numero": 42,
+      "reimpression": false,
+      "png_octets": 33684,
+      "png_status": 200
+    },
+    {
+      "t": 2068,
+      "station": "pizza",
+      "jeton": "b25fad67-af09-4949-91f3-be8e8b81b64c",
+      "numero": 51,
+      "reimpression": false,
+      "png_octets": 31499,
+      "png_status": 200
+    },
+    {
+      "t": 2081.4,
+      "station": "cuisine",
+      "jeton": "d4e5bfc1-04b0-4967-a109-a8e193cb4b8e",
+      "numero": 52,
+      "reimpression": false,
+      "png_octets": 68174,
+      "png_status": 200
+    },
+    {
+      "t": 2083.5,
+      "station": "cuisine",
+      "jeton": "12453c36-9c26-4bd4-a47d-03a6a1ea5068",
+      "numero": 53,
+      "reimpression": false,
+      "png_octets": 40841,
+      "png_status": 200
+    },
+    {
+      "t": 2084.1,
+      "station": "pizza",
+      "jeton": "d5ff4067-60c4-4e7c-8bb6-3626dbc56921",
+      "numero": 53,
+      "reimpression": false,
+      "png_octets": 37589,
+      "png_status": 200
+    },
+    {
+      "t": 2100.2,
+      "station": "pizza",
+      "jeton": "ac678844-0853-44fe-ae29-db31c8a000f0",
+      "numero": 1,
+      "reimpression": true,
+      "png_octets": 47171,
+      "png_status": 200
+    },
+    {
+      "t": 2101.6,
+      "station": "cuisine",
+      "jeton": "28e73ce1-b577-483d-9715-1ef4ab5ee3b5",
+      "numero": 1,
+      "reimpression": true,
+      "png_octets": 44551,
+      "png_status": 200
+    }
+  ],
+  "tickets_par_commande_poste": {
+    "1-pizza": 2,
+    "1-cuisine": 2,
+    "2-cuisine": 1,
+    "2-pizza": 1,
+    "3-pizza": 1,
+    "4-cuisine": 1,
+    "5-pizza": 1,
+    "5-cuisine": 1,
+    "6-pizza": 1,
+    "6-cuisine": 1,
+    "7-cuisine": 1,
+    "7-pizza": 1,
+    "8-pizza": 1,
+    "13-cuisine": 1,
+    "13-pizza": 1,
+    "12-cuisine": 1,
+    "12-pizza": 1,
+    "10-pizza": 1,
+    "11-cuisine": 1,
+    "9-pizza": 1,
+    "9-cuisine": 1,
+    "15-pizza": 1,
+    "15-cuisine": 1,
+    "14-pizza": 1,
+    "14-cuisine": 1,
+    "18-pizza": 1,
+    "18-cuisine": 1,
+    "17-pizza": 1,
+    "17-cuisine": 1,
+    "16-pizza": 1,
+    "16-cuisine": 1,
+    "19-cuisine": 1,
+    "20-pizza": 1,
+    "22-pizza": 2,
+    "24-pizza": 1,
+    "28-pizza": 1,
+    "25-pizza": 1,
+    "27-pizza": 1,
+    "20-cuisine": 1,
+    "22-cuisine": 1,
+    "21-cuisine": 1,
+    "23-cuisine": 1,
+    "24-cuisine": 1,
+    "28-cuisine": 1,
+    "25-cuisine": 1,
+    "26-cuisine": 1,
+    "27-cuisine": 1,
+    "29-cuisine": 1,
+    "36-pizza": 1,
+    "32-pizza": 1,
+    "34-pizza": 1,
+    "30-pizza": 1,
+    "35-pizza": 1,
+    "33-pizza": 1,
+    "37-pizza": 1,
+    "31-pizza": 1,
+    "41-cuisine": 1,
+    "41-pizza": 1,
+    "42-pizza": 1,
+    "51-pizza": 1,
+    "52-cuisine": 1,
+    "53-cuisine": 1,
+    "53-pizza": 1
+  },
+  "taches": [
+    {
+      "commande": 1,
+      "station": "cuisine",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 1,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 2,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 2,
+      "station": "cuisine",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 3,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 4,
+      "station": "cuisine",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 5,
+      "station": "cuisine",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 5,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 6,
+      "station": "cuisine",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 6,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 7,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 7,
+      "station": "cuisine",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 8,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 13,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 13,
+      "station": "cuisine",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 12,
+      "station": "cuisine",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 12,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 10,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 11,
+      "station": "cuisine",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 9,
+      "station": "cuisine",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 9,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 15,
+      "station": "cuisine",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 15,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 14,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 14,
+      "station": "cuisine",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 18,
+      "station": "cuisine",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 18,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 17,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 17,
+      "station": "cuisine",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 16,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 16,
+      "station": "cuisine",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 19,
+      "station": "cuisine",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 20,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 20,
+      "station": "cuisine",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 22,
+      "station": "cuisine",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 22,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 21,
+      "station": "cuisine",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 23,
+      "station": "cuisine",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 24,
+      "station": "cuisine",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 24,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 28,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 28,
+      "station": "cuisine",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 25,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 25,
+      "station": "cuisine",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 26,
+      "station": "cuisine",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 27,
+      "station": "cuisine",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 27,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 29,
+      "station": "cuisine",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 36,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 32,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 34,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 30,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 35,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 33,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 37,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 31,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 41,
+      "station": "cuisine",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 41,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 42,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 51,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 52,
+      "station": "cuisine",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 53,
+      "station": "cuisine",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 53,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": false,
+      "tentatives": 0
+    },
+    {
+      "commande": 1,
+      "station": "cuisine",
+      "etat": "imprimee",
+      "reimpression": true,
+      "tentatives": 0
+    },
+    {
+      "commande": 1,
+      "station": "pizza",
+      "etat": "imprimee",
+      "reimpression": true,
+      "tentatives": 0
+    }
+  ],
+  "pauses": [
+    {
+      "cle": "false-null-false",
+      "t": 0.126,
+      "active": false,
+      "jusqua": null,
+      "livraisonFermee": false,
+      "auto": false
+    },
+    {
+      "cle": "true-2026-11-12T01:23:55.292Z-false",
+      "t": 521.246,
+      "active": true,
+      "jusqua": "2026-11-12T01:23:55.292Z",
+      "livraisonFermee": false,
+      "auto": false
+    },
+    {
+      "cle": "false-null-false",
+      "t": 1778.883,
+      "active": false,
+      "jusqua": null,
+      "livraisonFermee": false,
+      "auto": false
+    },
+    {
+      "cle": "true-null-true",
+      "t": 2033.972,
+      "active": true,
+      "jusqua": null,
+      "livraisonFermee": false,
+      "auto": true
+    },
+    {
+      "cle": "false-null-false",
+      "t": 2049.019,
+      "active": false,
+      "jusqua": null,
+      "livraisonFermee": false,
+      "auto": false
+    }
+  ],
+  "reglages_final": {
+    "pause": {
+      "active": false,
+      "jusqua": null,
+      "livraisonFermee": false,
+      "auto": false
+    },
+    "preparation_minutes": 20
+  },
+  "mesures": {
+    "imprimante_post": {
+      "n": 2164,
+      "echecs": 0,
+      "mediane": 5.7374169998802245,
+      "p95": 7.679417000152171,
+      "max": 28.424084000000008
+    },
+    "tablette_file": {
+      "n": 664,
+      "echecs": 0,
+      "mediane": 11.567250000021886,
+      "p95": 20.41958300000988,
+      "max": 28.562666000099853
+    },
+    "commande_comptoir": {
+      "n": 33,
+      "echecs": 5,
+      "mediane": 7.914040999999997,
+      "p95": 27.13545800000429,
+      "max": 36.1948750000447
+    },
+    "tablette_accepter": {
+      "n": 45,
+      "echecs": 3,
+      "mediane": 7.849291999998968,
+      "p95": 12.144708000007086,
+      "max": 13.13575000000128
+    },
+    "imprimante_get_png": {
+      "n": 66,
+      "echecs": 0,
+      "mediane": 13.796249999955762,
+      "p95": 26.537042000010842,
+      "max": 65.38387499999953
+    },
+    "imprimante_get_texte": {
+      "n": 66,
+      "echecs": 0,
+      "mediane": 3.356166999787092,
+      "p95": 13.119084000005387,
+      "max": 15.374166999999943
+    },
+    "imprimante_delete": {
+      "n": 65,
+      "echecs": 0,
+      "mediane": 2.6679580002091825,
+      "p95": 4.307709000015166,
+      "max": 13.974000000016531
+    },
+    "commande_en_ligne": {
+      "n": 25,
+      "echecs": 0,
+      "mediane": 7.91425000000163,
+      "p95": 601.2147079999995,
+      "max": 632.7550409999967
+    },
+    "paiement_paye": {
+      "n": 25,
+      "echecs": 0,
+      "mediane": 6.5153750000026776,
+      "p95": 15.399083000025712,
+      "max": 17.09008300001733
+    },
+    "tablette_statut": {
+      "n": 99,
+      "echecs": 6,
+      "mediane": 5.052083000016864,
+      "p95": 9.35162500012666,
+      "max": 10.703916000202298
+    },
+    "tablette_encaisser": {
+      "n": 12,
+      "echecs": 0,
+      "mediane": 3.846040999997058,
+      "p95": 6.330249999999069,
+      "max": 6.330249999999069
+    },
+    "tablette_refuser": {
+      "n": 12,
+      "echecs": 0,
+      "mediane": 6.6428749999031425,
+      "p95": 12.415082999999868,
+      "max": 12.415082999999868
+    },
+    "tablette_rupture": {
+      "n": 1,
+      "echecs": 0,
+      "mediane": 4.679791000002297,
+      "p95": 4.679791000002297,
+      "max": 4.679791000002297
+    },
+    "tablette_pause": {
+      "n": 3,
+      "echecs": 0,
+      "mediane": 7.5808750000433065,
+      "p95": 8.639833000022918,
+      "max": 8.639833000022918
+    },
+    "tablette_reimprimer": {
+      "n": 1,
+      "echecs": 0,
+      "mediane": 7.905290999915451,
+      "p95": 7.905290999915451,
+      "max": 7.905290999915451
+    }
+  },
+  "journal": [
+    {
+      "t": 0.1,
+      "type": "horaires",
+      "status": 200,
+      "json": {
+        "enregistre": true
+      }
+    },
+    {
+      "t": 0.1,
+      "type": "imprimantes",
+      "urls": [
+        "pizza",
+        "cuisine"
+      ]
+    },
+    {
+      "t": 0.1,
+      "type": "pause_vue_par_tablette",
+      "active": false,
+      "jusqua": null,
+      "livraisonFermee": false,
+      "auto": false
+    },
+    {
+      "t": 10.009,
+      "type": "commande",
+      "etiquette": "C01",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "status": 200,
+      "erreur": null,
+      "ms": 8,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 15.1,
+      "type": "acceptee",
+      "etiquette": "C01",
+      "numero": 1,
+      "status": 200,
+      "ms": 7
+    },
+    {
+      "t": 16.2,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "689ea0b4-fe8e-4c31-8aaf-34b11762e5d7",
+      "numero": 1,
+      "reimpression": false,
+      "png_octets": 46282,
+      "png_status": 200
+    },
+    {
+      "t": 16.2,
+      "type": "ticket",
+      "station": "cuisine",
+      "jeton": "ddfc755c-ffbf-46f1-9e63-091fbc268114",
+      "numero": 1,
+      "reimpression": false,
+      "png_octets": 43582,
+      "png_status": 200
+    },
+    {
+      "t": 22.603,
+      "type": "commande",
+      "etiquette": "C02",
+      "plan": "normal",
+      "mode": "livraison",
+      "moyen": "en_ligne",
+      "status": 200,
+      "erreur": null,
+      "ms": 601,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 24.1,
+      "type": "paiement",
+      "etiquette": "C02",
+      "issue": "paye",
+      "status": 200
+    },
+    {
+      "t": 30.3,
+      "type": "acceptee",
+      "etiquette": "C02",
+      "numero": 2,
+      "status": 200,
+      "ms": 5
+    },
+    {
+      "t": 32.3,
+      "type": "ticket",
+      "station": "cuisine",
+      "jeton": "3952da0b-9bb4-46c2-b521-4dd1a6b3b6ed",
+      "numero": 2,
+      "reimpression": false,
+      "png_octets": 55632,
+      "png_status": 200
+    },
+    {
+      "t": 32.3,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "a7e7264a-76b3-41ee-afac-970409c8bcf0",
+      "numero": 2,
+      "reimpression": false,
+      "png_octets": 56893,
+      "png_status": 200
+    },
+    {
+      "t": 34.012,
+      "type": "commande",
+      "etiquette": "C03",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "en_ligne",
+      "status": 200,
+      "erreur": null,
+      "ms": 11,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 35.5,
+      "type": "paiement",
+      "etiquette": "C03",
+      "issue": "paye",
+      "status": 200
+    },
+    {
+      "t": 45.7,
+      "type": "acceptee",
+      "etiquette": "C03",
+      "numero": 3,
+      "status": 200,
+      "ms": 5
+    },
+    {
+      "t": 46.01,
+      "type": "commande",
+      "etiquette": "C04",
+      "plan": "normal",
+      "mode": "livraison",
+      "moyen": "en_ligne",
+      "status": 200,
+      "erreur": null,
+      "ms": 8,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 46.4,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "5a20d762-4db3-434b-83e4-a45d5f0d52e8",
+      "numero": 3,
+      "reimpression": false,
+      "png_octets": 31822,
+      "png_status": 200
+    },
+    {
+      "t": 47.5,
+      "type": "paiement",
+      "etiquette": "C04",
+      "issue": "paye",
+      "status": 200
+    },
+    {
+      "t": 50.2,
+      "type": "terminee",
+      "etiquette": "C01",
+      "numero": 1,
+      "status": 200
+    },
+    {
+      "t": 52.4,
+      "type": "acceptee",
+      "etiquette": "C04",
+      "numero": 4,
+      "status": 200,
+      "ms": 7
+    },
+    {
+      "t": 54.4,
+      "type": "ticket",
+      "station": "cuisine",
+      "jeton": "08552fd5-ed05-46e9-a3ce-a7b5c0297f50",
+      "numero": 4,
+      "reimpression": false,
+      "png_octets": 68319,
+      "png_status": 200
+    },
+    {
+      "t": 58.005,
+      "type": "commande",
+      "etiquette": "C05",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "status": 200,
+      "erreur": null,
+      "ms": 5,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 65.3,
+      "type": "terminee",
+      "etiquette": "C02",
+      "numero": 2,
+      "status": 200
+    },
+    {
+      "t": 69.6,
+      "type": "acceptee",
+      "etiquette": "C05",
+      "numero": 5,
+      "status": 200,
+      "ms": 11
+    },
+    {
+      "t": 70.012,
+      "type": "commande",
+      "etiquette": "C06",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "status": 200,
+      "erreur": null,
+      "ms": 11,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 70.5,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "c00a73cd-2882-4434-904b-a2be732c72c9",
+      "numero": 5,
+      "reimpression": false,
+      "png_octets": 37819,
+      "png_status": 200
+    },
+    {
+      "t": 70.5,
+      "type": "ticket",
+      "station": "cuisine",
+      "jeton": "9406feed-2209-425f-9537-4d25cd06c269",
+      "numero": 5,
+      "reimpression": false,
+      "png_octets": 41171,
+      "png_status": 200
+    },
+    {
+      "t": 76.8,
+      "type": "acceptee",
+      "etiquette": "C06",
+      "numero": 6,
+      "status": 200,
+      "ms": 7
+    },
+    {
+      "t": 78.5,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "d7ca1a5b-b18d-4aea-84e6-8bb9dc6a8c54",
+      "numero": 6,
+      "reimpression": false,
+      "png_octets": 46496,
+      "png_status": 200
+    },
+    {
+      "t": 78.5,
+      "type": "ticket",
+      "station": "cuisine",
+      "jeton": "8023041b-7cbe-4a86-99d3-390d342b2f52",
+      "numero": 6,
+      "reimpression": false,
+      "png_octets": 43831,
+      "png_status": 200
+    },
+    {
+      "t": 80.7,
+      "type": "terminee",
+      "etiquette": "C03",
+      "numero": 3,
+      "status": 200
+    },
+    {
+      "t": 82.634,
+      "type": "commande",
+      "etiquette": "C07",
+      "plan": "normal",
+      "mode": "livraison",
+      "moyen": "en_ligne",
+      "status": 200,
+      "erreur": null,
+      "ms": 633,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 84.1,
+      "type": "paiement",
+      "etiquette": "C07",
+      "issue": "paye",
+      "status": 200
+    },
+    {
+      "t": 87.4,
+      "type": "terminee",
+      "etiquette": "C04",
+      "numero": 4,
+      "status": 200
+    },
+    {
+      "t": 88,
+      "type": "acceptee",
+      "etiquette": "C07",
+      "numero": 7,
+      "status": 200,
+      "ms": 5
+    },
+    {
+      "t": 88.6,
+      "type": "ticket",
+      "station": "cuisine",
+      "jeton": "400dcb92-1ac1-4bf4-b144-e56139aa9965",
+      "numero": 7,
+      "reimpression": false,
+      "png_octets": 55928,
+      "png_status": 200
+    },
+    {
+      "t": 88.6,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "b9cd7f5f-7483-4911-95ec-d836e1234e77",
+      "numero": 7,
+      "reimpression": false,
+      "png_octets": 57172,
+      "png_status": 200
+    },
+    {
+      "t": 94.01,
+      "type": "commande",
+      "etiquette": "C08",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "en_ligne",
+      "status": 200,
+      "erreur": null,
+      "ms": 8,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 95.5,
+      "type": "paiement",
+      "etiquette": "C08",
+      "issue": "paye",
+      "status": 200
+    },
+    {
+      "t": 104.6,
+      "type": "terminee",
+      "etiquette": "C05",
+      "numero": 5,
+      "status": 200
+    },
+    {
+      "t": 107.7,
+      "type": "acceptee",
+      "etiquette": "C08",
+      "numero": 8,
+      "status": 200,
+      "ms": 13
+    },
+    {
+      "t": 108.6,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "1eaca2f5-89a5-42cb-a5ba-c7b2011f95fd",
+      "numero": 8,
+      "reimpression": false,
+      "png_octets": 32086,
+      "png_status": 200
+    },
+    {
+      "t": 111.9,
+      "type": "terminee",
+      "etiquette": "C06",
+      "numero": 6,
+      "status": 200
+    },
+    {
+      "t": 123,
+      "type": "terminee",
+      "etiquette": "C07",
+      "numero": 7,
+      "status": 200
+    },
+    {
+      "t": 130,
+      "type": "pointe",
+      "n": 5
+    },
+    {
+      "t": 130.01,
+      "type": "commande",
+      "etiquette": "C09",
+      "plan": "normal",
+      "mode": "livraison",
+      "moyen": "en_ligne",
+      "status": 200,
+      "erreur": null,
+      "ms": 9,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 130.013,
+      "type": "commande",
+      "etiquette": "C10",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "en_ligne",
+      "status": 200,
+      "erreur": null,
+      "ms": 11,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 130.016,
+      "type": "commande",
+      "etiquette": "C11",
+      "plan": "normal",
+      "mode": "livraison",
+      "moyen": "en_ligne",
+      "status": 200,
+      "erreur": null,
+      "ms": 14,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 130.02,
+      "type": "commande",
+      "etiquette": "C12",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "status": 200,
+      "erreur": null,
+      "ms": 18,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 130.023,
+      "type": "commande",
+      "etiquette": "C13",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "status": 200,
+      "erreur": null,
+      "ms": 21,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 131.5,
+      "type": "paiement",
+      "etiquette": "C09",
+      "issue": "paye",
+      "status": 200
+    },
+    {
+      "t": 131.5,
+      "type": "paiement",
+      "etiquette": "C10",
+      "issue": "paye",
+      "status": 200
+    },
+    {
+      "t": 131.5,
+      "type": "paiement",
+      "etiquette": "C11",
+      "issue": "paye",
+      "status": 200
+    },
+    {
+      "t": 135.3,
+      "type": "acceptee",
+      "etiquette": "C13",
+      "numero": 13,
+      "status": 200,
+      "ms": 10
+    },
+    {
+      "t": 136.7,
+      "type": "ticket",
+      "station": "cuisine",
+      "jeton": "ef8e43dd-52fd-4494-9df4-f9732657c3a1",
+      "numero": 13,
+      "reimpression": false,
+      "png_octets": 43345,
+      "png_status": 200
+    },
+    {
+      "t": 136.8,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "cb66dc4f-de91-4c55-8377-5bfde93efa79",
+      "numero": 13,
+      "reimpression": false,
+      "png_octets": 45959,
+      "png_status": 200
+    },
+    {
+      "t": 137.9,
+      "type": "acceptee",
+      "etiquette": "C12",
+      "numero": 12,
+      "status": 200,
+      "ms": 10
+    },
+    {
+      "t": 138.3,
+      "type": "acceptee",
+      "etiquette": "C10",
+      "numero": 10,
+      "status": 200,
+      "ms": 12
+    },
+    {
+      "t": 138.8,
+      "type": "ticket",
+      "station": "cuisine",
+      "jeton": "1b37cd1f-52ed-44c7-b67f-13984ff48f48",
+      "numero": 12,
+      "reimpression": false,
+      "png_octets": 40650,
+      "png_status": 200
+    },
+    {
+      "t": 138.8,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "03ceeea2-0037-45c7-a36a-9d5bce2a18d9",
+      "numero": 12,
+      "reimpression": false,
+      "png_octets": 37297,
+      "png_status": 200
+    },
+    {
+      "t": 138.8,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "c1ee172e-99dc-47e4-9192-965dfd2558c0",
+      "numero": 10,
+      "reimpression": false,
+      "png_octets": 31487,
+      "png_status": 200
+    },
+    {
+      "t": 140.6,
+      "type": "acceptee",
+      "etiquette": "C11",
+      "numero": 11,
+      "status": 200,
+      "ms": 7
+    },
+    {
+      "t": 140.8,
+      "type": "ticket",
+      "station": "cuisine",
+      "jeton": "86a28763-4b50-41de-9f9a-c4b57aa6a179",
+      "numero": 11,
+      "reimpression": false,
+      "png_octets": 68331,
+      "png_status": 200
+    },
+    {
+      "t": 142.1,
+      "type": "acceptee",
+      "etiquette": "C09",
+      "numero": 9,
+      "status": 200,
+      "ms": 11
+    },
+    {
+      "t": 142.7,
+      "type": "terminee",
+      "etiquette": "C08",
+      "numero": 8,
+      "status": 200
+    },
+    {
+      "t": 142.8,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "39bc841a-6ccf-4a2d-a020-fb167acebe51",
+      "numero": 9,
+      "reimpression": false,
+      "png_octets": 57708,
+      "png_status": 200
+    },
+    {
+      "t": 142.9,
+      "type": "ticket",
+      "station": "cuisine",
+      "jeton": "acef099e-d735-4a94-a837-575ddd360305",
+      "numero": 9,
+      "reimpression": false,
+      "png_octets": 56363,
+      "png_status": 200
+    },
+    {
+      "t": 150.009,
+      "type": "commande",
+      "etiquette": "C14",
+      "plan": "course-acc",
+      "mode": "retrait",
+      "moyen": "en_ligne",
+      "status": 200,
+      "erreur": null,
+      "ms": 8,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 150.013,
+      "type": "commande",
+      "etiquette": "C15",
+      "plan": "course-acc",
+      "mode": "retrait",
+      "moyen": "en_ligne",
+      "status": 200,
+      "erreur": null,
+      "ms": 4,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 150.017,
+      "type": "commande",
+      "etiquette": "C16",
+      "plan": "course-acc",
+      "mode": "retrait",
+      "moyen": "en_ligne",
+      "status": 200,
+      "erreur": null,
+      "ms": 4,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 150.022,
+      "type": "commande",
+      "etiquette": "C17",
+      "plan": "course-acc-ref",
+      "mode": "retrait",
+      "moyen": "en_ligne",
+      "status": 200,
+      "erreur": null,
+      "ms": 5,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 150.027,
+      "type": "commande",
+      "etiquette": "C18",
+      "plan": "course-acc-ref",
+      "mode": "retrait",
+      "moyen": "en_ligne",
+      "status": 200,
+      "erreur": null,
+      "ms": 4,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 151.5,
+      "type": "paiement",
+      "etiquette": "C14",
+      "issue": "paye",
+      "status": 200
+    },
+    {
+      "t": 151.5,
+      "type": "paiement",
+      "etiquette": "C15",
+      "issue": "paye",
+      "status": 200
+    },
+    {
+      "t": 151.5,
+      "type": "paiement",
+      "etiquette": "C16",
+      "issue": "paye",
+      "status": 200
+    },
+    {
+      "t": 151.5,
+      "type": "paiement",
+      "etiquette": "C17",
+      "issue": "paye",
+      "status": 200
+    },
+    {
+      "t": 151.5,
+      "type": "paiement",
+      "etiquette": "C18",
+      "issue": "paye",
+      "status": 200
+    },
+    {
+      "t": 157.5,
+      "type": "course_double_acceptation",
+      "etiquette": "C15",
+      "numero": 15,
+      "A": 200,
+      "B": 409,
+      "msgB": "Cette commande a déjà changé. La liste se met à jour."
+    },
+    {
+      "t": 158,
+      "type": "course_double_acceptation",
+      "etiquette": "C14",
+      "numero": 14,
+      "A": 200,
+      "B": 409,
+      "msgB": "Cette commande a déjà changé. La liste se met à jour."
+    },
+    {
+      "t": 158.9,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "f67a63fb-8cfe-40bf-ae72-d96d42332480",
+      "numero": 15,
+      "reimpression": false,
+      "png_octets": 35793,
+      "png_status": 200
+    },
+    {
+      "t": 158.9,
+      "type": "ticket",
+      "station": "cuisine",
+      "jeton": "2d938cb6-a8d4-4691-84ab-666e755bb4d5",
+      "numero": 15,
+      "reimpression": false,
+      "png_octets": 39151,
+      "png_status": 200
+    },
+    {
+      "t": 158.9,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "ffb33681-5bfb-474c-ba00-4442610228cd",
+      "numero": 14,
+      "reimpression": false,
+      "png_octets": 35689,
+      "png_status": 200
+    },
+    {
+      "t": 158.9,
+      "type": "ticket",
+      "station": "cuisine",
+      "jeton": "7317bfd9-dcb7-48e2-b508-d73b9835580b",
+      "numero": 14,
+      "reimpression": false,
+      "png_octets": 39064,
+      "png_status": 200
+    },
+    {
+      "t": 160.1,
+      "type": "course_accepter_refuser",
+      "etiquette": "C18",
+      "numero": 18,
+      "accepter": 200,
+      "refuser": 200,
+      "msg": "Commande refusée et remboursée."
+    },
+    {
+      "t": 161,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "25e0aec4-d03b-4229-8807-eef275148eb8",
+      "numero": 18,
+      "reimpression": false,
+      "png_octets": 36024,
+      "png_status": 200
+    },
+    {
+      "t": 161,
+      "type": "ticket",
+      "station": "cuisine",
+      "jeton": "69563aeb-f523-4ed2-aa14-6675ffb2cff9",
+      "numero": 18,
+      "reimpression": false,
+      "png_octets": 39371,
+      "png_status": 200
+    },
+    {
+      "t": 163.9,
+      "type": "course_accepter_refuser",
+      "etiquette": "C17",
+      "numero": 17,
+      "accepter": 200,
+      "refuser": 200,
+      "msg": "Commande refusée et remboursée."
+    },
+    {
+      "t": 164.6,
+      "type": "course_double_acceptation",
+      "etiquette": "C16",
+      "numero": 16,
+      "A": 200,
+      "B": 409,
+      "msgB": "Cette commande a déjà changé. La liste se met à jour."
+    },
+    {
+      "t": 165,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "0d759ec6-43b1-4021-ae47-5926fe3de713",
+      "numero": 17,
+      "reimpression": false,
+      "png_octets": 35486,
+      "png_status": 200
+    },
+    {
+      "t": 165,
+      "type": "ticket",
+      "station": "cuisine",
+      "jeton": "c4afce54-83d5-4875-ad5c-64596cfd24da",
+      "numero": 17,
+      "reimpression": false,
+      "png_octets": 38871,
+      "png_status": 200
+    },
+    {
+      "t": 165,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "ff7cf686-b396-4833-9f3b-51c3941aad0c",
+      "numero": 16,
+      "reimpression": false,
+      "png_octets": 35942,
+      "png_status": 200
+    },
+    {
+      "t": 165,
+      "type": "ticket",
+      "station": "cuisine",
+      "jeton": "1bc3d3a2-8522-42c3-bb76-3a6e13061e14",
+      "numero": 16,
+      "reimpression": false,
+      "png_octets": 39271,
+      "png_status": 200
+    },
+    {
+      "t": 170.3,
+      "type": "terminee",
+      "etiquette": "C13",
+      "numero": 13,
+      "status": 200
+    },
+    {
+      "t": 172.9,
+      "type": "terminee",
+      "etiquette": "C12",
+      "numero": 12,
+      "status": 200
+    },
+    {
+      "t": 173.4,
+      "type": "terminee",
+      "etiquette": "C10",
+      "numero": 10,
+      "status": 200
+    },
+    {
+      "t": 175.6,
+      "type": "terminee",
+      "etiquette": "C11",
+      "numero": 11,
+      "status": 200
+    },
+    {
+      "t": 177.1,
+      "type": "terminee",
+      "etiquette": "C09",
+      "numero": 9,
+      "status": 200
+    },
+    {
+      "t": 190.007,
+      "type": "commande",
+      "etiquette": "C19",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "en_ligne",
+      "status": 200,
+      "erreur": null,
+      "ms": 5,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 192.6,
+      "type": "terminee",
+      "etiquette": "C15",
+      "numero": 15,
+      "status": 200
+    },
+    {
+      "t": 193.1,
+      "type": "terminee",
+      "etiquette": "C14",
+      "numero": 14,
+      "status": 200
+    },
+    {
+      "t": 195.1,
+      "type": "terminee",
+      "etiquette": "C18",
+      "numero": 18,
+      "status": 409
+    },
+    {
+      "t": 198.9,
+      "type": "terminee",
+      "etiquette": "C17",
+      "numero": 17,
+      "status": 409
+    },
+    {
+      "t": 199.6,
+      "type": "terminee",
+      "etiquette": "C16",
+      "numero": 16,
+      "status": 200
+    },
+    {
+      "t": 200,
+      "type": "rupture",
+      "status": 200
+    },
+    {
+      "t": 205.007,
+      "type": "commande",
+      "etiquette": "C20",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "status": 422,
+      "erreur": "Lasagne de bœuf : Épuisé pour aujourd'hui.",
+      "ms": 3,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 230,
+      "type": "paiement",
+      "etiquette": "C19",
+      "issue": "paye",
+      "status": 200
+    },
+    {
+      "t": 234.8,
+      "type": "acceptee",
+      "etiquette": "C19",
+      "numero": 19,
+      "status": 200,
+      "ms": 6
+    },
+    {
+      "t": 235.3,
+      "type": "ticket",
+      "station": "cuisine",
+      "jeton": "732d1ae4-de30-4c10-ad17-bf49b5f7e954",
+      "numero": 19,
+      "reimpression": false,
+      "png_octets": 37442,
+      "png_status": 200
+    },
+    {
+      "t": 240,
+      "type": "imprimante_hors_ligne",
+      "station": "cuisine"
+    },
+    {
+      "t": 250.008,
+      "type": "commande",
+      "etiquette": "C21",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "status": 200,
+      "erreur": null,
+      "ms": 5,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 253.1,
+      "type": "acceptee",
+      "etiquette": "C21",
+      "numero": 20,
+      "status": 200,
+      "ms": 7
+    },
+    {
+      "t": 253.3,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "77f6a6fb-f171-4831-bc7a-9e6d5c5ff5f6",
+      "numero": 20,
+      "reimpression": false,
+      "png_octets": 37556,
+      "png_status": 200
+    },
+    {
+      "t": 260.012,
+      "type": "commande",
+      "etiquette": "C22",
+      "plan": "normal",
+      "mode": "livraison",
+      "moyen": "en_ligne",
+      "status": 200,
+      "erreur": null,
+      "ms": 9,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 261.5,
+      "type": "paiement",
+      "etiquette": "C22",
+      "issue": "paye",
+      "status": 200
+    },
+    {
+      "t": 269.8,
+      "type": "terminee",
+      "etiquette": "C19",
+      "numero": 19,
+      "status": 200
+    },
+    {
+      "t": 270.012,
+      "type": "commande",
+      "etiquette": "C23",
+      "plan": "annule-apres",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "status": 200,
+      "erreur": null,
+      "ms": 12,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 272.9,
+      "type": "acceptee",
+      "etiquette": "C23",
+      "numero": 22,
+      "status": 200,
+      "ms": 8
+    },
+    {
+      "t": 273.4,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "f660f6f0-1bf9-4373-a988-cdde0a015be8",
+      "numero": 22,
+      "reimpression": false,
+      "png_octets": 37404,
+      "png_status": 200
+    },
+    {
+      "t": 273.4,
+      "type": "ticket_sans_confirmation",
+      "station": "pizza",
+      "jeton": "f660f6f0-1bf9-4373-a988-cdde0a015be8",
+      "numero": 22
+    },
+    {
+      "t": 273.6,
+      "type": "acceptee",
+      "etiquette": "C22",
+      "numero": 21,
+      "status": 200,
+      "ms": 12
+    },
+    {
+      "t": 280.012,
+      "type": "commande",
+      "etiquette": "C24",
+      "plan": "normal",
+      "mode": "livraison",
+      "moyen": "en_ligne",
+      "status": 200,
+      "erreur": null,
+      "ms": 11,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 281.5,
+      "type": "paiement",
+      "etiquette": "C24",
+      "issue": "paye",
+      "status": 200
+    },
+    {
+      "t": 287.9,
+      "type": "annulee_apres_acceptation",
+      "etiquette": "C23",
+      "numero": 22,
+      "status": 200,
+      "message": "Commande refusée. Le client est prévenu."
+    },
+    {
+      "t": 288.1,
+      "type": "terminee",
+      "etiquette": "C21",
+      "numero": 20,
+      "status": 200
+    },
+    {
+      "t": 288.8,
+      "type": "acceptee",
+      "etiquette": "C24",
+      "numero": 23,
+      "status": 200,
+      "ms": 6
+    },
+    {
+      "t": 290.007,
+      "type": "commande",
+      "etiquette": "C25",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "status": 200,
+      "erreur": null,
+      "ms": 5,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 297.8,
+      "type": "acceptee",
+      "etiquette": "C25",
+      "numero": 24,
+      "status": 200,
+      "ms": 7
+    },
+    {
+      "t": 299.5,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "2a962470-c6d2-4d0d-9ba7-985bde09ae55",
+      "numero": 24,
+      "reimpression": false,
+      "png_octets": 37484,
+      "png_status": 200
+    },
+    {
+      "t": 308.6,
+      "type": "terminee",
+      "etiquette": "C22",
+      "numero": 21,
+      "status": 200
+    },
+    {
+      "t": 320,
+      "type": "pointe",
+      "n": 5,
+      "cuisine_hors_ligne": true
+    },
+    {
+      "t": 320.012,
+      "type": "commande",
+      "etiquette": "C26",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "status": 200,
+      "erreur": null,
+      "ms": 11,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 320.016,
+      "type": "commande",
+      "etiquette": "C27",
+      "plan": "normal",
+      "mode": "livraison",
+      "moyen": "en_ligne",
+      "status": 200,
+      "erreur": null,
+      "ms": 15,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 320.021,
+      "type": "commande",
+      "etiquette": "C28",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "status": 200,
+      "erreur": null,
+      "ms": 19,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 320.026,
+      "type": "commande",
+      "etiquette": "C30",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "status": 200,
+      "erreur": null,
+      "ms": 24,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 320.029,
+      "type": "commande",
+      "etiquette": "C29",
+      "plan": "normal",
+      "mode": "livraison",
+      "moyen": "en_ligne",
+      "status": 200,
+      "erreur": null,
+      "ms": 28,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 321.5,
+      "type": "paiement",
+      "etiquette": "C27",
+      "issue": "paye",
+      "status": 200
+    },
+    {
+      "t": 321.5,
+      "type": "paiement",
+      "etiquette": "C29",
+      "issue": "paye",
+      "status": 200
+    },
+    {
+      "t": 323.8,
+      "type": "terminee",
+      "etiquette": "C24",
+      "numero": 23,
+      "status": 200
+    },
+    {
+      "t": 326.3,
+      "type": "acceptee",
+      "etiquette": "C30",
+      "numero": 28,
+      "status": 200,
+      "ms": 10
+    },
+    {
+      "t": 327.4,
+      "type": "acceptee",
+      "etiquette": "C26",
+      "numero": 25,
+      "status": 200,
+      "ms": 11
+    },
+    {
+      "t": 327.6,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "470d7339-b67f-4bbb-a9ac-5fea63a52ff4",
+      "numero": 28,
+      "reimpression": false,
+      "png_octets": 37687,
+      "png_status": 200
+    },
+    {
+      "t": 327.7,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "89703f90-851f-406a-9f6f-cdd323a4a99f",
+      "numero": 25,
+      "reimpression": false,
+      "png_octets": 37663,
+      "png_status": 200
+    },
+    {
+      "t": 328.1,
+      "type": "acceptee",
+      "etiquette": "C27",
+      "numero": 26,
+      "status": 200,
+      "ms": 12
+    },
+    {
+      "t": 329.5,
+      "type": "acceptee",
+      "etiquette": "C28",
+      "numero": 27,
+      "status": 200,
+      "ms": 12
+    },
+    {
+      "t": 329.7,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "062ec0e5-3973-4f3e-8652-5a85e880947e",
+      "numero": 27,
+      "reimpression": false,
+      "png_octets": 37434,
+      "png_status": 200
+    },
+    {
+      "t": 330.9,
+      "type": "acceptee",
+      "etiquette": "C29",
+      "numero": 29,
+      "status": 200,
+      "ms": 12
+    },
+    {
+      "t": 332.8,
+      "type": "terminee",
+      "etiquette": "C25",
+      "numero": 24,
+      "status": 200
+    },
+    {
+      "t": 361.3,
+      "type": "terminee",
+      "etiquette": "C30",
+      "numero": 28,
+      "status": 200
+    },
+    {
+      "t": 362.4,
+      "type": "terminee",
+      "etiquette": "C26",
+      "numero": 25,
+      "status": 200
+    },
+    {
+      "t": 363.1,
+      "type": "terminee",
+      "etiquette": "C27",
+      "numero": 26,
+      "status": 200
+    },
+    {
+      "t": 364.5,
+      "type": "terminee",
+      "etiquette": "C28",
+      "numero": 27,
+      "status": 200
+    },
+    {
+      "t": 366,
+      "type": "terminee",
+      "etiquette": "C29",
+      "numero": 29,
+      "status": 200
+    },
+    {
+      "t": 393.9,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "f660f6f0-1bf9-4373-a988-cdde0a015be8",
+      "numero": 22,
+      "reimpression": false,
+      "png_octets": 37404,
+      "png_status": 200
+    },
+    {
+      "t": 430,
+      "type": "imprimante_retour",
+      "station": "cuisine"
+    },
+    {
+      "t": 431.5,
+      "type": "ticket",
+      "station": "cuisine",
+      "jeton": "47905712-8b62-445a-b5b9-6491c974fadf",
+      "numero": 20,
+      "reimpression": false,
+      "png_octets": 40928,
+      "png_status": 200
+    },
+    {
+      "t": 431.5,
+      "type": "ticket",
+      "station": "cuisine",
+      "jeton": "81e7f7a3-3f80-4d01-8dec-0dd26ba4875d",
+      "numero": 22,
+      "reimpression": false,
+      "png_octets": 40837,
+      "png_status": 200
+    },
+    {
+      "t": 431.5,
+      "type": "ticket",
+      "station": "cuisine",
+      "jeton": "8c3e5469-62dd-49ea-bd76-7f91c0a9d9f8",
+      "numero": 21,
+      "reimpression": false,
+      "png_octets": 67998,
+      "png_status": 200
+    },
+    {
+      "t": 431.5,
+      "type": "ticket",
+      "station": "cuisine",
+      "jeton": "9c0e3ba9-b5d4-4e72-9a90-444d20c3d86a",
+      "numero": 23,
+      "reimpression": false,
+      "png_octets": 68222,
+      "png_status": 200
+    },
+    {
+      "t": 431.5,
+      "type": "ticket",
+      "station": "cuisine",
+      "jeton": "e0452df3-a825-4056-8dc7-a2248a746124",
+      "numero": 24,
+      "reimpression": false,
+      "png_octets": 40918,
+      "png_status": 200
+    },
+    {
+      "t": 431.6,
+      "type": "ticket",
+      "station": "cuisine",
+      "jeton": "82367e11-dd2a-4b3e-910c-df27a0f97a6a",
+      "numero": 28,
+      "reimpression": false,
+      "png_octets": 41099,
+      "png_status": 200
+    },
+    {
+      "t": 431.6,
+      "type": "ticket",
+      "station": "cuisine",
+      "jeton": "19cf4c4e-2eb5-455e-bbfe-617779173e6b",
+      "numero": 25,
+      "reimpression": false,
+      "png_octets": 41063,
+      "png_status": 200
+    },
+    {
+      "t": 431.6,
+      "type": "ticket",
+      "station": "cuisine",
+      "jeton": "d0702a24-2b3c-400e-88df-92ee81fe1b49",
+      "numero": 26,
+      "reimpression": false,
+      "png_octets": 68726,
+      "png_status": 200
+    },
+    {
+      "t": 431.6,
+      "type": "ticket",
+      "station": "cuisine",
+      "jeton": "14aad6e6-276a-4200-8295-f92d6753208c",
+      "numero": 27,
+      "reimpression": false,
+      "png_octets": 40887,
+      "png_status": 200
+    },
+    {
+      "t": 431.6,
+      "type": "ticket",
+      "station": "cuisine",
+      "jeton": "a174aa04-79d4-4d2a-ae50-5cd724c7e941",
+      "numero": 29,
+      "reimpression": false,
+      "png_octets": 68888,
+      "png_status": 200
+    },
+    {
+      "t": 470.012,
+      "type": "commande",
+      "etiquette": "C31",
+      "plan": "laisser",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "status": 200,
+      "erreur": null,
+      "ms": 9,
+      "quand": {
+        "type": "creneau",
+        "date": "2026-11-12",
+        "minutes": 1380
+      }
+    },
+    {
+      "t": 470.019,
+      "type": "commande",
+      "etiquette": "C32",
+      "plan": "laisser",
+      "mode": "livraison",
+      "moyen": "en_ligne",
+      "status": 200,
+      "erreur": null,
+      "ms": 6,
+      "quand": {
+        "type": "creneau",
+        "date": "2026-11-12",
+        "minutes": 1380
+      }
+    },
+    {
+      "t": 470.025,
+      "type": "commande",
+      "etiquette": "C33",
+      "plan": "laisser",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "status": 200,
+      "erreur": null,
+      "ms": 6,
+      "quand": {
+        "type": "creneau",
+        "date": "2026-11-12",
+        "minutes": 1380
+      }
+    },
+    {
+      "t": 470.03,
+      "type": "commande",
+      "etiquette": "C34",
+      "plan": "laisser",
+      "mode": "livraison",
+      "moyen": "en_ligne",
+      "status": 200,
+      "erreur": null,
+      "ms": 5,
+      "quand": {
+        "type": "creneau",
+        "date": "2026-11-12",
+        "minutes": 1380
+      }
+    },
+    {
+      "t": 470.036,
+      "type": "commande",
+      "etiquette": "C35",
+      "plan": "laisser",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "status": 200,
+      "erreur": null,
+      "ms": 6,
+      "quand": {
+        "type": "creneau",
+        "date": "2026-11-12",
+        "minutes": 1380
+      }
+    },
+    {
+      "t": 470.04,
+      "type": "commande",
+      "etiquette": "C36",
+      "plan": "laisser",
+      "mode": "livraison",
+      "moyen": "en_ligne",
+      "status": 200,
+      "erreur": null,
+      "ms": 4,
+      "quand": {
+        "type": "creneau",
+        "date": "2026-11-12",
+        "minutes": 1380
+      }
+    },
+    {
+      "t": 470.046,
+      "type": "commande",
+      "etiquette": "C37",
+      "plan": "laisser",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "status": 200,
+      "erreur": null,
+      "ms": 7,
+      "quand": {
+        "type": "creneau",
+        "date": "2026-11-12",
+        "minutes": 1380
+      }
+    },
+    {
+      "t": 470.051,
+      "type": "commande",
+      "etiquette": "C38",
+      "plan": "laisser",
+      "mode": "livraison",
+      "moyen": "en_ligne",
+      "status": 200,
+      "erreur": null,
+      "ms": 5,
+      "quand": {
+        "type": "creneau",
+        "date": "2026-11-12",
+        "minutes": 1380
+      }
+    },
+    {
+      "t": 470.055,
+      "type": "commande",
+      "etiquette": "C39",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "status": 200,
+      "erreur": null,
+      "ms": 3,
+      "quand": {
+        "type": "creneau",
+        "date": "2026-11-14",
+        "minutes": 1170
+      }
+    },
+    {
+      "t": 470.059,
+      "type": "commande",
+      "etiquette": "C40",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "status": 200,
+      "erreur": null,
+      "ms": 4,
+      "quand": {
+        "type": "creneau",
+        "date": "2026-11-14",
+        "minutes": 1170
+      }
+    },
+    {
+      "t": 471.5,
+      "type": "paiement",
+      "etiquette": "C32",
+      "issue": "paye",
+      "status": 200
+    },
+    {
+      "t": 471.5,
+      "type": "paiement",
+      "etiquette": "C34",
+      "issue": "paye",
+      "status": 200
+    },
+    {
+      "t": 471.5,
+      "type": "paiement",
+      "etiquette": "C36",
+      "issue": "paye",
+      "status": 200
+    },
+    {
+      "t": 471.6,
+      "type": "paiement",
+      "etiquette": "C38",
+      "issue": "paye",
+      "status": 200
+    },
+    {
+      "t": 474.1,
+      "type": "acceptee",
+      "etiquette": "C37",
+      "numero": 36,
+      "status": 200,
+      "ms": 6
+    },
+    {
+      "t": 474.2,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "e140f072-c298-417b-b1be-c898383cbeb1",
+      "numero": 36,
+      "reimpression": false,
+      "png_octets": 33679,
+      "png_status": 200
+    },
+    {
+      "t": 475.7,
+      "type": "acceptee",
+      "etiquette": "C33",
+      "numero": 32,
+      "status": 200,
+      "ms": 13
+    },
+    {
+      "t": 476.2,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "e7681751-c788-4ca4-8e7a-231c07512993",
+      "numero": 32,
+      "reimpression": false,
+      "png_octets": 33550,
+      "png_status": 200
+    },
+    {
+      "t": 479.1,
+      "type": "acceptee",
+      "etiquette": "C35",
+      "numero": 34,
+      "status": 200,
+      "ms": 8
+    },
+    {
+      "t": 479.2,
+      "type": "acceptee",
+      "etiquette": "C31",
+      "numero": 30,
+      "status": 200,
+      "ms": 6
+    },
+    {
+      "t": 479.8,
+      "type": "acceptee",
+      "etiquette": "C36",
+      "numero": 35,
+      "status": 200,
+      "ms": 12
+    },
+    {
+      "t": 480.3,
+      "type": "acceptee",
+      "etiquette": "C34",
+      "numero": 33,
+      "status": 200,
+      "ms": 5
+    },
+    {
+      "t": 480.3,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "33007976-8f18-44ff-a30a-4a82e200dd40",
+      "numero": 34,
+      "reimpression": false,
+      "png_octets": 33560,
+      "png_status": 200
+    },
+    {
+      "t": 480.3,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "474c9de9-d82b-4dbd-9f61-0b4d76128dbd",
+      "numero": 30,
+      "reimpression": false,
+      "png_octets": 33714,
+      "png_status": 200
+    },
+    {
+      "t": 480.3,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "630d2d70-01b5-4646-8308-9a69ccc98a8c",
+      "numero": 35,
+      "reimpression": false,
+      "png_octets": 52663,
+      "png_status": 200
+    },
+    {
+      "t": 480.3,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "0ab932ed-72f0-4731-bab0-c434fe72fe9d",
+      "numero": 33,
+      "reimpression": false,
+      "png_octets": 52633,
+      "png_status": 200
+    },
+    {
+      "t": 480.3,
+      "type": "acceptee",
+      "etiquette": "C38",
+      "numero": 37,
+      "status": 200,
+      "ms": 3
+    },
+    {
+      "t": 482.4,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "91e7aebe-bd3e-472f-97f4-9c528cee07d0",
+      "numero": 37,
+      "reimpression": false,
+      "png_octets": 52493,
+      "png_status": 200
+    },
+    {
+      "t": 485.7,
+      "type": "acceptee",
+      "etiquette": "C32",
+      "numero": 31,
+      "status": 200,
+      "ms": 11
+    },
+    {
+      "t": 486.4,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "279c5ad9-f1c2-4914-83a0-8b1f4fd8741a",
+      "numero": 31,
+      "reimpression": false,
+      "png_octets": 52510,
+      "png_status": 200
+    },
+    {
+      "t": 520,
+      "type": "pause_manuelle",
+      "status": 200,
+      "minutes": 15
+    },
+    {
+      "t": 521.2,
+      "type": "pause_vue_par_tablette",
+      "active": true,
+      "jusqua": "2026-11-12T01:23:55.292Z",
+      "livraisonFermee": false,
+      "auto": false
+    },
+    {
+      "t": 525.009,
+      "type": "commande",
+      "etiquette": "C41",
+      "plan": "refus",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "status": 422,
+      "erreur": "Les commandes en ligne reprennent à 2h23. En attendant, commandez par téléphone au 022 792 16 89.",
+      "ms": 7,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 525,
+      "type": "sonde",
+      "libelle": "pendant la pause de 15 min",
+      "status": 422,
+      "erreur": "Les commandes en ligne reprennent à 2h23. En attendant, commandez par téléphone au 022 792 16 89."
+    },
+    {
+      "t": 1429.997,
+      "type": "commande",
+      "etiquette": "C42",
+      "plan": "refus",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "status": 200,
+      "erreur": null,
+      "ms": 11,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 1430,
+      "type": "sonde",
+      "libelle": "pause de 15 min expirée",
+      "status": 200,
+      "erreur": null
+    },
+    {
+      "t": 1430.005,
+      "type": "commande",
+      "etiquette": "C43",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "status": 422,
+      "erreur": "Lasagne de bœuf : Épuisé pour aujourd'hui.",
+      "ms": 5,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 1430.011,
+      "type": "commande",
+      "etiquette": "C44",
+      "plan": "normal",
+      "mode": "livraison",
+      "moyen": "en_ligne",
+      "status": 200,
+      "erreur": null,
+      "ms": 6,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 1431.5,
+      "type": "paiement",
+      "etiquette": "C44",
+      "issue": "paye",
+      "status": 200
+    },
+    {
+      "t": 1439.9,
+      "type": "acceptee",
+      "etiquette": "C44",
+      "numero": 41,
+      "status": 200,
+      "ms": 11
+    },
+    {
+      "t": 1441,
+      "type": "ticket",
+      "station": "cuisine",
+      "jeton": "c8a224dd-66e8-43b9-acad-3d2a2435d151",
+      "numero": 41,
+      "reimpression": false,
+      "png_octets": 55161,
+      "png_status": 200
+    },
+    {
+      "t": 1441.6,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "e1fa96cb-5ff6-4093-bbc5-a1130c4810c2",
+      "numero": 41,
+      "reimpression": false,
+      "png_octets": 56507,
+      "png_status": 200
+    },
+    {
+      "t": 1442,
+      "type": "refus",
+      "etiquette": "C42",
+      "numero": 40,
+      "status": 200,
+      "message": "Commande refusée. Le client est prévenu.",
+      "ms": 4
+    },
+    {
+      "t": 1460.007,
+      "type": "commande",
+      "etiquette": "C45",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "status": 200,
+      "erreur": null,
+      "ms": 5,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 1460,
+      "type": "tablettes_hors_ligne",
+      "duree_s": 300,
+      "apres_pause_datee_expiree": true
+    },
+    {
+      "t": 1474.9,
+      "type": "terminee",
+      "etiquette": "C44",
+      "numero": 41,
+      "status": 200
+    },
+    {
+      "t": 1520.022,
+      "type": "commande",
+      "etiquette": "C46",
+      "plan": "refus",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "status": 200,
+      "erreur": null,
+      "ms": 20,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 1520,
+      "type": "sonde",
+      "libelle": "tablettes muettes depuis 1 min (après une pause datée expirée)",
+      "status": 200,
+      "erreur": null
+    },
+    {
+      "t": 1580.011,
+      "type": "commande",
+      "etiquette": "C47",
+      "plan": "refus",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "status": 200,
+      "erreur": null,
+      "ms": 10,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 1580,
+      "type": "sonde",
+      "libelle": "tablettes muettes depuis 2 min (après une pause datée expirée)",
+      "status": 200,
+      "erreur": null
+    },
+    {
+      "t": 1640.02,
+      "type": "commande",
+      "etiquette": "C48",
+      "plan": "refus",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "status": 200,
+      "erreur": null,
+      "ms": 19,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 1640,
+      "type": "sonde",
+      "libelle": "tablettes muettes depuis 3 min (après une pause datée expirée)",
+      "status": 200,
+      "erreur": null
+    },
+    {
+      "t": 1700.007,
+      "type": "commande",
+      "etiquette": "C49",
+      "plan": "refus",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "status": 200,
+      "erreur": null,
+      "ms": 6,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 1700,
+      "type": "sonde",
+      "libelle": "tablettes muettes depuis 4 min (après une pause datée expirée)",
+      "status": 200,
+      "erreur": null
+    },
+    {
+      "t": 1760.038,
+      "type": "commande",
+      "etiquette": "C50",
+      "plan": "refus",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "status": 200,
+      "erreur": null,
+      "ms": 36,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 1760,
+      "type": "sonde",
+      "libelle": "tablettes muettes depuis 5 min (après une pause datée expirée)",
+      "status": 200,
+      "erreur": null
+    },
+    {
+      "t": 1760,
+      "type": "tablettes_retour"
+    },
+    {
+      "t": 1767.7,
+      "type": "refus",
+      "etiquette": "C49",
+      "numero": 46,
+      "status": 200,
+      "message": "Commande refusée. Le client est prévenu.",
+      "ms": 4
+    },
+    {
+      "t": 1769.5,
+      "type": "refus",
+      "etiquette": "C50",
+      "numero": 47,
+      "status": 200,
+      "message": "Commande refusée. Le client est prévenu.",
+      "ms": 7
+    },
+    {
+      "t": 1769.7,
+      "type": "refus",
+      "etiquette": "C48",
+      "numero": 45,
+      "status": 200,
+      "message": "Commande refusée. Le client est prévenu.",
+      "ms": 7
+    },
+    {
+      "t": 1771.9,
+      "type": "refus",
+      "etiquette": "C47",
+      "numero": 44,
+      "status": 200,
+      "message": "Commande refusée. Le client est prévenu.",
+      "ms": 7
+    },
+    {
+      "t": 1772.9,
+      "type": "refus",
+      "etiquette": "C46",
+      "numero": 43,
+      "status": 200,
+      "message": "Commande refusée. Le client est prévenu.",
+      "ms": 4
+    },
+    {
+      "t": 1773.4,
+      "type": "acceptee",
+      "etiquette": "C45",
+      "numero": 42,
+      "status": 200,
+      "ms": 9
+    },
+    {
+      "t": 1775,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "7a5bd4c9-a53d-4c4b-9db2-d2bff87461cf",
+      "numero": 42,
+      "reimpression": false,
+      "png_octets": 33684,
+      "png_status": 200
+    },
+    {
+      "t": 1775,
+      "type": "reprendre",
+      "status": 200
+    },
+    {
+      "t": 1778.9,
+      "type": "pause_vue_par_tablette",
+      "active": false,
+      "jusqua": null,
+      "livraisonFermee": false,
+      "auto": false
+    },
+    {
+      "t": 1790,
+      "type": "tablettes_hors_ligne",
+      "duree_s": 240,
+      "apres_reprise": true
+    },
+    {
+      "t": 1808.5,
+      "type": "terminee",
+      "etiquette": "C45",
+      "numero": 42,
+      "status": 200
+    },
+    {
+      "t": 1850.028,
+      "type": "commande",
+      "etiquette": "C51",
+      "plan": "refus",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "status": 200,
+      "erreur": null,
+      "ms": 27,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 1850,
+      "type": "sonde",
+      "libelle": "tablettes muettes depuis 1 min (après reprise)",
+      "status": 200,
+      "erreur": null
+    },
+    {
+      "t": 1910.005,
+      "type": "commande",
+      "etiquette": "C52",
+      "plan": "refus",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "status": 200,
+      "erreur": null,
+      "ms": 5,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 1910,
+      "type": "sonde",
+      "libelle": "tablettes muettes depuis 2 min (après reprise)",
+      "status": 200,
+      "erreur": null
+    },
+    {
+      "t": 1970.027,
+      "type": "commande",
+      "etiquette": "C53",
+      "plan": "refus",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "status": 200,
+      "erreur": null,
+      "ms": 26,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 1970,
+      "type": "sonde",
+      "libelle": "tablettes muettes depuis 3 min (après reprise)",
+      "status": 200,
+      "erreur": null
+    },
+    {
+      "t": 2030.013,
+      "type": "commande",
+      "etiquette": "C54",
+      "plan": "refus",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "status": 422,
+      "erreur": "Les commandes en ligne sont en pause. Commandez par téléphone au 022 792 16 89.",
+      "ms": 11,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 2030,
+      "type": "sonde",
+      "libelle": "tablettes muettes depuis 4 min (après reprise)",
+      "status": 422,
+      "erreur": "Les commandes en ligne sont en pause. Commandez par téléphone au 022 792 16 89."
+    },
+    {
+      "t": 2030,
+      "type": "tablettes_retour"
+    },
+    {
+      "t": 2034,
+      "type": "pause_vue_par_tablette",
+      "active": true,
+      "jusqua": null,
+      "livraisonFermee": false,
+      "auto": true
+    },
+    {
+      "t": 2038.1,
+      "type": "refus",
+      "etiquette": "C53",
+      "numero": 50,
+      "status": 200,
+      "message": "Commande refusée. Le client est prévenu.",
+      "ms": 4
+    },
+    {
+      "t": 2042.1,
+      "type": "refus",
+      "etiquette": "C52",
+      "numero": 49,
+      "status": 200,
+      "message": "Commande refusée. Le client est prévenu.",
+      "ms": 7
+    },
+    {
+      "t": 2043.5,
+      "type": "refus",
+      "etiquette": "C51",
+      "numero": 48,
+      "status": 200,
+      "message": "Commande refusée. Le client est prévenu.",
+      "ms": 4
+    },
+    {
+      "t": 2045,
+      "type": "reprendre",
+      "status": 200
+    },
+    {
+      "t": 2049,
+      "type": "pause_vue_par_tablette",
+      "active": false,
+      "jusqua": null,
+      "livraisonFermee": false,
+      "auto": false
+    },
+    {
+      "t": 2060.01,
+      "type": "commande",
+      "etiquette": "C55",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "en_ligne",
+      "status": 200,
+      "erreur": null,
+      "ms": 8,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 2061.5,
+      "type": "paiement",
+      "etiquette": "C55",
+      "issue": "paye",
+      "status": 200
+    },
+    {
+      "t": 2066.1,
+      "type": "acceptee",
+      "etiquette": "C55",
+      "numero": 51,
+      "status": 200,
+      "ms": 10
+    },
+    {
+      "t": 2068,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "b25fad67-af09-4949-91f3-be8e8b81b64c",
+      "numero": 51,
+      "reimpression": false,
+      "png_octets": 31499,
+      "png_status": 200
+    },
+    {
+      "t": 2068.006,
+      "type": "commande",
+      "etiquette": "C56",
+      "plan": "normal",
+      "mode": "livraison",
+      "moyen": "en_ligne",
+      "status": 200,
+      "erreur": null,
+      "ms": 6,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 2069.5,
+      "type": "paiement",
+      "etiquette": "C56",
+      "issue": "paye",
+      "status": 200
+    },
+    {
+      "t": 2076.008,
+      "type": "commande",
+      "etiquette": "C57",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "status": 200,
+      "erreur": null,
+      "ms": 6,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 2079.9,
+      "type": "acceptee",
+      "etiquette": "C56",
+      "numero": 52,
+      "status": 200,
+      "ms": 11
+    },
+    {
+      "t": 2081.4,
+      "type": "ticket",
+      "station": "cuisine",
+      "jeton": "d4e5bfc1-04b0-4967-a109-a8e193cb4b8e",
+      "numero": 52,
+      "reimpression": false,
+      "png_octets": 68174,
+      "png_status": 200
+    },
+    {
+      "t": 2082.6,
+      "type": "acceptee",
+      "etiquette": "C57",
+      "numero": 53,
+      "status": 200,
+      "ms": 7
+    },
+    {
+      "t": 2083.5,
+      "type": "ticket",
+      "station": "cuisine",
+      "jeton": "12453c36-9c26-4bd4-a47d-03a6a1ea5068",
+      "numero": 53,
+      "reimpression": false,
+      "png_octets": 40841,
+      "png_status": 200
+    },
+    {
+      "t": 2084.007,
+      "type": "commande",
+      "etiquette": "C58",
+      "plan": "normal",
+      "mode": "retrait",
+      "moyen": "comptoir",
+      "status": 422,
+      "erreur": "Lasagne de bœuf : Épuisé pour aujourd'hui.",
+      "ms": 6,
+      "quand": {
+        "type": "asap"
+      }
+    },
+    {
+      "t": 2084.1,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "d5ff4067-60c4-4e7c-8bb6-3626dbc56921",
+      "numero": 53,
+      "reimpression": false,
+      "png_octets": 37589,
+      "png_status": 200
+    },
+    {
+      "t": 2100,
+      "type": "reimpression",
+      "numero": 1,
+      "status": 200,
+      "message": "Ticket renvoyé à l'imprimante."
+    },
+    {
+      "t": 2100.2,
+      "type": "ticket",
+      "station": "pizza",
+      "jeton": "ac678844-0853-44fe-ae29-db31c8a000f0",
+      "numero": 1,
+      "reimpression": true,
+      "png_octets": 47171,
+      "png_status": 200
+    },
+    {
+      "t": 2101.2,
+      "type": "terminee",
+      "etiquette": "C55",
+      "numero": 51,
+      "status": 200
+    },
+    {
+      "t": 2101.6,
+      "type": "ticket",
+      "station": "cuisine",
+      "jeton": "28e73ce1-b577-483d-9715-1ef4ab5ee3b5",
+      "numero": 1,
+      "reimpression": true,
+      "png_octets": 44551,
+      "png_status": 200
+    },
+    {
+      "t": 2114.9,
+      "type": "terminee",
+      "etiquette": "C56",
+      "numero": 52,
+      "status": 200
+    },
+    {
+      "t": 2117.6,
+      "type": "terminee",
+      "etiquette": "C57",
+      "numero": 53,
+      "status": 200
+    }
+  ]
+}
