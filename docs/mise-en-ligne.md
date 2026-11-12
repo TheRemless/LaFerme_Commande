@@ -87,7 +87,8 @@ Claude donne les noms et les contextes, Jérémy saisit les valeurs secrètes.
 
 - [ ] Jérémy et Claude : saisir les variables du tableau. Détail : [comptes.md](comptes.md).
 - [ ] Jérémy : lancer la migration `20261112090000_correctifs_securite.sql` (`npx supabase db push --remote`). Elle retire le gérant de test de la vraie base, plafonne les essais de code par jour, limite les commandes au comptoir et retire aux visiteurs les droits d'écriture. Détail : [audits/securite.md](audits/securite.md).
-- [ ] Jérémy : se créer un accès gérant avec sa propre adresse e-mail. Il n'y a pas encore d'écran pour ajouter un membre : dans Supabase, ouvrir le projet, SQL Editor, puis exécuter `insert into personnel (email, nom, role) values ('<son adresse en minuscules>', 'Jérémy', 'gerant');`. Le code arrive par e-mail une fois Resend branché (préversions et production). Sans Resend, aucune connexion n'est possible sur une préversion branchée sur la vraie base.
+- [ ] Jérémy : se créer le premier accès gérant avec sa propre adresse e-mail, une seule fois : dans Supabase, ouvrir le projet, SQL Editor, puis exécuter `insert into personnel (email, nom, role) values ('<son adresse en minuscules>', 'Jérémy', 'gerant');`. Les autres membres (Giuseppe, l'équipe) s'ajoutent ensuite dans le back-office, rubrique « Équipe ». Le code arrive par e-mail une fois Resend branché (préversions et production). Sans Resend, aucune connexion n'est possible sur une préversion branchée sur la vraie base.
+- [ ] Jérémy : lancer la migration `20261114090000_correctifs_gerant.sql` (`npx supabase db push --remote`). Elle ajoute l'équipe, le remboursement après coup, la liste des commandes, le retard du soir et la remise à zéro de chaque nuit. Détail : [audits/gerant.md](audits/gerant.md).
 
 ### Stripe
 
@@ -123,7 +124,7 @@ Un jour sans service, jamais pendant un service.
 
 - [ ] Jérémy : accord écrit pour la mise en production.
 - [ ] Jérémy (commande lancée par lui) : vider les données de test de la base. Claude prépare le fichier et dit ce qu'il fait. Avant, Jérémy dit si la commande « Moi Moi » doit rester. Contenu prévu :
-  - commandes de test des préversions, avec leurs courriels et événements de paiement : `delete from courriels; delete from evenements_paiement; delete from commandes; delete from compteurs_jour;` (détail : [PROMPT.md](PROMPT.md) §11) ;
+  - commandes de test des préversions, avec leurs courriels et événements de paiement : `delete from courriels; delete from evenements_paiement; delete from remboursements; delete from commandes; delete from compteurs_jour;` (détail : [PROMPT.md](PROMPT.md) §11) ;
   - membre d'équipe de test : déjà retiré par la migration `20261112090000_correctifs_securite.sql` ; vérifier qu'aucune adresse en `.test` ne reste (le build de production échoue sinon) ;
   - imprimantes de test « Test pizza (préversion) » et « Test cuisine (préversion) ».
 - [ ] Jérémy : saisir les clés Stripe live et le secret du webhook live. Claude crée avec lui le webhook live vers `https://<domaine>/api/stripe/webhook` (mêmes quatre événements).

@@ -1,7 +1,7 @@
 import "server-only";
 import { chargerCatalogue } from "@/lib/catalogue";
 import { estimationAsap } from "@/lib/estimation";
-import { courrielConfirmation, courrielRemboursement } from "@/lib/courriel/modeles";
+import { courrielConfirmation, courrielRemboursement, courrielRemboursementGeste } from "@/lib/courriel/modeles";
 import { envoyerCourriel } from "@/lib/courriel/envoi";
 import { chargerConfigService } from "@/lib/config-service";
 import { appliquerPaiement, commandeParId, fonctionSql, type Commande } from "@/lib/db/serveur";
@@ -118,4 +118,101 @@ export async function rembourserCommande(commandeId: string, motif: string): Pro
     );
   }
   return { rembourse: applique };
+}
+
+// ---------- Remboursement après coup (audit du gérant, G02) ----------
+
+type LigneRemboursement = {
+  id: string;
+  commande_id: string;
+  montant_centimes: number;
+  moyen: "stripe" | "especes";
+  statut: "en_cours" | "fait" | "echec";
+  erreur: string | null;
+  deja?: boolean;
+  change?: boolean;
+};
+
+const ERREURS_REMBOURSEMENT: Record<string, string> = {
+  statut_non_remboursable: "Cette commande n'est pas encore prête. Pour l'annuler, utilisez « Annuler la commande » sur la tablette.",
+  pas_encaissee: "Cette commande n'a pas été encaissée, ou elle est déjà remboursée en entier.",
+  montant_trop_eleve: "Le montant dépasse ce qui reste à rembourser sur cette commande.",
+  montant_invalide: "Montant invalide.",
+  motif_invalide: "Écrivez un motif (3 caractères au moins). Le client le reçoit par e-mail.",
+  cle_reutilisee: "Ce formulaire a déjà servi pour un autre montant. Rechargez la fiche de la commande.",
+  cle_invalide: "Rechargez la fiche de la commande.",
+  commande_inconnue: "Commande introuvable.",
+  sans_paiement_en_ligne: "Paiement en ligne introuvable pour cette commande : vérifiez dans Stripe.",
+  "Réservé au gérant": "Réservé au gérant.",
+};
+
+// Erreurs où Stripe a répondu et refusé : rien n'est parti (requête invalide, droits, carte).
+function refusNetStripe(e: unknown): boolean {
+  const type = (e as { type?: string } | null)?.type;
+  return type === "StripeInvalidRequestError" || type === "StripeCardError" || type === "StripePermissionError" || type === "StripeAuthenticationError";
+}
+
+export function messageErreurRemboursement(e: unknown): string | null {
+  const m = e instanceof Error ? e.message : String(e);
+  const cle = Object.keys(ERREURS_REMBOURSEMENT).find((k) => m.includes(k));
+  return cle ? ERREURS_REMBOURSEMENT[cle] : null;
+}
+
+// Rembourse tout ou partie d'une commande déjà prête, partie ou terminée. La base réserve le montant (jamais
+// plus que le total, une seule ligne par clé), puis Stripe rembourse avec la même clé : un double appui ou
+// une reprise après coupure ne rembourse pas deux fois. Au comptoir, le rendu en espèces est seulement noté.
+export async function rembourserApresCoup(
+  commandeId: string,
+  montantCentimes: number,
+  motif: string,
+  cle: string,
+  personnelId: string,
+): Promise<{ ok: boolean; message: string }> {
+  let r: LigneRemboursement;
+  try {
+    r = await fonctionSql<LigneRemboursement>("demander_remboursement", {
+      p_commande: commandeId,
+      p_montant: montantCentimes,
+      p_motif: motif,
+      p_cle: cle,
+      p_personnel: personnelId,
+    });
+  } catch (e) {
+    const message = messageErreurRemboursement(e);
+    if (message) return { ok: false, message };
+    throw e;
+  }
+  const c = await commandeParId(commandeId);
+  if (!c) return { ok: false, message: "Commande introuvable." };
+  let envoyer = r.statut === "fait" && !r.deja && r.moyen === "stripe";
+  if (r.moyen === "stripe" && r.statut === "en_cours") {
+    try {
+      const pi = c.stripe_payment_intent ?? "";
+      const s = remboursementSimule(pi, cle) ?? (await passerelle().rembourser(pi, { montantCentimes, cle }));
+      r = await fonctionSql<LigneRemboursement>("terminer_remboursement", { p_id: r.id, p_ok: true, p_refund_id: s.id, p_erreur: null });
+      envoyer = r.statut === "fait" && r.change === true;
+    } catch (e) {
+      const detail = e instanceof Error ? e.message : String(e);
+      // Relance d'un geste déjà en cours (double appui, deuxième onglet), ou Stripe sans réponse claire (délai,
+      // réseau, erreur de son côté) : le remboursement a pu partir. On ne le marque pas en échec ; une relance
+      // plus tard, même clé, le termine sans doublon. Seul un refus net de Stripe le passe en échec.
+      if (r.deja || !refusNetStripe(e)) {
+        console.error(`Relance du remboursement de la commande ${c.numero} pas encore aboutie : ${detail}`);
+        return { ok: false, message: "Ce remboursement est encore en cours chez Stripe. Rechargez la fiche dans une minute." };
+      }
+      console.error(`Remboursement de la commande ${c.numero} refusé par Stripe : ${detail}`);
+      await fonctionSql("terminer_remboursement", { p_id: r.id, p_ok: false, p_refund_id: null, p_erreur: detail });
+      return { ok: false, message: "Stripe a refusé le remboursement. Rien n'a été rendu. Réessayez plus tard ou vérifiez dans Stripe." };
+    }
+  }
+  if (envoyer) {
+    const m = courrielRemboursementGeste(c, montantCentimes, motif);
+    await envoyerCourriel({ commandeId: c.id, destinataire: c.client_email, ...m }).catch((e) =>
+      console.error(`Courriel de remboursement non envoyé pour la commande ${c.numero} : ${e instanceof Error ? e.message : e}`),
+    );
+  }
+  if (r.statut === "echec") return { ok: false, message: "Ce remboursement a déjà échoué. Rechargez la fiche pour en refaire un." };
+  const montant = (montantCentimes / 100).toFixed(2);
+  if (r.moyen === "especes") return { ok: true, message: `CHF ${montant} notés comme rendus en espèces.` };
+  return { ok: true, message: r.deja && !envoyer ? `Remboursement de CHF ${montant} déjà fait.` : `CHF ${montant} remboursés. Le client reçoit un e-mail.` };
 }

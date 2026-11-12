@@ -14,6 +14,8 @@ export function GestionImprimantes() {
   const [url, setUrl] = useState<string | null>(null);
   const [alerte, setAlerte] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+  // Confirmation avant un geste qui arrête une imprimante (audit du gérant, G10).
+  const [confirmer, setConfirmer] = useState<{ id: number; geste: "jeton" | "actif" } | null>(null);
 
   const charger = useCallback(async () => {
     const rep = await fetch("/api/gestion/imprimantes", { cache: "no-store" });
@@ -72,14 +74,44 @@ export function GestionImprimantes() {
                   {!i.actif ? "Désactivée." : i.en_ligne ? "En ligne." : i.vue_le ? `Hors ligne depuis ${heureDe(i.vue_le)}.` : "Jamais connectée."}
                   {i.liee ? "" : " Pas encore liée à un appareil."}
                 </span>
-                <span className="boutons-ligne">
-                  <button type="button" className="lien" onClick={() => demanderUrl({ type: "jeton", id: i.id })}>
-                    Nouvelle adresse
-                  </button>
-                  <button type="button" className="lien" onClick={() => action({ type: "actif", id: i.id, actif: !i.actif }, i.actif ? "Désactivée." : "Réactivée.")}>
-                    {i.actif ? "Désactiver" : "Réactiver"}
-                  </button>
-                </span>
+                {confirmer?.id === i.id ? (
+                  <span className="ges-confirmer" role="alert">
+                    <span>
+                      {confirmer.geste === "jeton"
+                        ? `${i.nom} n'imprimera plus tant que la nouvelle adresse n'est pas collée dans ses réglages.`
+                        : `${i.nom} n'imprimera plus. Ses tickets s'afficheront sur la tablette.`}
+                    </span>
+                    <span className="boutons-ligne">
+                      <button
+                        type="button"
+                        className="bouton-second"
+                        onClick={() => {
+                          setConfirmer(null);
+                          if (confirmer.geste === "jeton") demanderUrl({ type: "jeton", id: i.id });
+                          else action({ type: "actif", id: i.id, actif: false }, "Désactivée.");
+                        }}
+                      >
+                        {confirmer.geste === "jeton" ? "Oui, nouvelle adresse" : "Oui, désactiver"}
+                      </button>
+                      <button type="button" className="lien" onClick={() => setConfirmer(null)}>
+                        Garder
+                      </button>
+                    </span>
+                  </span>
+                ) : (
+                  <span className="boutons-ligne">
+                    <button type="button" className="lien" onClick={() => setConfirmer({ id: i.id, geste: "jeton" })}>
+                      Nouvelle adresse
+                    </button>
+                    <button
+                      type="button"
+                      className="lien"
+                      onClick={() => (i.actif ? setConfirmer({ id: i.id, geste: "actif" }) : action({ type: "actif", id: i.id, actif: true }, "Réactivée."))}
+                    >
+                      {i.actif ? "Désactiver" : "Réactiver"}
+                    </button>
+                  </span>
+                )}
               </li>
             ))}
           </ul>

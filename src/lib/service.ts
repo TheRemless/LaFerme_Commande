@@ -23,7 +23,8 @@ export type Horaire = {
   derniere_commande_pizzas: string;
 };
 export type Fermeture = { debut: string; fin: string; motif: string };
-export type Reglages = { preparation_minutes: number; creneau_minutes: number; avance_jours: number };
+// preparation_minutes et les délais des zones comprennent déjà le retard du soir (config-service.ts).
+export type Reglages = { preparation_minutes: number; creneau_minutes: number; avance_jours: number; preparation_base?: number; retard_minutes?: number };
 
 export type ConfigService = {
   zones: Zone[];
@@ -189,6 +190,15 @@ export function creneaux(config: ConfigService, maintenant: Date, mode: Mode, zo
   return liste;
 }
 
+// Créneau plein pour un mode (capacité atteinte, SS-02) : lu par l'accueil, jamais proposé au client.
+export type CreneauPlein = { date: string; mode: Mode; minutes: number };
+
+export function creneauxLibres(liste: Creneau[], pleins: CreneauPlein[], mode: Mode): Creneau[] {
+  if (!pleins.length) return liste;
+  const plein = new Set(pleins.filter((p) => p.mode === mode).map((p) => `${p.date} ${p.minutes}`));
+  return liste.filter((c) => !plein.has(`${c.date} ${c.minutes}`));
+}
+
 export type EtatService =
   | { etat: "pause"; jusqua: string | null }
   | { etat: "livraison-fermee" }
@@ -232,7 +242,8 @@ export function etatService(config: ConfigService, maintenant: Date, mode: Mode,
   for (const h of servicesDu(config, ici.date)) {
     const { finCommande, finRemise } = bornes(config, h, mode, zone, pizzas);
     // « Dès que possible » quand la cuisine peut lancer la commande maintenant.
-    const ouvertDes = enMinutes(h.premiere_heure) - delai;
+    // Le retard du soir allonge l'heure promise, pas la fenêtre d'avant service (revue du lot gérant).
+    const ouvertDes = enMinutes(h.premiere_heure) - (delai - (config.reglages.retard_minutes ?? 0));
     if (ici.minutes >= ouvertDes && ici.minutes <= finCommande) {
       const moyen = mode === "livraison" && zone ? Math.round((zone.delai_min + zone.delai_max) / 2) : delai;
       const promise = Math.max(enMinutes(h.premiere_heure), arrondir(ici.minutes + moyen, 5));

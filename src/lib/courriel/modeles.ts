@@ -3,6 +3,7 @@ import type { Catalogue } from "@/lib/panier";
 import { prixChf, prixCourt } from "@/lib/prix";
 import { heureDe } from "@/lib/heures";
 import { heureTexte, jourTexte } from "@/lib/service";
+import { MOTIF_DEMANDE_CLIENT } from "@/lib/motifs";
 
 // Textes des courriels, passés par redaction-fr (voix de Giuseppe : direct, factuel).
 // Rien d'autre que des faits du registre (adresse, téléphone) et le contenu de la commande.
@@ -25,6 +26,21 @@ export function detailsLigne(cat: Catalogue | null, l: { choix: Record<string, s
     return noms.map((n) => (unique ? n : `+ ${n.toLowerCase()}`));
   });
   return [...choix, ...(l.retraits ?? []).map((r) => `sans ${r.toLowerCase()}`), ...(l.note ? [`« ${l.note} »`] : [])];
+}
+
+export { MOTIF_DEMANDE_CLIENT };
+
+function phraseAnnulation(c: Commande, motif: string): { texte: string; html: string } {
+  if (motif === MOTIF_DEMANDE_CLIENT) {
+    return {
+      texte: `Votre commande n° ${c.numero} est annulée, comme vous nous l'avez demandé.`,
+      html: `Votre commande n° <strong>${c.numero}</strong> est annulée, comme vous nous l'avez demandé.`,
+    };
+  }
+  return {
+    texte: `Nous ne pouvons pas préparer votre commande n° ${c.numero}. ${motif}`,
+    html: `Nous ne pouvons pas préparer votre commande n° <strong>${c.numero}</strong>. ${echapper(motif)}`,
+  };
 }
 
 function lienSuivi(c: Commande): string {
@@ -93,7 +109,7 @@ export function courrielRefusRemboursementEnCours(c: Commande, motif: string) {
   const texte = [
     `Bonjour ${c.client_prenom},`,
     "",
-    `Nous ne pouvons pas préparer votre commande n° ${c.numero}. ${motif}`,
+    phraseAnnulation(c, motif).texte,
     remboursement,
     "",
     `Une question ? Appelez-nous au ${TELEPHONE}.`,
@@ -102,7 +118,7 @@ export function courrielRefusRemboursementEnCours(c: Commande, motif: string) {
   ].join("\n");
   const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#1c1b1a;max-width:560px">
 <p>Bonjour ${echapper(c.client_prenom)},</p>
-<p>Nous ne pouvons pas préparer votre commande n° <strong>${c.numero}</strong>. ${echapper(motif)}</p>
+<p>${phraseAnnulation(c, motif).html}</p>
 <p>${remboursement}</p>
 <p>Une question ? Appelez-nous au ${TELEPHONE}.</p>
 <p style="color:#55524f;font-size:13px">${RESTAURANT}</p></div>`;
@@ -114,7 +130,7 @@ export function courrielRemboursement(c: Commande, motif: string) {
   const texte = [
     `Bonjour ${c.client_prenom},`,
     "",
-    `Nous ne pouvons pas préparer votre commande n° ${c.numero}. ${motif}`,
+    phraseAnnulation(c, motif).texte,
     `Nous vous remboursons ${prixChf(c.total_centimes)} sur le moyen de paiement utilisé. Le délai dépend de votre banque.`,
     "",
     `Une question ? ${TELEPHONE}`,
@@ -123,7 +139,7 @@ export function courrielRemboursement(c: Commande, motif: string) {
   ].join("\n");
   const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#1c1b1a;max-width:560px">
 <p>Bonjour ${echapper(c.client_prenom)},</p>
-<p>Nous ne pouvons pas préparer votre commande n° <strong>${c.numero}</strong>. ${echapper(motif)}</p>
+<p>${phraseAnnulation(c, motif).html}</p>
 <p>Nous vous remboursons ${prixChf(c.total_centimes)} sur le moyen de paiement utilisé. Le délai dépend de votre banque.</p>
 <p>Une question ? ${TELEPHONE}</p>
 <p style="color:#55524f;font-size:13px">${RESTAURANT}</p></div>`;
@@ -202,5 +218,20 @@ export function courrielPrete(c: Commande) {
 
 // Refus d'une commande qui n'a pas été payée en ligne (paiement au comptoir) : rien à rembourser.
 export function courrielRefus(c: Commande, motif: string) {
-  return courrielCourt(c, `Commande ${c.numero} annulée, La Ferme`, [`Nous ne pouvons pas préparer votre commande n° ${c.numero}. ${motif}`, "Rien n'a été débité."], false);
+  return courrielCourt(c, `Commande ${c.numero} annulée, La Ferme`, [phraseAnnulation(c, motif).texte, "Rien n'a été débité."], false);
+}
+
+// Remboursement décidé par le gérant après la remise (audit du gérant, G02), en entier ou en partie.
+// Le motif est celui que le gérant a écrit : le formulaire prévient qu'il part chez le client.
+export function courrielRemboursementGeste(c: Commande, montantCentimes: number, motif: string) {
+  const montant = prixChf(montantCentimes);
+  const phrase =
+    montantCentimes >= c.total_centimes
+      ? `Nous vous remboursons ${montant}, le montant de votre commande n° ${c.numero}.`
+      : `Nous vous remboursons ${montant} sur votre commande n° ${c.numero}.`;
+  return courrielCourt(c, `Remboursement de ${montant}, commande ${c.numero}, La Ferme`, [
+    phrase,
+    motif,
+    "La somme revient sur le moyen de paiement utilisé. Le délai dépend de votre banque.",
+  ], false);
 }

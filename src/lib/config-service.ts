@@ -22,13 +22,20 @@ async function lireConfigService(): Promise<ConfigService> {
   ]);
   // PGlite rend les dates en objets Date, Supabase en texte : on ramène tout au format AAAA-MM-JJ.
   const jour = (d: string | Date) => (typeof d === "string" ? d.slice(0, 10) : d.toISOString().slice(0, 10));
+  // Retard du soir réglé sur la tablette (audit du gérant, G05) : ajouté au retrait et à chaque zone, pour
+  // toutes les heures annoncées. Absent (base pas encore migrée) : zéro. Remis à zéro chaque nuit (G06).
+  const brut = Number(reglages.find((r) => r.cle === "retard_minutes")?.valeur ?? 0);
+  const retard = Number.isInteger(brut) && brut > 0 && brut <= 90 ? brut : 0;
+  const preparation = nombre(reglages, "preparation_minutes");
   return {
-    zones,
+    zones: retard ? zones.map((z) => ({ ...z, delai_min: z.delai_min + retard, delai_max: z.delai_max + retard })) : zones,
     npa,
     horaires,
     fermetures: fermetures.map((f) => ({ ...f, debut: jour(f.debut), fin: jour(f.fin) })),
     reglages: {
-      preparation_minutes: nombre(reglages, "preparation_minutes"),
+      preparation_minutes: preparation + retard,
+      preparation_base: preparation,
+      retard_minutes: retard,
       creneau_minutes: nombre(reglages, "creneau_minutes"),
       avance_jours: nombre(reglages, "avance_jours"),
     },

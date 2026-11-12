@@ -10,10 +10,10 @@ function texte(v: unknown, max: number): string | null {
   return t.length <= max ? t : null;
 }
 
-// « 18 », « 18.50 », « 18,50 » → 1850. Entre 0 et 500 francs.
-export function centimes(v: unknown): number | null {
+// « 18 », « 18.50 », « 18,50 » → 1850. Entre 0 et 500 francs (un prix de la carte), ou jusqu'à max francs.
+export function centimes(v: unknown, max = 500): number | null {
   const n = typeof v === "number" ? v : typeof v === "string" ? Number(v.trim().replace(",", ".")) : NaN;
-  if (!Number.isFinite(n) || n < 0 || n > 500) return null;
+  if (!Number.isFinite(n) || n < 0 || n > max) return null;
   const c = Math.round(n * 100);
   return Math.abs(c - n * 100) < 0.01 ? c : null;
 }
@@ -162,11 +162,25 @@ export type Vente = {
   stripe_payment_intent: string | null;
 };
 
+export type Remboursement = {
+  jour: string;
+  heure: string;
+  numero: number;
+  jour_vente: string;
+  mode: string;
+  paiement: string;
+  montant_centimes: number;
+  taux_tva_pourcent: number;
+  tva_centimes: number;
+  reference: string | null;
+};
+
 const chf = (c: number) => (c / 100).toFixed(2);
 
-// CSV pour la fiduciaire : séparateur « ; » (Excel suisse), une ligne par vente, puis un total par taux de TVA.
-// Aucune donnée personnelle : ni nom, ni téléphone, ni adresse.
-export function csvVentes(ventes: Vente[]): string {
+// CSV pour la fiduciaire : séparateur « ; » (Excel suisse), une ligne par vente, puis les remboursements
+// faits sur la période (en négatif, au jour du remboursement), puis le total net par taux de TVA.
+// Aucune donnée personnelle : ni nom, ni téléphone, ni adresse, ni motif.
+export function csvVentes(ventes: Vente[], remboursements: Remboursement[] = []): string {
   const lignes = [["Jour", "Numéro", "Heure", "Mode", "Paiement", "Sous-total CHF", "Livraison CHF", "Total TTC CHF", "Taux TVA %", "TVA CHF", "Référence Stripe"]];
   for (const v of ventes) {
     lignes.push([
@@ -183,18 +197,46 @@ export function csvVentes(ventes: Vente[]): string {
       v.stripe_payment_intent ?? "",
     ]);
   }
-  const parTaux = new Map<string, { total: number; tva: number; n: number }>();
+  if (remboursements.length) {
+    lignes.push([]);
+    lignes.push(["Remboursements"]);
+    lignes.push(["Jour", "Numéro", "Heure", "Mode", "Paiement", "Jour de la vente", "Remboursé CHF", "Taux TVA %", "TVA CHF", "Référence Stripe"]);
+    for (const r of remboursements) {
+      lignes.push([
+        String(r.jour).slice(0, 10),
+        String(r.numero),
+        r.heure,
+        r.mode,
+        r.paiement,
+        String(r.jour_vente).slice(0, 10),
+        chf(-r.montant_centimes),
+        String(r.taux_tva_pourcent),
+        chf(-r.tva_centimes),
+        r.reference ?? "",
+      ]);
+    }
+  }
+  const parTaux = new Map<string, { total: number; tva: number; n: number; rembourse: number; tvaRemb: number }>();
+  const taux = (t: number) => parTaux.get(String(t)) ?? { total: 0, tva: 0, n: 0, rembourse: 0, tvaRemb: 0 };
   for (const v of ventes) {
-    const t = parTaux.get(String(v.taux_tva_pourcent)) ?? { total: 0, tva: 0, n: 0 };
-    parTaux.set(String(v.taux_tva_pourcent), { total: t.total + v.total_centimes, tva: t.tva + v.tva_centimes, n: t.n + 1 });
+    const t = taux(v.taux_tva_pourcent);
+    parTaux.set(String(v.taux_tva_pourcent), { ...t, total: t.total + v.total_centimes, tva: t.tva + v.tva_centimes, n: t.n + 1 });
+  }
+  for (const r of remboursements) {
+    const t = taux(r.taux_tva_pourcent);
+    parTaux.set(String(r.taux_tva_pourcent), { ...t, rembourse: t.rembourse + r.montant_centimes, tvaRemb: t.tvaRemb + r.tva_centimes });
   }
   lignes.push([]);
-  lignes.push(["Taux TVA %", "Ventes", "Total TTC CHF", "TVA CHF", "Hors TVA CHF"]);
-  for (const [taux, t] of parTaux) lignes.push([taux, String(t.n), chf(t.total), chf(t.tva), chf(t.total - t.tva)]);
+  lignes.push(["Taux TVA %", "Ventes", "Total TTC CHF", "Remboursé CHF", "Net TTC CHF", "TVA nette CHF", "Hors TVA net CHF"]);
+  for (const [t, x] of parTaux) {
+    const net = x.total - x.rembourse;
+    const tva = x.tva - x.tvaRemb;
+    lignes.push([t, String(x.n), chf(x.total), chf(-x.rembourse), chf(net), chf(tva), chf(net - tva)]);
+  }
   // Une cellule qui commence par = + - @ serait lue comme une formule par Excel : on la neutralise.
   const cellule = (x: string) => {
     const s = /^[=+\-@]/.test(x) && !/^-?\d/.test(x) ? `'${x}` : x;
     return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
-  return "﻿" + lignes.map((l) => l.map(cellule).join(";")).join("\r\n") + "\r\n";
+  return "\uFEFF" + lignes.map((l) => l.map(cellule).join(";")).join("\r\n") + "\r\n";
 }

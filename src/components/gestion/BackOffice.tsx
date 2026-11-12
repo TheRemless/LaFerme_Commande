@@ -3,18 +3,22 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { GestionCarte, GestionSupplements, type DonneesCarte } from "@/components/gestion/GestionCarte";
+import { GestionCommandes } from "@/components/gestion/GestionCommandes";
+import { GestionEquipe } from "@/components/gestion/GestionEquipe";
 import { GestionImprimantes } from "@/components/gestion/GestionImprimantes";
 import { GestionService } from "@/components/gestion/GestionService";
 import { heureDe, jourGeneveDe } from "@/lib/heures";
 import { jourTexte } from "@/lib/service";
 
-type Onglet = "carte" | "supplements" | "service" | "imprimantes" | "import" | "export" | "journal";
+type Onglet = "commandes" | "carte" | "supplements" | "service" | "imprimantes" | "equipe" | "import" | "export" | "journal";
 
 const ONGLETS: [Onglet, string][] = [
+  ["commandes", "Commandes"],
   ["carte", "Carte"],
   ["supplements", "Suppléments et pâtes"],
   ["service", "Livraison et horaires"],
   ["imprimantes", "Imprimantes"],
+  ["equipe", "Équipe"],
   ["import", "Importer le tableau"],
   ["export", "Export comptable"],
   ["journal", "Journal"],
@@ -22,7 +26,7 @@ const ONGLETS: [Onglet, string][] = [
 
 export function BackOffice({ nom }: { nom: string }) {
   const router = useRouter();
-  const [onglet, setOnglet] = useState<Onglet>("carte");
+  const [onglet, setOnglet] = useState<Onglet>("commandes");
   const [carte, setCarte] = useState<DonneesCarte | null>(null);
   // Change à chaque import appliqué : les fiches ouvertes repartent alors des nouvelles valeurs.
   const [version, setVersion] = useState(0);
@@ -53,13 +57,15 @@ export function BackOffice({ nom }: { nom: string }) {
           </p>
         )}
       </header>
-      <nav className="tab-onglets" aria-label="Rubriques">
+      <nav className="tab-onglets ges-rubriques" aria-label="Rubriques">
         {ONGLETS.map(([cle, titre]) => (
           <button key={cle} type="button" aria-pressed={onglet === cle} onClick={() => setOnglet(cle)}>
             {titre}
           </button>
         ))}
       </nav>
+      {onglet === "commandes" && <GestionCommandes />}
+      {onglet === "equipe" && <GestionEquipe />}
       {onglet === "carte" && (carte ? <GestionCarte donnees={carte} recharger={chargerCarte} version={version} /> : <p className="aide">Chargement…</p>)}
       {onglet === "supplements" && (carte ? <GestionSupplements donnees={carte} recharger={chargerCarte} /> : <p className="aide">Chargement…</p>)}
       {onglet === "service" && <GestionService />}
@@ -273,7 +279,22 @@ function valeurLisible(cle: string, v: unknown): string {
   return String(v);
 }
 
+const ROLE: Record<string, string> = { service: "tablette", gerant: "tablette et back-office" };
+
 function resume(e: Entree): string {
+  if (e.objet === "remboursement" && e.apres) {
+    const a = e.apres as { montant_centimes?: number; motif?: string; moyen?: string };
+    return `Commande ${e.cle} : CHF ${((a.montant_centimes ?? 0) / 100).toFixed(2)} remboursés${a.moyen === "especes" ? " en espèces" : ""}. ${a.motif ?? ""}`;
+  }
+  if (e.objet === "personnel") {
+    const av = (e.avant ?? {}) as { nom?: string; role?: string; actif?: boolean };
+    const ap = (e.apres ?? {}) as { nom?: string; role?: string; actif?: boolean; sessions_coupees?: number };
+    if (ap.sessions_coupees !== undefined) return `Déconnecté de ${ap.sessions_coupees} appareil${ap.sessions_coupees > 1 ? "s" : ""}`;
+    if (!e.avant || av.actif === false) return `Ajouté : ${ap.nom}, accès ${ROLE[ap.role ?? ""] ?? ap.role}`;
+    if (ap.actif === false) return `Retiré : ${av.nom}`;
+    const ch = [av.nom !== ap.nom ? `nom ${av.nom} → ${ap.nom}` : "", av.role !== ap.role ? `accès ${ROLE[av.role ?? ""]} → ${ROLE[ap.role ?? ""]}` : ""].filter(Boolean);
+    return ch.length ? ch.join(" ; ") : "Enregistré sans changement";
+  }
   if (!e.avant || !e.apres || Array.isArray(e.avant) || Array.isArray(e.apres)) {
     if (e.objet === "import") return `Import : ${JSON.stringify(e.apres)}`;
     if (!e.avant) return "Ajout";

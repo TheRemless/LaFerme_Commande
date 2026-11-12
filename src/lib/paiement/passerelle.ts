@@ -29,7 +29,8 @@ export interface Passerelle {
   nom: "stripe" | "doublure";
   creerSession(d: DemandeSession): Promise<{ id: string; url: string }>;
   lireSession(id: string): Promise<EtatSession>;
-  rembourser(paymentIntent: string): Promise<{ id: string }>;
+  // Sans montant : tout ce qui reste. Avec une clé : un remboursement partiel précis, rejouable sans doublon.
+  rembourser(paymentIntent: string, options?: { montantCentimes?: number; cle?: string }): Promise<{ id: string }>;
   expirerSession(id: string): Promise<void>;
 }
 
@@ -85,8 +86,11 @@ const passerelleStripe = (s: Stripe): Passerelle => ({
     if (session.status === "expired") return { statut: "echec", ...montant };
     return { statut: "en_attente", ...montant };
   },
-  async rembourser(paymentIntent) {
-    const r = await s.refunds.create({ payment_intent: paymentIntent }, { idempotencyKey: `remboursement-${paymentIntent}` });
+  async rembourser(paymentIntent, options = {}) {
+    const r = await s.refunds.create(
+      { payment_intent: paymentIntent, ...(options.montantCentimes ? { amount: options.montantCentimes } : {}) },
+      { idempotencyKey: options.cle ? `remboursement-geste-${options.cle}` : `remboursement-${paymentIntent}` },
+    );
     return { id: r.id };
   },
   async expirerSession(id) {
@@ -105,8 +109,8 @@ const passerelleDoublure: Passerelle = {
   async lireSession() {
     return { statut: "en_attente", montantCentimes: null, devise: null };
   },
-  async rembourser(paymentIntent) {
-    return { id: `re_doublure_${paymentIntent}` };
+  async rembourser(paymentIntent, options = {}) {
+    return { id: `re_doublure_${options.cle ?? paymentIntent}` };
   },
   async expirerSession() {},
 };
@@ -141,6 +145,6 @@ export function doublureActive(): boolean {
 
 // Remboursement d'un paiement simulé (commande de test déjà payée par la doublure) : aucun argent n'a
 // circulé, rien à demander à Stripe ni à la passerelle du moment.
-export function remboursementSimule(paymentIntent: string): { id: string } | null {
-  return paymentIntent.startsWith("pi_doublure_") ? { id: `re_doublure_${paymentIntent}` } : null;
+export function remboursementSimule(paymentIntent: string, cle?: string): { id: string } | null {
+  return paymentIntent.startsWith("pi_doublure_") ? { id: `re_doublure_${cle ?? paymentIntent}` } : null;
 }

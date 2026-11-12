@@ -9,11 +9,10 @@ Adresse : `/tablette` (non indexée). Réservée au personnel, connexion distinc
 - Session de 60 jours dans un cookie à part (`__Host-laferme-personnel`, HttpOnly, Secure, SameSite=Strict). Un membre désactivé perd l'accès tout de suite.
 - Rôles : `service` (la tablette) et `gerant` (la tablette, puis le back-office au lot 7b).
 
-Ajouter ou retirer quelqu'un, dans l'éditeur SQL de Supabase (en attendant le back-office) :
+Ajouter, retirer ou changer l'accès de quelqu'un : back-office, rubrique « Équipe » (depuis le 14.11.2026). Seul le tout premier gérant se crée dans l'éditeur SQL de Supabase, une fois :
 
 ```sql
-insert into personnel (email, nom, role) values ('prenom@exemple.ch', 'Prénom', 'service');
-update personnel set actif = false where email = 'prenom@exemple.ch';
+insert into personnel (email, nom, role) values ('prenom@exemple.ch', 'Prénom', 'gerant');
 ```
 
 ## Ce que fait la tablette
@@ -24,7 +23,7 @@ update personnel set actif = false where email = 'prenom@exemple.ch';
 - Refuser avec un motif (trois motifs prêts ou un texte libre). Payée en ligne : remboursement total automatique, sinon e-mail « rien n'a été débité ». Un remboursement raté reste visible avec un bouton pour réessayer.
 - Statuts en un appui : en préparation, prête au comptoir ou partie en livraison (e-mail au client), retirée ou livrée. Encaissée pour le comptoir. Changer l'heure (e-mail au client).
 - Onglet « À l'avance » : commandes pour un autre jour.
-- Réglages : pause des commandes en ligne (30 min, 1 h, jusqu'à reprise), livraison fermée, délai de préparation, plats épuisés pour la journée (ils reviennent seuls le lendemain).
+- Réglages : pause des commandes en ligne (30 min, 1 h, jusqu'à reprise), livraison fermée, retard du soir, plats épuisés pour la journée (ils reviennent seuls le lendemain).
 - Mise à jour : relecture toutes les 15 secondes pendant le service, toutes les 60 secondes hors service (toutes les 5 secondes si le signal ne passe pas). Le signal Supabase Realtime (message vide sur le canal `tablette`, aucune donnée) déclenche une relecture immédiate. Perte de connexion : bandeau avec l'heure du dernier contact.
 - Chaque changement de statut est tracé dans `evenements_commande` avec son auteur (`tablette:Prénom`).
 
@@ -45,3 +44,11 @@ Détail : `docs/audits/samedi-soir.md`, « Suivi des corrections ».
 
 - Le canal Realtime `tablette` est public : un tiers peut y envoyer des messages vides, qui font seulement relire la file. Aucune donnée n'y passe.
 - Le membre de test `equipe@laferme.test` n'existe plus que dans la base embarquée (`supabase/local/donnees-test.sql`). La migration `20261112090000_correctifs_securite.sql` le retire de la vraie base avec ses sessions. Sur une préversion branchée sur la vraie base, la connexion du personnel attend Resend.
+
+## Correctifs du 14.11.2026 (audit « journée du gérant »)
+
+Détail : `docs/audits/gerant.md`, « Suivi des corrections ».
+
+- « Retard ce soir » (0 à 90 minutes) remplace le délai de préparation sur la tablette : il s'ajoute à l'heure annoncée pour le retrait et à chaque zone de livraison. Le délai habituel se règle au back-office.
+- Chaque nuit à 5h (heure de Genève), le premier tour de surveillance remet à zéro le retard, rouvre la livraison et lève une « Pause jusqu'à reprise ». Une pause automatique (tablette muette) reste : il faut la lever en regardant la tablette.
+- Annuler à la demande du client : motif « À la demande du client », bouton « Annuler et rembourser ». Le client lit « Votre commande est annulée, comme vous nous l'avez demandé ». Le lien qui ferme le panneau s'appelle « Fermer ».
