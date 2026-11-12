@@ -10,7 +10,7 @@ import { TicketSecours } from "@/components/tablette/TicketSecours";
 import type { EtatImpression } from "@/lib/impression/service";
 import type { LigneTicket } from "@/lib/impression/ticket";
 import { heureDe as heure, jourCourtDe as jourCourt, jourGeneveDe as jourGeneve } from "@/lib/heures";
-import { heureImpression, IMPRESSION_AVANCE_DEFAUT, momentTexte } from "@/lib/impression/avance";
+import { heureImpression, IMPRESSION_AVANCE_DEFAUT, momentTexte, type DelaisImpression } from "@/lib/impression/avance";
 import { heureTexte, jourTexte } from "@/lib/service";
 import { MOTIFS_REFUS } from "@/lib/motifs";
 
@@ -24,8 +24,8 @@ type Donnees = {
     pause: { active: boolean; jusqua: string | null; livraisonFermee: boolean; auto?: boolean } | null;
     preparation_minutes: number;
     retard_minutes?: number;
-    // Les tickets d'une commande acceptée sortent ce temps avant l'heure promise (SS-11).
-    impression_avance_minutes?: number;
+    // Les tickets d'une commande acceptée sortent ce temps avant l'heure promise, par mode (SS-11).
+    impression_avance?: DelaisImpression;
   };
   impression: EtatImpression;
   // Rythme de relecture proposé par le serveur : 15 s pendant le service, 60 s hors service.
@@ -136,7 +136,7 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
   }, [charger, delai]);
 
   const aujourdHui = donnees ? jourGeneve(donnees.maintenant) : "";
-  const avanceMin = donnees?.reglages.impression_avance_minutes ?? IMPRESSION_AVANCE_DEFAUT;
+  const avance = donnees?.reglages.impression_avance ?? IMPRESSION_AVANCE_DEFAUT;
   const listes = useMemo(() => {
     const c = donnees?.commandes ?? [];
     const pourPlusTard = (x: CommandeTablette) => x.quand_type === "creneau" && x.quand_date !== null && x.quand_date > aujourdHui;
@@ -144,7 +144,7 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
     const imprimees = new Set((donnees?.impression.taches ?? []).map((t) => t.commande_id));
     const maintenant = donnees ? new Date(donnees.maintenant).getTime() : 0;
     const programmee = (x: CommandeTablette) =>
-      x.statut === "acceptee" && x.heure_confirmee !== null && !imprimees.has(x.id) && heureImpression(x.heure_confirmee, avanceMin).getTime() > maintenant;
+      x.statut === "acceptee" && x.heure_confirmee !== null && !imprimees.has(x.id) && heureImpression(x.heure_confirmee, avance[x.mode]).getTime() > maintenant;
     const parHeure = (a: CommandeTablette, b: CommandeTablette) =>
       (a.heure_confirmee ?? a.heure_proposee).localeCompare(b.heure_confirmee ?? b.heure_proposee);
     return {
@@ -153,7 +153,7 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
       avance: c.filter((x) => (x.statut === "nouvelle" && pourPlusTard(x)) || programmee(x)).sort(parHeure),
       terminees: c.filter((x) => x.statut === "terminee" || x.statut === "refusee").reverse(),
     };
-  }, [donnees, aujourdHui, avanceMin]);
+  }, [donnees, aujourdHui, avance]);
 
   // Son répété toutes les 4 secondes tant qu'une commande du jour attend.
   useEffect(() => {
@@ -317,7 +317,7 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
               c={c}
               aujourdHui={aujourdHui}
               maintenant={donnees.maintenant}
-              avanceMin={avanceMin}
+              avance={avance}
               taches={(donnees.impression.taches ?? []).filter((t) => t.commande_id === c.id)}
               agir={(corps) => agir(c.id, corps)}
             />
@@ -339,14 +339,14 @@ function CarteCommande({
   c,
   aujourdHui,
   maintenant,
-  avanceMin,
+  avance,
   taches,
   agir,
 }: {
   c: CommandeTablette;
   aujourdHui: string;
   maintenant: string;
-  avanceMin: number;
+  avance: DelaisImpression;
   taches: Tache[];
   agir: (corps: Record<string, unknown>) => Promise<void>;
 }) {
@@ -375,7 +375,7 @@ function CarteCommande({
   const jourDe = (iso: string) => (jourGeneve(iso) === aujourdHui ? "" : `${jourCourt(iso)} à `);
   // Commande acceptée pas encore imprimée : ses tickets sortiront à cette heure (SS-11). Déjà prête ou partie,
   // la surveillance ne l'imprime plus (commandes_a_imprimer).
-  const imprimerA = c.heure_confirmee ? heureImpression(c.heure_confirmee, avanceMin) : null;
+  const imprimerA = c.heure_confirmee ? heureImpression(c.heure_confirmee, avance[c.mode]) : null;
   const ticketsPrevus =
     parPoste.length === 0 && (c.statut === "acceptee" || c.statut === "en_preparation") && imprimerA !== null && imprimerA.getTime() > new Date(maintenant).getTime();
 

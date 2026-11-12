@@ -2,11 +2,13 @@ import { heureDe, jourGeneveDe } from "@/lib/heures";
 import { jourTexte } from "@/lib/service";
 
 // Commandes à l'avance (audit « samedi soir », SS-11, audit du gérant, G08) : les premiers tickets d'une
-// commande acceptée sortent impression_avance_minutes avant l'heure promise. Partagé par le serveur et la tablette.
+// commande acceptée sortent, avant l'heure promise, le délai de son mode. Partagé par le serveur et la tablette.
 
-// Valeur proposée : le délai le plus long annoncé aux clients (zone 2, 50 minutes préparation comprise) plus
-// dix minutes de marge. Sert aussi tant que le réglage manque en base.
-export const IMPRESSION_AVANCE_DEFAUT = 60;
+export type DelaisImpression = { livraison: number; retrait: number };
+
+// Valeurs validées par Jérémy le 12.11.2026 : livraison 60 minutes (zone 2, 50 minutes préparation comprise,
+// plus 10 de marge), retrait 30 minutes (préparation 20, plus 10). Servent aussi tant que le réglage manque.
+export const IMPRESSION_AVANCE_DEFAUT: DelaisImpression = { livraison: 60, retrait: 30 };
 
 export function heureImpression(heureConfirmee: string, avanceMinutes: number): Date {
   return new Date(new Date(heureConfirmee).getTime() - avanceMinutes * 60_000);

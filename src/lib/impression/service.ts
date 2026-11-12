@@ -6,7 +6,7 @@ import { detailsTablette } from "@/lib/tablette-details";
 
 // Une tâche par poste (pizza, cuisine) qui a des lignes, envoyée à la première imprimante active de ce poste.
 // Sans imprimante, la tâche reste visible sur la tablette. Les premiers tickets sortent à l'acceptation, ou
-// pour une commande à l'avance à l'heure promise moins impression_avance_minutes, créés par la surveillance
+// pour une commande à l'avance à l'heure promise moins le délai de son mode, créés par la surveillance
 // (SS-11) : premiers_tickets ne les crée qu'une fois. Une réimpression en crée toujours de nouveaux.
 
 export async function imprimerCommande(

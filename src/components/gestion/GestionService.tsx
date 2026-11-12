@@ -33,7 +33,7 @@ type Donnees = {
   fermetures: Fermeture[];
   capacites: Capacites;
   preparation: number;
-  impressionAvance: { minutes: number; proposition: boolean } | null;
+  impressionAvance: { livraison: number; retrait: number; proposition: boolean } | null;
 };
 
 const JOURS = ["", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
@@ -225,14 +225,14 @@ function Capacite({ capacites, recharger }: { capacites: Capacites; recharger: (
 }
 
 // Tickets d'une commande acceptée pour plus tard : ce nombre de minutes avant l'heure promise (SS-11, G08).
-function ImpressionAvance({ reglage, recharger }: { reglage: { minutes: number; proposition: boolean }; recharger: () => Promise<void> }) {
+function ImpressionAvance({ reglage, recharger }: { reglage: { livraison: number; retrait: number; proposition: boolean }; recharger: () => Promise<void> }) {
   const ids = useId();
-  const [v, setV] = useState(String(reglage.minutes));
+  const [f, setF] = useState({ livraison: String(reglage.livraison), retrait: String(reglage.retrait) });
   const [message, setMessage] = useState<string | null>(null);
   async function sauver(e: React.FormEvent) {
     e.preventDefault();
     setMessage(null);
-    const erreur = await enregistrer("/api/gestion/service", { type: "impression_avance", minutes: Number(v) });
+    const erreur = await enregistrer("/api/gestion/service", { type: "impression_avance", livraison: Number(f.livraison), retrait: Number(f.retrait) });
     setMessage(erreur ?? "Enregistré.");
     if (!erreur) await recharger();
   }
@@ -246,20 +246,26 @@ function ImpressionAvance({ reglage, recharger }: { reglage: { minutes: number; 
         Une commande acceptée pour ce soir ou un autre jour reste dans « À l&apos;avance » sur la tablette. Ses tickets sortent ce nombre de minutes avant l&apos;heure
         annoncée au client. De 15 à 240.
       </p>
-      <form className="ges-retraits" onSubmit={sauver}>
-        <div className="champ">
-          <label htmlFor={`${ids}-avance`}>Minutes avant l&apos;heure</label>
-          <input id={`${ids}-avance`} inputMode="numeric" value={v} onChange={(e) => setV(e.target.value)} />
+      <form className="ges-zone" onSubmit={sauver}>
+        <div className="details deux">
+          <div className="champ">
+            <label htmlFor={`${ids}-livraison`}>Livraison, minutes avant</label>
+            <input id={`${ids}-livraison`} inputMode="numeric" value={f.livraison} onChange={(e) => setF({ ...f, livraison: e.target.value })} />
+          </div>
+          <div className="champ">
+            <label htmlFor={`${ids}-retrait`}>Retrait, minutes avant</label>
+            <input id={`${ids}-retrait`} inputMode="numeric" value={f.retrait} onChange={(e) => setF({ ...f, retrait: e.target.value })} />
+          </div>
         </div>
         <button type="submit" className="bouton-second">
           Enregistrer
         </button>
+        {message && (
+          <p className="aide-forte" role="status">
+            {message}
+          </p>
+        )}
       </form>
-      {message && (
-        <p className="aide-forte" role="status">
-          {message}
-        </p>
-      )}
     </section>
   );
 }

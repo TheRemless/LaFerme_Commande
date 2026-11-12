@@ -131,10 +131,10 @@ export async function agir(commandeId: string, a: Action, p: Personnel): Promise
       ok = await changerStatut(commandeId, "acceptee", par, { heure: a.heure, de: a.de });
       if (ok) {
         // Commande pour bientôt : tickets tout de suite. Pour plus tard (ce soir, un autre jour), la surveillance
-        // les imprime à l'heure promise moins le réglage (SS-11). Un ticket qui ne part pas ne défait pas
+        // les imprime à l'heure promise moins le délai de son mode, livraison ou retrait (SS-11). Un ticket qui ne part pas ne défait pas
         // l'acceptation : la surveillance réessaie, la tablette le montre et propose d'imprimer.
         const config = await chargerConfigService();
-        const imprimerA = heureImpression(a.heure, config.reglages.impression_avance_minutes ?? IMPRESSION_AVANCE_DEFAUT);
+        const imprimerA = heureImpression(a.heure, (config.reglages.impression_avance ?? IMPRESSION_AVANCE_DEFAUT)[avant.mode]);
         const maintenant = new Date();
         if (imprimerA.getTime() <= maintenant.getTime()) {
           await imprimerCommande(commandeId).catch((e) => console.error(`Tickets non créés pour la commande ${avant.numero} : ${e instanceof Error ? e.message : e}`));

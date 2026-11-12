@@ -5,7 +5,8 @@ import { creerBaseLocale } from "@/lib/db/locale";
 
 // Impression des commandes à l'avance (audit « samedi soir » SS-11, audit du gérant G08 option A), côté base,
 // avec l'horloge simulée de service-correctifs-sql.test.ts. Une commande acceptée n'a ses tickets qu'à
-// partir de l'heure promise moins le réglage impression_avance_minutes ; premiers_tickets ne les crée
+// partir de l'heure promise moins le délai de son mode (impression_avance_livraison_minutes, 60 ;
+// impression_avance_retrait_minutes, 30) ; premiers_tickets ne les crée
 // qu'une fois, quel que soit le nombre de tours de surveillance ou de serveurs.
 
 let db: PGlite;
@@ -19,15 +20,18 @@ async function f<T>(sql: string, v: unknown[] = []): Promise<T> {
 }
 
 let n = 0;
+// Livraison payée en ligne par défaut (délai de 60 minutes) ; { mode: "retrait" } pour un retrait (30 minutes).
+const RETRAIT = { mode: "retrait", moyen_paiement: "comptoir", statut_paiement: "a_encaisser_retrait" };
 async function acceptee(heure: string, extra: Record<string, unknown> = {}): Promise<string> {
   n += 1;
   const p = {
     jeton_suivi: `jeton-av-${n}`,
     cle_idempotence: `av-${n}`,
-    mode: "retrait",
+    mode: "livraison",
     statut: "nouvelle",
-    statut_paiement: "a_encaisser_retrait",
-    moyen_paiement: "comptoir",
+    statut_paiement: "paye",
+    moyen_paiement: "en_ligne",
+    zone_numero: 1,
     client_prenom: `A${n}`,
     client_nom: "Test",
     client_telephone: "079 000 00 00",
@@ -98,30 +102,34 @@ beforeEach(async () => {
   await db.exec(`
     truncate commandes cascade;
     delete from horloge_test where true;
-    update reglages set valeur = '60', proposition = true where cle = 'impression_avance_minutes';
+    update reglages set valeur = '60', proposition = false where cle = 'impression_avance_livraison_minutes';
+    update reglages set valeur = '30', proposition = false where cle = 'impression_avance_retrait_minutes';
     update reglages set valeur = 'null' where cle = 'pause_jusqu_a';
     update imprimantes set actif = true where not actif;
   `);
 });
 
-describe("Réglage impression_avance_minutes", () => {
-  it("vaut 60 minutes au départ, marqué comme proposition", async () => {
-    const r = (await db.query<{ valeur: number; proposition: boolean }>("select valeur, proposition from reglages where cle = 'impression_avance_minutes'")).rows[0];
-    expect(r).toEqual({ valeur: 60, proposition: true });
+describe("Réglages des délais d'impression", () => {
+  it("60 minutes pour une livraison, 30 pour un retrait, validés (pas de marque « proposition »)", async () => {
+    const r = (await db.query<{ cle: string; valeur: number; proposition: boolean }>("select cle, valeur, proposition from reglages where cle like 'impression_avance_%' order by cle")).rows;
+    expect(r).toEqual([
+      { cle: "impression_avance_livraison_minutes", valeur: 60, proposition: false },
+      { cle: "impression_avance_retrait_minutes", valeur: 30, proposition: false },
+    ]);
   });
 
-  it("se règle par le gérant seulement, de 15 à 240 minutes, et s'inscrit au journal", async () => {
+  it("se règlent par mode, par le gérant seulement, de 15 à 240 minutes, et s'inscrivent au journal", async () => {
     const gerant = (await db.query<{ id: string }>("select id from personnel where role = 'gerant' and actif limit 1")).rows[0].id;
-    await f("regler_impression_avance(90, $1)", [gerant]);
-    expect((await db.query<{ valeur: number; proposition: boolean }>("select valeur, proposition from reglages where cle = 'impression_avance_minutes'")).rows[0]).toEqual({
-      valeur: 90,
-      proposition: false,
-    });
-    expect((await db.query("select 1 from journal_gestion where cle = 'impression_avance_minutes'")).rows).toHaveLength(1);
-    await expect(f("regler_impression_avance(10, $1)", [gerant])).rejects.toThrow();
-    await expect(f("regler_impression_avance(241, $1)", [gerant])).rejects.toThrow();
+    await f("regler_impression_avance('retrait', 45, $1)", [gerant]);
+    const lire = async (cle: string) => (await db.query<{ valeur: number; proposition: boolean }>("select valeur, proposition from reglages where cle = $1", [cle])).rows[0];
+    expect(await lire("impression_avance_retrait_minutes")).toEqual({ valeur: 45, proposition: false });
+    expect(await lire("impression_avance_livraison_minutes")).toEqual({ valeur: 60, proposition: false });
+    expect((await db.query("select 1 from journal_gestion where cle = 'impression_avance_retrait_minutes'")).rows).toHaveLength(1);
+    await expect(f("regler_impression_avance('livraison', 10, $1)", [gerant])).rejects.toThrow();
+    await expect(f("regler_impression_avance('livraison', 241, $1)", [gerant])).rejects.toThrow();
+    await expect(f("regler_impression_avance('surplace', 30, $1)", [gerant])).rejects.toThrow();
     const service = (await db.query<{ id: string }>("insert into personnel (email, nom, role) values ('svc-av@laferme.test', 'Svc', 'service') returning id")).rows[0].id;
-    await expect(f("regler_impression_avance(30, $1)", [service])).rejects.toThrow();
+    await expect(f("regler_impression_avance('retrait', 30, $1)", [service])).rejects.toThrow();
   });
 });
 
@@ -148,6 +156,18 @@ describe("Moment de l'impression", () => {
     expect(await aImprimer()).toEqual([soir]);
   });
 
+  it("retrait : 30 minutes avant l'heure, livraison à la même heure : 60 minutes avant", async () => {
+    await horloge("2026-11-14T15:00:00Z");
+    const retrait = await acceptee("2026-11-14T18:30:00Z", RETRAIT); // 19h30
+    const livraison = await acceptee("2026-11-14T18:30:00Z");
+    await horloge("2026-11-14T17:30:00Z"); // 18h30
+    expect(await aImprimer()).toEqual([livraison]);
+    await horloge("2026-11-14T17:59:00Z");
+    expect(await aImprimer()).toEqual([livraison]);
+    await horloge("2026-11-14T18:00:00Z"); // 19h00
+    expect((await aImprimer()).sort()).toEqual([livraison, retrait].sort());
+  });
+
   it("commande pour bientôt (dès que possible) : à imprimer tout de suite", async () => {
     await horloge("2026-11-14T18:00:00Z");
     const id = await acceptee("2026-11-14T18:25:00Z");
@@ -157,7 +177,7 @@ describe("Moment de l'impression", () => {
   it("le délai suit le réglage", async () => {
     await horloge("2026-11-14T16:00:00Z");
     const id = await acceptee("2026-11-14T18:30:00Z");
-    await db.query("update reglages set valeur = '180' where cle = 'impression_avance_minutes'");
+    await db.query("update reglages set valeur = '180' where cle = 'impression_avance_livraison_minutes'");
     expect(await aImprimer()).toEqual([id]);
   });
 
@@ -196,7 +216,7 @@ describe("Moment de l'impression", () => {
 
   it("prête ou partie avant l'heure prévue : plus rien à imprimer", async () => {
     await horloge("2026-11-14T15:00:00Z");
-    const id = await acceptee("2026-11-14T18:30:00Z");
+    const id = await acceptee("2026-11-14T18:30:00Z", RETRAIT);
     expect(await f<boolean>("changer_statut($1, 'prete', 'tablette:Test')", [id])).toBe(true);
     await horloge("2026-11-14T17:40:00Z");
     expect(await aImprimer()).toEqual([]);

@@ -14,7 +14,7 @@ const personnel = {
 };
 
 let n = 0;
-async function nouvelle(): Promise<string> {
+async function nouvelle(extra: Record<string, unknown> = {}): Promise<string> {
   const db = await baseLocale();
   n += 1;
   const p = {
@@ -60,6 +60,7 @@ async function nouvelle(): Promise<string> {
         note: "",
       },
     ],
+    ...extra,
   };
   return (await db.query<{ id: string }>("select id from creer_commande($1)", [p])).rows[0].id;
 }
@@ -99,7 +100,8 @@ beforeAll(async () => {
 });
 beforeEach(async () => {
   const db = await baseLocale();
-  await db.query("update reglages set valeur = '60' where cle = 'impression_avance_minutes'");
+  await db.query("update reglages set valeur = '60' where cle = 'impression_avance_livraison_minutes'");
+  await db.query("update reglages set valeur = '30' where cle = 'impression_avance_retrait_minutes'");
   await db.query("update reglages set valeur = 'null' where cle = 'pause_jusqu_a'");
 });
 
@@ -117,7 +119,7 @@ describe("Acceptation d'une commande pour plus tard", () => {
 
   it("une commande pour bientôt s'imprime tout de suite, comme avant", async () => {
     const id = await nouvelle();
-    expect((await agir(id, { action: "accepter", heure: dans(30) }, personnel)).ok).toBe(true);
+    expect((await agir(id, { action: "accepter", heure: dans(20) }, personnel)).ok).toBe(true);
     expect((await taches(id)).map((t) => [t.station, t.etat])).toEqual([
       ["cuisine", "en_attente"],
       ["pizza", "en_attente"],
@@ -128,6 +130,18 @@ describe("Acceptation d'une commande pour plus tard", () => {
   });
 });
 
+describe("Délai selon le mode", () => {
+  it("à la même heure, une livraison s'imprime tout de suite et un retrait attend", async () => {
+    const heure = dans(45);
+    const livraison = await nouvelle({ mode: "livraison", moyen_paiement: "en_ligne", statut_paiement: "paye", zone_numero: 1 });
+    const retrait = await nouvelle();
+    expect((await agir(livraison, { action: "accepter", heure }, personnel)).message).toBeUndefined();
+    expect((await agir(retrait, { action: "accepter", heure }, personnel)).message).toMatch(/^Acceptée\. Tickets prévus /);
+    expect(await taches(livraison)).toHaveLength(2);
+    expect(await taches(retrait)).toEqual([]);
+  });
+});
+
 describe("Surveillance", () => {
   it("imprime à l'heure prévue, avec l'heure d'acceptation réelle sur le ticket", async () => {
     const id = await nouvelle();
@@ -135,7 +149,7 @@ describe("Surveillance", () => {
     const db = await baseLocale();
     await db.query("update commandes set accepte_le = now() - interval '2 days' where id = $1", [id]);
     expect((await surveiller()).imprimees).toBe(0);
-    await rapprocher(id, 45);
+    await rapprocher(id, 25);
     expect((await surveiller()).imprimees).toBe(1);
     const t = await taches(id);
     expect(t.map((x) => [x.station, x.etat, x.reimpression])).toEqual([
@@ -150,7 +164,7 @@ describe("Surveillance", () => {
   it("ne double rien après un redémarrage du serveur", async () => {
     const id = await nouvelle();
     await agir(id, { action: "accepter", heure: dans(180) }, personnel);
-    await rapprocher(id, 30);
+    await rapprocher(id, 20);
     await surveiller();
     vi.resetModules();
     const neuf = await import("@/lib/surveillance");
@@ -163,7 +177,7 @@ describe("Surveillance", () => {
   it("changement d'heure après acceptation : le ticket porte la nouvelle heure", async () => {
     const id = await nouvelle();
     await agir(id, { action: "accepter", heure: dans(180) }, personnel);
-    const nouvelleHeure = dans(40);
+    const nouvelleHeure = dans(20);
     expect((await agir(id, { action: "heure", heure: nouvelleHeure }, personnel)).ok).toBe(true);
     await surveiller();
     const hh = new Intl.DateTimeFormat("fr-CH", {
@@ -178,7 +192,7 @@ describe("Surveillance", () => {
     const id = await nouvelle();
     await agir(id, { action: "accepter", heure: dans(180) }, personnel);
     expect((await agir(id, { action: "refuser", motif: "Client injoignable." }, personnel)).ok).toBe(true);
-    await rapprocher(id, 30);
+    await rapprocher(id, 20);
     await surveiller();
     expect(await taches(id)).toEqual([]);
   });
@@ -188,7 +202,7 @@ describe("Surveillance", () => {
     await agir(id, { action: "accepter", heure: dans(180) }, personnel);
     const db = await baseLocale();
     await db.query(`update reglages set valeur = '"sans-fin"' where cle = 'pause_jusqu_a'`);
-    await rapprocher(id, 30);
+    await rapprocher(id, 20);
     await surveiller();
     expect(await taches(id)).toHaveLength(2);
   });
@@ -201,7 +215,7 @@ describe("Imprimer avant l'heure prévue", () => {
     const r = await agir(id, { action: "reimprimer" }, personnel);
     expect(r).toEqual({ ok: true, message: "Tickets envoyés à l'imprimante." });
     expect((await taches(id)).map((t) => t.reimpression)).toEqual([false, false]);
-    await rapprocher(id, 30);
+    await rapprocher(id, 20);
     await surveiller();
     expect(await taches(id)).toHaveLength(2);
   });

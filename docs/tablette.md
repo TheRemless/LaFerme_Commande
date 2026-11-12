@@ -44,7 +44,7 @@ Détail : `docs/audits/samedi-soir.md`, « Suivi des corrections ».
 ## Commandes à l'avance (SS-11, G08, 13.11.2026)
 
 - Accepter une commande pour ce soir ou un autre jour confirme l'heure au client tout de suite (e-mail), sans imprimer. La tablette répond « Acceptée. Tickets prévus … ».
-- Les tickets sortent à l'heure promise moins le réglage du back-office (60 minutes proposées : 50 minutes de délai maximal en zone 2, plus 10 minutes de marge). La surveillance du serveur les crée, même tablette éteinte et même pendant une pause.
+- Les tickets sortent avant l'heure promise, selon le mode : 60 minutes pour une livraison (50 minutes de délai maximal en zone 2, plus 10 de marge), 30 minutes pour un retrait (20 minutes de préparation, plus 10). Valeurs validées par Jérémy le 12.11.2026, réglables dans le back-office. La surveillance du serveur les crée, même tablette éteinte et même pendant une pause.
 - Heure changée avant l'impression : le ticket sort à la nouvelle heure moins le réglage, avec la nouvelle heure. Annulée avant l'impression : aucun ticket, ni normal ni « ANNULÉE ».
 - « Imprimer maintenant » sort les tickets tout de suite ; la surveillance ne les refait pas ensuite.
 
