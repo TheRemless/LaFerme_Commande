@@ -1,13 +1,20 @@
 # Vérifications de chaque PR et de main : lint, types, Vitest, puis build avec la base embarquée et Playwright.
 # Rien ne parle à Supabase, Stripe ni Resend : aucun secret n'est lu ici.
-# Coût : environ 2 jobs de 2 à 7 minutes par passage, arrondis à la minute (docs/filet.md).
+# Coût : environ 6 minutes facturées par passage (docs/filet.md). Pour tenir le quota du compte :
+# - une PR en brouillon ne lance rien ; « Ready for review » lance les vérifications ;
+# - une PR qui ne touche que des fichiers .md ou la maquette ne lance rien (les tests lisent
+#   docs/carte-proposee.json et docs/validation-carte.xlsx : ces fichiers-là déclenchent les vérifications) ;
+# - après une fusion, main ne repasse que lint, types et Vitest (Playwright a tourné sur la PR).
 name: Vérifications
 
 on:
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths-ignore: ["**/*.md", "maquette/**"]
   push:
     branches: [main]
+    paths-ignore: ["**/*.md", "maquette/**"]
   workflow_dispatch:
 
 permissions:
@@ -25,6 +32,7 @@ env:
 jobs:
   code:
     name: Lint, types et Vitest
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -45,6 +53,8 @@ jobs:
 
   e2e:
     name: Build (base embarquée) et Playwright
+    # Pas sur main après une fusion (déjà passé sur la PR) ; à la demande, oui.
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && !github.event.pull_request.draft)
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
