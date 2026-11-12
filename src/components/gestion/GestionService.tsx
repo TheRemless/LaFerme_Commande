@@ -27,7 +27,7 @@ type Horaire = {
 };
 type Fermeture = { id: number; debut: string; fin: string; motif: string };
 type Capacites = { livraison: number; retrait: number; proposition: boolean };
-type Donnees = { zones: Zone[]; horaires: Horaire[]; fermetures: Fermeture[]; capacites: Capacites };
+type Donnees = { zones: Zone[]; horaires: Horaire[]; fermetures: Fermeture[]; capacites: Capacites; preparation: number };
 
 const JOURS = ["", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
 const chf = (c: number) => (c / 100).toFixed(2);
@@ -63,6 +63,7 @@ export function GestionService() {
           ))}
         </div>
       </section>
+      <Preparation minutes={d.preparation} recharger={charger} />
       <Capacite capacites={d.capacites} recharger={charger} />
       <Fermetures fermetures={d.fermetures} recharger={charger} />
     </div>
@@ -128,6 +129,44 @@ function FicheZone({ zone, recharger }: { zone: Zone; recharger: () => Promise<v
         </p>
       )}
     </form>
+  );
+}
+
+// Délai habituel entre la commande et le retrait (audit du gérant, G05). Le retard d'un soir chargé se
+// règle sur la tablette et revient à zéro chaque nuit.
+function Preparation({ minutes, recharger }: { minutes: number; recharger: () => Promise<void> }) {
+  const ids = useId();
+  const [v, setV] = useState(String(minutes));
+  const [message, setMessage] = useState<string | null>(null);
+  async function sauver(e: React.FormEvent) {
+    e.preventDefault();
+    setMessage(null);
+    const erreur = await enregistrer("/api/gestion/service", { type: "preparation", minutes: Number(v) });
+    setMessage(erreur ?? "Enregistré.");
+    if (!erreur) await recharger();
+  }
+  return (
+    <section className="ges-bloc">
+      <h2>Délai de préparation habituel</h2>
+      <p className="aide">
+        Temps entre la commande et le retrait au comptoir, pour l&apos;heure « dès que possible ». La livraison utilise les délais des zones. Un soir chargé, le
+        retard se règle sur la tablette.
+      </p>
+      <form className="ges-retraits" onSubmit={sauver}>
+        <div className="champ">
+          <label htmlFor={`${ids}-prep`}>Minutes</label>
+          <input id={`${ids}-prep`} inputMode="numeric" value={v} onChange={(e) => setV(e.target.value)} />
+        </div>
+        <button type="submit" className="bouton-second">
+          Enregistrer
+        </button>
+      </form>
+      {message && (
+        <p className="aide-forte" role="status">
+          {message}
+        </p>
+      )}
+    </section>
   );
 }
 

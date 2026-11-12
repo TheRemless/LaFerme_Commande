@@ -13,6 +13,58 @@ Le site vu par Giuseppe, Jérémy et l'équipe en salle, qui s'en serviront tous
 
 Dans chaque constat, « vérifié » veut dire reproduit à l'écran ou par l'API locale, « lu » veut dire constaté dans le code sans le jouer, « supposé » veut dire déduit sans preuve.
 
+## Suivi des corrections (14.11.2026)
+
+Corrigé sur la branche `claude/audit-gerant-312b49`, migration `supabase/migrations/20261114090000_correctifs_gerant.sql`. Tests : `tests/unit/gerant-correctifs-sql.test.ts` (base), `tests/unit/gerant-correctifs.test.ts` (serveur), `tests/e2e/gestion.spec.ts` (écrans). Captures avant et après : `docs/rendus/correctifs-gerant/`. Mode d'emploi à jour : `docs/mode-emploi.md`.
+
+| Constat | État | Comment |
+|---|---|---|
+| G01 | corrigé (PR #20) | « Retirée et payée » au comptoir, « Encaissée » encore possible dans « Terminées » |
+| G02 | corrigé | Back-office, rubrique « Commandes », fiche de la commande : « Rembourser » après « Prête », « Partie » ou « Terminée », en entier ou en partie, avec motif envoyé au client. Gérant seulement, journalisé. Une clé par geste : un double appui ou une reprise après coupure ne rembourse pas deux fois (base et Stripe). Un échec Stripe ne compte pas. Au comptoir, rendu en espèces noté. L'export liste les remboursements en négatif au jour du remboursement et retire le remboursé du total par taux |
+| G03 | corrigé | Rubrique « Équipe » : ajouter, changer l'accès, déconnecter partout, retirer (sessions coupées tout de suite), remettre. Jamais moins d'un gérant actif (verrou en base). On ne peut ni se retirer ni se rétrograder soi-même à l'écran |
+| G04 | corrigé | Rubrique « Commandes », ouverte par défaut : les 7 derniers jours (commandes, ventes, remboursé, refusées, comptoir pas encore encaissé), recherche par nom, téléphone ou numéro sur 90 jours, ou par période. Recherche en POST, jamais dans une adresse |
+| G05 | corrigé | « Retard ce soir » sur la tablette (0 à 90 min), ajouté au retrait et à chaque zone pour toutes les heures annoncées. Le délai habituel passe au back-office |
+| G06 | corrigé | Remise à zéro chaque nuit à 5h (heure de Genève) par la surveillance : livraison rouverte, retard à zéro, « Pause jusqu'à reprise » levée. La pause automatique reste |
+| G09 | corrigé | Motif « À la demande du client », bouton « Annuler et rembourser », lien « Fermer ». Courriel « Votre commande est annulée, comme vous nous l'avez demandé » |
+| G10 | corrigé | « Nouvelle adresse » et « Désactiver » demandent une confirmation qui nomme l'imprimante |
+| SS-02 côté client | corrigé | Les créneaux pleins ne sont plus proposés dans le sélecteur d'heure : le premier proposé est le suivant libre (fonction `creneaux_pleins`, sans donnée de client, lue par `/api/accueil`) |
+| G11 | en partie | Le journal résume en clair l'équipe et les remboursements. Le reste du journal et le retour arrière restent à faire |
+| G18 | en partie | Les rubriques passent à la ligne au téléphone (plus rien de caché à droite) |
+| G07, G08 | propositions | Voir « Propositions » ci-dessous |
+| G12 à G17, G19 à G21 | restants | Hors de ce lot |
+
+## Propositions (non codées)
+
+### G07 : un plat manque sur une commande déjà passée
+
+| Option | Ce que ça fait | Effort |
+|---|---|---|
+| A | Rupture des suppléments sur la tablette (même mécanisme que les plats, retour seul le lendemain). Remboursement partiel ouvert dès l'acceptation pour le gérant, avec le motif « Plat épuisé » | Moyen, 2 jours |
+| B | Modifier une commande acceptée : retirer ou remplacer une ligne, nouveau total, ticket « MODIFIÉE » aux postes, remboursement de la différence, e-mail au client | Gros, 4 à 5 jours |
+
+Recommandation : A d'abord. B règle aussi la modification demandée par téléphone (fonction manquante 9).
+
+### G08 : commande pour un autre jour imprimée tout de suite
+
+| Option | Ce que ça fait | Effort |
+|---|---|---|
+| A | Accepter garde la commande dans « À l'avance ». Les tickets sortent le jour J, à l'ouverture du service, créés par la surveillance | Moyen, 1 jour (avec SS-11) |
+| B | « Accepter » grisé jusqu'au jour J, avec « Confirmée par e-mail le jour même » | Petit, mais le client attend sa confirmation |
+
+Recommandation : A.
+
+### Fonctions manquantes encore ouvertes, classées
+
+| Rang | Fonction | Proposition | Effort |
+|---|---|---|---|
+| 1 | Plat du jour | Rubrique « Plat du jour » : nom, prix, description, poste, date. Affiché en tête de la carte ce jour-là, imprimé comme un plat | Moyen |
+| 2 | Fermer un seul service à une date | Fermeture avec « midi », « soir » ou « journée » | Petit à moyen |
+| 3 | Modifier une commande (adresse, ajout) | Option B de G07 | Gros |
+| 4 | Ajouter un plat ou une catégorie | Bouton « Nouveau plat » dans « Carte », bloqué tant que prix, allergènes et provenance ne sont pas validés | Moyen |
+| 5 | Envoyer une photo | Envoi dans Supabase Storage, recadrage et compression côté serveur, seulement pour le gérant | Gros |
+| 6 | Retour arrière depuis le journal | « Remettre l'ancienne valeur » sur prix, zones et fermetures | Moyen |
+| 7 | Communes d'une zone | Ajouter ou retirer un NPA dans « Livraison et horaires » | Petit |
+
 ## Les 10 constats les plus importants
 
 | Rang | Id | Gravité | Constat | Effort |

@@ -9,6 +9,7 @@ import { rafraichirCaches } from "@/lib/tablette";
 // les relectures de la tablette et, en production, une fonction planifiée Netlify.
 // 1. Une commande du jour attend d'être acceptée depuis plus que le délai réglé : alerte au restaurant.
 // 2. La tablette ne donne plus signe de vie pendant le service : pause des commandes en ligne et alerte.
+// 3. Chaque nuit, les réglages du soir reviennent à la normale (remise_du_jour).
 
 const TABLETTE_MUETTE_S = 180;
 
@@ -51,6 +52,14 @@ export function dansUnService(config: ConfigService, maintenant: Date): boolean 
 
 export async function executerSurveillance(maintenant = new Date()): Promise<{ fait: boolean; retards: number; pause: boolean }> {
   if (!(await fonctionSql<boolean>("tour_de_surveillance", {}))) return { fait: false, retards: 0, pause: false };
+
+  // Premier tour d'un nouveau jour de service (5h, heure de Genève) : livraison rouverte, retard à zéro,
+  // pause manuelle sans fin levée (audit du gérant, G06). La pause automatique reste.
+  const remise = await fonctionSql<Record<string, unknown> | null>("remise_du_jour", {}).catch((e) => {
+    console.error(`Remise du jour : ${e instanceof Error ? e.message : e}`);
+    return null;
+  });
+  if (remise) rafraichirCaches("config-service");
 
   const config = await chargerConfigService();
   const service = dansUnService(config, maintenant);

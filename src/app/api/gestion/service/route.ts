@@ -19,7 +19,9 @@ export async function GET(requete: Request) {
     retrait: Number(cap("capacite_retraits_par_creneau")?.valeur ?? 0),
     proposition: Boolean(cap("capacite_livraisons_par_creneau")?.proposition || cap("capacite_retraits_par_creneau")?.proposition),
   };
-  return NextResponse.json({ ...service, capacites }, { headers: { "Cache-Control": "no-store" } });
+  // Délai habituel (audit du gérant, G05) : réglé ici, plus sur la tablette, qui n'a que le retard du soir.
+  const preparation = Number(cap("preparation_minutes")?.valeur ?? 20);
+  return NextResponse.json({ ...service, capacites, preparation }, { headers: { "Cache-Control": "no-store" } });
 }
 
 // { type: "zone", numero, champs } | { type: "horaire", id, champs }
@@ -52,6 +54,10 @@ export async function POST(requete: Request) {
     if (livraison === null || retrait === null) return refus("Capacité : un nombre entier de 0 à 50.");
     await fonctionSql("regler_capacite", { p_mode: "livraison", p_valeur: livraison, p_personnel: qui });
     await fonctionSql("regler_capacite", { p_mode: "retrait", p_valeur: retrait, p_personnel: qui });
+  } else if (c.type === "preparation") {
+    const v = c.minutes;
+    if (!Number.isInteger(v) || (v as number) < 5 || (v as number) > 120) return refus("Délai de préparation : un nombre de minutes de 5 à 120.");
+    await fonctionSql("regler_service", { p: { preparation_minutes: v }, p_personnel: qui });
   } else if (c.type === "fermeture") {
     const debut = dateValide(c.debut);
     const fin = dateValide(c.fin);

@@ -20,6 +20,8 @@ import {
   zonePour,
   type ConfigService,
   type Mode,
+  creneauxLibres,
+  type CreneauPlein,
 } from "@/lib/service";
 import { Icone } from "@/components/Icone";
 
@@ -35,7 +37,7 @@ const DETAILS_VIDES: Details = { etage: "", sonnette: "", code: "", instructions
 
 export type AdresseEnregistree = { id: string; adresse: Adresse; details: Partial<Details> };
 
-type ReponseAccueil = { maintenant: number; heureSimulee: string | null; adresses: AdresseEnregistree[] };
+type ReponseAccueil = { maintenant: number; heureSimulee: string | null; adresses: AdresseEnregistree[]; pleins?: CreneauPlein[] };
 
 export function ChoixCommande({
   config,
@@ -64,6 +66,8 @@ export function ChoixCommande({
   const [maintenant, setMaintenant] = useState(() => new Date(maintenantServeur));
   const [heureSimulee, setHeureSimulee] = useState<string | undefined>();
   const [adressesEnregistrees, setAdressesEnregistrees] = useState<AdresseEnregistree[]>([]);
+  // Créneaux pleins (capacité atteinte) : jamais proposés, le premier proposé est le suivant libre.
+  const [pleins, setPleins] = useState<CreneauPlein[]>([]);
 
   // La page vient du cache : l'heure où elle a été faite peut dater. On prend aussitôt celle du
   // téléphone, puis celle du serveur, qui fait foi (l'horloge d'un téléphone peut être fausse).
@@ -86,6 +90,7 @@ export function ChoixCommande({
         setMaintenant(new Date(Date.now() + decalage));
         setHeureSimulee(r.heureSimulee ?? undefined);
         setAdressesEnregistrees(r.adresses);
+        setPleins(r.pleins ?? []);
       })
       .catch(() => {
         // Hors ligne ou serveur muet : on garde l'heure du téléphone, sans adresses enregistrées.
@@ -188,8 +193,8 @@ export function ChoixCommande({
   const etatPizzas = useMemo(() => etatService(config, maintenant, mode, zone, true), [config, maintenant, mode, zone]);
   const asapPizzasSeulement = etatCarte.etat !== "ouvert" && etatPizzas.etat === "ouvert";
   const etat = asapPizzasSeulement ? etatPizzas : etatCarte;
-  const listeCarte = useMemo(() => creneaux(config, maintenant, mode, zone), [config, maintenant, mode, zone]);
-  const liste = useMemo(() => creneaux(config, maintenant, mode, zone, true), [config, maintenant, mode, zone]);
+  const listeCarte = useMemo(() => creneauxLibres(creneaux(config, maintenant, mode, zone), pleins, mode), [config, maintenant, mode, zone, pleins]);
+  const liste = useMemo(() => creneauxLibres(creneaux(config, maintenant, mode, zone, true), pleins, mode), [config, maintenant, mode, zone, pleins]);
   const fermetureAVenir = useMemo(() => fermetureProche(config, maintenant), [config, maintenant]);
   // Premier créneau proposé dans la liste (la plus large : pizzas comprises). Le message « fermé » le suit,
   // pour ne jamais annoncer demain quand la liste propose encore ce soir (CM-03).

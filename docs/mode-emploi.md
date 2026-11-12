@@ -1,6 +1,6 @@
-# Mode d'emploi (brouillon)
+# Mode d'emploi
 
-Brouillon tiré de l'audit du 12.11.2026. Il décrit le site tel qu'il est aujourd'hui, sans les corrections proposées dans `docs/audits/gerant.md`. Le numéro à appeler reste à remplir.
+Deux pages à imprimer. La première se colle en cuisine près de la tablette, la seconde reste avec le gérant. Elles décrivent le site tel qu'il est au 14.11.2026. Le numéro à appeler reste à remplir.
 
 ---
 
@@ -12,7 +12,7 @@ Numéro à appeler en cas de problème : ______________________
 
 1. Allumer la tablette et ouvrir La Ferme depuis l'écran d'accueil.
 2. Toucher « Démarrer le service ». Le son s'active et l'écran reste allumé.
-3. Lire la ligne grise en haut. Si elle dit « Livraison fermée » ou « En pause » sans raison, ouvrir « Pause, délai, ruptures » et rouvrir.
+3. Lire la ligne grise en haut. Chaque nuit, la livraison se rouvre et le retard revient à zéro tout seuls. Si elle dit « En pause » sans raison, ouvrir « Pause, délai, ruptures » et toucher « Reprendre les commandes ».
 
 Ne pas toucher « Continuer sans son ». Sans son, personne n'entend les commandes.
 
@@ -27,25 +27,25 @@ Ne pas toucher « Continuer sans son ». Sans son, personne n'entend les command
 ### Pendant la préparation (onglet « En cours »)
 
 - Toucher « Prête au comptoir » ou « Partie en livraison ». Le client reçoit un e-mail.
-- À emporter payé au comptoir : toucher « Encaissée » quand le client paie. Toujours avant « Retirée », sinon ce n'est plus possible.
-- À la fin, toucher « Retirée » ou « Livrée ».
+- À emporter payé au comptoir : quand le client paie et part, toucher « Retirée et payée ».
+- En livraison, toucher « Livrée » au retour du livreur.
 - « Changer l'heure » envoie la nouvelle heure au client.
 
 ### Un client appelle
 
 - Il veut changer sa commande. Ce n'est pas possible sur la tablette. Annuler la commande et lui demander de recommander.
-- Il veut annuler. Toucher « Annuler la commande », écrire « À votre demande » dans « Autre motif » puis toucher « Refuser et rembourser ». Le lien « Annuler » juste à côté ferme seulement le panneau.
-- On ne peut plus annuler une commande prête ou partie. Noter son numéro et appeler le numéro en haut de cette page.
+- Il veut annuler. Toucher « Annuler la commande », choisir « À la demande du client » puis toucher « Annuler et rembourser ». Le lien « Fermer » referme le panneau sans rien annuler.
+- La commande est déjà prête, partie ou livrée. Noter son numéro et prévenir le gérant : il rembourse depuis le back-office, en entier ou en partie.
 
 ### Pendant le service (bouton « Pause, délai, ruptures »)
 
 - Trop de monde. Toucher « Pause 30 min », « Pause 1 h » ou « Pause jusqu'à reprise ». Les commandes déjà reçues restent à faire.
-- Délai trop court. Toucher +5. Il ne compte que pour les commandes à emporter.
-- Pas de livreur. Toucher « Fermer la livraison ». Le retrait reste ouvert. Au service suivant, toucher « Rouvrir la livraison ».
+- La cuisine prend du retard. Toucher +5 sous « Retard ce soir ». Le retard s'ajoute aux heures annoncées aux clients, à emporter et en livraison. Il revient à zéro dans la nuit.
+- Pas de livreur. Toucher « Fermer la livraison ». Le retrait reste ouvert. La livraison se rouvre toute seule la nuit.
 - Un plat est fini. Chercher le plat puis toucher « Disponible », qui devient « Épuisé ». Il revient tout seul le lendemain.
 - Une commande déjà reçue contient ce plat. Appeler le client, puis refuser avec le motif « Un des plats commandés est épuisé. ». Il peut recommander autre chose.
-- Les suppléments (burrata, jambon…) ne se mettent pas en rupture ici. Appeler le gérant.
-- Fermer les réglages avec « Fermer les réglages » pour revoir les commandes.
+- Les suppléments (burrata, jambon…) ne se mettent pas en rupture ici. Prévenir le gérant.
+- Toucher « Fermer les réglages » pour revoir les commandes.
 
 ### Les onglets
 
@@ -54,7 +54,7 @@ Ne pas toucher « Continuer sans son ». Sans son, personne n'entend les command
 | À accepter | Les commandes qui attendent une réponse |
 | En cours | Les commandes acceptées |
 | À l'avance | Les commandes pour un autre jour. Les accepter le jour même, car le ticket sort dès qu'on accepte |
-| Terminées | Les commandes finies ou refusées aujourd'hui |
+| Terminées | Les commandes finies ou refusées aujourd'hui. Une commande au comptoir oubliée y garde son bouton « Encaissée » |
 
 ### Que faire si…
 
@@ -72,7 +72,29 @@ Adresse : la page `/gestion` du site, au téléphone ou à l'ordinateur. Connexi
 
 Numéro à appeler en cas de problème : ______________________
 
-Sur le téléphone, les rubriques défilent de côté. Faire glisser la barre vers la gauche pour voir Imprimantes, Importer le tableau, Export comptable et Journal.
+Le back-office s'ouvre sur « Commandes ». Les autres rubriques sont juste en dessous du titre.
+
+### Commandes
+
+- « Les 7 derniers jours » donne le nombre de commandes et les ventes de chaque jour. Toucher un jour pour voir ses commandes.
+- Retrouver un client. Écrire son nom, son téléphone ou le numéro de la commande, puis toucher « Chercher ». La recherche couvre les 90 derniers jours.
+- Toucher une commande pour l'ouvrir. On y voit les plats, le téléphone du client et l'historique.
+
+### Rembourser un client mécontent
+
+1. Ouvrir la commande dans « Commandes ».
+2. Écrire le montant (21 ou 4.50) ou toucher « Tout ce qui reste ».
+3. Écrire le motif. Le client le reçoit par e-mail avec le montant.
+4. Toucher « Rembourser ». L'argent revient sur sa carte ou son TWINT. Payée au comptoir, rendre l'argent en espèces : le site le note.
+
+Le remboursement n'est possible qu'une fois la commande prête, partie ou livrée. Avant, on l'annule sur la tablette.
+
+### Équipe
+
+- Ajouter quelqu'un. Prénom, e-mail, accès « Tablette » ou « Tablette et back-office », puis « Ajouter ». Il se connecte avec son e-mail et le code reçu.
+- Quelqu'un part. Toucher « Retirer » puis confirmer. Son accès est coupé tout de suite.
+- Tablette perdue ou téléphone changé. Toucher « Déconnecter partout ».
+- Il reste toujours au moins un gérant.
 
 ### Carte
 
@@ -90,15 +112,15 @@ Sur le téléphone, les rubriques défilent de côté. Faire glisser la barre ve
 ### Livraison et horaires
 
 - Zone. Frais, minimum, délai annoncé, zone ouverte ou non, puis « Enregistrer la zone ». Les communes ne se changent pas ici.
-- Rush en livraison. Augmenter « Délai annoncé » de chaque zone. Le remettre après le service.
+- Délai de préparation habituel. Le temps annoncé pour un retrait « dès que possible ». Un soir chargé, on ajoute plutôt du retard sur la tablette.
 - Horaires. Quatre heures par service, puis « Enregistrer » sur la ligne du service.
 - Fermeture (jour férié, vacances). En bas de la page, remplir « Du », « Au (inclus) » et le motif, puis « Ajouter la fermeture ». Une fermeture couvre des jours entiers. Pour fermer un seul service, mettre la tablette en « Pause jusqu'à reprise ».
-- Avant une fermeture, regarder l'onglet « À l'avance » de la tablette. Les commandes déjà prises pour ces jours restent : les annuler une par une.
+- Avant une fermeture, regarder l'onglet « À l'avance » de la tablette. Les commandes déjà prises pour ces jours restent. Les annuler une par une.
 
 ### Imprimantes
 
 - La rubrique montre l'état de chaque imprimante.
-- Ne pas toucher « Nouvelle adresse » ni « Désactiver » sans avoir appelé le numéro ci-dessus. L'imprimante s'arrête aussitôt.
+- « Nouvelle adresse » et « Désactiver » demandent une confirmation, car l'imprimante s'arrête aussitôt. Appeler le numéro ci-dessus avant d'y toucher.
 - « Alerte de commande en attente » règle après combien de minutes un e-mail part quand une commande n'est pas acceptée.
 
 ### Importer le tableau
@@ -110,26 +132,26 @@ Sur le téléphone, les rubriques défilent de côté. Faire glisser la barre ve
 ### Export comptable
 
 - Choisir « Du » et « Au » puis toucher « Télécharger le fichier CSV ». Le fichier s'ouvre dans Excel.
-- Une ligne par vente encaissée, puis le total par taux de TVA.
-- Une commande payée au comptoir n'y est que si quelqu'un a touché « Encaissée » sur la tablette.
+- Une ligne par vente encaissée, puis les remboursements de la période en négatif, puis le total net par taux de TVA.
+- Une commande payée au comptoir n'y est que si quelqu'un a touché « Encaissée » ou « Retirée et payée » sur la tablette.
 
 ### Journal
 
-- Qui a changé quoi et quand.
+- Qui a changé quoi et quand, remboursements et équipe compris.
 - Il n'y a pas de bouton pour revenir en arrière. Lire l'ancienne valeur et la retaper.
 
 ### Ce qui ne se fait pas ici (appeler le numéro ci-dessus)
 
-- Ajouter ou retirer un employé.
-- Rembourser une commande prête, partie ou livrée, ou seulement une partie.
-- Ajouter un plat, un supplément ou une catégorie.
+- Ajouter un plat, un supplément ou une catégorie, ou un plat du jour.
+- Envoyer une nouvelle photo.
 - Changer les communes d'une zone.
+- Fermer un seul service à une date donnée.
 - Remplacer une imprimante.
 
 ### Que faire si…
 
-1. « Prix invalide ». Écrire 18 ou 18.50, sans « .- » ni « CHF ».
+1. « Prix invalide » ou « Montant invalide ». Écrire 18 ou 18.50, sans « .- » ni « CHF ».
 2. Le code n'arrive pas. Attendre 30 secondes, toucher « Renvoyer un code » et regarder les courriers indésirables.
-3. « Réservé au gérant ». Le compte utilisé est un compte d'équipe. Se reconnecter avec l'e-mail du gérant.
-4. « Colonnes de l'onglet « Carte » introuvables ». Le tableau a été modifié. Repartir du fichier d'origine sans renommer les onglets ni les colonnes.
-5. Une commande au comptoir manque dans l'export. Elle n'a pas été marquée « Encaissée ». Ce n'est plus rattrapable sur la tablette : la noter à part pour la fiduciaire.
+3. « Réservé au gérant ». Le compte utilisé a l'accès « Tablette ». Se reconnecter avec l'e-mail du gérant.
+4. « Stripe a refusé le remboursement ». Rien n'a été rendu. Réessayer plus tard. Si ça dure, appeler le numéro ci-dessus.
+5. Une commande au comptoir manque dans l'export. Elle n'a pas été notée comme encaissée. Sur la tablette, onglet « Terminées » le jour même, toucher « Encaissée ».

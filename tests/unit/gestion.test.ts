@@ -108,7 +108,8 @@ describe("fonctions SQL du back-office", () => {
     expect(ventes.map((v) => v.paiement).sort()).toEqual(["comptoir", "en ligne"]);
     const csv = csvVentes(ventes);
     expect(csv.startsWith("﻿Jour;Numéro")).toBe(true);
-    expect(csv).toContain("2.6;2;20.00;0.50;19.50");
+    // Taux, ventes, total TTC, remboursé, net TTC, TVA nette, hors TVA net (audit du gérant, G02).
+    expect(csv).toContain("2.6;2;20.00;0.00;20.00;0.50;19.50");
     expect(csv).not.toMatch(/a@b\.test|079/);
   });
 

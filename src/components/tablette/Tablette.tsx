@@ -11,6 +11,7 @@ import type { EtatImpression } from "@/lib/impression/service";
 import type { LigneTicket } from "@/lib/impression/ticket";
 import { heureDe as heure, jourGeneveDe as jourGeneve } from "@/lib/heures";
 import { heureTexte, jourTexte } from "@/lib/service";
+import { MOTIFS_REFUS } from "@/lib/motifs";
 
 // Tablette posée en cuisine : file des commandes, alerte sonore, accepter, refuser, statuts.
 // Relecture toutes les 15 secondes en service, 60 hors service, 5 sans signal Realtime, et tout de suite quand Supabase Realtime signale un changement.
@@ -18,7 +19,7 @@ import { heureTexte, jourTexte } from "@/lib/service";
 type Donnees = {
   maintenant: string;
   commandes: CommandeTablette[];
-  reglages: { pause: { active: boolean; jusqua: string | null; livraisonFermee: boolean; auto?: boolean } | null; preparation_minutes: number };
+  reglages: { pause: { active: boolean; jusqua: string | null; livraisonFermee: boolean; auto?: boolean } | null; preparation_minutes: number; retard_minutes?: number };
   impression: EtatImpression;
   // Rythme de relecture proposé par le serveur : 15 s pendant le service, 60 s hors service.
   relecture_s: number;
@@ -48,7 +49,7 @@ function etatImprimante(i: EtatImpression["imprimantes"][number]): string {
 
 type Onglet = "traiter" | "cours" | "avance" | "terminees";
 
-const MOTIFS = ["La cuisine est complète pour ce service.", "Un des plats commandés est épuisé.", "Nous fermons plus tôt aujourd'hui."];
+const MOTIFS = MOTIFS_REFUS.map(([, m]) => m);
 
 // Deux notes courtes, assez fortes pour une cuisine. Le navigateur n'autorise le son qu'après un geste.
 function sonner(ctx: AudioContext) {
@@ -232,7 +233,8 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
         <div className="tab-etat">
           <strong>{enPause ? (pause?.jusqua ? `En pause jusqu'à ${heure(pause.jusqua)}` : "En pause") : "Commandes ouvertes"}</strong>
           <span>
-            {pause?.livraisonFermee ? "Livraison fermée. " : ""}Préparation {donnees?.reglages.preparation_minutes ?? "…"} min.{" "}
+            {pause?.livraisonFermee ? "Livraison fermée. " : ""}
+            {donnees?.reglages.retard_minutes ? `Retard +${donnees.reglages.retard_minutes} min. ` : ""}Préparation {donnees?.reglages.preparation_minutes ?? "…"} min.{" "}
             {imprimantes.length === 0 ? "Pas d'imprimante." : imprimantes.map((i) => `${i.nom} : ${etatImprimante(i)}`).join(". ") + "."}
           </span>
         </div>
@@ -483,9 +485,9 @@ function CarteCommande({
         <div className="tab-actions tab-refus">
           <p className="aide-forte">Pourquoi ? Le client reçoit ce motif par e-mail.</p>
           <div className="tab-motifs">
-            {MOTIFS.map((m) => (
+            {MOTIFS_REFUS.map(([texte, m]) => (
               <button key={m} type="button" className="bouton-second" aria-pressed={motif === m} onClick={() => setMotif(m)}>
-                {m}
+                {texte}
               </button>
             ))}
           </div>
@@ -494,10 +496,16 @@ function CarteCommande({
             <input id={`motif-${c.id}`} maxLength={200} value={MOTIFS.includes(motif) ? "" : motif} onChange={(e) => setMotif(e.target.value)} />
           </div>
           <button type="button" className="bouton-principal" disabled={envoi || motif.trim().length < 3} onClick={() => faire({ action: "refuser", motif, de: c.statut })}>
-            {c.statut_paiement === "paye" ? `Refuser et rembourser ${prixChf(c.total_centimes)}` : "Refuser la commande"}
+            {c.statut === "nouvelle"
+              ? c.statut_paiement === "paye"
+                ? `Refuser et rembourser ${prixChf(c.total_centimes)}`
+                : "Refuser la commande"
+              : c.statut_paiement === "paye"
+                ? `Annuler et rembourser ${prixChf(c.total_centimes)}`
+                : "Annuler la commande"}
           </button>
           <button type="button" className="lien" onClick={() => setPanneau("aucun")}>
-            Annuler
+            Fermer
           </button>
         </div>
       )}
@@ -563,7 +571,7 @@ function CarteCommande({
             Changer pour {heure(heureChoisie)}
           </button>
           <button type="button" className="lien" onClick={() => setPanneau("aucun")}>
-            Annuler
+            Fermer
           </button>
         </div>
       )}

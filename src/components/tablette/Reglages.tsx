@@ -5,7 +5,7 @@ import { heureDe } from "@/lib/heures";
 import { poster } from "@/lib/requete-client";
 
 type Props = {
-  reglages: { pause: { active: boolean; jusqua: string | null; livraisonFermee: boolean } | null; preparation_minutes: number };
+  reglages: { pause: { active: boolean; jusqua: string | null; livraisonFermee: boolean } | null; preparation_minutes: number; retard_minutes?: number };
   onChange: () => Promise<void>;
 };
 
@@ -46,6 +46,7 @@ export function Reglages({ reglages, onChange }: Props) {
   }
 
   const p = reglages.pause;
+  const retard = reglages.retard_minutes ?? 0;
   const enPause = p?.active && (!p.jusqua || new Date(p.jusqua).getTime() > Date.now());
   const filtres = useMemo(() => {
     const q = recherche.trim().toLowerCase();
@@ -93,29 +94,29 @@ export function Reglages({ reglages, onChange }: Props) {
       </div>
 
       <div className="tab-bloc">
-        <h2>Délai de préparation</h2>
+        <h2>Retard ce soir</h2>
         <div className="tab-delai">
           <button
             type="button"
             className="bouton-second"
-            disabled={envoi || reglages.preparation_minutes <= 5}
-            onClick={() => regler({ preparation: reglages.preparation_minutes - 5 })}
-            aria-label="−5 minutes de préparation"
+            disabled={envoi || retard <= 0}
+            onClick={() => regler({ retard: Math.max(0, retard - 5) })}
+            aria-label="5 minutes de retard en moins"
           >
             −5
           </button>
-          <p aria-live="polite">{reglages.preparation_minutes} min</p>
+          <p aria-live="polite">{retard ? `+${retard} min` : "Aucun"}</p>
           <button
             type="button"
             className="bouton-second"
-            disabled={envoi || reglages.preparation_minutes >= 120}
-            onClick={() => regler({ preparation: reglages.preparation_minutes + 5 })}
-            aria-label="+5 minutes de préparation"
+            disabled={envoi || retard >= 90}
+            onClick={() => regler({ retard: Math.min(90, retard + 5) })}
+            aria-label="5 minutes de retard en plus"
           >
             +5
           </button>
         </div>
-        <p className="aide">Sert à l&apos;heure « dès que possible » proposée aux clients pour le retrait.</p>
+        <p className="aide">Ajouté aux heures annoncées, à emporter et en livraison. Revient à zéro chaque nuit.</p>
       </div>
 
       <div className="tab-bloc tab-ruptures">
