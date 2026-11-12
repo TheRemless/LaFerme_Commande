@@ -129,3 +129,22 @@ describe("S11 : la vérification répond pareil pour une adresse de l'équipe et
     expect(suites[1]).toEqual(suites[0]);
   });
 });
+
+describe("S11 : même attente quand le délai par connexion et le délai entre essais se croisent", () => {
+  it("après quatre codes faux depuis la connexion, l'attente affichée est la même pour l'équipe et une inconnue", async () => {
+    const db = await baseLocale();
+    const suites: unknown[] = [];
+    for (const [email, ip] of [["cuisine-bureau@laferme.test", "203.0.113.30"], ["inconnu-ip@exemple.test", "203.0.113.31"]]) {
+      const cleIp = empreinte("ip", ip);
+      await db.query("delete from tentatives_connexion where action = 'echec_ip' and cle = $1", [cleIp]);
+      for (let i = 0; i < 4; i++) await db.query("insert into tentatives_connexion (action, cle) values ('echec_ip', $1)", [cleIp]);
+      await ouvrirEnvois();
+      await demanderCodePersonnel(email, ip);
+      const suite: unknown[] = [];
+      for (let i = 0; i < 2; i++) suite.push(await verifierCodePersonnel(email, "00000000", ip, null));
+      suites.push(suite);
+    }
+    expect(suites[0]).toEqual([{ statut: "invalide" }, { statut: "attente", attente: 2 }]);
+    expect(suites[1]).toEqual(suites[0]);
+  });
+});

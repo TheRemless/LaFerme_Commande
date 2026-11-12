@@ -24,6 +24,12 @@ begin
   if a > 0 then
     return jsonb_build_object('statut', 'attente', 'attente', a);
   end if;
+  -- Délai par connexion d'abord, comme dans verifier_code_personnel : l'ordre des contrôles est le même
+  -- avec ou sans code, sinon le nombre de secondes d'attente trahirait une adresse de l'équipe.
+  a := attente_limite('echec_ip', p_cle_ip, 30, interval '1 hour', 2, 5);
+  if a > 0 then
+    return jsonb_build_object('statut', 'attente', 'attente', a);
+  end if;
   -- Pas de code valable pour cette adresse : même délai entre essais que verifier_code_personnel,
   -- compté sur les codes faux depuis la dernière demande de code.
   if not exists (
