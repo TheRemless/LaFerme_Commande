@@ -64,6 +64,10 @@ test("une commande arrive, on l'accepte, puis prête, retirée et payée", async
 
   await carte.getByRole("button", { name: "+15 min" }).click();
   await carte.getByRole("button", { name: /^Accepter pour/ }).click();
+  // Retrait pour dans plus de 30 minutes : il attend dans « À l'avance », tickets prévus 30 minutes avant (SS-11).
+  await tablette.getByRole("button", { name: /^À l'avance/ }).click();
+  await expect(carte).toContainText("Tickets prévus");
+  await carte.getByRole("button", { name: "Imprimer maintenant" }).click();
   await tablette.getByRole("button", { name: /^En cours/ }).click();
   await expect(carte).toContainText("Acceptée pour");
   // Le client voit l'heure confirmée sur son suivi.
