@@ -48,7 +48,12 @@ export async function POST(requete: Request) {
   if (moyen === "comptoir" && mode !== "retrait") return refus("Le paiement au comptoir n'est possible qu'à emporter.");
   // Préversion branchée sur la vraie base : aucun paiement, même simulé (audit de sécurité, S2).
   if (moyen === "en_ligne" && !paiementDisponible()) {
-    return refus("Préversion branchée sur la vraie base : le paiement en ligne y est coupé. Choisissez le paiement au comptoir.", 503);
+    return refus(
+      process.env.CONTEXTE_DEPLOIEMENT === "production"
+        ? "Le paiement en ligne ne répond pas. Réessayez dans un instant ou appelez-nous au 022 792 16 89."
+        : "Préversion branchée sur la vraie base. Le paiement en ligne y est coupé, choisissez le paiement au comptoir.",
+      503,
+    );
   }
 
   const [catalogue, config] = await Promise.all([chargerCatalogue(), chargerConfigService()]);

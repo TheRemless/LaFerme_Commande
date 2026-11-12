@@ -131,7 +131,12 @@ export function paiementDisponible(): boolean {
 
 // La doublure est-elle la passerelle de ce déploiement ?
 export function doublureActive(): boolean {
-  return process.env.CONTEXTE_DEPLOIEMENT !== "production" && paiementDisponible() && passerelle().nom === "doublure";
+  if (process.env.CONTEXTE_DEPLOIEMENT === "production") return false;
+  try {
+    return passerelle().nom === "doublure";
+  } catch {
+    return false;
+  }
 }
 
 // Remboursement d'un paiement simulé (commande de test déjà payée par la doublure) : aucun argent n'a
