@@ -205,4 +205,13 @@ describe("Imprimer avant l'heure prévue", () => {
     await surveiller();
     expect(await taches(id)).toHaveLength(2);
   });
+  it("terminée avant l'heure d'impression : « Réimprimer » sort quand même un ticket", async () => {
+    const id = await nouvelle();
+    await agir(id, { action: "accepter", heure: dans(180) }, personnel);
+    await agir(id, { action: "statut", vers: "prete" }, personnel);
+    await agir(id, { action: "statut", vers: "terminee" }, personnel);
+    const r = await agir(id, { action: "reimprimer" }, personnel);
+    expect(r).toEqual({ ok: true, message: "Ticket renvoyé à l'imprimante." });
+    expect((await taches(id)).map((t) => t.reimpression)).toEqual([true, true]);
+  });
 });

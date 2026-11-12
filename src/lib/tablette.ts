@@ -203,8 +203,9 @@ export async function agir(commandeId: string, a: Action, p: Personnel): Promise
       break;
     case "reimprimer":
       if (!["acceptee", "en_preparation", "prete", "partie", "terminee"].includes(avant.statut)) return { ok: false, message: "Seule une commande acceptée s'imprime." };
-      if (!avant.tickets_le) {
+      if (!avant.tickets_le && avant.statut !== "terminee") {
         // Commande à l'avance pas encore imprimée, ou tickets jamais créés : ce sont ses premiers tickets.
+        // Terminée sans ticket (prête avant l'heure d'impression) : réimpression ordinaire, plus bas.
         ok = (await imprimerCommande(commandeId)) > 0;
         message = ok ? "Tickets envoyés à l'imprimante." : "Ces tickets sont déjà partis. La liste se met à jour.";
         break;

@@ -373,9 +373,11 @@ function CarteCommande({
   const [envoi, setEnvoi] = useState(false);
   // Un autre jour qu'aujourd'hui : le jour s'écrit à côté de l'heure (revue de la tablette, D05).
   const jourDe = (iso: string) => (jourGeneve(iso) === aujourdHui ? "" : `${jourCourt(iso)} à `);
-  // Commande acceptée pas encore imprimée : ses tickets sortiront à cette heure (SS-11).
+  // Commande acceptée pas encore imprimée : ses tickets sortiront à cette heure (SS-11). Déjà prête ou partie,
+  // la surveillance ne l'imprime plus (commandes_a_imprimer).
   const imprimerA = c.heure_confirmee ? heureImpression(c.heure_confirmee, avanceMin) : null;
-  const ticketsPrevus = parPoste.length === 0 && ACCEPTEES.includes(c.statut) && imprimerA !== null && imprimerA.getTime() > new Date(maintenant).getTime();
+  const ticketsPrevus =
+    parPoste.length === 0 && (c.statut === "acceptee" || c.statut === "en_preparation") && imprimerA !== null && imprimerA.getTime() > new Date(maintenant).getTime();
 
   async function faire(corps: Record<string, unknown>) {
     setEnvoi(true);
