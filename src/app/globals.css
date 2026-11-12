@@ -3524,7 +3524,7 @@ body.fiche-ouverte {
 /* Tablette, onglet Livraisons : boutons à la même taille que le reste de la tablette. */
 .liv-tablette .bouton-second {
   min-height: 52px;
-  font-size: 17px;
+  font-size: 18px;
 }
 .liv-tablette .tab-meta,
 .liv-tablette .liv-carte p {
