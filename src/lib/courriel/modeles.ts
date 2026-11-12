@@ -31,14 +31,16 @@ function lienSuivi(c: Commande): string {
   return `${c.origine}/suivi/${c.jeton_suivi}`;
 }
 
-function modeTexte(c: Commande): string {
+// estimation : heure « vers » annoncée à l'accueil pour « dès que possible » (CM-05), en minutes du jour.
+function modeTexte(c: Commande, estimation: number | null = null): string {
+  const quand = c.quand_type === "asap" && estimation !== null ? `dès que possible (vers ${heureTexte(estimation)})` : quandTexte(c);
   if (c.mode === "livraison" && c.adresse) {
-    return `Livraison ${quandTexte(c)}, ${c.adresse.rue}${c.adresse.numero ? ` ${c.adresse.numero}` : ""}, ${c.adresse.npa} ${c.adresse.localite}.`;
+    return `Livraison ${quand}, ${c.adresse.rue}${c.adresse.numero ? ` ${c.adresse.numero}` : ""}, ${c.adresse.npa} ${c.adresse.localite}.`;
   }
-  return `À emporter ${quandTexte(c)}, Route de Chancy 132 à Onex.`;
+  return `À emporter ${quand}, Route de Chancy 132 à Onex.`;
 }
 
-export function courrielConfirmation(c: Commande, cat: Catalogue | null) {
+export function courrielConfirmation(c: Commande, cat: Catalogue | null, estimation: number | null = null) {
   const paiement = c.moyen_paiement === "comptoir" ? `À payer au comptoir en venant la chercher, ${prixChf(c.total_centimes)}.` : `Payée en ligne, ${prixChf(c.total_centimes)}.`;
   const lignes = c.lignes.map((l) => ({ titre: `${l.qte} × ${l.nom}`, prix: prixCourt(l.total_centimes), details: detailsLigne(cat, l) }));
   const sommes = [
@@ -52,7 +54,7 @@ export function courrielConfirmation(c: Commande, cat: Catalogue | null) {
     `Bonjour ${c.client_prenom},`,
     "",
     `Nous avons bien reçu votre commande n° ${c.numero}.`,
-    modeTexte(c),
+    modeTexte(c, estimation),
     "Le restaurant vous confirme l'heure dès qu'il l'accepte.",
     "",
     ...lignes.flatMap((l) => [`${l.titre}  ${l.prix}`, ...l.details.map((d) => `   ${d}`)]),
@@ -67,7 +69,7 @@ export function courrielConfirmation(c: Commande, cat: Catalogue | null) {
   ].join("\n");
   const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#1c1b1a;max-width:560px">
 <p>Bonjour ${echapper(c.client_prenom)},</p>
-<p>Nous avons bien reçu votre commande n° <strong>${c.numero}</strong>.<br>${echapper(modeTexte(c))}<br>Le restaurant vous confirme l'heure dès qu'il l'accepte.</p>
+<p>Nous avons bien reçu votre commande n° <strong>${c.numero}</strong>.<br>${echapper(modeTexte(c, estimation))}<br>Le restaurant vous confirme l'heure dès qu'il l'accepte.</p>
 <table style="width:100%;border-collapse:collapse">${lignes
     .map(
       (l) => `<tr><td style="padding:6px 0;border-top:1px solid #ddd"><strong>${echapper(l.titre)}</strong>${l.details

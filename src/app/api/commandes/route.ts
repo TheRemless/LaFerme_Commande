@@ -8,11 +8,11 @@ import { commandeParId, ConfigurationManquante, creerCommande, fonctionSql, lier
 import { origineSure } from "@/lib/origine";
 import { calculerPanier } from "@/lib/panier";
 import { paiementDisponible, passerelle } from "@/lib/paiement/passerelle";
-import { depuisHeureGeneve, messagePause, pauseEnCours, quandPossible, type Zone } from "@/lib/service";
+import { depuisHeureGeneve, messagePause, messageSansCreneau, pauseEnCours, quandPossible, type Zone } from "@/lib/service";
 import { requeteDuSite } from "@/lib/comptes/origine-requete";
 import { compteCourant, jetonSession } from "@/lib/comptes/session";
 import { empreinte, ipDe } from "@/lib/comptes/securite";
-import { cleValide, clientValide, detailsValides, lignesValides, quandValide } from "@/lib/validation";
+import { champClientInvalide, cleValide, clientValide, MESSAGE_CHAMP, detailsValides, lignesValides, quandValide } from "@/lib/validation";
 import { zoneServeur, type AdresseRetenue } from "@/lib/zone-serveur";
 
 // Passage de la commande. Le serveur refait tous les contrôles avec la base : contenu et prix, adresse
@@ -43,7 +43,7 @@ export async function POST(requete: Request) {
   const mode = corps.mode === "livraison" ? "livraison" : corps.mode === "retrait" ? "retrait" : null;
   const moyen = corps.moyen === "comptoir" ? "comptoir" : corps.moyen === "en_ligne" ? "en_ligne" : null;
   if (!cle || !lignes || lignes.length === 0 || !mode || !moyen) return refus("Commande incomplète. Rechargez la page.");
-  if (!client) return refus("Vérifiez vos coordonnées : prénom, nom, téléphone et e-mail.");
+  if (!client) return refus(MESSAGE_CHAMP[champClientInvalide(corps.client) ?? "telephone"]);
   // Paiement à la livraison désactivé (décision du prompt) : au comptoir seulement pour un retrait.
   if (moyen === "comptoir" && mode !== "retrait") return refus("Le paiement au comptoir n'est possible qu'à emporter.");
   // Préversion branchée sur la vraie base : aucun paiement, même simulé (audit de sécurité, S2).
@@ -81,7 +81,8 @@ export async function POST(requete: Request) {
   const quand = quandValide(corps.quand);
   const pause = pauseEnCours(config, maintenant, mode);
   if (pause) return refus(messagePause(pause) ?? "Les commandes en ligne sont en pause.");
-  if (quand.type === "aucun" || !quandPossible(config, maintenant, mode, zone, totaux.pizzas_seulement, quand)) {
+  if (quand.type === "aucun") return refus(messageSansCreneau(config, maintenant));
+  if (!quandPossible(config, maintenant, mode, zone, totaux.pizzas_seulement, quand)) {
     return refus("Ce moment n'est plus disponible. Choisissez une autre heure.");
   }
 

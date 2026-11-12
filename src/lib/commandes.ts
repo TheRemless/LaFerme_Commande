@@ -1,5 +1,7 @@
 import "server-only";
 import { chargerCatalogue } from "@/lib/catalogue";
+import { chargerConfigService } from "@/lib/config-service";
+import { estimationAsap } from "@/lib/estimation";
 import { courrielConfirmation, courrielRemboursement } from "@/lib/courriel/modeles";
 import { envoyerCourriel } from "@/lib/courriel/envoi";
 import { chargerConfigService } from "@/lib/config-service";
@@ -16,7 +18,10 @@ async function envoyerConfirmation(c: Commande): Promise<void> {
   // La commande devient visible sur la tablette : on la prévient tout de suite.
   await signalerTablette();
   const cat = await chargerCatalogue().catch(() => null);
-  const m = courrielConfirmation(c, cat);
+  const estimation = await chargerConfigService()
+    .then((config) => estimationAsap(config, c))
+    .catch(() => null);
+  const m = courrielConfirmation(c, cat, estimation);
   await envoyerCourriel({ commandeId: c.id, destinataire: c.client_email, ...m }).catch((e) => {
     // Le paiement est acquis : un courriel qui échoue ne doit pas le défaire. La tablette montre la commande.
     console.error(`Courriel de confirmation non envoyé pour la commande ${c.numero} : ${e instanceof Error ? e.message : e}`);

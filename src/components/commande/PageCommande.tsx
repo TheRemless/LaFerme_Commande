@@ -6,9 +6,10 @@ import { useEffect, useId, useState } from "react";
 import { lireChoix, type Choix } from "@/lib/choix";
 import type { Catalogue } from "@/lib/panier";
 import { usePanier, usePrixServeur } from "@/lib/panier-local";
-import { prixChf } from "@/lib/prix";
+import { prixChf, prixCourt } from "@/lib/prix";
 import { heureTexte, jourTexte } from "@/lib/service";
 import { ContenuPanier } from "@/components/panier/ContenuPanier";
+import { champClientInvalide, MESSAGE_CHAMP, type ChampClient } from "@/lib/validation";
 
 type Moyen = "en_ligne" | "comptoir";
 
@@ -24,6 +25,34 @@ function cleCommande(contenu: string): string {
     return crypto.randomUUID();
   }
 }
+
+// Pourquoi le bouton de paiement reste gris : la même raison que dans le récapitulatif, répétée juste
+// au-dessus du bouton, car sur téléphone le récapitulatif est bien plus bas (rapport client mystère, CM-02).
+function raisonBlocage(
+  reponse: ReturnType<typeof usePrixServeur>,
+  catalogue: Catalogue,
+  choix: Choix | null,
+): { texte: string; lien: string; action: string } | null {
+  if (!reponse || reponse.valide) return null;
+  if (reponse.erreur) return { texte: reponse.erreur, lien: "/", action: "Modifier" };
+  if (reponse.message_quand) return { texte: reponse.message_quand, lien: "/", action: "Changer l'heure" };
+  const ligne = reponse.lignes.find((l) => l.erreur);
+  if (ligne) {
+    const texte = catalogue.plats[ligne.slug] ? `${ligne.nom}. ${ligne.erreur}` : (ligne.erreur ?? "");
+    return { texte, lien: "/panier", action: "Modifier le panier" };
+  }
+  const minimum = choix?.mode === "livraison" ? choix.zone?.minimum_centimes : undefined;
+  if (reponse.manque_minimum_centimes > 0 && minimum !== undefined) {
+    return {
+      texte: `Encore ${prixChf(reponse.manque_minimum_centimes)} de plats pour le minimum de livraison (${prixCourt(minimum)}).`,
+      lien: "/carte",
+      action: "Ajouter un plat",
+    };
+  }
+  return null;
+}
+
+const CLE_COORDONNEES = "laferme.coordonnees";
 
 type CompteConnu = { email: string; prenom: string; nom: string; telephone: string } | null;
 
@@ -43,8 +72,21 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
   const [moyen, setMoyen] = useState<Moyen>("en_ligne");
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
+  const [champFaux, setChampFaux] = useState<ChampClient | null>(null);
 
   useEffect(() => setChoix(lireChoix()), []);
+
+  // Coordonnées gardées dans l'onglet : un paiement refusé ou un rechargement ne les efface plus (CM-04).
+  // sessionStorage seulement, elles disparaissent avec l'onglet. Un client connecté a déjà les siennes.
+  useEffect(() => {
+    if (compte) return;
+    try {
+      const memo = JSON.parse(sessionStorage.getItem(CLE_COORDONNEES) ?? "null") as Partial<typeof client> | null;
+      if (memo) setClient((c) => ({ ...c, ...memo }));
+    } catch {
+      // Stockage bloqué : rien à reprendre.
+    }
+  }, [compte]);
 
   if (!charge) return null;
   if (lignes.length === 0) {
@@ -62,14 +104,21 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
     choix?.quand.type === "creneau"
       ? `Pour le ${jourTexte(choix.quand.date)} à ${heureTexte(choix.quand.minutes)}`
       : choix?.quand.type === "asap"
-        ? "Dès que possible"
+        ? `Dès que possible${choix.estimation !== undefined ? `, vers ${heureTexte(choix.estimation)}` : ""}`
         : "Heure à choisir";
   const total = reponse && !reponse.erreur ? reponse.total_centimes : null;
   const pret = Boolean(reponse?.valide) && !envoi;
+  const raison = raisonBlocage(reponse, catalogue, choix);
 
   async function commander(e: React.FormEvent) {
     e.preventDefault();
     if (!choix || !pret) return;
+    const faux = champClientInvalide(client);
+    if (faux) {
+      setChampFaux(faux);
+      document.getElementById(`${ids}-${faux}`)?.focus();
+      return;
+    }
     setEnvoi(true);
     setErreur(null);
     try {
@@ -104,9 +153,26 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
   const champ = (cle: keyof typeof client) => ({
     id: `${ids}-${cle}`,
     value: client[cle],
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => setClient({ ...client, [cle]: e.target.value }),
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+      const suivant = { ...client, [cle]: e.target.value };
+      setClient(suivant);
+      if (champFaux === cle) setChampFaux(null);
+      try {
+        if (!compte) sessionStorage.setItem(CLE_COORDONNEES, JSON.stringify(suivant));
+      } catch {
+        // Stockage bloqué : tant pis, les champs restent remplis à l'écran.
+      }
+    },
     required: true,
+    "aria-invalid": champFaux === cle ? true : undefined,
+    "aria-describedby": champFaux === cle ? `${ids}-${cle}-erreur` : undefined,
   });
+  const erreurChamp = (cle: ChampClient) =>
+    champFaux === cle && (
+      <p className="aide aide-erreur" id={`${ids}-${cle}-erreur`} role="alert">
+        {MESSAGE_CHAMP[cle]}
+      </p>
+    );
 
   return (
     <div className="page-commande-contenu">
@@ -159,14 +225,17 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
               <div className="champ">
                 <label htmlFor={`${ids}-prenom`}>Prénom</label>
                 <input {...champ("prenom")} autoComplete="given-name" maxLength={60} />
+                {erreurChamp("prenom")}
               </div>
               <div className="champ">
                 <label htmlFor={`${ids}-nom`}>Nom</label>
                 <input {...champ("nom")} autoComplete="family-name" maxLength={60} />
+                {erreurChamp("nom")}
               </div>
               <div className="champ">
                 <label htmlFor={`${ids}-telephone`}>Téléphone</label>
                 <input {...champ("telephone")} type="tel" autoComplete="tel" maxLength={20} />
+                {erreurChamp("telephone")}
                 <p className="aide">
                   Pour vous joindre au sujet de la commande.
                 </p>
@@ -174,6 +243,7 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
               <div className="champ">
                 <label htmlFor={`${ids}-email`}>E-mail</label>
                 <input {...champ("email")} type="email" autoComplete="email" maxLength={120} />
+                {erreurChamp("email")}
                 <p className="aide">Pour la confirmation et le suivi de la commande.</p>
               </div>
             </div>
@@ -187,7 +257,7 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
                 <span>
                   <strong>Créer mon compte avec cet e-mail</strong>
                   <br />
-                  Pour retrouver vos adresses et vos commandes. On vous envoie un code pour le confirmer.
+                  Pour retrouver vos adresses et vos commandes. Après la commande, vous demandez un code par e-mail pour le confirmer.
                 </span>
               </label>
             )}
@@ -229,6 +299,11 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
           {erreur && (
             <p className="panier-alerte" role="alert">
               {erreur}
+            </p>
+          )}
+          {!erreur && raison && (
+            <p className="panier-alerte" role="status">
+              {raison.texte} <Link href={raison.lien}>{raison.action}</Link>
             </p>
           )}
           <button type="submit" className="bouton-principal" disabled={!pret}>

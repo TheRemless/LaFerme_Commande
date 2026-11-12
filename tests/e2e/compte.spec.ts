@@ -179,7 +179,8 @@ test("un second code tout de suite pour le même e-mail est refusé avec un dél
   await page.getByRole("button", { name: "Recevoir un code" }).click();
   await codeAffiche(page);
   await page.getByRole("button", { name: "Renvoyer un code" }).click();
-  await expect(page.locator(".panier-alerte")).toContainText(/Trop d'essais\. Réessayez dans \d+ secondes?\./);
+  // CM-16 : pas « trop d'essais » quand le client n'a fait aucun essai faux.
+  await expect(page.locator(".panier-alerte")).toContainText(/Un nouveau code pourra partir dans \d+ secondes?\./);
 });
 
 test("le serveur refuse les requêtes d'un autre site et sans session", async ({ request }) => {

@@ -125,6 +125,15 @@ function arrondir(minutes: number, pas: number): number {
   return Math.ceil(minutes / pas) * pas;
 }
 
+// Premier jour de service après une fermeture (60 jours au plus).
+function reouvertureApres(config: ConfigService, fermeture: Fermeture): string | null {
+  for (let d = 1; d <= 60; d++) {
+    const date = ajouterJours(fermeture.fin, d);
+    if (servicesDu(config, date).length) return date;
+  }
+  return null;
+}
+
 export function fermeturePour(config: Pick<ConfigService, "fermetures">, date: string): Fermeture | undefined {
   return config.fermetures.find((f) => f.debut <= date && date <= f.fin);
 }
@@ -217,12 +226,7 @@ export function etatService(config: ConfigService, maintenant: Date, mode: Mode,
   const ici = instantGeneve(maintenant);
   const fermeture = fermeturePour(config, ici.date);
   if (fermeture) {
-    let reouverture: string | null = null;
-    for (let d = 1; d <= 60 && !reouverture; d++) {
-      const date = ajouterJours(fermeture.fin, d);
-      if (servicesDu(config, date).length) reouverture = date;
-    }
-    return { etat: "fermeture", fermeture, reouverture };
+    return { etat: "fermeture", fermeture, reouverture: reouvertureApres(config, fermeture) };
   }
   const delai = delaiMinimum(config, mode, zone);
   for (const h of servicesDu(config, ici.date)) {
@@ -238,6 +242,32 @@ export function etatService(config: ConfigService, maintenant: Date, mode: Mode,
   }
   const liste = creneaux(config, maintenant, mode, zone, pizzas);
   return liste.length ? { etat: "ferme", prochain: liste[0] } : { etat: "aucun-creneau" };
+}
+
+// Fermeture qui commence avant la fin des jours où l'on peut commander à l'avance (ou en cours),
+// avec le premier jour de service qui suit. Sert à l'expliquer au client plutôt qu'« aucun créneau ».
+export function fermetureProche(config: ConfigService, maintenant: Date): { fermeture: Fermeture; reouverture: string | null } | null {
+  const ici = instantGeneve(maintenant);
+  const limite = ajouterJours(ici.date, config.reglages.avance_jours);
+  const fermeture = config.fermetures
+    .filter((f) => f.fin >= ici.date && f.debut <= limite)
+    .sort((a, b) => (a.debut < b.debut ? -1 : 1))[0];
+  if (!fermeture) return null;
+  return { fermeture, reouverture: reouvertureApres(config, fermeture) };
+}
+
+// Un service du jour a-t-il commencé sans être fini ? (« trop tard pour dès que possible » contre « pas encore ouvert »)
+export function serviceEnCours(config: ConfigService, maintenant: Date): boolean {
+  const ici = instantGeneve(maintenant);
+  return servicesDu(config, ici.date).some((h) => enMinutes(h.premiere_heure) <= ici.minutes && ici.minutes <= enMinutes(h.derniere_heure));
+}
+
+// Phrase quand le client n'a aucun moment possible (panier, paiement) : la fermeture si c'en est une.
+export function messageSansCreneau(config: ConfigService, maintenant: Date): string {
+  const f = fermetureProche(config, maintenant);
+  if (!f) return "La commande en ligne est fermée en ce moment.";
+  const dates = `Fermé du ${jourTexte(f.fermeture.debut)} au ${jourTexte(f.fermeture.fin)}.`;
+  return f.reouverture ? `${dates} On rouvre le ${jourTexte(f.reouverture)}.` : dates;
 }
 
 // Le moment demandé est-il encore possible pour ce panier ? Contrôle serveur avant paiement.

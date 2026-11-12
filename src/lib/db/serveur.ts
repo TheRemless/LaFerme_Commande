@@ -132,6 +132,7 @@ export type Commande = {
   client_email: string;
   adresse: { rue: string; numero: string; npa: string; localite: string; featureId?: string } | null;
   details_livraison: { etage: string; sonnette: string; code: string; instructions: string } | null;
+  zone_numero: number | null;
   quand_type: "asap" | "creneau";
   quand_date: string | null;
   quand_minutes: number | null;

@@ -24,6 +24,8 @@ export type Choix = {
   quand: Quand;
   // Vrai quand le moment choisi n'est possible que pour un panier 100 % pizzas (après la dernière commande de la carte).
   pizzasSeulement?: boolean;
+  // « Dès que possible » : l'heure « vers » montrée à l'accueil, en minutes du jour, rappelée au paiement (CM-05).
+  estimation?: number;
   // Préversion seulement : heure de Genève simulée par ?heure= sur l'accueil, transmise au calcul du panier.
   heureSimulee?: string;
   enregistreLe: number;

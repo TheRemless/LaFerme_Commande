@@ -29,9 +29,80 @@ export async function chercherAdresses(texte: string, signal?: AbortSignal): Pro
   const rep = await fetch(`${RECHERCHE}?${params}`, { signal });
   if (!rep.ok) throw new Error(`geo.admin a répondu ${rep.status}`);
   const corps = (await rep.json()) as { results?: ResultatGeoAdmin[] };
-  return (corps.results ?? [])
+  const liste = (corps.results ?? [])
     .map((r) => lireLibelle(r.attrs.label, r.attrs.featureId))
     .filter((a): a is Adresse => a !== null);
+  return trierSuggestions(liste, texte);
+}
+
+// ---------- Comparaison tolérante (saisie à la main) ----------
+
+function mots(t: string): string[] {
+  return t
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .split(" ")
+    .filter(Boolean);
+}
+
+// Abréviations courantes des rues suisses romandes, ramenées au mot entier.
+const ABREVIATIONS: Record<string, string> = {
+  av: "avenue",
+  ave: "avenue",
+  ch: "chemin",
+  chem: "chemin",
+  rte: "route",
+  r: "rue",
+  bd: "boulevard",
+  bld: "boulevard",
+  boul: "boulevard",
+  pl: "place",
+  imp: "impasse",
+  prom: "promenade",
+  sq: "square",
+  pass: "passage",
+  st: "saint",
+  ste: "sainte",
+};
+const ARTICLES = new Set(["de", "du", "des", "la", "le", "les", "l", "d"]);
+
+function cleRue(rue: string): string {
+  return mots(rue)
+    .map((m) => ABREVIATIONS[m] ?? m)
+    .filter((m) => !ARTICLES.has(m))
+    .join(" ");
+}
+
+// Même rue malgré les abréviations, la casse, les accents, les tirets et les articles.
+// Le NPA et le numéro restent comparés à part, à l'identique : la zone vient toujours du registre.
+export function memeRue(saisie: string, officielle: string): boolean {
+  const a = cleRue(saisie);
+  return a !== "" && a === cleRue(officielle);
+}
+
+export function memeNumero(saisi: string, officiel: string): boolean {
+  return mots(saisi).join("") === mots(officiel).join("");
+}
+
+// Numéro de maison dans une recherche : le dernier mot isolé d'un à trois chiffres, avec une lettre éventuelle
+// (« Chemin des 3 Communes 5 » donne 5). « 1213 » (un NPA) et « 31-Décembre » (un nom de rue) ne comptent pas.
+export function numeroTape(texte: string): string | null {
+  const mots = texte.toLowerCase().split(/\s+/).filter((m) => /^\d{1,3}[a-z]?$/.test(m));
+  return mots.at(-1) ?? null;
+}
+
+// Le numéro tapé passe en tête, puis ses variantes (10a, 10b), puis le reste dans l'ordre reçu.
+export function trierSuggestions(liste: Adresse[], texte: string): Adresse[] {
+  const n = numeroTape(texte);
+  if (!n) return liste;
+  const rang = (a: Adresse) => {
+    const num = a.numero.toLowerCase();
+    return num === n ? 0 : /^\d+$/.test(n) && num.startsWith(n) && /^[a-z]$/.test(num.slice(n.length)) ? 1 : 2;
+  };
+  return liste.map((a, i) => ({ a, i })).sort((x, y) => rang(x.a) - rang(y.a) || x.i - y.i).map((x) => x.a);
 }
 
 export function adresseTexte(a: Pick<Adresse, "rue" | "numero" | "npa" | "localite">): string {
