@@ -9,7 +9,8 @@ import { Reglages } from "@/components/tablette/Reglages";
 import { TicketSecours } from "@/components/tablette/TicketSecours";
 import type { EtatImpression } from "@/lib/impression/service";
 import type { LigneTicket } from "@/lib/impression/ticket";
-import { heureDe as heure, jourGeneveDe as jourGeneve } from "@/lib/heures";
+import { heureDe as heure, jourCourtDe as jourCourt, jourGeneveDe as jourGeneve } from "@/lib/heures";
+import { heureImpression, IMPRESSION_AVANCE_DEFAUT, momentTexte, type DelaisImpression } from "@/lib/impression/avance";
 import { heureTexte, jourTexte } from "@/lib/service";
 import { MOTIFS_REFUS } from "@/lib/motifs";
 import { nouvelleCle } from "@/lib/cle";
@@ -23,7 +24,13 @@ import { OngletLivraisons, livraisonsEnCours, problemeTexte } from "@/components
 type Donnees = {
   maintenant: string;
   commandes: CommandeTablette[];
-  reglages: { pause: { active: boolean; jusqua: string | null; livraisonFermee: boolean; auto?: boolean } | null; preparation_minutes: number; retard_minutes?: number };
+  reglages: {
+    pause: { active: boolean; jusqua: string | null; livraisonFermee: boolean; auto?: boolean } | null;
+    preparation_minutes: number;
+    retard_minutes?: number;
+    // Les tickets d'une commande acceptée sortent ce temps avant l'heure promise, par mode (SS-11).
+    impression_avance?: DelaisImpression;
+  };
   impression: EtatImpression;
   // Rythme de relecture proposé par le serveur : 15 s pendant le service, 60 s hors service.
   relecture_s: number;
@@ -139,19 +146,27 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
   }, [charger, delai]);
 
   const aujourdHui = donnees ? jourGeneve(donnees.maintenant) : "";
+  const avance = donnees?.reglages.impression_avance ?? IMPRESSION_AVANCE_DEFAUT;
   const listes = useMemo(() => {
     const c = donnees?.commandes ?? [];
     const pourPlusTard = (x: CommandeTablette) => x.quand_type === "creneau" && x.quand_date !== null && x.quand_date > aujourdHui;
+    // Acceptée, sans ticket, et l'heure d'impression pas encore venue : elle attend dans « À l'avance » (SS-11, G08).
+    const imprimees = new Set((donnees?.impression.taches ?? []).map((t) => t.commande_id));
+    const maintenant = donnees ? new Date(donnees.maintenant).getTime() : 0;
+    const programmee = (x: CommandeTablette) =>
+      x.statut === "acceptee" && x.heure_confirmee !== null && !imprimees.has(x.id) && heureImpression(x.heure_confirmee, avance[x.mode]).getTime() > maintenant;
     const parHeure = (a: CommandeTablette, b: CommandeTablette) =>
       (a.heure_confirmee ?? a.heure_proposee).localeCompare(b.heure_confirmee ?? b.heure_proposee);
     return {
       traiter: c.filter((x) => x.statut === "nouvelle" && !pourPlusTard(x)),
-      cours: c.filter((x) => ["acceptee", "en_preparation", "prete", "partie"].includes(x.statut)).sort(parHeure),
-      livraisons: livraisonsEnCours(c),
-      avance: c.filter((x) => x.statut === "nouvelle" && pourPlusTard(x)).sort(parHeure),
+      cours: c.filter((x) => ACCEPTEES.includes(x.statut) && !programmee(x)).sort(parHeure),
+      // Une livraison programmée n'est pas encore en cuisine : pas à donner à un livreur avant ses tickets.
+      livraisons: livraisonsEnCours(c).filter((x) => !programmee(x)),
+      avance: c.filter((x) => (x.statut === "nouvelle" && pourPlusTard(x)) || programmee(x)).sort(parHeure),
+      plusTard: new Set(c.filter(programmee).map((x) => x.id)),
       terminees: c.filter((x) => x.statut === "terminee" || x.statut === "refusee").reverse(),
     };
-  }, [donnees, aujourdHui]);
+  }, [donnees, aujourdHui, avance]);
 
   // Son répété toutes les 4 secondes tant qu'une commande du jour attend.
   useEffect(() => {
@@ -341,10 +356,10 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
       {donnees === null ? (
         <p className="tab-vide">Chargement…</p>
       ) : onglet === "livraisons" ? (
-        <OngletLivraisons commandes={donnees.commandes} donnees={livraisons} agir={agirLivraison} />
+        <OngletLivraisons commandes={donnees.commandes} plusTard={listes.plusTard} donnees={livraisons} agir={agirLivraison} />
       ) : liste.length === 0 ? (
         <p className="tab-vide">
-          {onglet === "traiter" ? "Aucune commande à accepter." : onglet === "cours" ? "Aucune commande en cours." : onglet === "avance" ? "Aucune commande pour un autre jour." : "Rien de terminé aujourd'hui."}
+          {onglet === "traiter" ? "Aucune commande à accepter." : onglet === "cours" ? "Aucune commande en cours." : onglet === "avance" ? "Aucune commande pour plus tard." : "Rien de terminé aujourd'hui."}
         </p>
       ) : (
         <ol className="tab-liste">
@@ -354,6 +369,7 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
               c={c}
               aujourdHui={aujourdHui}
               maintenant={donnees.maintenant}
+              avance={avance}
               taches={(donnees.impression.taches ?? []).filter((t) => t.commande_id === c.id)}
               livraison={livraisonDe.get(c.id)}
               agir={(corps) => agir(c.id, corps)}
@@ -377,6 +393,7 @@ function CarteCommande({
   c,
   aujourdHui,
   maintenant,
+  avance,
   taches,
   livraison,
   agir,
@@ -385,6 +402,7 @@ function CarteCommande({
   c: CommandeTablette;
   aujourdHui: string;
   maintenant: string;
+  avance: DelaisImpression;
   taches: Tache[];
   livraison?: { nom: string; rang: number; l: DonneesLivraisons["livraisons"][number] };
   agir: (corps: Record<string, unknown>) => Promise<void>;
@@ -411,6 +429,13 @@ function CarteCommande({
   const heureChoisie = decaler(base, decalage);
   const [motif, setMotif] = useState("");
   const [envoi, setEnvoi] = useState(false);
+  // Un autre jour qu'aujourd'hui : le jour s'écrit à côté de l'heure (revue de la tablette, D05).
+  const jourDe = (iso: string) => (jourGeneve(iso) === aujourdHui ? "" : `${jourCourt(iso)} à `);
+  // Commande acceptée pas encore imprimée : ses tickets sortiront à cette heure (SS-11). Déjà prête ou partie,
+  // la surveillance ne l'imprime plus (commandes_a_imprimer).
+  const imprimerA = c.heure_confirmee ? heureImpression(c.heure_confirmee, avance[c.mode]) : null;
+  const ticketsPrevus =
+    parPoste.length === 0 && (c.statut === "acceptee" || c.statut === "en_preparation") && imprimerA !== null && imprimerA.getTime() > new Date(maintenant).getTime();
 
   async function faire(corps: Record<string, unknown>) {
     setEnvoi(true);
@@ -471,7 +496,7 @@ function CarteCommande({
           </p>
           <p className="tab-meta">
             Reçue {jourGeneve(c.cree_le) === aujourdHui ? "" : `le ${jourTexte(jourGeneve(c.cree_le))} `}à {heure(c.cree_le)}. {STATUT[c.statut] ?? c.statut}
-            {c.heure_confirmee ? ` pour ${heure(c.heure_confirmee)}` : ""}.
+            {c.heure_confirmee ? ` pour ${jourDe(c.heure_confirmee)}${heure(c.heure_confirmee)}` : ""}.
             {c.statut === "nouvelle" && attente >= 3 && !(c.quand_date && c.quand_date > aujourdHui) && (
               <strong className="tab-attend"> Attend depuis {attente} min.</strong>
             )}
@@ -481,6 +506,7 @@ function CarteCommande({
         {c.heure_confirmee && ACCEPTEES.includes(c.statut) && (
           <p className="tab-promise">
             <span>Heure annoncée au client</span>
+            {jourDe(c.heure_confirmee) && <strong className="tab-promise-jour">{jourCourt(c.heure_confirmee)}</strong>}
             {heure(c.heure_confirmee)}
           </p>
         )}
@@ -560,7 +586,8 @@ function CarteCommande({
         <div className="tab-actions">
           {reglageHeure}
           <button type="button" className="bouton-principal" disabled={envoi} onClick={() => faire({ action: "accepter", heure: heureChoisie, de: c.statut })}>
-            Accepter pour {heure(heureChoisie)}
+            Accepter pour {jourDe(heureChoisie)}
+            {heure(heureChoisie)}
           </button>
           <button type="button" className="bouton-second" onClick={() => setPanneau("refuser")}>
             Refuser
@@ -686,9 +713,11 @@ function CarteCommande({
       {(parPoste.length > 0 || ACCEPTEES.includes(c.statut)) && (
         <div className="tab-impression">
           <p>
-            {parPoste.length === 0
-              ? "Ticket non créé."
-              : `${parPoste.map((t) => `Ticket ${t.station} : ${ETAT_TACHE[t.etat]}${t.etat === "echec" && t.derniere_erreur ? ` (${t.derniere_erreur})` : ""}`).join(". ")}.`}
+            {ticketsPrevus && imprimerA
+              ? `Tickets prévus ${momentTexte(imprimerA, maintenant)}.`
+              : parPoste.length === 0
+                ? "Ticket non créé."
+                : `${parPoste.map((t) => `Ticket ${t.station} : ${ETAT_TACHE[t.etat]}${t.etat === "echec" && t.derniere_erreur ? ` (${t.derniere_erreur})` : ""}`).join(". ")}.`}
           </p>
           <div className="boutons-ligne">
             {parPoste.length > 0 && (
@@ -698,7 +727,7 @@ function CarteCommande({
             )}
             {c.statut !== "refusee" && (
               <button type="button" className="bouton-second" disabled={envoi} onClick={() => faire({ action: "reimprimer" })}>
-                Réimprimer
+                {parPoste.length === 0 ? "Imprimer maintenant" : "Réimprimer"}
               </button>
             )}
             {c.statut !== "refusee" &&

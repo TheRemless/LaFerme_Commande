@@ -38,7 +38,9 @@ Les trois fichiers `*.audit.test.ts` figeaient les bugs observés. Ils figurent 
 | SS-19 | corrigé | Une imprimante ajoutée ou réactivée reprend les tickets « sans imprimante » des commandes en cours |
 | SS-20 | corrigé | Verrou sur la clé d'idempotence dans `creer_commande` (à rejouer contre Supabase, R-01) |
 | G01 (audit du gérant) | corrigé | « Retirée et payée » d'un geste au comptoir, « Encaissée » encore possible dans « Terminées » |
-| SS-11, SS-13, SS-14, SS-21, SS-22 | restants | Impression différée des commandes à l'avance, temps des gestes (Francfort), trous de numéros, recette avec une imprimante branchée, redéploiement pendant la recette |
+| SS-11, G08 option A (13.11.2026) | corrigé | Une commande acceptée pour plus tard reste dans « À l'avance ». La surveillance crée ses tickets avant l'heure promise, 60 minutes pour une livraison et 30 pour un retrait (validé par Jérémy, réglable dans le back-office), une seule fois (`premiers_tickets`). « Imprimer maintenant » avant. Jour affiché à côté de l'heure promise |
+| SS-14 | restant, pas petit | Le numéro figure dans la description du paiement Stripe, créée avant le paiement. Le donner au paiement touche la création de commande, le webhook et la page de suivi (parcours client). Proposition moins coûteuse : expliquer à l'équipe qu'un numéro sauté est un paiement abandonné |
+| SS-13, SS-21, SS-22 | restants, sans code | Temps des gestes (Francfort), recette avec une imprimante branchée, redéploiement pendant la recette : essais R-09, R-03 et R-10 |
 
 Légende : **vérifié** = reproduit par un script ou un test ; **lu** = établi par lecture du code, sans reproduction ; **supposé** = hypothèse à confirmer sur la vraie infrastructure.
 
@@ -313,6 +315,11 @@ La base embarquée rejoue les mêmes migrations, mais elle diffère de Supabase 
 | R-11 | Pause posée depuis la tablette, puis commande tentée tout de suite depuis un autre appareil | Refusée en quelques secondes (cache Netlify vidé) | `rafraichirCaches` |
 | R-12 | Le signal Realtime passe (tablette à 15 s) et le canal public est autorisé dans les réglages Realtime du projet | Relecture à 15 s, pas 5 s | `docs/performance.md` |
 | R-13 | Commande au statut « Prête », puis vérifier la commande « Moi Moi » et les traces de test avant la bascule | Base nettoyée | `docs/mise-en-ligne.md` phase 4 |
+| R-14 | Commande pour le lendemain 19h30, acceptée la veille, imprimante branchée. Le lendemain, noter l'heure de sortie du ticket, tablette éteinte | Rien à l'acceptation ; tickets entre 18h30 et 18h32 pour une livraison, entre 19h00 et 19h02 pour un retrait, heure d'acceptation de la veille sur le ticket | SS-11 |
+| R-15 | Même essai, imprimante éteinte de 18h20 à 18h45 | Ticket à la remise en route, une seule fois | SS-11, SS-07 |
+| R-16 | Commande à l'avance acceptée, puis heure changée sur la tablette ; une autre annulée avant son heure d'impression | Ticket à la nouvelle heure, avec la nouvelle heure ; rien pour l'annulée | SS-11, SS-03 |
+| R-17 | Redéploiement Netlify (ou fonction planifiée arrêtée) entre l'acceptation et l'heure d'impression, puis vérifier que la fonction planifiée `surveillance` tourne sur la production | Tickets à l'heure, pas en double | SS-11, SS-22 |
+| R-18 | Deux commandes, une à l'avance et une « dès que possible », avec le même numéro (jour de service différent) | Jamais côte à côte dans « En cours » avant le jour J | SS-05, SS-11 |
 
 ## Méthode et limites
 

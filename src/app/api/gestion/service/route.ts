@@ -23,8 +23,12 @@ export async function GET(requete: Request) {
   const preparation = Number(cap("preparation_minutes")?.valeur ?? 20);
   // Plafond du paiement au comptoir (décision de Jérémy, 100 CHF au départ) : null si absent.
   const plafond = cap("plafond_comptoir_centimes")?.valeur;
+  // Tickets des commandes à l'avance (SS-11) : minutes avant l'heure promise, par mode. Absent avant la migration.
+  const avL = cap("impression_avance_livraison_minutes");
+  const avR = cap("impression_avance_retrait_minutes");
+  const impressionAvance = avL && avR ? { livraison: Number(avL.valeur), retrait: Number(avR.valeur), proposition: avL.proposition || avR.proposition } : null;
   return NextResponse.json(
-    { ouvertures: [], ...service, capacites, preparation, plafond_comptoir_centimes: typeof plafond === "number" ? plafond : null },
+    { ouvertures: [], ...service, capacites, preparation, plafond_comptoir_centimes: typeof plafond === "number" ? plafond : null, impressionAvance },
     { headers: { "Cache-Control": "no-store" } },
   );
 }
@@ -63,6 +67,13 @@ export async function POST(requete: Request) {
     const v = c.minutes;
     if (!Number.isInteger(v) || (v as number) < 5 || (v as number) > 120) return refus("Délai de préparation : un nombre de minutes de 5 à 120.");
     await fonctionSql("regler_service", { p: { preparation_minutes: v }, p_personnel: qui });
+  } else if (c.type === "impression_avance") {
+    const valeur = (v: unknown) => (Number.isInteger(v) && (v as number) >= 15 && (v as number) <= 240 ? (v as number) : null);
+    const livraison = valeur(c.livraison);
+    const retrait = valeur(c.retrait);
+    if (livraison === null || retrait === null) return refus("Tickets à l'avance : un nombre de minutes de 15 à 240.");
+    await fonctionSql("regler_impression_avance", { p_mode: "livraison", p_valeur: livraison, p_personnel: qui });
+    await fonctionSql("regler_impression_avance", { p_mode: "retrait", p_valeur: retrait, p_personnel: qui });
   } else if (c.type === "fermeture") {
     // Journée entière (service absent) ou un seul service (midi, soir) d'un jour (audit du gérant, vague 2).
     const debut = dateValide(c.debut);

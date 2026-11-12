@@ -28,10 +28,13 @@ export function livraisonsEnCours(commandes: CommandeTablette[]): CommandeTablet
 
 export function OngletLivraisons({
   commandes,
+  plusTard,
   donnees,
   agir,
 }: {
   commandes: CommandeTablette[];
+  // Livraisons acceptées dont les tickets ne sont pas encore sortis (onglet « À l'avance ») : pas encore à attribuer.
+  plusTard?: Set<string>;
   donnees: DonneesLivraisons | null;
   agir: (corps: Record<string, unknown>) => Promise<void>;
 }) {
@@ -46,7 +49,7 @@ export function OngletLivraisons({
   const parCommande = new Map(donnees.livraisons.map((l) => [l.commande_id, l]));
   const enCours = livraisonsEnCours(commandes);
   const aAttribuer = enCours
-    .filter((c) => !parCommande.has(c.id))
+    .filter((c) => !parCommande.has(c.id) && !plusTard?.has(c.id))
     .sort((a, b) => (a.heure_confirmee ?? a.heure_proposee).localeCompare(b.heure_confirmee ?? b.heure_proposee));
   const actifs = donnees.livreurs.filter((l) => l.actif);
   const commandeDe = new Map(commandes.map((c) => [c.id, c]));

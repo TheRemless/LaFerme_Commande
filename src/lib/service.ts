@@ -27,7 +27,15 @@ export type Fermeture = { debut: string; fin: string; motif: string; service?: "
 // Service ouvert un jour donné, avec ses heures : jour normalement fermé, ou heures différentes ce jour-là.
 export type Ouverture = { jour: string; service: "midi" | "soir"; premiere_heure: string; derniere_heure: string; derniere_commande: string; derniere_commande_pizzas: string };
 // preparation_minutes et les délais des zones comprennent déjà le retard du soir (config-service.ts).
-export type Reglages = { preparation_minutes: number; creneau_minutes: number; avance_jours: number; preparation_base?: number; retard_minutes?: number };
+// impression_avance : les tickets d'une commande acceptée sortent ce temps avant l'heure promise, par mode (SS-11).
+export type Reglages = {
+  preparation_minutes: number;
+  creneau_minutes: number;
+  avance_jours: number;
+  preparation_base?: number;
+  retard_minutes?: number;
+  impression_avance?: { livraison: number; retrait: number };
+};
 
 export type ConfigService = {
   zones: Zone[];

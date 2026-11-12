@@ -1,6 +1,7 @@
 import "server-only";
 import { unstable_cache } from "next/cache";
 import { lirePublic } from "@/lib/db/lecture";
+import { IMPRESSION_AVANCE_DEFAUT, type DelaisImpression } from "@/lib/impression/avance";
 import { lirePlafondComptoir } from "@/lib/plafond-comptoir";
 import type { ConfigService, Fermeture, Horaire, Ouverture, Zone, ZoneNpa } from "@/lib/service";
 
@@ -10,6 +11,16 @@ function nombre(reglages: LigneReglage[], cle: string): number {
   const v = Number(reglages.find((r) => r.cle === cle)?.valeur);
   if (!Number.isFinite(v)) throw new Error(`Réglage manquant ou invalide : ${cle}`);
   return v;
+}
+
+// Tickets d'une commande acceptée : ce temps avant l'heure promise, par mode (audit « samedi soir », SS-11).
+// Réglage absent (base pas encore migrée) ou hors bornes : la valeur validée par Jérémy.
+function impressionAvance(reglages: LigneReglage[]): DelaisImpression {
+  const lire = (mode: keyof DelaisImpression) => {
+    const v = Number(reglages.find((r) => r.cle === `impression_avance_${mode}_minutes`)?.valeur);
+    return Number.isInteger(v) && v >= 15 && v <= 240 ? v : IMPRESSION_AVANCE_DEFAUT[mode];
+  };
+  return { livraison: lire("livraison"), retrait: lire("retrait") };
 }
 
 // Tout ce qu'il faut pour décider zone, créneaux et état du restaurant, lu en base.
@@ -49,6 +60,7 @@ async function lireConfigService(): Promise<ConfigService & { plafondComptoirCen
       retard_minutes: retard,
       creneau_minutes: nombre(reglages, "creneau_minutes"),
       avance_jours: nombre(reglages, "avance_jours"),
+      impression_avance: impressionAvance(reglages),
     },
     pause: (() => {
       const jusqua = reglages.find((r) => r.cle === "pause_jusqu_a")?.valeur;

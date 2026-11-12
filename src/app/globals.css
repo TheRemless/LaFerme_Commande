@@ -2160,6 +2160,12 @@ body.fiche-ouverte {
   font-stretch: 100%;
   color: var(--encre-douce);
 }
+/* Commande pour un autre jour : le jour au-dessus de l'heure, lisible à un mètre. */
+.tab-promise-jour {
+  margin-bottom: 2px;
+  font-size: 24px;
+  font-stretch: 100%;
+}
 /* Sur un téléphone, l'heure promise passe sous le numéro, sur toute la largeur. */
 @media (max-width: 599px) {
   .tab-tete {
@@ -2168,9 +2174,14 @@ body.fiche-ouverte {
   .tab-promise {
     grid-column: 1 / -1;
     flex-direction: row;
+    flex-wrap: wrap;
     align-items: baseline;
-    gap: 12px;
+    gap: 0 12px;
     font-size: 44px;
+  }
+  /* Avec le jour, le libellé passe sur sa propre ligne. */
+  .tab-promise:has(.tab-promise-jour) span {
+    flex-basis: 100%;
   }
 }
 .tab-num {

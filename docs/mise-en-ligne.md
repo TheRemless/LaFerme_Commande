@@ -127,7 +127,7 @@ Hors des heures de service, avec Giuseppe ou l'équipe au comptoir, sur la prév
 - [ ] Équipe et Claude : imprimante sans papier puis débranchée. L'alerte doit apparaître sur la tablette, puis la réimpression doit marcher.
 - [ ] Claude : parcours client sur un iPhone, un Android et un ordinateur, puis à 320 px de large.
 - [ ] Claude, avec un iPhone de Jérémy : parcours complet avec VoiceOver (accueil, carte, fiche, panier, commande, suivi). Détail : [accessibilite.md](accessibilite.md).
-- [ ] Claude, avec l'équipe : rejouer sur la vraie infrastructure les essais R-01 à R-13 de [audits/samedi-soir.md](audits/samedi-soir.md) (deux tablettes, double clic sur « Payer », pause datée puis tablette éteinte, veille de la tablette, imprimante débranchée, deux changements d'heure, temps des gestes, redéploiement pendant le service).
+- [ ] Claude, avec l'équipe : rejouer sur la vraie infrastructure les essais R-01 à R-18 de [audits/samedi-soir.md](audits/samedi-soir.md) (deux tablettes, double clic sur « Payer », pause datée puis tablette éteinte, veille de la tablette, imprimante débranchée, deux changements d'heure, temps des gestes, redéploiement pendant le service, tickets des commandes à l'avance sortis le jour J).
 - [ ] Équipe et Claude : jouer trois pages de [pannes.md](pannes.md) en service fictif (imprimante sans papier, tablette figée, retour à la version précédente chez Netlify sur une préversion), avec la page imprimée près de la tablette.
 - [ ] Claude : restaurer la dernière sauvegarde de GitHub dans une base Postgres vide et comparer à son empreinte. Détail : [sauvegardes.md](sauvegardes.md), « Restaurer ».
 - [ ] Jérémy : noter ce qui gêne l'équipe. Claude corrige avant la bascule.
