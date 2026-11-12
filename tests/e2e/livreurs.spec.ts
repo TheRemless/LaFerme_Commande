@@ -162,7 +162,9 @@ test("tournée de deux livraisons, ordre proposé, Je pars, Livrée : plus rien 
   await marco.getByRole("button", { name: /^Je pars avec les \d+$/ }).click();
   await expect(arret(marco, a)).toContainText("En route.");
   await expect(arret(marco, b)).toContainText("En route.");
-  await expect(tournee("Marco")).toContainText("2 livraisons, 2 en route", { timeout: 10_000 });
+  for (const n of [a, b]) {
+    await expect(tournee("Marco").locator(".liv-arret-tab", { hasText: `N° ${n} ` })).toContainText("En route depuis", { timeout: 15_000 });
+  }
   await arret(marco, a).getByRole("button", { name: "Livrée" }).click();
   await expect(arret(marco, a)).toHaveCount(0);
   await arret(marco, b).getByRole("button", { name: "Livrée" }).click();
@@ -200,6 +202,8 @@ test("réseau coupé : Je pars attend, repart seul, un seul e-mail au client", a
   await ongletLivraisons().click();
   await aAttribuer(c).getByRole("button", { name: "À Marco" }).click();
   await marco.reload();
+  // Le livreur a sa liste à l'écran avant d'entrer dans une zone sans réseau.
+  await expect(arret(marco, c).getByRole("button", { name: "Je pars" })).toBeVisible({ timeout: 15_000 });
   await contexteMarco.setOffline(true);
   await arret(marco, c).getByRole("button", { name: "Je pars" }).click();
   await expect(marco.locator(".liv-alerte")).toContainText("Vos gestes partiront seuls au retour du signal.");
@@ -312,7 +316,7 @@ test("livreur déconnecté en tournée : il retrouve sa livraison en se reconnec
   await marco.getByRole("button", { name: "Déconnexion" }).click();
   await expect(marco.getByLabel("E-mail", { exact: true })).toBeVisible();
   expect((await marco.request.get("/api/livreur")).status()).toBe(401);
-  await expect(tournee("Marco")).toContainText("1 livraison, 1 en route");
+  await expect(tournee("Marco").locator(".liv-arret-tab", { hasText: `N° ${c} ` })).toContainText("En route depuis", { timeout: 15_000 });
   // Un code par 30 secondes et par e-mail : on attend avant de redemander.
   await marco.waitForTimeout(31_000);
   await connecter(marco, "/livreur", "marco@laferme.test");
