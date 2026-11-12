@@ -4,6 +4,7 @@ import { courrielConfigure, envoyerCodeParCourriel } from "@/lib/courriel/envoi"
 import { commandeParJeton, fonctionSql } from "@/lib/db/serveur";
 import { empreinte, ipCourt, nouveauCode, nouveauJeton } from "@/lib/comptes/securite";
 import { baseDeTest } from "@/lib/environnement";
+import { alerter } from "@/lib/surveillance";
 
 // Demande et vérification d'un code de connexion. Les limites de débit et le compte vivent en base
 // (demander_code, verifier_code) ; ici, les empreintes et l'envoi du courriel.
@@ -49,10 +50,17 @@ export async function demanderCode(email: string, ip: string): Promise<ResultatD
     p_ip_court: ipCourt(ip),
   });
   if (attente > 0) return { statut: "attente", attente };
-  // -2 : plafond global des codes clients sur 24 heures atteint (quota d'envoi de la boîte du restaurant).
-  // Aucun code n'est créé. À voir dans les journaux : c'est le signe d'un abus ou d'un plafond trop bas.
+  // -2 ou -3 : plafond global des codes clients sur 24 heures atteint (quota d'envoi de la boîte du
+  // restaurant). Aucun code n'est créé. -3 au premier refus : le restaurant est prévenu une fois par 24 heures.
   if (attente < 0) {
     console.error("Plafond quotidien des codes de connexion des clients atteint.");
+    if (attente === -3) {
+      await alerter("Codes de connexion des clients : plafond du jour atteint", [
+        "Le site a envoyé son maximum de codes de connexion aux clients sur 24 heures.",
+        "Les clients ne peuvent plus se connecter à leur compte pour le moment. Ils peuvent toujours commander sans compte.",
+        "Si ce n'est pas un jour d'affluence, quelqu'un abuse sans doute de la page de connexion.",
+      ]).catch((e) => console.error(`Alerte non envoyée : ${e instanceof Error ? e.message : e}`));
+    }
     return { statut: "plafond" };
   }
   const envoye = await envoyerCodeParCourriel({ destinataire: email, ...courrielCode(code) });
