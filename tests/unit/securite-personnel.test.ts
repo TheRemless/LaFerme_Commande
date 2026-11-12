@@ -95,3 +95,22 @@ describe("S4 : alerte quand une adresse de l'équipe est bloquée par des codes 
     expect((await courrielsBlocage()).length).toBe(avant);
   });
 });
+
+describe("S11 : même plancher quand l'envoi échoue", () => {
+  it("une erreur d'envoi pour une adresse de l'équipe ne répond pas plus vite", async () => {
+    const avant = { cle: process.env.RESEND_API_KEY, exp: process.env.COURRIEL_EXPEDITEUR, f: globalThis.fetch };
+    process.env.RESEND_API_KEY = "re_factice";
+    process.env.COURRIEL_EXPEDITEUR = "La Ferme <test@exemple.test>";
+    globalThis.fetch = (async () => new Response("panne", { status: 500 })) as typeof fetch;
+    try {
+      await ouvrirEnvois();
+      const debut = performance.now();
+      await expect(demanderCodePersonnel(EQUIPE, IP)).rejects.toThrow();
+      expect(performance.now() - debut).toBeGreaterThanOrEqual(DUREE_MIN_DEMANDE_MS - 5);
+    } finally {
+      globalThis.fetch = avant.f;
+      if (avant.cle === undefined) delete process.env.RESEND_API_KEY; else process.env.RESEND_API_KEY = avant.cle;
+      if (avant.exp === undefined) delete process.env.COURRIEL_EXPEDITEUR; else process.env.COURRIEL_EXPEDITEUR = avant.exp;
+    }
+  });
+});

@@ -17,8 +17,10 @@ export const DUREE_MIN_DEMANDE_MS = 1500;
 export async function demanderCodePersonnel(email: string, ip: string): Promise<ResultatDemande> {
   const refus = refusSansCourriel(email);
   if (refus) return refus;
-  const [r] = await Promise.all([demander(email, ip), new Promise((ok) => setTimeout(ok, DUREE_MIN_DEMANDE_MS))]);
-  return r;
+  // Même plancher en cas d'erreur (Resend en panne) : un refus rapide trahirait aussi une adresse de l'équipe.
+  const [r] = await Promise.allSettled([demander(email, ip), new Promise((ok) => setTimeout(ok, DUREE_MIN_DEMANDE_MS))]);
+  if (r.status === "rejected") throw r.reason;
+  return r.value;
 }
 
 async function demander(email: string, ip: string): Promise<ResultatDemande> {
