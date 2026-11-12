@@ -104,7 +104,7 @@ GitHub prévient d'un échec, pas d'une tâche qui ne se lance plus. Pour ça, u
 scripts/exploitation/restaurer.sh laferme-base-<date>.dump.age <fichier de la clé privée> "<adresse de connexion du projet neuf, rôle postgres>"
 ```
 
-   Le script déchiffre dans un dossier temporaire effacé à la fin, restaure en une seule transaction (tout ou rien), puis compare le résultat à l'empreinte de la sauvegarde : « Restauration identique à l'empreinte de la sauvegarde. »
+   Le script déchiffre dans un dossier temporaire effacé à la fin, restaure en une seule transaction (tout ou rien), retire les droits que Supabase accorde par défaut à tout objet neuf pour ne garder que ceux de la copie, puis compare le résultat à l'empreinte de la sauvegarde : « Restauration identique à l'empreinte de la sauvegarde. »
 4. Brancher le site sur le nouveau projet : dans Netlify, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` et `SUPABASE_SECRET_KEY` du nouveau projet, puis redéployer. Refaire le rôle `sauvegarde` avec un mot de passe, et le secret GitHub.
 
 ### Essai joué le 12.11.2026
@@ -117,6 +117,8 @@ En local, sur Postgres 17.11 (Homebrew), sans Supabase ni aucune vraie donnée.
 | Rôle `sauvegarde` créé par un administrateur sans super-utilisateur (`createrole bypassrls`, comme `postgres` chez Supabase) | création acceptée ; `delete` refusé, « permission denied » |
 | `sauvegarder.sh` avec ce rôle et restauration d'essai | « Copie restaurée identique à l'original (31 tables) », 247 Ko chiffrés |
 | Premier essai, avant correction | refusé : « schema "public" already exists ». Corrigé : la création du schéma `public` et les droits par défaut sont retirés de la liste de restauration |
+| Restauration dans une base qui a les droits par défaut de Supabase (tout à `anon` et `authenticated` sur chaque objet créé) | premier essai refusé par la comparaison : `anon` recevait tous les droits sur les vues restaurées (`plats_bloquants`…). Corrigé : objets et données, puis retrait de tous les droits, puis droits exacts de la copie, en une seule transaction. Ensuite identique, sur une grappe neuve comme sur une base existante |
+| Même essai, droits d'un visiteur vérifiés dans l'original et dans les deux copies | identiques : pas de lecture des commandes ni de `plats_bloquants`, lecture de la carte, aucune écriture |
 | Fichier chiffré et empreinte | aucune adresse e-mail ni prénom de client en clair (recherche dans les deux fichiers) |
 | `restaurer.sh` dans une troisième base vide | « Restauration identique à l'empreinte de la sauvegarde », 25 commandes, en moins d'une seconde |
 | Droits après restauration | un visiteur (`anon`) ne lit toujours pas les commandes |

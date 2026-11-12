@@ -14,7 +14,11 @@ const DELAI_BASE_MS = 5_000;
 let derniere: { le: number; http: number; corps: unknown } | null = null;
 
 function avecDelai<T>(p: Promise<T>): Promise<T> {
-  return Promise.race([p, new Promise<never>((_, rejeter) => setTimeout(() => rejeter(new Error("délai dépassé")), DELAI_BASE_MS))]);
+  let minuteur: ReturnType<typeof setTimeout> | undefined;
+  const delai = new Promise<never>((_, rejeter) => {
+    minuteur = setTimeout(() => rejeter(new Error("délai dépassé")), DELAI_BASE_MS);
+  });
+  return Promise.race([p, delai]).finally(() => clearTimeout(minuteur));
 }
 
 export async function GET() {
