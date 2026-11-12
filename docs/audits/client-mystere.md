@@ -30,6 +30,35 @@ Corrigés dans la branche `claude/audit-client-mystere-908f44`, captures avant e
 | CM-22 | Un seul nom par plat pour le client (« Margherita ») au suivi, dans l'e-mail, dans le compte et dans les messages d'erreur. Stripe et les tickets de cuisine gardent le nom complet |
 | CM-23 | « − » sur la dernière unité : « Margherita n'est plus dans le panier. Annuler », la ligne revient avec ses options et sa note |
 | CM-26 | Téléphone : après le choix de l'adresse ou d'« À emporter », la page monte juste assez pour montrer « Voir la carte ». La hauteur de la photo d'accueil reste au lot design |
+| Seconde tournée | Refus au paiement (plat épuisé, créneau complet entre-temps) : récapitulatif et bouton recalculés tout de suite, « Changer l'heure » pour un créneau complet, nom de la carte dans la raison |
+
+## Seconde tournée (12.11.2026, vague 2)
+
+En local sur `main` à jour (jusqu'à la PR #27) plus la branche `claude/client-conforts`, base embarquée, heure simulée le mardi 10.11.2026 à 19h05. Script `scripts/audit/tournee-client-2.mjs`, 19 captures dans `docs/audits/captures-client-2/`. Téléphone 390 × 844 et bureau 1440 × 900. Aucune préversion ni base Supabase touchée.
+
+| Cas | Résultat |
+|---|---|
+| Livraison au téléphone : adresse, carte, fiche, panier, paiement de test, suivi | passe, noms de la carte jusqu'au suivi (captures 01 à 06) |
+| À emporter au bureau, recherche « peppino », paiement au comptoir | passe (07 à 09) |
+| Plat mis en rupture par la tablette entre le panier et le paiement | refusé au paiement avec le nom du plat. Trouvé et corrigé. L'écran gardait l'ancien total et un bouton « Payer » actif jusqu'au rechargement. Maintenant la raison, le lien « Modifier le panier » et le bon total s'affichent tout de suite (10, 11) |
+| Créneau devenu complet entre le choix et le paiement (capacité 1, une autre commande prend la place) | refusé « Ce créneau est complet ». Trouvé et corrigé. Aucun lien ne menait au choix de l'heure, ajout de « Changer l'heure ». Revenu à l'accueil, le créneau plein n'est plus proposé (12) |
+| CM-01 adresse à la main « Av. du Gros-Chêne 20, 1213 Onex » | « Dans notre zone de livraison » dès l'accueil (13) |
+| CM-02 et CM-10 sous le minimum | raison et lien juste au-dessus du bouton, barre « de plats pour le minimum » (17, 18) |
+| CM-03 livraison à 22h14 | « Trop tard pour dès que possible », le soir reste proposé (14) |
+| CM-06 veille de fermeture | « Fermé du mardi 22 décembre au lundi 11 janvier. » (15) |
+| CM-08 carte pendant la fermeture | bandeau « La commande en ligne est fermée », carte en lecture (16) |
+| CM-09 téléphone faux | « Vérifiez le numéro de téléphone, il faut au moins neuf chiffres. » sous le champ (19) |
+| CM-04, CM-05, CM-07 | couverts par les tests de bout en bout, verts ; « Dès que possible, vers 19h40 » visible au paiement (05) |
+
+Régressions : aucune sur les dix constats majeurs.
+
+Reste gênant :
+
+- Accueil au téléphone : la photo (un tiers de l'écran) et le titre poussent le champ d'adresse aux deux tiers de la hauteur, sous les boutons de mode. La page monte maintenant toute seule jusqu'à « Voir la carte » après le choix de l'adresse (CM-26), mais à l'arrivée le champ reste bas. À traiter par la session design.
+- Pendant le calcul des prix par le serveur, le bouton affiche « Payer » grisé sans montant ni raison (capture 05, prise juste après la saisie des coordonnées). Bref en local, plus long sur un réseau lent.
+- Un créneau devenu complet n'est connu qu'au clic sur « Payer » : le calcul du panier ne contrôle pas la capacité. Le refus mène maintenant au choix de l'heure.
+- Au comptoir, la limite par connexion (sécurité S5) refuse aussi des commandes passées depuis le même réseau (bureau, famille) : « Trop de commandes à payer au comptoir depuis cette connexion ». Voulu, à surveiller après le lancement.
+- Non vérifiable encore : vrai Stripe (TWINT, cartes, retour arrière après paiement), faute de clé de test.
 
 ## Les 10 constats les plus importants
 
