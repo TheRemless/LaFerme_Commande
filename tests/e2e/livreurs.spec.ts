@@ -1,4 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
+import { SITE } from "./site";
 import { expect, test, type APIRequestContext, type Browser, type BrowserContext, type Page } from "@playwright/test";
 
 // Livreurs : la tablette (1024 px) donne les commandes, deux téléphones (375 px tactiles) les livrent.
@@ -6,7 +7,7 @@ import { expect, test, type APIRequestContext, type Browser, type BrowserContext
 // coupé (geste renvoyé sans doublon), client absent. Un seul projet : les comptes ont un code par 30 s.
 test.describe.configure({ mode: "serial" });
 
-const BASE = process.env.BASE_E2E ?? "http://localhost:3200";
+const BASE = SITE;
 const ORIGINE = { Origin: BASE };
 const TELEPHONE = { viewport: { width: 375, height: 812 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 };
 let tablette: Page;
@@ -262,6 +263,8 @@ test("commande annulée pendant la tournée (adresse introuvable) : remboursée,
   await tablette.getByRole("button", { name: /^En cours/ }).click();
   const cours = tablette.locator(".tab-commande", { has: tablette.locator(".tab-num", { hasText: new RegExp(`^${c}$`) }) });
   await expect(cours).toContainText("Livreur : Marco");
+  // La tablette envoie l'état qu'elle affiche (SS-06) : attendre qu'elle ait relu « Partie ».
+  await expect(cours.locator(".tab-meta")).toContainText("Partie", { timeout: 10_000 });
   await cours.getByRole("button", { name: "Annuler la commande" }).click();
   await cours.getByLabel("Autre motif").fill("Adresse introuvable, livreur revenu");
   await cours.getByRole("button", { name: /^Annuler et rembourser/ }).click();
