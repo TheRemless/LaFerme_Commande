@@ -83,7 +83,7 @@ const arret = (page: Page, numero: string) => page.locator(".liv-arret", { hasTe
 
 test.beforeAll(async ({ browser }, info) => {
   test.skip(info.project.name !== "bureau", "Téléphones et tablette simulés dans ce fichier.");
-  tablette = await browser.newPage({ baseURL: BASE, viewport: { width: 1024, height: 768 } });
+  tablette = await (await browser.newContext({ baseURL: BASE, viewport: { width: 1024, height: 768 } })).newPage();
   await connecter(tablette, "/tablette", "livraison@laferme.test");
   await tablette.getByRole("button", { name: "Continuer sans son" }).click();
   ({ page: marco, contexte: contexteMarco } = await telephone(browser, "marco@laferme.test"));
@@ -91,7 +91,7 @@ test.beforeAll(async ({ browser }, info) => {
 });
 
 test.afterAll(async () => {
-  await tablette?.close();
+  await tablette?.context().close();
   await marco?.context().close();
   await ines?.context().close();
 });
