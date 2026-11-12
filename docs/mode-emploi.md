@@ -1,6 +1,6 @@
 # Mode d'emploi
 
-Deux pages à imprimer. La première se colle en cuisine près de la tablette, la seconde reste avec le gérant. Elles décrivent le site tel qu'il est au 16.11.2026. Le numéro à appeler reste à remplir.
+Trois pages à imprimer. La première se colle en cuisine près de la tablette, la deuxième reste avec le gérant, la troisième se donne à chaque livreur. Elles décrivent le site tel qu'il est au 16.11.2026. Le numéro à appeler reste à remplir.
 
 ---
 
@@ -26,9 +26,9 @@ Ne pas toucher « Continuer sans son ». Sans son, personne n'entend les command
 
 ### Pendant la préparation (onglet « En cours »)
 
-- Toucher « Prête au comptoir » ou « Partie en livraison ». Le client reçoit un e-mail.
+- Toucher « Prête au comptoir ». Le client reçoit un e-mail.
 - À emporter payé au comptoir : quand le client paie et part, toucher « Retirée et payée ».
-- En livraison, toucher « Livrée » au retour du livreur.
+- En livraison, donner la commande à un livreur dans l'onglet « Livraisons ». Il touche « Je pars » puis « Livrée » sur son téléphone. Sans téléphone, toucher ici « Partie en livraison » puis « Livrée » à son retour.
 - « Changer l'heure » envoie la nouvelle heure au client.
 
 ### Il manque un plat ou un supplément sur une commande
@@ -44,7 +44,8 @@ Payée en ligne, le montant lui est remboursé. À payer au comptoir, il est dé
 
 - Il veut changer sa commande. Ce n'est pas possible sur la tablette. Annuler la commande et lui demander de recommander.
 - Il veut annuler. Toucher « Annuler la commande », choisir « À la demande du client » puis toucher « Annuler et rembourser ». Le lien « Fermer » referme le panneau sans rien annuler.
-- La commande est déjà prête, partie ou livrée. Noter son numéro et prévenir le gérant : il rembourse depuis le back-office, en entier ou en partie.
+- La commande est déjà prête ou livrée. Noter son numéro et prévenir le gérant : il rembourse depuis le back-office, en entier ou en partie.
+- La livraison est partie. « Annuler la commande » reste possible et rembourse. Le livreur lit « annulée, rapportez le sac » sur son téléphone. Client absent : voir « Les livraisons » plus bas, rien n'est remboursé.
 
 ### Pendant le service (bouton « Pause, délai, ruptures »)
 
@@ -54,12 +55,25 @@ Payée en ligne, le montant lui est remboursé. À payer au comptoir, il est dé
 - Un plat ou un supplément est fini (burrata, jambon…). Le chercher puis toucher « Disponible », qui devient « Épuisé ». Il revient tout seul le lendemain.
 - Toucher « Fermer les réglages » pour revoir les commandes.
 
+### Les livraisons (onglet « Livraisons »)
+
+- À gauche, les livraisons acceptées sans livreur. Toucher « À Marco » (le prénom du livreur) pour la lui donner.
+- À droite, la tournée de chaque livreur dans l'ordre de passage. Le site le propose : zone 1 avant zone 2, même rue puis même NPA à la suite, sans faire attendre une heure promise plus tôt.
+- Changer l'ordre. Toucher « Plus tôt » ou « Plus tard ». « Reprendre l'ordre proposé » revient au calcul du site.
+- Changer de livreur. Toucher « Donner à… ». L'ancien livreur ne voit plus l'adresse et lit qu'elle a été donnée à un autre.
+- « Reprendre » remet la commande à gauche, sans livreur.
+- Sous le prénom, on lit s'il a la page ouverte sur son téléphone et combien de livraisons sont en route.
+- Problème signalé (client absent, adresse introuvable). Un bandeau jaune s'affiche. Appeler le client ou le livreur. Si ça s'arrange, toucher « Problème réglé ».
+- Client absent qui ne répond pas. Toucher « Client absent : clore » puis « Oui, clore sans rembourser ». Rien n'est remboursé. Le client reçoit un e-mail « commande non remise » et le gérant une alerte. Le gérant décide ensuite dans le back-office.
+- Adresse introuvable ou autre problème sans solution. Annuler la commande dans « En cours ». Payée en ligne, elle est remboursée.
+
 ### Les onglets
 
 | Onglet | Ce qu'il montre |
 |---|---|
 | À accepter | Les commandes qui attendent une réponse |
-| En cours | Les commandes acceptées |
+| En cours | Les commandes acceptées, avec le livreur de chaque livraison |
+| Livraisons | Les livraisons à donner et la tournée de chaque livreur |
 | À l'avance | Les commandes pour un autre jour. Les accepter le jour même, car le ticket sort dès qu'on accepte |
 | Terminées | Les commandes finies ou refusées aujourd'hui. Une commande au comptoir oubliée y garde son bouton « Encaissée » |
 
@@ -96,11 +110,14 @@ Le back-office s'ouvre sur « Commandes ». Les autres rubriques sont juste en d
 
 Le remboursement n'est possible qu'une fois la commande prête, partie ou livrée. Avant, on l'annule sur la tablette.
 
+Client absent à la livraison : la commande est close sans remboursement, avec le motif « Client absent à la livraison. » et une alerte par e-mail au gérant. Ouvrir la commande et décider au cas par cas (rien, une partie ou tout).
+
 ### Équipe
 
-- Ajouter quelqu'un. Prénom, e-mail, accès « Tablette » ou « Tablette et back-office », puis « Ajouter ». Il se connecte avec son e-mail et le code reçu.
+- Ajouter quelqu'un. Prénom, e-mail, accès « Tablette », « Tablette et back-office » ou « Livreur », puis « Ajouter ». Il se connecte avec son e-mail et le code reçu.
+- Un livreur ne voit que ses livraisons en cours, sur la page `/livreur`. Il n'ouvre ni la tablette ni le back-office.
 - Quelqu'un part. Toucher « Retirer » puis confirmer. Son accès est coupé tout de suite.
-- Tablette perdue ou téléphone changé. Toucher « Déconnecter partout ».
+- Tablette perdue ou téléphone changé (celui d'un livreur aussi). Toucher « Déconnecter partout ».
 - Il reste toujours au moins un gérant.
 
 ### Carte
@@ -184,3 +201,43 @@ Le remboursement n'est possible qu'une fois la commande prête, partie ou livré
 4. « Stripe a refusé le remboursement ». Rien n'a été rendu. Réessayer plus tard. « Encore en cours chez Stripe » : attendre une minute, rouvrir la commande puis toucher « Relancer » sur la ligne du remboursement. Il ne part jamais deux fois. Si ça dure, appeler le numéro ci-dessus.
 5. Une commande au comptoir manque dans l'export. Elle n'a pas été notée comme encaissée. Sur la tablette, onglet « Terminées » le jour même, toucher « Encaissée ».
 6. Un e-mail « Connexion bloquée 24 heures » arrive. Quelqu'un a tapé 15 codes faux avec cette adresse. Les appareils déjà connectés continuent de marcher. Pour se connecter ailleurs, attendre l'heure donnée dans l'e-mail ou passer par un appareil déjà connecté.
+
+---
+
+## Page 3. Le téléphone du livreur
+
+Adresse : la page `/livreur` du site, sur votre téléphone. Ajoutez-la à l'écran d'accueil.
+
+Connexion avec votre e-mail et le code reçu par e-mail. Le gérant vous inscrit d'abord dans « Équipe ».
+
+Restaurant : 022 792 16 89
+
+### Ce que vous voyez
+
+- Vos livraisons du moment, dans l'ordre de passage. Le chiffre noir est le rang, la grande heure est celle promise au client.
+- Pour chacune : l'adresse, l'étage, le nom sur la sonnette, le code d'entrée, la consigne du client, le nombre d'articles et le paiement. Aujourd'hui tout est payé en ligne, rien à encaisser.
+- « Itinéraire » ouvre Plans (iPhone) ou votre appli de navigation (Android).
+- « Appeler… » appelle le client.
+- Une livraison livrée disparaît. Une livraison que le restaurant donne à un autre livreur aussi.
+
+### Les trois gestes
+
+1. « Je pars » quand vous quittez le restaurant. Le client reçoit un e-mail « en route ». Avec plusieurs sacs, « Je pars avec les 2 » (ou 3) fait tout d'un coup.
+2. « Livrée » quand le client a son sac.
+3. « Problème » si ça coince. Choisir « Client absent », « Adresse introuvable » ou « Autre », écrire un mot si besoin, puis « Prévenir le restaurant ». La tablette affiche un bandeau. Attendez l'appel du restaurant ou appelez-le.
+
+### Que faire si…
+
+1. « Pas de réseau ». Continuez. Vos gestes partent seuls au retour du signal, une seule fois. Ne fermez pas la page avant.
+2. « N° 12 annulée. Ne la livrez pas, rapportez le sac au restaurant. » Rapportez le sac puis touchez « Compris ».
+3. « N° 12 close, client absent. » Le restaurant n'a pas pu joindre le client. Rapportez le sac puis touchez « Compris ».
+4. « N° 12 donnée à un autre livreur ». Si vous avez le sac, appelez le restaurant. Puis touchez « Compris ».
+5. La page demande un e-mail. Vous êtes déconnecté. Reconnectez-vous : vos livraisons en cours sont toujours là.
+6. Téléphone perdu ou volé. Appelez le restaurant tout de suite. Le gérant touche « Déconnecter partout ».
+
+### Vos données et celles des clients
+
+- Vous ne voyez que vos livraisons en cours, plus rien une fois livrées.
+- Le site garde la trace de chaque geste (qui, quoi, quand) et de chaque adresse affichée sur votre téléphone.
+- Le site ne suit pas votre position. Seul le lien « Itinéraire » transmet l'adresse à votre appli de navigation.
+- Ne faites pas de capture d'écran d'une adresse ou d'un code d'entrée.

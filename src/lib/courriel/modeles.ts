@@ -1,3 +1,4 @@
+import { TELEPHONE_RESTAURANT } from "@/lib/livraisons-textes";
 import type { Commande } from "@/lib/db/serveur";
 import type { Catalogue } from "@/lib/panier";
 import { prixChf, prixCourt } from "@/lib/prix";
@@ -11,7 +12,7 @@ import { ADRESSE_SITE } from "@/lib/site";
 // Rien d'autre que des faits du registre (adresse, téléphone) et le contenu de la commande.
 
 const RESTAURANT = "Restaurant La Ferme, Route de Chancy 132, 1213 Onex";
-const TELEPHONE = "022 792 16 89";
+const TELEPHONE = TELEPHONE_RESTAURANT;
 
 function echapper(t: string): string {
   return t.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -257,6 +258,17 @@ export function courrielPrete(c: Commande) {
     `Votre commande n° ${c.numero} est prête. Vous pouvez venir la chercher, Route de Chancy 132 à Onex.`,
     ...(c.statut_paiement === "a_encaisser_retrait" ? [`Le paiement de ${prixChf(c.total_centimes)} se fait au comptoir.`] : []),
   ]);
+}
+
+// Livraison close, client absent (décision de Jérémy du 12.11.2026) : factuel, sans promesse. Le gérant
+// décide ensuite d'un éventuel remboursement depuis le back-office. Pas de lien de suivi (rien à suivre).
+export function courrielClientAbsent(c: Commande, passageIso: string) {
+  return courrielCourt(
+    c,
+    `Commande ${c.numero} non remise, La Ferme`,
+    [`Notre livreur est passé chez vous vers ${heureDe(passageIso)} avec votre commande n° ${c.numero}.`, "Personne n'a répondu et il est reparti avec la commande."],
+    false,
+  );
 }
 
 // Refus d'une commande qui n'a pas été payée en ligne (paiement au comptoir) : rien à rembourser.

@@ -13,6 +13,9 @@ import { heureDe as heure, jourGeneveDe as jourGeneve } from "@/lib/heures";
 import { heureTexte, jourTexte } from "@/lib/service";
 import { MOTIFS_REFUS } from "@/lib/motifs";
 import { nouvelleCle } from "@/lib/cle";
+import type { DonneesLivraisons } from "@/lib/livreur";
+import { MOTIF_CLIENT_ABSENT } from "@/lib/livraisons-textes";
+import { OngletLivraisons, livraisonsEnCours, problemeTexte } from "@/components/tablette/Livraisons";
 
 // Tablette posée en cuisine : file des commandes, alerte sonore, accepter, refuser, statuts.
 // Relecture toutes les 15 secondes en service, 60 hors service, 5 sans signal Realtime, et tout de suite quand Supabase Realtime signale un changement.
@@ -48,7 +51,7 @@ function etatImprimante(i: EtatImpression["imprimantes"][number]): string {
   return "en ligne";
 }
 
-type Onglet = "traiter" | "cours" | "avance" | "terminees";
+type Onglet = "traiter" | "cours" | "livraisons" | "avance" | "terminees";
 
 const MOTIFS = MOTIFS_REFUS.map(([, m]) => m);
 
@@ -80,6 +83,8 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
   const [son, setSon] = useState(false);
   const [reglagesOuverts, setReglagesOuverts] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  // Livreurs et tournées (onglet « Livraisons ») : relus avec la file, une panne ici ne la bloque pas.
+  const [livraisons, setLivraisons] = useState<DonneesLivraisons | null>(null);
   const audio = useRef<AudioContext | null>(null);
   const verrou = useRef<WakeLockSentinel | null>(null);
   // Seule une tablette qui a démarré le service donne le signe de vie surveillé par le serveur (SS-10).
@@ -88,10 +93,14 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
 
   const charger = useCallback(async () => {
     try {
-      const rep = await fetch(enService.current ? "/api/tablette/file?service=1" : "/api/tablette/file", { cache: "no-store" });
+      const [rep, repLivraisons] = await Promise.all([
+        fetch(enService.current ? "/api/tablette/file?service=1" : "/api/tablette/file", { cache: "no-store" }),
+        fetch("/api/tablette/livraisons", { cache: "no-store" }).catch(() => null),
+      ]);
       if (rep.status === 401) return router.refresh();
       if (!rep.ok) throw new Error(String(rep.status));
       setDonnees(await rep.json());
+      if (repLivraisons?.ok) setLivraisons(await repLivraisons.json());
       setDernierContact(Date.now());
       setHorsLigne(false);
     } catch {
@@ -138,6 +147,7 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
     return {
       traiter: c.filter((x) => x.statut === "nouvelle" && !pourPlusTard(x)),
       cours: c.filter((x) => ["acceptee", "en_preparation", "prete", "partie"].includes(x.statut)).sort(parHeure),
+      livraisons: livraisonsEnCours(c),
       avance: c.filter((x) => x.statut === "nouvelle" && pourPlusTard(x)).sort(parHeure),
       terminees: c.filter((x) => x.statut === "terminee" || x.statut === "refusee").reverse(),
     };
@@ -197,6 +207,15 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
   }
 
   const [confirmerDeconnexion, setConfirmerDeconnexion] = useState(false);
+  async function agirLivraison(corps: Record<string, unknown>) {
+    setMessage(null);
+    const r = await poster("/api/tablette/livraisons", corps);
+    if (r.statut === 401) return router.refresh();
+    if (typeof r.donnees.message === "string") setMessage(r.donnees.message);
+    else if (!r.ok) setMessage(String(r.donnees.erreur ?? "L'action n'est pas passée. Réessayez."));
+    await charger();
+  }
+
   async function deconnecter() {
     await poster("/api/personnel/deconnexion", {});
     router.refresh();
@@ -209,9 +228,19 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
   const liste = listes[onglet];
   // Refus payés dont le remboursement n'est pas passé : visibles jusqu'au remboursement, même le lendemain.
   const aRembourser = (donnees?.commandes ?? []).filter((c) => c.statut === "refusee" && c.statut_paiement === "paye");
+  const nomLivreur = new Map((livraisons?.livreurs ?? []).map((l) => [l.id, l.nom]));
+  const problemes = (livraisons?.livraisons ?? []).filter((l) => l.probleme && ["acceptee", "en_preparation", "partie"].includes(l.commande_statut));
+  // Livreur et rang de passage de chaque commande, pour les cartes de « En cours ».
+  const livraisonDe = new Map(
+    (livraisons?.livraisons ?? []).map((l) => [
+      l.commande_id,
+      { nom: nomLivreur.get(l.livreur_id) ?? "", rang: livraisons!.livraisons.filter((x) => x.livreur_id === l.livreur_id && x.position < l.position && ["acceptee", "en_preparation", "partie"].includes(x.commande_statut)).length + 1, l },
+    ]),
+  );
   const ONGLETS: [Onglet, string][] = [
     ["traiter", "À accepter"],
     ["cours", "En cours"],
+    ["livraisons", "Livraisons"],
     ["avance", "À l'avance"],
     ["terminees", "Terminées"],
   ];
@@ -282,6 +311,11 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
           {i.nom} : {etatImprimante(i)}. Les tickets attendent et sortiront à son retour. Touchez « Ticket » sur une commande pour l&apos;afficher ici.
         </p>
       ))}
+      {problemes.map((l) => (
+        <p key={l.commande_id} className="tab-attente" role="alert">
+          Livraison {l.numero} : {problemeTexte(l)} ({nomLivreur.get(l.livreur_id)}). Ouvrez « Livraisons ».
+        </p>
+      ))}
       {listes.traiter.length > 0 && (
         <p className="tab-attente" role="status">
           {listes.traiter.length === 1 ? "1 commande à accepter" : `${listes.traiter.length} commandes à accepter`}
@@ -306,6 +340,8 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
 
       {donnees === null ? (
         <p className="tab-vide">Chargement…</p>
+      ) : onglet === "livraisons" ? (
+        <OngletLivraisons commandes={donnees.commandes} donnees={livraisons} agir={agirLivraison} />
       ) : liste.length === 0 ? (
         <p className="tab-vide">
           {onglet === "traiter" ? "Aucune commande à accepter." : onglet === "cours" ? "Aucune commande en cours." : onglet === "avance" ? "Aucune commande pour un autre jour." : "Rien de terminé aujourd'hui."}
@@ -319,6 +355,7 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
               aujourdHui={aujourdHui}
               maintenant={donnees.maintenant}
               taches={(donnees.impression.taches ?? []).filter((t) => t.commande_id === c.id)}
+              livraison={livraisonDe.get(c.id)}
               agir={(corps) => agir(c.id, corps)}
               recharger={charger}
             />
@@ -341,6 +378,7 @@ function CarteCommande({
   aujourdHui,
   maintenant,
   taches,
+  livraison,
   agir,
   recharger,
 }: {
@@ -348,6 +386,7 @@ function CarteCommande({
   aujourdHui: string;
   maintenant: string;
   taches: Tache[];
+  livraison?: { nom: string; rang: number; l: DonneesLivraisons["livraisons"][number] };
   agir: (corps: Record<string, unknown>) => Promise<void>;
   recharger: () => Promise<void>;
 }) {
@@ -403,7 +442,7 @@ function CarteCommande({
     en_preparation: "En préparation",
     prete: "Prête au comptoir",
     partie: "Partie",
-    terminee: c.mode === "livraison" ? "Livrée" : "Retirée",
+    terminee: c.motif === MOTIF_CLIENT_ABSENT ? "Non remise, client absent (le gérant décide d'un remboursement)" : c.mode === "livraison" ? "Livrée" : "Retirée",
     refusee: "Refusée",
   };
 
@@ -492,6 +531,18 @@ function CarteCommande({
                     </>
                   )}
                 </>
+              )}
+            </p>
+          )}
+          {c.mode === "livraison" && ACCEPTEES.includes(c.statut) && (
+            <p>
+              {livraison ? (
+                <>
+                  Livreur : <strong>{livraison.nom}</strong>, arrêt {livraison.rang}.
+                  {livraison.l.probleme && <strong className="tab-attend"> Problème : {problemeTexte(livraison.l)}.</strong>}
+                </>
+              ) : (
+                "Pas encore de livreur (onglet « Livraisons »)."
               )}
             </p>
           )}
@@ -588,8 +639,9 @@ function CarteCommande({
               Il manque…
             </button>
           )}
-          {c.statut !== "prete" && c.statut !== "partie" && (
-            // À l'écart des autres boutons : elle annule la commande (et rembourse si elle est payée).
+          {c.statut !== "prete" && (
+            // À l'écart des autres boutons : elle annule la commande (et rembourse si elle est payée). Une
+            // livraison partie s'annule aussi (client absent, adresse introuvable) : le livreur le lit.
             <>
               <span className="tab-saut" aria-hidden="true" />
               <button type="button" className="bouton-second tab-annuler" onClick={() => setPanneau("refuser")}>

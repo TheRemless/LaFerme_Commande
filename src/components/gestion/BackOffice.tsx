@@ -352,7 +352,7 @@ function valeurLisible(cle: string, v: unknown): string {
   return String(v);
 }
 
-const ROLE: Record<string, string> = { service: "tablette", gerant: "tablette et back-office" };
+const ROLE: Record<string, string> = { service: "tablette", gerant: "tablette et back-office", livreur: "livreur" };
 
 function jourCourt(d: unknown): string {
   return jourTexte(String(d).slice(0, 10));

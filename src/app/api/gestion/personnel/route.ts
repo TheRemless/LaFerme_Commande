@@ -22,7 +22,7 @@ function erreurConnue(e: unknown): string | null {
 }
 
 const UUID = /^[0-9a-f-]{36}$/;
-const ROLE = (v: unknown) => (v === "service" || v === "gerant" ? v : null);
+const ROLE = (v: unknown) => (v === "service" || v === "gerant" || v === "livreur" ? v : null);
 
 export async function GET(requete: Request) {
   const g = await exigerGerant(requete, { lecture: true });

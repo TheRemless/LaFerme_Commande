@@ -9,7 +9,12 @@ import { fonctionSql } from "@/lib/db/serveur";
 // Session du personnel, à part de celle des clients : autre cookie, autres empreintes, autre table.
 // SameSite=Strict : la tablette n'arrive jamais sur le site par un lien venu d'ailleurs. 60 jours.
 
-export type Personnel = { id: string; email: string; nom: string; role: "service" | "gerant" };
+export type Role = "service" | "gerant" | "livreur";
+export type Personnel = { id: string; email: string; nom: string; role: Role };
+
+// La tablette et ses routes : service et gérant. Un livreur n'y entre pas (il ne voit que ses livraisons,
+// sur /livreur) : il faut le demander explicitement avec roles.
+const ROLES_TABLETTE: readonly Role[] = ["service", "gerant"];
 
 const DUREE_S = 60 * 24 * 60 * 60;
 
@@ -41,19 +46,26 @@ function refus(message: string, status: number) {
   return NextResponse.json({ erreur: message }, { status, headers: { "Cache-Control": "no-store" } });
 }
 
-// Route de la tablette : requête du site (pour un changement d'état) et membre du personnel connecté.
+// Route de la tablette : requête du site (pour un changement d'état) et membre du personnel connecté,
+// avec un rôle de la tablette (service ou gérant) sauf si roles dit autre chose.
 export async function exigerPersonnel(
   requete: Request,
-  { lecture = false }: { lecture?: boolean } = {},
+  { lecture = false, roles = ROLES_TABLETTE }: { lecture?: boolean; roles?: readonly Role[] } = {},
 ): Promise<{ personnel: Personnel } | { reponse: NextResponse }> {
   if (!lecture && !requeteDuSite(requete)) return { reponse: refus("Requête refusée.", 403) };
   const personnel = await personnelCourant();
   if (!personnel) return { reponse: refus("Session terminée. Reconnectez-vous.", 401) };
+  if (!roles.includes(personnel.role)) return { reponse: refus(personnel.role === "livreur" ? "Réservé à la tablette du restaurant." : "Réservé aux livreurs.", 403) };
   return { personnel };
 }
 
+// Page /livreur et ses routes : rôle livreur seulement.
+export function exigerLivreur(requete: Request, options: { lecture?: boolean } = {}) {
+  return exigerPersonnel(requete, { ...options, roles: ["livreur"] });
+}
+
 export function auteur(p: Personnel): string {
-  return `tablette:${p.nom}`;
+  return `${p.role === "livreur" ? "livreur" : "tablette"}:${p.nom}`;
 }
 
 // Back-office : même contrôle, et rôle gérant exigé.

@@ -35,6 +35,7 @@ const PAGES_SIMPLES = [
   ["compte", "/compte"],
   ["tablette", "/tablette"],
   ["gestion", "/gestion"],
+  ["livreur", "/livreur"],
   ["mentions", "/mentions-legales"],
   ["cgv", "/cgv"],
   ["confidentialite", "/confidentialite"],
@@ -150,6 +151,8 @@ test("axe : tablette et back-office connectés", async ({ page }, info) => {
   await controler(page, "tablette-file");
   await page.getByRole("button", { name: "Pause, délai, ruptures" }).click();
   await controler(page, "tablette-reglages");
+  await page.getByRole("button", { name: /^Livraisons/ }).click();
+  await controler(page, "tablette-livraisons");
   await page.goto("/gestion");
   await expect(page.locator("h1").first()).toBeVisible();
   await controler(page, "gestion");

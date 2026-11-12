@@ -15,6 +15,7 @@ import { commandeParJeton } from "@/lib/db/serveur";
 import { nomClient } from "@/lib/nom-plat";
 import { prixChf, prixCourt } from "@/lib/prix";
 import { PRIVE } from "@/lib/site";
+import { MOTIF_CLIENT_ABSENT } from "@/lib/livraisons-textes";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Suivi de commande, La Ferme", robots: PRIVE };
@@ -40,7 +41,9 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
   const cat = await chargerCatalogue().catch(() => null);
   const estimation = c.heure_confirmee ? null : await chargerConfigService().then((config) => estimationAsap(config, c!)).catch(() => null);
 
-  const position = POSITION[c.statut] ?? -1;
+  // Livraison close, client absent : pas « Livrée » (décision de Jérémy du 12.11.2026).
+  const nonRemise = c.statut === "terminee" && c.motif === MOTIF_CLIENT_ABSENT;
+  const position = nonRemise ? -1 : (POSITION[c.statut] ?? -1);
   const termine = ["terminee", "refusee", "annulee"].includes(c.statut);
   const enregistree = c.statut !== "paiement_en_attente" && c.statut !== "annulee";
   const paiement =
@@ -82,6 +85,12 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
                 {c.motif ?? "Le restaurant ne peut pas préparer cette commande."}
                 {c.statut_paiement === "rembourse" ? " Le montant vous est remboursé." : ""}
               </p>
+            </>
+          )}
+          {nonRemise && (
+            <>
+              <h1>Commande non remise</h1>
+              <p className="suivi-change">Notre livreur est passé chez vous avec votre commande. Personne n&apos;a répondu et il est reparti avec la commande.</p>
             </>
           )}
           {position >= 0 && (

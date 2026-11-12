@@ -308,7 +308,7 @@ function FicheCommande({ id, apresRemboursement }: { id: string; apresRemboursem
       <p>
         <strong>Total {chf(f.total_centimes)}</strong>, {PAIEMENT[f.statut_paiement] ?? f.statut_paiement}.
         {f.rembourse_centimes > 0 ? ` Déjà remboursé : ${chf(f.rembourse_centimes)}.` : ""}
-        {f.motif && f.statut === "refusee" ? ` Motif : ${f.motif}` : ""}
+        {f.motif && (f.statut === "refusee" || f.statut === "terminee") ? ` Motif : ${f.motif}` : ""}
       </p>
 
       <details>

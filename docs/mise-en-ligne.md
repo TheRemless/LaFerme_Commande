@@ -36,7 +36,8 @@ Les clés (Stripe, Resend, Supabase) se saisissent directement dans Netlify. Jam
 ### Entreprise et textes légaux
 
 - [ ] Jérémy : donner la raison sociale, la forme juridique, le numéro IDE, le numéro TVA (si assujetti) et l'adresse e-mail du restaurant (exigée par la LCD). Détail : [legal-sources.md](legal-sources.md).
-- [ ] Jérémy, avec la fiduciaire : durée de conservation des commandes, règle en cas d'absence du client à la livraison, annulation avant acceptation, for juridique. Détail : [legal-sources.md](legal-sources.md).
+- [ ] Jérémy, avec la fiduciaire : durée de conservation des commandes, annulation avant acceptation, for juridique. Détail : [legal-sources.md](legal-sources.md).
+- [ ] CGV, absence du client à la livraison : la règle est décidée (12.11.2026, PR #35) et le site l'applique déjà (livraison close sans remboursement automatique, e-mail au client, le gérant décide au cas par cas). Le paragraphe entre crochets de `src/lib/legal/cgv.ts` doit la décrire, relu par la fiduciaire. Détail : [legal-sources.md](legal-sources.md).
 - [ ] Jérémy : faire relire `/mentions-legales`, `/cgv` et `/confidentialite` par un professionnel, une fois les informations ci-dessus intégrées par Claude (phase 2). Détail : [legal-sources.md](legal-sources.md).
 - [ ] Jérémy : annoncer au SCAV (Service de la consommation et des affaires vétérinaires, Genève) le début de la livraison, avec la description du transport (contenants, maintien au chaud ou au froid, délai). Le formulaire en ligne de ge.ch n'a pas encore été consulté. Détail : [recherche/obligations_legales.md](recherche/obligations_legales.md).
 
