@@ -1,5 +1,5 @@
 import "server-only";
-import { centimes } from "@/lib/gestion";
+import { centimes, slugDe } from "@/lib/gestion";
 import { Classeur, type Feuille, type Valeur } from "@/lib/xlsx-lecture";
 
 // Import du tableau docs/validation-carte.xlsx rempli par Jérémy (onglets Carte, Suppléments pizza,
@@ -65,7 +65,11 @@ export function lireTableau(fichier: ArrayBuffer, actuelle: CarteActuelle): Aper
   const wb = new Classeur(fichier);
   const apercu: Apercu = { plats: [], options: [], lignes: [], avertissements: [] };
 
-  const plats = new Map(actuelle.categories.flatMap((c) => c.plats).map((p) => [normal(p.nom), p]));
+  const tous = actuelle.categories.flatMap((c) => c.plats);
+  const plats = new Map(tous.map((p) => [normal(p.nom), p]));
+  // Un nom changé depuis (back-office, noms harmonisés du 12.11.2026) se retrouve par le slug que
+  // l'ancien nom donnait : un tableau déjà rempli reste valable.
+  const parSlug = new Map(tous.map((p) => [p.slug, p]));
   const carte = wb.feuille("Carte");
   if (!carte) throw new Error("Onglet « Carte » introuvable : est-ce bien le tableau docs/validation-carte.xlsx ?");
   const col = colonnes(carte);
@@ -80,7 +84,7 @@ export function lireTableau(fichier: ArrayBuffer, actuelle: CarteActuelle): Aper
   for (let r = 2; r <= dernierRang(carte); r++) {
     const nom = cellule(carte, r, iNom);
     if (typeof nom !== "string") continue;
-    const p = plats.get(normal(nom));
+    const p = plats.get(normal(nom)) ?? parSlug.get(slugDe(nom, 80));
     if (!p) {
       apercu.avertissements.push(`Ligne ${r} : « ${nom} » n'existe pas dans la carte du site, ligne ignorée.`);
       continue;

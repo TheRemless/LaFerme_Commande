@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { GestionCarte, GestionSupplements, type DonneesCarte } from "@/components/gestion/GestionCarte";
+import { GestionCarte, GestionPlatDuJour, GestionSupplements, type DonneesCarte } from "@/components/gestion/GestionCarte";
 import { GestionCommandes } from "@/components/gestion/GestionCommandes";
 import { GestionEquipe } from "@/components/gestion/GestionEquipe";
 import { GestionImprimantes } from "@/components/gestion/GestionImprimantes";
@@ -11,11 +11,12 @@ import { heureDe, jourGeneveDe } from "@/lib/heures";
 import { poster } from "@/lib/requete-client";
 import { jourTexte } from "@/lib/service";
 
-type Onglet = "commandes" | "carte" | "supplements" | "service" | "imprimantes" | "equipe" | "import" | "export" | "journal";
+type Onglet = "commandes" | "carte" | "jour" | "supplements" | "service" | "imprimantes" | "equipe" | "import" | "export" | "journal";
 
 const ONGLETS: [Onglet, string][] = [
   ["commandes", "Commandes"],
   ["carte", "Carte"],
+  ["jour", "Plat du jour"],
   ["supplements", "Suppléments et pâtes"],
   ["service", "Livraison et horaires"],
   ["imprimantes", "Imprimantes"],
@@ -68,6 +69,7 @@ export function BackOffice({ nom }: { nom: string }) {
       {onglet === "commandes" && <GestionCommandes />}
       {onglet === "equipe" && <GestionEquipe />}
       {onglet === "carte" && (carte ? <GestionCarte donnees={carte} recharger={chargerCarte} version={version} /> : <p className="aide">Chargement…</p>)}
+      {onglet === "jour" && (carte ? <GestionPlatDuJour donnees={carte} recharger={chargerCarte} /> : <p className="aide">Chargement…</p>)}
       {onglet === "supplements" && (carte ? <GestionSupplements donnees={carte} recharger={chargerCarte} /> : <p className="aide">Chargement…</p>)}
       {onglet === "service" && <GestionService />}
       {onglet === "imprimantes" && <GestionImprimantes />}

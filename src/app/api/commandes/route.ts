@@ -7,6 +7,7 @@ import { detailsLigne } from "@/lib/courriel/modeles";
 import { commandeParId, ConfigurationManquante, creerCommande, fonctionSql, lierSessionPaiement } from "@/lib/db/serveur";
 import { origineSure } from "@/lib/origine";
 import { calculerPanier, platDe } from "@/lib/panier";
+import { erreurPlatsDuJour, momentDe } from "@/lib/plat-du-jour";
 import { paiementDisponible, passerelle } from "@/lib/paiement/passerelle";
 import { comptoirPermis } from "@/lib/plafond-comptoir";
 import { prixPhrase } from "@/lib/prix";
@@ -98,6 +99,9 @@ export async function POST(requete: Request) {
   if (!quandPossible(config, maintenant, mode, zone, totaux.pizzas_seulement, quand)) {
     return refus("Ce moment n'est plus disponible. Choisissez une autre heure.");
   }
+  // Plat du jour : seulement le jour dit et pour son service.
+  const jourRefuse = erreurPlatsDuJour(catalogue, lignes, momentDe(config, maintenant, mode, zone, totaux.pizzas_seulement, quand));
+  if (jourRefuse) return refus(`${jourRefuse} Retirez-le ou choisissez une autre heure.`);
 
   // Au comptoir, rien n'est payé avant le retrait : on limite les commandes en attente (audit, S5).
   // Les tests de bout en bout (même téléphone, même IP) coupent la limite ; la production le refuse.
