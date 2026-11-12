@@ -35,7 +35,7 @@ export async function zoneServeur(config: ConfigService, adresse: unknown, exige
       return { erreur: "Le service fédéral des adresses ne répond pas. Réessayez dans un instant.", code: 503 };
     }
     if (!featureId) {
-      return { erreur: "Nous ne trouvons pas cette adresse. Vérifiez-la, ou appelez-nous au 022 792 16 89.", code: 422 };
+      return { erreur: "Nous ne trouvons pas cette adresse. Vérifiez\u2011la, ou appelez\u2011nous au 022\u00a0792\u00a016\u00a089.", code: 422 };
     }
   }
   let npa: string | null;

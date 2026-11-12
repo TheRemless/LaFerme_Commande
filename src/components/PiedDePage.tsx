@@ -11,7 +11,7 @@ export function PiedDePage() {
   return (
     <footer className="pied">
       <p>
-        Restaurant La Ferme, Route de Chancy 132, 1213 Onex. <a href="tel:+41227921689">022 792 16 89</a>
+        Restaurant La Ferme, Route de Chancy&nbsp;132, 1213&nbsp;Onex. <a href="tel:+41227921689">022&nbsp;792&nbsp;16&nbsp;89</a>
       </p>
       {liens && (
         <nav aria-label="Informations légales">

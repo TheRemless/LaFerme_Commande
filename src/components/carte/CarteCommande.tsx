@@ -9,6 +9,7 @@ import { calculerPanier, type Catalogue } from "@/lib/panier";
 import { usePanier, usePrixServeur } from "@/lib/panier-local";
 import { prixChf, prixCourt } from "@/lib/prix";
 import { nomAffiche } from "@/components/Plat";
+import { Icone } from "@/components/Icone";
 import { FichePlat } from "@/components/carte/FichePlat";
 import { ContenuPanier } from "@/components/panier/ContenuPanier";
 
@@ -20,6 +21,8 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
   const fermer = useCallback(() => setOuvert(null), []);
   // La fiche se ferme après l'ajout : on annonce aux lecteurs d'écran ce qui est entré dans le panier.
   const [annonce, setAnnonce] = useState("");
+  // Recherche de plat (maquette Béton, docs/PROMPT.md §7) : nom et description, sans tenir compte des accents.
+  const [recherche, setRecherche] = useState("");
 
   useEffect(() => setChoix(lireChoix()), []);
 
@@ -30,11 +33,18 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
   const nbArticles = lignes.reduce((s, l) => s + l.qte, 0);
   const local = calculerPanier(catalogue, lignes, choix?.mode === "livraison" && choix.zone ? choix.zone : null);
   const montants = reponse && !reponse.erreur ? reponse : local;
+  const q = normaliserRecherche(recherche.trim());
+  const visibles = q
+    ? categories
+        .map((c) => ({ ...c, plats: c.plats.filter((p) => normaliserRecherche(`${nomAffiche(p)} ${p.description ?? ""}`).includes(q)) }))
+        .filter((c) => c.plats.length > 0)
+    : categories;
+  const trouves = visibles.reduce((s, c) => s + c.plats.length, 0);
 
   return (
     <>
       <nav className="cats" aria-label="Catégories">
-        {categories.map((c) => (
+        {visibles.map((c) => (
           <a key={c.slug} href={`#${c.slug}`}>
             {c.nom}
           </a>
@@ -42,12 +52,36 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
       </nav>
       <div className="carte-corps">
         <div className="carte-liste">
+          <div className="carte-recherche" role="search">
+            <label className="sr-only" htmlFor="recherche-plat">
+              Chercher un plat
+            </label>
+            <span className="saisie-recherche">
+              <Icone nom="loupe" />
+              <input
+                id="recherche-plat"
+                type="search"
+                placeholder="Chercher un plat"
+                autoComplete="off"
+                value={recherche}
+                onChange={(e) => setRecherche(e.target.value)}
+              />
+              {recherche && (
+                <button type="button" className="recherche-effacer" aria-label="Effacer la recherche" onClick={() => setRecherche("")}>
+                  <Icone nom="fermer" />
+                </button>
+              )}
+            </span>
+            <p className="recherche-resultat" role="status">
+              {q ? (trouves === 0 ? `Aucun plat ne correspond à « ${recherche.trim()} ».` : `${trouves} plat${trouves > 1 ? "s" : ""}`) : ""}
+            </p>
+          </div>
           {ferme && (
             <p className="panier-alerte" role="status">
               La commande en ligne est fermée en ce moment. La carte reste à consulter. <Link href="/">Voir quand commander</Link>
             </p>
           )}
-          {categories.map((c, i) => {
+          {visibles.map((c, i) => {
             const avecPhoto = c.plats.filter((p) => p.photo);
             const sansPhoto = c.plats.filter((p) => !p.photo);
             const rendre = (p: LignePlat, j: number) => {
@@ -84,7 +118,7 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
             return (
               <section key={c.slug} id={c.slug} className="categorie" aria-labelledby={`${c.slug}-titre`}>
                 <h2 id={`${c.slug}-titre`}>{c.nom}</h2>
-                {c.slug === "pizzas" && <p className="cat-note">Ajoutez ou retirez des ingrédients sur chaque pizza.</p>}
+                {c.slug === "pizzas" && !q && <p className="cat-note">Ajoutez ou retirez des ingrédients sur chaque pizza.</p>}
                 {avecPhoto.length > 0 && <ul className="plats">{avecPhoto.map(rendre)}</ul>}
                 {sansPhoto.length > 0 && <ul className="plats plats-texte">{sansPhoto.map(rendre)}</ul>}
               </section>
@@ -98,7 +132,9 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
       </div>
       {nbArticles > 0 && (
         <Link className="barre-panier" href="/panier">
-          <span className="barre-nb">{nbArticles}</span>
+          <span className="barre-nb" key={nbArticles}>
+            {nbArticles}
+          </span>
           <span className="barre-txt">
             Voir le panier
             {montants.manque_minimum_centimes > 0 && <small>Encore {prixChf(montants.manque_minimum_centimes)} de plats pour le minimum</small>}
@@ -125,4 +161,8 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
       )}
     </>
   );
+}
+
+function normaliserRecherche(t: string): string {
+  return t.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
 }

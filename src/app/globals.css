@@ -10,6 +10,11 @@
   --encre-douce: #55524f;
   --basilic: #3f6a35;
   --filet: #dcdcd8;
+  /* Jaune : seulement ce qui disparaît au lancement (préversion, brouillons, code affiché en local). */
+  --jaune-preversion: #f5e6a3;
+  /* Erreurs et blocages : pas de couleur d'alarme (ni rouge ni jaune), un cadre d'encre épais sur blanc. */
+  --alerte-fond: var(--blanc);
+  --alerte-trait: var(--encre);
   --police: var(--police-archivo), system-ui, sans-serif;
   --hauteur-tete: 60px;
 }
@@ -46,6 +51,16 @@ h3 {
   font-stretch: 62%;
   line-height: 1.02;
   letter-spacing: -0.005em;
+  text-wrap: balance;
+}
+p,
+li,
+dd {
+  text-wrap: pretty;
+}
+/* Mot composé qui ne se coupe pas au trait d'union (« e-mail », « appelez-nous »). */
+.sans-coupure {
+  white-space: nowrap;
 }
 ul {
   list-style: none;
@@ -103,7 +118,7 @@ ul {
 .bandeau-preversion {
   margin: 0;
   padding: 8px max(16px, env(safe-area-inset-left));
-  background: #f5e6a3;
+  background: var(--jaune-preversion);
   font-size: 14px;
   font-weight: 600;
 }
@@ -201,11 +216,20 @@ ul {
 }
 .sans-image .plat-ajout {
   position: static;
-  grid-column: 2;
-  grid-row: 2;
-  justify-self: end;
+  grid-column: 3;
+  grid-row: 1;
+  align-self: start;
   width: 36px;
   height: 36px;
+}
+/* Plat sans photo sur une seule rangée : nom et description à gauche, prix puis « + » à droite (D03).
+   Le « + » ne crée plus de ligne à lui seul, avec ou sans description. */
+.sans-image .plat-carte {
+  grid-template-columns: 1fr auto auto;
+  column-gap: 12px;
+}
+.sans-image .plat-txt {
+  grid-row: 1;
 }
 .plat-media {
   grid-column: 1 / -1;
@@ -266,6 +290,64 @@ ul {
   opacity: 0.6;
 }
 
+/* Recherche de plat : champ blanc posé sur le béton, comme dans la maquette */
+.carte-recherche {
+  padding-top: 20px;
+  max-width: 560px;
+}
+.saisie-recherche {
+  position: relative;
+  display: flex;
+  align-items: center;
+  color: var(--encre);
+}
+.saisie-recherche > .ic {
+  position: absolute;
+  left: 14px;
+}
+.saisie-recherche input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 48px 0 44px;
+  font: inherit;
+  font-size: 17px;
+  color: var(--encre);
+  background: var(--blanc);
+  border: 1px solid var(--blanc);
+  border-radius: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.saisie-recherche input::-webkit-search-cancel-button {
+  display: none;
+}
+.saisie-recherche input::placeholder {
+  color: var(--encre-douce);
+}
+.saisie-recherche input:focus-visible {
+  outline: 3px solid var(--blanc);
+  outline-offset: 2px;
+}
+.recherche-effacer {
+  position: absolute;
+  right: 2px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: var(--encre);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.recherche-resultat {
+  margin: 8px 0 0;
+  font-weight: 600;
+}
+.recherche-resultat:empty {
+  display: none;
+}
+
 /* Plats sans photo : une ligne de texte posée sur le béton */
 .plats-texte {
   grid-template-columns: 1fr;
@@ -279,6 +361,8 @@ ul {
 .sans-image .plat-prix {
   grid-column: 2;
   grid-row: 1;
+  align-self: start;
+  line-height: 36px;
   text-align: right;
 }
 
@@ -301,12 +385,14 @@ ul {
   .categorie h2 {
     font-size: 80px;
   }
+  /* De 900 à 1279 px, la colonne du panier prend sa place : deux colonnes de plats (D09). */
   .plats {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 36px 20px;
   }
   .plats-texte {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px 28px;
     align-items: start;
   }
   .a-photo .plat-prix {
@@ -315,16 +401,60 @@ ul {
   }
 }
 
-@media (min-width: 1280px) {
-  .plats,
-  .plats-texte {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
 
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+}
+
+/* Mouvement (D10) : seulement en réponse à un geste, court, et rien si le système demande moins d'animations.
+   La fiche monte de 24 px en apparaissant, le fond s'assombrit, un bouton pressé s'enfonce légèrement,
+   la barre du panier entre par le bas et son chiffre marque chaque ajout. */
+@keyframes monter {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+@keyframes apparaitre {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes marquer {
+  50% {
+    transform: scale(1.18);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .fiche {
+    animation: monter 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .fiche-fond {
+    animation: apparaitre 200ms ease-out;
+  }
+  .barre-panier {
+    animation: monter 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .barre-nb {
+    animation: marquer 180ms ease-out;
+  }
+  .bouton-principal,
+  .bouton-second,
+  .plat-carte,
+  .choix-mode button,
+  .qte button {
+    transition: transform 80ms ease-out;
+  }
+  .bouton-principal:active:not(:disabled),
+  .bouton-second:active:not(:disabled),
+  .choix-mode button:active,
+  .qte button:active {
+    transform: scale(0.97);
+  }
+  .plat-carte:active:not(:disabled) {
+    transform: scale(0.985);
   }
 }
 
@@ -558,7 +688,7 @@ fieldset.details legend {
   display: grid;
   grid-template-columns: repeat(3, auto);
   justify-content: start;
-  gap: 4px 28px;
+  gap: 4px 22px;
   margin: 0;
 }
 .chiffres dt {
@@ -572,6 +702,13 @@ fieldset.details legend {
   font-stretch: 62%;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* « CHF » en petit devant le montant : la devise est dite sans casser la rangée de chiffres (CM-25). */
+.chiffres .devise {
+  font-size: 15px;
+  font-weight: 600;
+  font-stretch: 100%;
 }
 .details {
   display: grid;
@@ -733,11 +870,13 @@ fieldset.details legend {
 .panier-alerte {
   grid-column: 1 / -1;
   margin: 0;
-  padding: 8px 10px;
+  padding: 10px 12px;
   font-size: 14px;
   font-weight: 600;
-  background: #f5e6a3;
-  border-radius: 3px;
+  color: var(--encre);
+  background: var(--alerte-fond);
+  border: 2px solid var(--alerte-trait);
+  border-radius: 4px;
 }
 .ligne .qte {
   grid-column: 2;
@@ -1022,7 +1161,7 @@ body.fiche-ouverte {
 @media (min-width: 900px) {
   .carte-corps {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 360px;
+    grid-template-columns: minmax(0, 1fr) 320px;
     gap: 32px;
     padding: 0 32px;
   }
@@ -1047,10 +1186,6 @@ body.fiche-ouverte {
   }
   .page-carte {
     padding-bottom: 48px;
-  }
-  .plats,
-  .plats-texte {
-    grid-template-columns: repeat(3, 1fr);
   }
   .fiche {
     inset: 40px auto 40px 50%;
@@ -1092,6 +1227,28 @@ body.fiche-ouverte {
   .fiche-pied {
     grid-column: 2;
     padding: 14px 28px;
+  }
+}
+/* Colonnes de la carte : une sous 900 px (deux pour les vignettes), deux de 900 à 1279 px, trois au-delà. */
+@media (min-width: 1280px) {
+  .carte-corps {
+    grid-template-columns: minmax(0, 1fr) 360px;
+  }
+  .plats,
+  .plats-texte {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+/* Au bureau la fiche est centrée par translateX(-50%) : elle monte sans perdre ce centrage. */
+@keyframes monter-centre {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 16px);
+  }
+}
+@media (min-width: 900px) and (prefers-reduced-motion: no-preference) {
+  .fiche {
+    animation-name: monter-centre;
   }
 }
 
@@ -1356,6 +1513,42 @@ body.fiche-ouverte {
 .tete-compte:hover {
   text-decoration: underline;
 }
+.tete-compte .ic {
+  width: 24px;
+  height: 24px;
+}
+.tete-compte-txt {
+  margin-left: 6px;
+}
+/* Sur téléphone, l'icône seule laisse la place à l'heure et à l'adresse (D07) ; le mot reste lu. */
+@media (max-width: 599px) {
+  .tete-compte {
+    justify-content: center;
+    min-width: 44px;
+  }
+  /* La rue suffit sur un téléphone : la localité coupait le numéro (D07). Logo et écarts un peu réduits
+     pour que « À emporter vers 19h25 » tienne sur 375 px. */
+  .tete-localite {
+    display: none;
+  }
+  .tete {
+    gap: 10px;
+  }
+  .logo img {
+    height: 30px;
+  }
+  .tete-mode {
+    padding-left: 10px;
+  }
+  .tete-compte-txt {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
 .page-compte {
   min-height: calc(100vh - var(--hauteur-tete));
   padding: 8px max(16px, env(safe-area-inset-left)) 56px;
@@ -1408,7 +1601,7 @@ body.fiche-ouverte {
   margin: 0;
   padding: 8px 12px;
   font-size: 14px;
-  background: #f5e6a3;
+  background: var(--jaune-preversion);
   color: var(--encre);
   border-radius: 3px;
 }
@@ -2450,10 +2643,14 @@ body.fiche-ouverte {
   flex-wrap: wrap;
   gap: 4px 18px;
 }
-.pied a {
+.pied nav a {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
+}
+/* Le téléphone dans la phrase d'adresse : zone de toucher agrandie sans écarter les deux lignes (D23). */
+.pied p a {
+  padding: 12px 0;
 }
 .page-carte + .pied {
   padding-bottom: calc(96px + env(safe-area-inset-bottom));
@@ -2486,13 +2683,13 @@ body.fiche-ouverte {
 }
 .legal mark {
   padding: 0 3px;
-  background: #f5e6a3;
+  background: var(--jaune-preversion);
 }
 .legal-ebauche {
   margin: 0;
   padding: 12px 14px;
   font-weight: 600;
-  background: #f5e6a3;
+  background: var(--jaune-preversion);
   border-radius: 4px;
 }
 

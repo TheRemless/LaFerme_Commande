@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { Icone } from "@/components/Icone";
 
 export function EnTete({ children }: { children?: ReactNode }) {
   return (
@@ -11,7 +12,8 @@ export function EnTete({ children }: { children?: ReactNode }) {
       </Link>
       {children}
       <Link className="tete-compte" href="/compte">
-        Compte
+        <Icone nom="compte" />
+        <span className="tete-compte-txt">Compte</span>
       </Link>
     </header>
   );

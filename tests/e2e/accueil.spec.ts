@@ -12,7 +12,8 @@ test("à emporter pendant le service : dès que possible, puis la carte", async 
   await expect(page.getByText(/Dès que possible, vers \d+h\d\d/)).toBeVisible();
   await page.getByRole("button", { name: "Voir la carte" }).click();
   await expect(page).toHaveURL(/\/carte$/);
-  await expect(page.locator(".tete-mode")).toContainText("À emporter, dès que possible");
+  // L'en-tête reprend l'heure annoncée à l'accueil (audit design, D07).
+  await expect(page.locator(".tete-mode")).toContainText(/À emporter vers \d+h\d\d/);
 });
 
 test("restaurant fermé : on commande pour le prochain service", async ({ page }) => {

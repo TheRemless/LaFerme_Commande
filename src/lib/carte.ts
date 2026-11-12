@@ -1,6 +1,7 @@
 import "server-only";
 import { chargerDonneesCarte } from "@/lib/catalogue";
 import { sourceDonnees, type SourceDonnees } from "@/lib/db/lecture";
+import { PHOTOS_RETIREES } from "@/lib/photos";
 
 // Une ligne de la vue carte_publique (supabase/migrations/20261105120000_carte.sql).
 export type LignePlat = {
@@ -32,7 +33,8 @@ export function regrouperParCategorie(lignes: LignePlat[]): Categorie[] {
       c = { slug: l.categorie_slug, nom: l.categorie_nom, ordre: l.categorie_ordre, plats: [] };
       parSlug.set(l.categorie_slug, c);
     }
-    c.plats.push(l);
+    // Une photo retirée (salade mêlée, hors shooting) peut rester inscrite en base : on ne l'affiche pas.
+    c.plats.push({ ...l, photo: l.photo && !PHOTOS_RETIREES.includes(l.photo) ? l.photo : null });
   }
   return [...parSlug.values()]
     .sort((a, b) => a.ordre - b.ordre)
