@@ -9,11 +9,11 @@
 -- (commande_lignes) : archiver un plat ne les touche pas, ni l'export comptable.
 -- Toutes les fonctions sont réservées au rôle service_role (le serveur du site).
 --
--- Objets partagés recréés, chacun à partir de sa dernière définition dans origin/main (rebaser avant de
--- fusionner et revérifier) : vue carte_publique (20261109090000_tablette, + filtre du jour, + colonnes
+-- Objets partagés recréés, chacun à partir de sa dernière définition dans origin/main (revérifié après rebase
+-- sur 2e7b55f : aucune n'a été recréée depuis) : vue carte_publique (20261109090000_tablette, + filtre du jour, + colonnes
 -- jour et jour_service en fin), vue plats_bloquants (20261105120000_carte, mêmes colonnes et motifs),
 -- fonctions plats_tablette (20261109090000_tablette), gestion_carte et modifier_plat (20261110090000_gestion).
--- Contrainte journal_gestion_objet_check : contrôle de forme commun, pas de liste.
+-- Contrainte journal_gestion_objet_check : inchangée (contrôle de forme de 20261117090000_gerant_vague2).
 
 -- ---------- Colonnes ----------
 
@@ -47,10 +47,9 @@ create table photos_plats (
 alter table photos_plats enable row level security;
 revoke all on photos_plats from anon, authenticated;
 
--- Objets de journal « categorie », « photo », « plat_du_jour » : contrôle de forme commun à toutes les
--- sessions (.claude/vague-2-regles.md, « Objets SQL partagés »), jamais une liste fermée.
-alter table journal_gestion drop constraint if exists journal_gestion_objet_check;
-alter table journal_gestion add constraint journal_gestion_objet_check check (objet ~ '^[a-z_]{2,30}$');
+-- Objets de journal « plat_ajoute », « plat_archive », « categorie », « photo », « plat_du_jour » : déjà
+-- permis par le contrôle de forme posé par 20261117090000_gerant_vague2 (objet ~ '^[a-z_]{2,30}$').
+-- Aucun n'est annulable depuis le journal (annuler_journal répond « non_annulable »).
 
 -- ---------- Ce qui bloque un plat ----------
 
@@ -297,7 +296,8 @@ begin
     update plats set commandable = true where id = pid;
   end if;
   select * into apres from plats where id = pid;
-  perform journaliser(p_personnel, 'plat', s, null, to_jsonb(apres) - 'id' - 'cree_le' - 'modifie_le'
+  -- Objet à part : une création ne s'annule pas depuis le journal (annuler_journal n'y touche pas).
+  perform journaliser(p_personnel, 'plat_ajoute', s, null, to_jsonb(apres) - 'id' - 'cree_le' - 'modifie_le'
     || jsonb_build_object('retraits', coalesce(p -> 'retraits', '[]'::jsonb), 'groupes', coalesce(p -> 'groupes', '[]'::jsonb)));
   return jsonb_build_object('slug', s, 'commandable', apres.commandable, 'manques', to_jsonb(m));
 end;
@@ -399,7 +399,8 @@ begin
     commandable = case when p_archiver then false else commandable end
   where id = avant.id
   returning * into apres;
-  perform journaliser(p_personnel, 'plat', p_slug,
+  -- Objet à part : annuler_journal (objet « plat ») ne doit pas lire ces lignes partielles.
+  perform journaliser(p_personnel, 'plat_archive', p_slug,
     jsonb_build_object('archive', avant.archive_le is not null, 'commandable', avant.commandable),
     jsonb_build_object('archive', apres.archive_le is not null, 'commandable', apres.commandable));
   return true;

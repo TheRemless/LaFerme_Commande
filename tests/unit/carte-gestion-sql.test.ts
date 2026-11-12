@@ -92,7 +92,7 @@ describe("ajouter un plat", () => {
     expect(p.ordre).toBe(max);
     const retraits = (await db.query("select nom, a_valider from plat_retraits where plat_id = $1", [p.id])).rows;
     expect(retraits).toEqual([{ nom: "courge", a_valider: false }]);
-    expect(await dernierJournal()).toMatchObject({ objet: "plat", cle: "risotto-essai", avant: null });
+    expect(await dernierJournal()).toMatchObject({ objet: "plat_ajoute", cle: "risotto-essai", avant: null });
     expect(await publics()).not.toContain("risotto-essai");
   });
 
@@ -183,6 +183,19 @@ describe("retirer, archiver, remettre", () => {
     await f("modifier_plat('pizza-margherita', $1, $2)", [{ commandable: true }, gerant]);
     expect(await publics()).toContain("pizza-margherita");
     expect(await dernierJournal()).toMatchObject({ objet: "plat", cle: "pizza-margherita" });
+  });
+
+  it("création et archivage ne s'annulent pas depuis le journal, un changement de champ si", async () => {
+    await f("ajouter_plat($1, $2)", [COMPLET, gerant]);
+    const ajout = await f<number>("(select max(id)::int from journal_gestion)");
+    expect(await erreur("annuler_journal($1, $2)", [ajout, gerant])).toContain("non_annulable");
+    await f("archiver_plat('risotto-essai', true, $1)", [gerant]);
+    const archive = await f<number>("(select max(id)::int from journal_gestion)");
+    expect(await erreur("annuler_journal($1, $2)", [archive, gerant])).toContain("non_annulable");
+    await f("modifier_plat('tiramisu', $1, $2)", [{ description: "Essai" }, gerant]);
+    const modif = await f<number>("(select max(id)::int from journal_gestion)");
+    await f("annuler_journal($1, $2)", [modif, gerant]);
+    expect((await plat("tiramisu")).description).toBe("");
   });
 });
 

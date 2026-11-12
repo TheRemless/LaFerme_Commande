@@ -40,7 +40,7 @@ test("un plat se modifie, ce qui bloque s'affiche, la modification va au journal
   await expect(gestion.getByRole("button", { name: /^Pizza Tonno/ })).not.toContainText("allergènes manquants");
 
   await gestion.getByRole("button", { name: "Journal" }).click();
-  await expect(gestion.locator(".ges-journal-liste")).toContainText("Plat Pizza tonno");
+  await expect(gestion.locator(".ges-journal-liste")).toContainText("Plat Pizza Tonno");
   await expect(gestion.locator(".ges-journal-liste")).toContainText("gluten, lait, poisson (test)");
 });
 

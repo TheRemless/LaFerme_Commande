@@ -278,6 +278,16 @@ function quoi(e: Entree): string {
   switch (e.objet) {
     case "plat":
       return `Plat ${String((e.apres ?? e.avant)?.nom ?? e.cle)}`;
+    case "plat_ajoute":
+      return `Plat ajouté ${String(e.apres?.nom ?? e.cle)}`;
+    case "plat_archive":
+      return `Plat ${e.cle}`;
+    case "plat_du_jour":
+      return `Plat du jour ${String(e.apres?.nom ?? e.cle)}`;
+    case "categorie":
+      return `Catégorie ${e.cle}`;
+    case "photo":
+      return `Photo ${e.cle}`;
     case "option":
       return `Supplément ${e.cle.split("/").slice(1).join("/")}`;
     case "zone":
@@ -316,6 +326,10 @@ const LIBELLES: Record<string, string> = {
   provenance: "Provenance",
   provenances_a_fournir: "Provenances à fournir",
   allergenes: "Allergènes",
+  categorie_id: "Catégorie",
+  groupes: "Options",
+  archive_le: "Archivé le",
+  jour_service: "Service",
   actif: "Proposé",
   frais_centimes: "Frais",
   minimum_centimes: "Minimum",
@@ -365,6 +379,7 @@ function resume(e: Entree): string {
     if (!ap) return `Retirée de la zone ${av.zone_numero}`;
     return `Zone ${av.zone_numero} → zone ${ap.zone_numero}`;
   }
+  if (e.objet === "plat_archive") return e.apres?.archive ? "Archivé" : "Remis à la carte";
   if (e.objet === "remboursement" && e.apres) {
     const a = e.apres as { montant_centimes?: number; motif?: string; moyen?: string };
     return `Commande ${e.cle} : CHF ${((a.montant_centimes ?? 0) / 100).toFixed(2)} remboursés${a.moyen === "especes" ? " en espèces" : ""}. ${a.motif ?? ""}`;

@@ -42,7 +42,7 @@ test("CM-22 : le suivi reprend le nom de la carte", async ({ page }) => {
   await payerEnLigne(page);
   await expect(page.locator(".suivi-detail")).toContainText("2 × Margherita");
   await expect(page.locator(".suivi-detail")).toContainText("1 × Peppino");
-  await expect(page.locator(".suivi-detail")).not.toContainText("Pizza peppino");
+  await expect(page.locator(".suivi-detail")).not.toContainText("Pizza Peppino");
 });
 
 test("CM-15 : un panier de plus de 24 h est vidé avec une explication, une seule fois", async ({ page }) => {
