@@ -114,7 +114,9 @@ export type ReponsePanier = Totaux & { message_quand: string | null; erreur?: st
 
 // Montants calculés par le serveur, redemandés 300 ms après chaque changement du panier.
 // Une réponse ne sert que pour le contenu exact qu'elle a calculé : sinon le navigateur affiche son propre calcul.
-export function usePrixServeur(lignes: LignePanier[], actif: boolean): ReponsePanier | null {
+// relance : un nombre qui change pour redemander le calcul sans changement du panier (plat épuisé
+// entre-temps, refusé au paiement).
+export function usePrixServeur(lignes: LignePanier[], actif: boolean, relance = 0): ReponsePanier | null {
   const [etat, setEtat] = useState<{ cle: string; reponse: ReponsePanier } | null>(null);
   const cle = JSON.stringify(lignes);
   const dernier = useRef(0);
@@ -142,7 +144,7 @@ export function usePrixServeur(lignes: LignePanier[], actif: boolean): ReponsePa
       ctrl.abort();
       window.clearTimeout(t);
     };
-  }, [lignes, actif]);
+  }, [lignes, actif, relance]);
 
   return etat && etat.cle === cle ? etat.reponse : null;
 }

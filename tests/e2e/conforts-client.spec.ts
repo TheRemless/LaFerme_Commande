@@ -88,6 +88,37 @@ test("CM-21 : une adresse tapée avant la fin du chargement est gardée et cherc
   await expect(page.getByLabel("Adresse de livraison")).toHaveValue("Avenue du Gros-Chêne 20");
 });
 
+test("plat épuisé entre le panier et le paiement : le récapitulatif se recalcule après le refus", async ({ page }) => {
+  await poser(page, retrait, [L("pizza-margherita", 2)]);
+  await page.route("**/api/commandes", (r) => r.fulfill({ status: 422, contentType: "application/json", body: JSON.stringify({ erreur: "Margherita : Épuisé pour aujourd'hui." }) }));
+  await page.goto("/commande");
+  await page.getByLabel("Prénom").fill("Test");
+  await page.getByLabel("Nom", { exact: true }).fill("Rupture");
+  await page.getByLabel("Téléphone").fill("079 000 00 00");
+  await page.getByLabel("E-mail", { exact: true }).fill("rupture@laferme.test");
+  await page.waitForLoadState("networkidle");
+  const recalcul = page.waitForRequest("**/api/panier");
+  await page.getByRole("button", { name: /^Payer CHF/ }).click();
+  await expect(page.getByText("Margherita : Épuisé pour aujourd'hui.")).toBeVisible();
+  await recalcul;
+});
+
+test("créneau complet entre le choix et le paiement : le refus mène au choix de l'heure", async ({ page }) => {
+  await poser(page, { ...retrait, quand: { type: "creneau", date: "2026-11-10", minutes: 1230 } }, [L("pizza-margherita", 2)]);
+  await page.route("**/api/commandes", (r) =>
+    r.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ erreur: "Ce créneau est complet. Choisissez une autre heure ou appelez-nous au 022 792 16 89." }) }),
+  );
+  await page.goto("/commande");
+  await page.getByLabel("Prénom").fill("Test");
+  await page.getByLabel("Nom", { exact: true }).fill("Complet");
+  await page.getByLabel("Téléphone").fill("079 000 00 00");
+  await page.getByLabel("E-mail", { exact: true }).fill("complet@laferme.test");
+  await page.getByRole("button", { name: /^Payer CHF/ }).click();
+  const alerte = page.locator(".commande-form .panier-alerte");
+  await expect(alerte).toContainText("Ce créneau est complet.");
+  await expect(alerte.getByRole("link", { name: "Changer l'heure" })).toHaveAttribute("href", "/");
+});
+
 test.describe("téléphone", () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
 
