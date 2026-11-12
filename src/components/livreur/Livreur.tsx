@@ -7,6 +7,7 @@ import { poster } from "@/lib/requete-client";
 import { heureDe as heure } from "@/lib/heures";
 import { prixChf } from "@/lib/prix";
 import { lienNavigation, plateformeDe, type Plateforme } from "@/lib/navigation";
+import { PROBLEME_LIBELLE, TELEPHONE_RESTAURANT } from "@/lib/livraisons-textes";
 
 // Téléphone du livreur, tenu d'une main. Ses livraisons en cours dans l'ordre de passage, trois gestes.
 // Un geste part avec une clé : sans réseau, il attend dans le téléphone (clé, commande, geste, sans
@@ -19,13 +20,7 @@ type EnAttente = { cle: string; commande: string; geste: Geste; motif?: Probleme
 const STOCKAGE = "laferme-livreur-gestes";
 const RELECTURE_MS = 15_000;
 const RENVOI_MS = 5_000;
-const TELEPHONE_RESTAURANT = "022 792 16 89";
-
-const PROBLEMES: [Probleme, string][] = [
-  ["client_absent", "Client absent"],
-  ["adresse_introuvable", "Adresse introuvable"],
-  ["autre", "Autre"],
-];
+const PROBLEMES = Object.entries(PROBLEME_LIBELLE) as [Probleme, string][];
 
 function lireAttente(): EnAttente[] {
   try {
@@ -88,7 +83,8 @@ export function Livreur({ nom, supabase }: { nom: string; supabase: { url: strin
         const g = attenteRef.current[0];
         const { numero, ...corps } = g;
         const r = await poster("/api/livreur", corps);
-        if (r.statut === 0) {
+        if (r.statut === 0 || r.statut >= 500) {
+          // Pas de réseau, ou serveur qui ne répond pas : le geste reste et repart au prochain essai.
           setHorsLigne(true);
           break;
         }

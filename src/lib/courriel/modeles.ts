@@ -1,3 +1,4 @@
+import { TELEPHONE_RESTAURANT } from "@/lib/livraisons-textes";
 import type { Commande } from "@/lib/db/serveur";
 import type { Catalogue } from "@/lib/panier";
 import { prixChf, prixCourt } from "@/lib/prix";
@@ -11,7 +12,7 @@ import { ADRESSE_SITE } from "@/lib/site";
 // Rien d'autre que des faits du registre (adresse, téléphone) et le contenu de la commande.
 
 const RESTAURANT = "Restaurant La Ferme, Route de Chancy 132, 1213 Onex";
-const TELEPHONE = "022 792 16 89";
+const TELEPHONE = TELEPHONE_RESTAURANT;
 
 function echapper(t: string): string {
   return t.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);

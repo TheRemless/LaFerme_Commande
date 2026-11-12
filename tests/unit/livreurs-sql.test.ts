@@ -133,6 +133,19 @@ describe("attribution", () => {
   });
 });
 
+describe("rendue au même livreur", () => {
+  it("Marco → Inès → Marco : la livraison est dans sa liste, sans alerte « n'est plus à vous »", async () => {
+    const c = await livraison();
+    await attribuer(c, marco);
+    await attribuer(c, ines);
+    await attribuer(c, marco);
+    const m = await liste(marco);
+    expect(m.livraisons.map((x) => x.commande_id)).toEqual([c]);
+    expect(m.retirees).toEqual([]);
+    expect((await liste(ines)).retirees.map((x) => x.raison)).toEqual(["reattribuee"]);
+  });
+});
+
 describe("gestes", () => {
   it("« Je pars » renvoyé après une coupure : une seule fois partie, un seul e-mail", async () => {
     const c = await livraison();

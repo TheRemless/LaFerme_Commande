@@ -233,7 +233,7 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
   const livraisonDe = new Map(
     (livraisons?.livraisons ?? []).map((l) => [
       l.commande_id,
-      { nom: nomLivreur.get(l.livreur_id) ?? "", rang: livraisons!.livraisons.filter((x) => x.livreur_id === l.livreur_id && x.position < l.position).length + 1, l },
+      { nom: nomLivreur.get(l.livreur_id) ?? "", rang: livraisons!.livraisons.filter((x) => x.livreur_id === l.livreur_id && x.position < l.position && ["acceptee", "en_preparation", "partie"].includes(x.commande_statut)).length + 1, l },
     ]),
   );
   const ONGLETS: [Onglet, string][] = [

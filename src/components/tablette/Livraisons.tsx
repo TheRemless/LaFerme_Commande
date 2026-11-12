@@ -4,15 +4,12 @@ import { useState } from "react";
 import type { DonneesLivraisons, LivraisonTablette, LivreurTablette } from "@/lib/livreur";
 import type { CommandeTablette } from "@/lib/tablette";
 import { heureDe as heure } from "@/lib/heures";
+import { PROBLEME_LIBELLE } from "@/lib/livraisons-textes";
 
 // Onglet « Livraisons » de la tablette : commandes à donner à un livreur, tournée de chaque livreur dans
 // l'ordre de passage (proposé, modifiable à la main), état de chaque livraison et problèmes signalés.
 
-export const PROBLEME_TEXTE: Record<string, string> = {
-  client_absent: "client absent",
-  adresse_introuvable: "adresse introuvable",
-  autre: "autre problème",
-};
+const PROBLEME_TEXTE: Record<string, string> = Object.fromEntries(Object.entries(PROBLEME_LIBELLE).map(([k, v]) => [k, k === "autre" ? "autre problème" : v.toLowerCase()]));
 
 const EN_COURS = ["acceptee", "en_preparation", "partie"];
 

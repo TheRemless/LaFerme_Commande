@@ -316,8 +316,9 @@ begin
     return false;
   end if;
   insert into journal_livraisons (commande_id, personnel_id, par, evenement, detail)
-  select p_commandes[1], p_livreur, p_par, case when p_manuel then 'ordre_manuel' else 'ordre_propose' end, numeros
-  where exists (select 1 from commandes where id = p_commandes[1]);
+  select l.commande_id, p_livreur, p_par, case when p_manuel then 'ordre_manuel' else 'ordre_propose' end, numeros
+  from livraisons l where l.livreur_id = p_livreur and l.retiree_le is null and l.commande_id = any(p_commandes)
+  order by l.position limit 1;
   return true;
 end;
 $$;
@@ -380,7 +381,9 @@ begin
       ) order by o.numero)
       from livraisons l join commandes o on o.id = l.commande_id
       where l.livreur_id = p_livreur and l.retrait_vu_le is null and l.attribuee_le > now() - interval '12 hours'
-        and ((l.retiree_le is not null and l.raison_retrait in ('reattribuee', 'retiree'))
+        and ((l.retiree_le is not null and l.raison_retrait in ('reattribuee', 'retiree')
+              -- Rendue au même livreur entre-temps : elle est dans sa liste, pas d'alerte.
+              and not exists (select 1 from livraisons y where y.commande_id = l.commande_id and y.livreur_id = p_livreur and y.retiree_le is null))
           or (l.retiree_le is null and o.statut in ('refusee', 'annulee')))
     ), '[]'::jsonb)
   ) into r;
