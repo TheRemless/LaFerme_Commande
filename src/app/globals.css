@@ -1537,8 +1537,26 @@ body.fiche-ouverte {
   .logo img {
     height: 30px;
   }
+  /* Le mode et l'heure passent sur deux lignes plutôt que d'être coupés (« dès que possible », 320 px).
+     Trois lignes de 13 px tiennent dans les 60 px de l'en-tête : la barre des catégories reste en place. */
+  .tete {
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
   .tete-mode {
+    flex: 1 1 auto;
     padding-left: 10px;
+    font-size: 13px;
+    line-height: 1.2;
+  }
+  .logo {
+    flex: none;
+  }
+  .tete-mode strong {
+    display: -webkit-box;
+    white-space: normal;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
   .tete-compte-txt {
     position: absolute;
@@ -1547,6 +1565,16 @@ body.fiche-ouverte {
     overflow: hidden;
     clip: rect(0 0 0 0);
     white-space: nowrap;
+  }
+}
+/* 320 px (petits iPhone) : logo et marges réduits pour garder la rue et son numéro entiers. */
+@media (max-width: 359px) {
+  .tete {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .logo img {
+    height: 22px;
   }
 }
 .page-compte {
