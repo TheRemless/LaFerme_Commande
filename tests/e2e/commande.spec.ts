@@ -93,3 +93,38 @@ test("un jeton inconnu donne une page introuvable", async ({ page }) => {
 test("les courriels de test exigent le jeton de la commande", async ({ page }) => {
   expect((await page.goto("/dev/courriels"))?.status()).toBe(404);
 });
+
+// Plafond du paiement au comptoir (décision de Jérémy du 12.11.2026) : montant et prix lus sur le serveur.
+async function quantiteAuDelaDuPlafond(request: import("@playwright/test").APIRequestContext) {
+  const rep = await request.post("/api/panier", {
+    data: { lignes: [{ slug: "pizza-margherita", qte: 1, choix: {}, retraits: [], note: "" }], mode: "retrait", quand: { type: "asap" }, heure: "2026-11-10T19:05" },
+  });
+  const r = (await rep.json()) as { total_centimes: number; plafond_comptoir_centimes: number | null };
+  expect(r.plafond_comptoir_centimes).toBeGreaterThan(0);
+  const qte = Math.floor(r.plafond_comptoir_centimes! / r.total_centimes) + 1;
+  expect(qte).toBeLessThanOrEqual(20);
+  return qte;
+}
+
+test("au-delà du plafond, le comptoir est grisé avec sa raison et le serveur le refuse", async ({ page, request }) => {
+  const qte = await quantiteAuDelaDuPlafond(request);
+  await preparer(page, "retrait");
+  await page.addInitScript((qte) => {
+    localStorage.setItem("laferme.panier.v1", JSON.stringify({ le: Date.now(), lignes: [{ slug: "pizza-margherita", qte, choix: {}, retraits: [], note: "" }] }));
+  }, qte);
+  await remplir(page);
+  const comptoir = page.getByRole("radio", { name: /Au comptoir/ });
+  await expect(comptoir).toBeDisabled();
+  await expect(page.getByText(/Le paiement au comptoir est possible jusqu'à CHF\s\d/)).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Payer CHF/ })).toBeEnabled();
+
+  const refus = await request.post("/api/commandes", {
+    data: {
+      cle: `plafond-${Date.now()}`, mode: "retrait", moyen: "comptoir", quand: { type: "asap" }, heure: "2026-11-10T19:05",
+      client: { prenom: "Test", nom: "Plafond", telephone: "079 000 00 00", email: "plafond@exemple.ch" },
+      lignes: [{ slug: "pizza-margherita", qte, choix: {}, retraits: [], note: "" }],
+    },
+  });
+  expect(refus.status()).toBe(422);
+  expect((await refus.json()).erreur).toMatch(/jusqu'à CHF\s\d/);
+});

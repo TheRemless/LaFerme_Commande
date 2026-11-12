@@ -62,5 +62,10 @@ export async function POST(requete: Request) {
     }
   }
 
-  return NextResponse.json({ ...totaux, valide: totaux.valide && messageQuand === null, message_quand: messageQuand });
+  return NextResponse.json({
+    ...totaux,
+    valide: totaux.valide && messageQuand === null,
+    message_quand: messageQuand,
+    plafond_comptoir_centimes: config.plafondComptoirCentimes,
+  });
 }

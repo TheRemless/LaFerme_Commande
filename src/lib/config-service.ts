@@ -1,6 +1,7 @@
 import "server-only";
 import { unstable_cache } from "next/cache";
 import { lirePublic } from "@/lib/db/lecture";
+import { lirePlafondComptoir } from "@/lib/plafond-comptoir";
 import type { ConfigService, Fermeture, Horaire, Zone, ZoneNpa } from "@/lib/service";
 
 type LigneReglage = { cle: string; valeur: unknown };
@@ -12,7 +13,7 @@ function nombre(reglages: LigneReglage[], cle: string): number {
 }
 
 // Tout ce qu'il faut pour décider zone, créneaux et état du restaurant, lu en base.
-async function lireConfigService(): Promise<ConfigService> {
+async function lireConfigService(): Promise<ConfigService & { plafondComptoirCentimes: number | null }> {
   const [zones, npa, horaires, fermetures, reglages] = await Promise.all([
     lirePublic<Zone>("zones_livraison"),
     lirePublic<ZoneNpa>("zone_npa"),
@@ -50,6 +51,8 @@ async function lireConfigService(): Promise<ConfigService> {
         auto: reglages.find((r) => r.cle === "pause_auto")?.valeur === true,
       };
     })(),
+    // Plafond des commandes à payer au comptoir ; null si le réglage manque (pas de comptoir).
+    plafondComptoirCentimes: lirePlafondComptoir(reglages),
   };
 }
 

@@ -8,6 +8,7 @@ import { commandeParId, ConfigurationManquante, creerCommande, fonctionSql, lier
 import { origineSure } from "@/lib/origine";
 import { calculerPanier } from "@/lib/panier";
 import { paiementDisponible, passerelle } from "@/lib/paiement/passerelle";
+import { comptoirPermis, montantPlafond } from "@/lib/plafond-comptoir";
 import { depuisHeureGeneve, messagePause, messageSansCreneau, pauseEnCours, quandPossible, type Zone } from "@/lib/service";
 import { requeteDuSite } from "@/lib/comptes/origine-requete";
 import { compteCourant, jetonSession } from "@/lib/comptes/session";
@@ -21,6 +22,12 @@ import { zoneServeur, type AdresseRetenue } from "@/lib/zone-serveur";
 
 function refus(message: string, status = 422) {
   return NextResponse.json({ erreur: message }, { status });
+}
+
+function refusPlafond(plafond: number | null) {
+  return plafond === null
+    ? "Le paiement au comptoir est indisponible pour le moment. Payez en ligne ou appelez-nous au 022 792 16 89."
+    : `Le paiement au comptoir est possible jusqu'à ${montantPlafond(plafond)}. Payez en ligne ou appelez-nous au 022 792 16 89.`;
 }
 
 export async function POST(requete: Request) {
@@ -75,6 +82,10 @@ export async function POST(requete: Request) {
   const erreurLigne = totaux.lignes.find((l) => l.erreur);
   if (erreurLigne) return refus(`${erreurLigne.nom} : ${erreurLigne.erreur}`);
   if (totaux.manque_minimum_centimes > 0) return refus("Le minimum de livraison n'est pas atteint.");
+  // Au comptoir, rien n'est payé avant le retrait : au-delà du plafond (réglage en base), en ligne seulement.
+  if (moyen === "comptoir" && !comptoirPermis(totaux.total_centimes, config.plafondComptoirCentimes)) {
+    return refus(refusPlafond(config.plafondComptoirCentimes));
+  }
 
   const preversion = process.env.CONTEXTE_DEPLOIEMENT !== "production";
   const maintenant = (preversion && typeof corps.heure === "string" ? depuisHeureGeneve(corps.heure) : null) ?? new Date();
@@ -145,6 +156,8 @@ export async function POST(requete: Request) {
     if (e instanceof ConfigurationManquante) return refus(e.message, 503);
     // Capacité du créneau atteinte, contrôlée en base sous verrou (audit « samedi soir », SS-02).
     if (e instanceof Error && e.message.includes("creneau_complet")) return refus("Ce créneau est complet. Choisissez une autre heure ou appelez-nous au 022 792 16 89.", 409);
+    // Plafond revérifié par la base (réglage changé dans la minute du cache).
+    if (e instanceof Error && e.message.includes("plafond_comptoir")) return refus(refusPlafond(null));
     throw e;
   }
   const suivi = `${origine}/suivi/${creee.jeton_suivi}`;
