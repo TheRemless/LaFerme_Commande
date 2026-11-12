@@ -188,8 +188,9 @@ export async function agir(commandeId: string, a: Action, p: Personnel): Promise
       break;
     case "retiree_payee":
       // Retrait payé au comptoir : encaissée et retirée d'un seul geste (audit du gérant, G01).
-      if (avant.statut_paiement === "a_encaisser_retrait") await fonctionSql<boolean>("marquer_encaisse", { p_commande: commandeId, p_par: par });
+      if (avant.statut !== "prete") break;
       ok = await changerStatut(commandeId, "terminee", par, { de: "prete" });
+      if (ok && avant.statut_paiement === "a_encaisser_retrait") await fonctionSql<boolean>("marquer_encaisse", { p_commande: commandeId, p_par: par });
       break;
     case "reimprimer":
       if (!["acceptee", "en_preparation", "prete", "partie", "terminee"].includes(avant.statut)) return { ok: false, message: "Seule une commande acceptée s'imprime." };

@@ -141,6 +141,13 @@ describe("G01 : retrait payé au comptoir", () => {
     expect(await etat(c.id)).toMatchObject({ statut: "terminee", statut_paiement: "encaisse" });
   });
 
+  it("revue : « Retirée et payée » sur une commande pas encore prête ne note pas l'encaissement", async () => {
+    const c = await nouvelle();
+    await agir(c.id, { action: "accepter", heure: heure() }, personnel);
+    expect((await agir(c.id, { action: "retiree_payee" }, personnel)).ok).toBe(false);
+    expect(await etat(c.id)).toMatchObject({ statut: "acceptee", statut_paiement: "a_encaisser_retrait" });
+  });
+
   it("une commande déjà retirée sans être encaissée peut encore l'être", async () => {
     const c = await nouvelle();
     await agir(c.id, { action: "accepter", heure: heure() }, personnel);

@@ -248,6 +248,24 @@ begin
 end;
 $$;
 
+-- État des imprimantes et des tickets : en plus des 18 dernières heures, les tickets des commandes encore
+-- en cours (une commande à l'avance acceptée trois jours plus tôt garde son état « imprimé » sur la tablette).
+create or replace function etat_impression() returns jsonb
+language sql stable as $$
+  select jsonb_build_object(
+    'imprimantes', coalesce((select jsonb_agg(jsonb_build_object(
+      'id', i.id, 'nom', i.nom, 'station', i.station, 'actif', i.actif, 'liee', i.mac is not null,
+      'vue_le', i.vue_le, 'en_ligne', i.vue_le > now() - interval '60 seconds', 'statut_code', i.statut_code
+    ) order by i.station, i.id) from imprimantes i), '[]'::jsonb),
+    'taches', coalesce((select jsonb_agg(jsonb_build_object(
+      'id', t.id, 'commande_id', t.commande_id, 'station', t.station, 'etat', t.etat, 'reimpression', t.reimpression,
+      'tentatives', t.tentatives, 'derniere_erreur', t.derniere_erreur, 'cree_le', t.cree_le
+    ) order by t.cree_le) from taches_impression t
+    where t.cree_le > now() - interval '18 hours'
+       or exists (select 1 from commandes c where c.id = t.commande_id and c.statut in ('acceptee', 'en_preparation', 'prete', 'partie'))), '[]'::jsonb)
+  );
+$$;
+
 -- ---------- SS-17 : « Réimprimer » pendant une panne ----------
 -- Une réimpression ne crée pas de second ticket pour un poste dont le ticket attend encore en file.
 create or replace function creer_taches_impression(p_commande uuid, p jsonb, p_reimpression boolean) returns integer

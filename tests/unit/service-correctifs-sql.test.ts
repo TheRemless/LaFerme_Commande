@@ -251,6 +251,17 @@ describe("SS-09 : alerte de commande non acceptée", () => {
 });
 
 describe("petits correctifs d'impression", () => {
+  it("revue : les tickets d'une commande acceptée il y a plus de 18 heures restent visibles tant qu'elle est en cours", async () => {
+    await horloge("2026-11-11T09:00:00Z");
+    const c = await creer({ quand_type: "creneau", quand_date: "2026-11-14", quand_minutes: 1170 });
+    expect(await changer(c.id, "acceptee", "2026-11-14T18:30:00Z")).toBe(true);
+    await f("creer_taches_impression($1, $2, false)", [c.id, [{ station: "pizza", contenu: [{ t: "texte", texte: "x" }] }]]);
+    await db.query("update taches_impression set cree_le = now() where commande_id = $1", [c.id]);
+    await horloge("2026-11-14T17:00:00Z");
+    const taches = (await f<{ taches: { commande_id: string }[] }>("etat_impression()")).taches;
+    expect(taches.some((t) => t.commande_id === c.id)).toBe(true);
+  });
+
   it("SS-17 : « Réimprimer » ne double pas un ticket encore en file", async () => {
     await db.query("insert into imprimantes (nom, station, jeton_hache, mac) values ('P', 'pizza', 'h-p', '00:11:62:00:00:01')");
     const c = await creer();
