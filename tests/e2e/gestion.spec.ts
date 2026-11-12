@@ -106,6 +106,8 @@ test("une commande passée se retrouve et se rembourse en partie", async ({}, in
   await gestion.getByRole("button", { name: "Commandes", exact: true }).click();
   await gestion.getByLabel("Nom, téléphone ou numéro").fill(prenom);
   await gestion.getByRole("button", { name: "Chercher" }).click();
+  // La liste du jour montre déjà la commande : attendre le résultat de la recherche avant d'ouvrir la fiche.
+  await expect(gestion.getByRole("heading", { name: new RegExp(`^Recherche « ${prenom} »`) })).toBeVisible();
   await gestion.getByRole("button", { name: new RegExp(`${prenom} Test`) }).click();
   const fiche = gestion.locator(".ges-fiche-commande");
   await fiche.getByLabel("Montant à rembourser (CHF)").fill("5");

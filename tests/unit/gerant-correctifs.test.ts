@@ -3,14 +3,16 @@ import { baseLocale } from "@/lib/db/locale";
 
 // Correctifs de l'audit « journée du gérant » côté serveur (docs/audits/gerant.md) : remboursement après
 // coup avec Stripe remplacé (montant, clé, panne), export comptable, retard du soir, courriels d'annulation.
-const stripe = { panne: false, appels: [] as { pi: string; montantCentimes?: number; cle?: string }[] };
+// panne : erreur nette de Stripe (refus) ; muet : pas de réponse claire (délai, réseau), le remboursement a pu partir.
+const stripe = { panne: false, muet: false, appels: [] as { pi: string; montantCentimes?: number; cle?: string }[] };
 vi.mock("@/lib/paiement/passerelle", async (original) => ({
   ...(await original<typeof import("@/lib/paiement/passerelle")>()),
   passerelle: () => ({
     nom: "stripe",
     async rembourser(pi: string, options: { montantCentimes?: number; cle?: string } = {}) {
       stripe.appels.push({ pi, ...options });
-      if (stripe.panne) throw new Error("Stripe indisponible (simulé)");
+      if (stripe.panne) throw Object.assign(new Error("Refus de Stripe (simulé)"), { type: "StripeInvalidRequestError" });
+      if (stripe.muet) throw Object.assign(new Error("Délai dépassé (simulé)"), { type: "StripeConnectionError" });
       return { id: `re_${options.cle ?? pi}` };
     },
     async creerSession() {
@@ -161,6 +163,20 @@ describe("créneaux pleins côté client", () => {
     expect(creneauxLibres(liste, pleins, "retrait").map((c) => c.minutes)).toEqual([1170, 1185]);
     expect(creneauxLibres(liste, pleins, "livraison").map((c) => c.minutes)).toEqual([1155, 1185]);
     expect(creneauxLibres(liste, [], "retrait")).toHaveLength(3);
+  });
+});
+
+describe("revue de sécurité du lot gérant", () => {
+  it("sans réponse claire de Stripe, le remboursement reste en cours et se relance avec la même clé", async () => {
+    const c = await terminee();
+    const db = await baseLocale();
+    stripe.muet = true;
+    const r = await rembourserApresCoup(c.id, 2000, "Retard.", "geste-test-muet1", gerant);
+    stripe.muet = false;
+    expect(r.ok).toBe(false);
+    expect(r.message).toContain("en cours");
+    expect((await db.query<{ statut: string }>("select statut from remboursements where cle = 'geste-test-muet1'")).rows[0].statut).toBe("en_cours");
+    expect((await rembourserApresCoup(c.id, 2000, "Retard.", "geste-test-muet1", gerant)).ok).toBe(true);
   });
 });
 

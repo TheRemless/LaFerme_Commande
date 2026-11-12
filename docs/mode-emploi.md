@@ -153,5 +153,5 @@ Le remboursement n'est possible qu'une fois la commande prête, partie ou livré
 1. « Prix invalide » ou « Montant invalide ». Écrire 18 ou 18.50, sans « .- » ni « CHF ».
 2. Le code n'arrive pas. Attendre 30 secondes, toucher « Renvoyer un code » et regarder les courriers indésirables.
 3. « Réservé au gérant ». Le compte utilisé a l'accès « Tablette ». Se reconnecter avec l'e-mail du gérant.
-4. « Stripe a refusé le remboursement ». Rien n'a été rendu. Réessayer plus tard. Si ça dure, appeler le numéro ci-dessus.
+4. « Stripe a refusé le remboursement ». Rien n'a été rendu. Réessayer plus tard. « Encore en cours chez Stripe » : attendre une minute, rouvrir la commande puis toucher « Relancer » sur la ligne du remboursement. Il ne part jamais deux fois. Si ça dure, appeler le numéro ci-dessus.
 5. Une commande au comptoir manque dans l'export. Elle n'a pas été notée comme encaissée. Sur la tablette, onglet « Terminées » le jour même, toucher « Encaissée ».

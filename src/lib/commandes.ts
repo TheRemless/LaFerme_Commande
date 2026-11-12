@@ -146,6 +146,12 @@ const ERREURS_REMBOURSEMENT: Record<string, string> = {
   "Réservé au gérant": "Réservé au gérant.",
 };
 
+// Erreurs où Stripe a répondu et refusé : rien n'est parti (requête invalide, droits, carte).
+function refusNetStripe(e: unknown): boolean {
+  const type = (e as { type?: string } | null)?.type;
+  return type === "StripeInvalidRequestError" || type === "StripeCardError" || type === "StripePermissionError" || type === "StripeAuthenticationError";
+}
+
 export function messageErreurRemboursement(e: unknown): string | null {
   const m = e instanceof Error ? e.message : String(e);
   const cle = Object.keys(ERREURS_REMBOURSEMENT).find((k) => m.includes(k));
@@ -187,9 +193,10 @@ export async function rembourserApresCoup(
       envoyer = r.statut === "fait" && r.change === true;
     } catch (e) {
       const detail = e instanceof Error ? e.message : String(e);
-      // Relance d'un geste déjà en cours (double appui, deuxième onglet) : le premier appel peut encore aboutir
-      // chez Stripe. On ne le marque pas en échec ; une relance plus tard, même clé, le termine sans doublon.
-      if (r.deja) {
+      // Relance d'un geste déjà en cours (double appui, deuxième onglet), ou Stripe sans réponse claire (délai,
+      // réseau, erreur de son côté) : le remboursement a pu partir. On ne le marque pas en échec ; une relance
+      // plus tard, même clé, le termine sans doublon. Seul un refus net de Stripe le passe en échec.
+      if (r.deja || !refusNetStripe(e)) {
         console.error(`Relance du remboursement de la commande ${c.numero} pas encore aboutie : ${detail}`);
         return { ok: false, message: "Ce remboursement est encore en cours chez Stripe. Rechargez la fiche dans une minute." };
       }

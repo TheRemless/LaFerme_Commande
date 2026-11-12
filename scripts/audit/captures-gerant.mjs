@@ -76,7 +76,8 @@ const navigateur = await chromium.launch({ channel: "chrome" });
     await page.getByRole("button", { name: "Commandes", exact: true }).click();
     await page.getByLabel("Nom, téléphone ou numéro").fill("bruno");
     await page.getByRole("button", { name: "Chercher" }).click();
-    await page.getByText("Bruno Audit").first().waitFor();
+    // La liste du jour montre déjà Bruno : attendre le résultat de la recherche avant d'ouvrir la fiche.
+    await page.getByRole("heading", { name: /^Recherche « bruno »/ }).waitFor();
     await attendre(300);
     await page.screenshot({ path: `${dossier}/${prefixe}-5-gestion-commandes.png`, fullPage: true });
     await page.getByText("Bruno Audit").first().click();
@@ -85,7 +86,7 @@ const navigateur = await chromium.launch({ channel: "chrome" });
     await attendre(300);
     await page.locator(".ges-fiche-commande").screenshot({ path: `${dossier}/${prefixe}-6-gestion-remboursement.png` });
     await page.getByRole("button", { name: /^Rembourser/ }).click();
-    await page.getByText(/remboursés/).waitFor();
+    await page.locator(".ges-fiche-commande").getByText(/remboursés\. Le client/).waitFor();
     await page.locator(".ges-fiche-commande").screenshot({ path: `${dossier}/${prefixe}-7-gestion-rembourse.png` });
     await page.getByRole("button", { name: "Équipe" }).click();
     await page.getByText("Gérant bureau").first().waitFor();
