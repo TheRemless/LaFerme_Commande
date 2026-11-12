@@ -2,6 +2,7 @@ import "server-only";
 import { chargerConfigService } from "@/lib/config-service";
 import { envoyerParResend, resendConfigure } from "@/lib/courriel/envoi";
 import { enregistrerCourriel, fonctionSql } from "@/lib/db/serveur";
+import { imprimerCommandesDues } from "@/lib/impression/service";
 import { etatService, type ConfigService } from "@/lib/service";
 import { rafraichirCaches } from "@/lib/tablette";
 
@@ -10,6 +11,8 @@ import { rafraichirCaches } from "@/lib/tablette";
 // 1. Une commande du jour attend d'être acceptée depuis plus que le délai réglé : alerte au restaurant.
 // 2. La tablette ne donne plus signe de vie pendant le service : pause des commandes en ligne et alerte.
 // 3. Chaque nuit, les réglages du soir reviennent à la normale (remise_du_jour).
+// 4. Les commandes acceptées à l'avance reçoivent leurs tickets à l'heure prévue (SS-11), pause ou non :
+//    une commande acceptée doit être préparée.
 
 const TABLETTE_MUETTE_S = 180;
 
@@ -50,8 +53,14 @@ export function dansUnService(config: ConfigService, maintenant: Date): boolean 
   return etatService({ ...config, pause: undefined }, maintenant, "retrait").etat === "ouvert";
 }
 
-export async function executerSurveillance(maintenant = new Date()): Promise<{ fait: boolean; retards: number; pause: boolean }> {
-  if (!(await fonctionSql<boolean>("tour_de_surveillance", {}))) return { fait: false, retards: 0, pause: false };
+export async function executerSurveillance(maintenant = new Date()): Promise<{ fait: boolean; retards: number; pause: boolean; imprimees: number }> {
+  if (!(await fonctionSql<boolean>("tour_de_surveillance", {}))) return { fait: false, retards: 0, pause: false, imprimees: 0 };
+
+  // D'abord les tickets : une alerte ou une pause qui échoue ne doit pas retarder la cuisine.
+  const imprimees = await imprimerCommandesDues().catch((e) => {
+    console.error(`Impression des commandes à l'avance : ${e instanceof Error ? e.message : e}`);
+    return 0;
+  });
 
   // Premier tour d'un nouveau jour de service (5h, heure de Genève) : livraison rouverte, retard à zéro,
   // pause manuelle sans fin levée (audit du gérant, G06). La pause automatique reste.
@@ -83,5 +92,5 @@ export async function executerSurveillance(maintenant = new Date()): Promise<{ f
       "Les commandes en ligne sont en pause. Rallumez la tablette, puis touchez « Reprendre les commandes ».",
     ]).catch((e) => console.error(`Alerte non envoyée : ${e instanceof Error ? e.message : e}`));
   }
-  return { fait: true, retards: retards.length, pause };
+  return { fait: true, retards: retards.length, pause, imprimees };
 }

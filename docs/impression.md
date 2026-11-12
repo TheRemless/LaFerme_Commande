@@ -2,7 +2,7 @@
 
 ## Comment ça marche
 
-- Seule l'acceptation sur la tablette crée les tickets : un par poste (pizza, cuisine) qui a des lignes, chacun avec ses seules lignes.
+- Un ticket par poste (pizza, cuisine) qui a des lignes, chacun avec ses seules lignes. L'acceptation sur la tablette les crée quand l'heure promise est proche. Pour une commande acceptée plus tôt (ce soir, un autre jour), la surveillance du serveur les crée à l'heure promise moins le réglage « Tickets des commandes à l'avance » (60 minutes proposées, back-office). Ils ne sortent qu'une fois (`premiers_tickets`, sous verrou de la commande), quel que soit le nombre de tours de surveillance ou de redémarrages. Le ticket indique l'heure réelle de l'acceptation. Une pause des commandes n'arrête pas ces tickets : la commande est acceptée, elle doit être préparée.
 - Chaque ticket va à la première imprimante active de son poste. Sans imprimante pour ce poste, il s'affiche sur la tablette (bouton « Ticket »).
 - Protocole Star CloudPRNT (HTTP) : l'imprimante interroge son adresse toutes les quelques secondes (POST), télécharge le ticket (GET) puis confirme (DELETE). Un ticket ne quitte la file qu'après confirmation. Il reste en file si l'imprimante est éteinte et sort à son retour.
 - Le ticket est envoyé en image (PNG, 576 points de large, police DejaVu Sans Condensed) : grandes tailles, accents et « œ » sans dépendre de la page de codes de l'imprimante. Un texte de secours en ASCII existe si l'imprimante ne prend pas l'image.
@@ -22,6 +22,7 @@
 Chaque minute en production (fonction planifiée Netlify `netlify/functions/surveillance.mts`). Les passages des imprimantes et les relectures de la tablette la relancent aussi, une fois par minute au plus, ce qui la fait tourner sur les préversions :
 
 - pendant les heures d'un service seulement, une commande du jour pas acceptée après le délai réglé (5 minutes par défaut, back-office, compté depuis le paiement en ligne ou la création au comptoir) : un e-mail au restaurant (`ALERTE_EMAIL`), une seule fois par commande. La tablette affiche « Attend depuis N min » ;
+- les commandes acceptées à l'avance dont l'heure d'impression est arrivée : leurs tickets, à toute heure. Une création ratée (base lente) est retentée au tour suivant. Sur une préversion, c'est le passage de l'imprimante elle-même qui lance ce tour : la tablette n'est pas nécessaire ;
 - la tablette muette depuis 3 minutes pendant un service : commandes en ligne mises en pause, e-mail au restaurant, bandeau sur la tablette. La reprise se fait à la main (« Reprendre les commandes »). Une pause en cours (datée ou sans fin) n'est pas remplacée ; une pause datée finie ne bloque plus rien. Le signe de vie ne vient que d'un appareil qui a démarré le service.
 
 ## Imprimante à acheter

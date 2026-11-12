@@ -27,7 +27,14 @@ type Horaire = {
 };
 type Fermeture = { id: number; debut: string; fin: string; motif: string };
 type Capacites = { livraison: number; retrait: number; proposition: boolean };
-type Donnees = { zones: Zone[]; horaires: Horaire[]; fermetures: Fermeture[]; capacites: Capacites; preparation: number };
+type Donnees = {
+  zones: Zone[];
+  horaires: Horaire[];
+  fermetures: Fermeture[];
+  capacites: Capacites;
+  preparation: number;
+  impressionAvance: { minutes: number; proposition: boolean } | null;
+};
 
 const JOURS = ["", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
 const chf = (c: number) => (c / 100).toFixed(2);
@@ -65,6 +72,7 @@ export function GestionService() {
       </section>
       <Preparation minutes={d.preparation} recharger={charger} />
       <Capacite capacites={d.capacites} recharger={charger} />
+      {d.impressionAvance && <ImpressionAvance reglage={d.impressionAvance} recharger={charger} />}
       <Fermetures fermetures={d.fermetures} recharger={charger} />
     </div>
   );
@@ -212,6 +220,46 @@ function Capacite({ capacites, recharger }: { capacites: Capacites; recharger: (
           </p>
         )}
       </form>
+    </section>
+  );
+}
+
+// Tickets d'une commande acceptée pour plus tard : ce nombre de minutes avant l'heure promise (SS-11, G08).
+function ImpressionAvance({ reglage, recharger }: { reglage: { minutes: number; proposition: boolean }; recharger: () => Promise<void> }) {
+  const ids = useId();
+  const [v, setV] = useState(String(reglage.minutes));
+  const [message, setMessage] = useState<string | null>(null);
+  async function sauver(e: React.FormEvent) {
+    e.preventDefault();
+    setMessage(null);
+    const erreur = await enregistrer("/api/gestion/service", { type: "impression_avance", minutes: Number(v) });
+    setMessage(erreur ?? "Enregistré.");
+    if (!erreur) await recharger();
+  }
+  return (
+    <section className="ges-bloc">
+      <h2>
+        Tickets des commandes à l&apos;avance
+        {reglage.proposition && <span className="ges-badge">proposition</span>}
+      </h2>
+      <p className="aide">
+        Une commande acceptée pour ce soir ou un autre jour reste dans « À l&apos;avance » sur la tablette. Ses tickets sortent ce nombre de minutes avant l&apos;heure
+        annoncée au client. De 15 à 240.
+      </p>
+      <form className="ges-retraits" onSubmit={sauver}>
+        <div className="champ">
+          <label htmlFor={`${ids}-avance`}>Minutes avant l&apos;heure</label>
+          <input id={`${ids}-avance`} inputMode="numeric" value={v} onChange={(e) => setV(e.target.value)} />
+        </div>
+        <button type="submit" className="bouton-second">
+          Enregistrer
+        </button>
+      </form>
+      {message && (
+        <p className="aide-forte" role="status">
+          {message}
+        </p>
+      )}
     </section>
   );
 }

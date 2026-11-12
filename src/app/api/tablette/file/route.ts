@@ -39,7 +39,12 @@ export async function GET(requete: Request) {
     {
       maintenant: maintenant.toISOString(),
       commandes,
-      reglages: { pause: config.pause ?? null, preparation_minutes: config.reglages.preparation_minutes, retard_minutes: config.reglages.retard_minutes ?? 0 },
+      reglages: {
+        pause: config.pause ?? null,
+        preparation_minutes: config.reglages.preparation_minutes,
+        retard_minutes: config.reglages.retard_minutes ?? 0,
+        impression_avance_minutes: config.reglages.impression_avance_minutes,
+      },
       impression,
       relecture_s: enService ? RELECTURE_SERVICE_S : RELECTURE_VEILLE_S,
     },

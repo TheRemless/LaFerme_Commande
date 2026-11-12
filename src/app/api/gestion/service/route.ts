@@ -21,7 +21,10 @@ export async function GET(requete: Request) {
   };
   // Délai habituel (audit du gérant, G05) : réglé ici, plus sur la tablette, qui n'a que le retard du soir.
   const preparation = Number(cap("preparation_minutes")?.valeur ?? 20);
-  return NextResponse.json({ ...service, capacites, preparation }, { headers: { "Cache-Control": "no-store" } });
+  // Tickets des commandes à l'avance (SS-11) : minutes avant l'heure promise. Absent avant la migration.
+  const avance = cap("impression_avance_minutes");
+  const impressionAvance = avance ? { minutes: Number(avance.valeur), proposition: avance.proposition } : null;
+  return NextResponse.json({ ...service, capacites, preparation, impressionAvance }, { headers: { "Cache-Control": "no-store" } });
 }
 
 // { type: "zone", numero, champs } | { type: "horaire", id, champs }
@@ -58,6 +61,10 @@ export async function POST(requete: Request) {
     const v = c.minutes;
     if (!Number.isInteger(v) || (v as number) < 5 || (v as number) > 120) return refus("Délai de préparation : un nombre de minutes de 5 à 120.");
     await fonctionSql("regler_service", { p: { preparation_minutes: v }, p_personnel: qui });
+  } else if (c.type === "impression_avance") {
+    const v = c.minutes;
+    if (!Number.isInteger(v) || (v as number) < 15 || (v as number) > 240) return refus("Tickets à l'avance : un nombre de minutes de 15 à 240.");
+    await fonctionSql("regler_impression_avance", { p_valeur: v, p_personnel: qui });
   } else if (c.type === "fermeture") {
     const debut = dateValide(c.debut);
     const fin = dateValide(c.fin);

@@ -2,6 +2,7 @@ import "server-only";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { rembourserCommande } from "@/lib/commandes";
 import { annulerImpression, imprimerCommande } from "@/lib/impression/service";
+import { heureImpression, IMPRESSION_AVANCE_DEFAUT, momentTexte } from "@/lib/impression/avance";
 import { chargerCatalogue } from "@/lib/catalogue";
 import { chargerConfigService } from "@/lib/config-service";
 import { courrielAcceptation, courrielNouvelleHeure, courrielPrete, courrielRefus, courrielRefusRemboursementEnCours } from "@/lib/courriel/modeles";
@@ -129,9 +130,17 @@ export async function agir(commandeId: string, a: Action, p: Personnel): Promise
     case "accepter":
       ok = await changerStatut(commandeId, "acceptee", par, { heure: a.heure, de: a.de });
       if (ok) {
-        // L'acceptation, et elle seule, lance l'impression. Un ticket qui ne part pas ne défait pas l'acceptation :
-        // la tablette le montre et propose de réimprimer.
-        await imprimerCommande(commandeId).catch((e) => console.error(`Tickets non créés pour la commande ${avant.numero} : ${e instanceof Error ? e.message : e}`));
+        // Commande pour bientôt : tickets tout de suite. Pour plus tard (ce soir, un autre jour), la surveillance
+        // les imprime à l'heure promise moins le réglage (SS-11). Un ticket qui ne part pas ne défait pas
+        // l'acceptation : la surveillance réessaie, la tablette le montre et propose d'imprimer.
+        const config = await chargerConfigService();
+        const imprimerA = heureImpression(a.heure, config.reglages.impression_avance_minutes ?? IMPRESSION_AVANCE_DEFAUT);
+        const maintenant = new Date();
+        if (imprimerA.getTime() <= maintenant.getTime()) {
+          await imprimerCommande(commandeId).catch((e) => console.error(`Tickets non créés pour la commande ${avant.numero} : ${e instanceof Error ? e.message : e}`));
+        } else {
+          message = `Acceptée. Tickets prévus ${momentTexte(imprimerA, maintenant)}.`;
+        }
         await prevenir(avant, courrielAcceptation(avant, a.heure));
       }
       break;
@@ -194,6 +203,12 @@ export async function agir(commandeId: string, a: Action, p: Personnel): Promise
       break;
     case "reimprimer":
       if (!["acceptee", "en_preparation", "prete", "partie", "terminee"].includes(avant.statut)) return { ok: false, message: "Seule une commande acceptée s'imprime." };
+      if (!avant.tickets_le) {
+        // Commande à l'avance pas encore imprimée, ou tickets jamais créés : ce sont ses premiers tickets.
+        ok = (await imprimerCommande(commandeId)) > 0;
+        message = ok ? "Tickets envoyés à l'imprimante." : "Ces tickets sont déjà partis. La liste se met à jour.";
+        break;
+      }
       ok = (await imprimerCommande(commandeId, { reimpression: true, station: a.station })) > 0;
       message = ok ? "Ticket renvoyé à l'imprimante." : "Rien de plus à imprimer : le ticket attend encore l'imprimante.";
       break;

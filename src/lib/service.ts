@@ -24,7 +24,8 @@ export type Horaire = {
 };
 export type Fermeture = { debut: string; fin: string; motif: string };
 // preparation_minutes et les délais des zones comprennent déjà le retard du soir (config-service.ts).
-export type Reglages = { preparation_minutes: number; creneau_minutes: number; avance_jours: number; preparation_base?: number; retard_minutes?: number };
+// impression_avance_minutes : les tickets d'une commande acceptée sortent ce temps avant l'heure promise (SS-11).
+export type Reglages = { preparation_minutes: number; creneau_minutes: number; avance_jours: number; preparation_base?: number; retard_minutes?: number; impression_avance_minutes?: number };
 
 export type ConfigService = {
   zones: Zone[];
