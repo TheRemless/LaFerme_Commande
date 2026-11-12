@@ -3075,3 +3075,324 @@ body.fiche-ouverte {
   flex-direction: column;
   gap: 8px;
 }
+
+/* ---------- Livreurs : page /livreur (téléphone tenu d'une main) ---------- */
+/* Lisible dehors, de nuit, à bout de bras : adresse et heure en grand, gestes en bas de chaque arrêt sous
+   le pouce, cibles de 52 px au moins. Jaune d'attente seulement pour un problème signalé. */
+.page-livreur {
+  --jaune-attente: #f5e6a3;
+  min-height: 100dvh;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--papier);
+}
+.livreur {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 0 16px 32px;
+  font-size: 18px;
+  touch-action: manipulation;
+}
+.liv-barre {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: calc(10px + env(safe-area-inset-top)) 0 10px;
+  background: var(--papier);
+  border-bottom: 1px solid var(--filet);
+}
+.liv-barre h1 {
+  font-size: 30px;
+}
+.liv-barre p {
+  margin: 2px 0 0;
+  font-size: 15px;
+  color: var(--encre-douce);
+}
+.liv-alerte,
+.liv-info,
+.liv-retiree {
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  font-weight: 600;
+  border-radius: 4px;
+}
+.liv-alerte {
+  color: var(--blanc);
+  background: var(--encre);
+}
+.liv-info {
+  background: var(--blanc);
+  border: 2px solid var(--encre);
+}
+.liv-retiree {
+  display: grid;
+  gap: 10px;
+  background: var(--blanc);
+  border: 3px solid var(--encre);
+}
+.liv-retiree p {
+  margin: 0;
+}
+.liv-retiree .bouton-second,
+.liv-liens .bouton-second,
+.liv-gestes .bouton-second,
+.liv-motifs .bouton-second {
+  width: 100%;
+  min-height: 52px;
+  align-self: stretch;
+}
+.liv-tout {
+  margin-top: 16px;
+  min-height: 60px;
+}
+.liv-vide {
+  padding: 40px 0;
+  font-size: 20px;
+  color: var(--encre-douce);
+}
+.liv-liste {
+  display: grid;
+  gap: 16px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.liv-arret {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  background: var(--blanc);
+  border: 1px solid #cfcfcb;
+  border-radius: 4px;
+}
+.liv-arret-fini {
+  opacity: 0.6;
+}
+.liv-arret p {
+  margin: 0;
+}
+/* Rang de passage (c'est une vraie suite), heure promise en grand, numéro de commande à droite. */
+.liv-tete {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+.liv-rang,
+.liv-rang-tab {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--blanc);
+  background: var(--encre);
+  border-radius: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.liv-heure {
+  font-size: 46px;
+  line-height: 0.95;
+  font-variant-numeric: tabular-nums;
+}
+.liv-num {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--encre-douce);
+}
+.liv-etat {
+  font-weight: 600;
+}
+.liv-adresse {
+  font-size: 24px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.liv-acces {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 20px;
+  font-size: 20px;
+  font-weight: 700;
+}
+.liv-consigne {
+  font-size: 17px;
+}
+.liv-contenu {
+  font-size: 16px;
+  color: var(--encre-douce);
+}
+.liv-probleme {
+  padding: 10px 12px;
+  font-weight: 600;
+  background: var(--jaune-attente);
+  border-radius: 4px;
+}
+.liv-liens {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.liv-liens .bouton-second {
+  line-height: 1.2;
+  text-align: center;
+}
+.liv-gestes {
+  display: grid;
+  gap: 8px;
+}
+.liv-gestes .bouton-principal,
+.liv-panneau .bouton-principal {
+  min-height: 60px;
+  font-size: 20px;
+}
+.liv-panneau {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  margin: 4px 0 0;
+  padding: 0;
+  border: 0;
+}
+.liv-panneau legend {
+  margin-bottom: 10px;
+  padding: 0;
+  font-weight: 700;
+}
+.liv-motifs {
+  display: grid;
+  gap: 8px;
+}
+.liv-motifs .bouton-second[aria-pressed="true"] {
+  color: var(--blanc);
+  background: var(--encre);
+}
+.liv-panneau textarea {
+  width: 100%;
+  min-height: 72px;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 16px;
+  color: var(--encre);
+  background: var(--blanc);
+  border: 1px solid #bdbdb8;
+  border-radius: 4px;
+}
+.liv-panneau textarea:focus {
+  outline: none;
+  border-color: var(--encre);
+  box-shadow: inset 0 0 0 1px var(--encre);
+}
+.liv-panneau .lien,
+.liv-barre .lien {
+  font-size: 16px;
+}
+.liv-pied {
+  margin: 24px 0 0;
+  font-size: 16px;
+}
+.liv-pied a {
+  font-weight: 700;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .liv-gestes .bouton-principal:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+}
+
+/* ---------- Livreurs : onglet « Livraisons » de la tablette ---------- */
+.liv-tablette {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  align-items: start;
+  gap: 20px;
+}
+.liv-colonne {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+.liv-colonne h2,
+.liv-tournee h2 {
+  font-size: 28px;
+}
+.liv-rien {
+  margin: 0;
+  color: var(--encre-douce);
+}
+.liv-cartes {
+  display: grid;
+  gap: 10px;
+}
+.liv-carte,
+.liv-tournee {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  background: var(--blanc);
+  border: 1px solid #cfcfcb;
+  border-radius: 4px;
+}
+.liv-carte p,
+.liv-tournee p {
+  margin: 0;
+}
+.liv-carte-tete {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+.liv-carte .tab-num {
+  font-size: 44px;
+}
+.liv-tournee-tete {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.liv-tournee-tete .bouton-second,
+.liv-tablette .boutons-ligne .bouton-second {
+  min-height: 48px;
+}
+.liv-tablette .bouton-second:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.liv-arrets {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.liv-arret-tab {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--filet);
+}
+.liv-souci {
+  padding: 12px;
+  background: var(--jaune-attente);
+  border-radius: 4px;
+}
+.liv-arret-corps {
+  display: grid;
+  gap: 8px;
+}
+.liv-souci-texte {
+  font-weight: 600;
+}
+@media (max-width: 900px) {
+  .liv-tablette {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
