@@ -116,7 +116,7 @@ test("supplément épuisé : refusé à la commande, puis revient", async ({ req
   await tablette.getByRole("button", { name: "Pause, délai, ruptures" }).click();
   await tablette.getByLabel("Chercher un plat ou un supplément").fill("Burrata");
   // Le supplément seul, pas les plats dont le nom contient « Burrata ».
-  const ligne = tablette.locator(".tab-plats li").filter({ has: tablette.getByText("Burrata", { exact: true }) });
+  const ligne = tablette.locator(".tab-plats li").filter({ hasText: /^Burrata\s*Supplément/ });
   await ligne.getByRole("button", { name: "Disponible" }).click();
   await expect(ligne.getByRole("button", { name: "Épuisé" })).toBeVisible();
   const rep = await request.post("/api/commandes", {
