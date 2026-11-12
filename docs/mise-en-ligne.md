@@ -140,7 +140,8 @@ Un jour sans service, jamais pendant un service.
 - [ ] Jérémy (commande lancée par lui) : vider les données de test de la base. Claude prépare le fichier et dit ce qu'il fait. Avant, Jérémy dit si la commande « Moi Moi » doit rester. Contenu prévu :
   - commandes de test des préversions, avec leurs courriels et événements de paiement : `delete from courriels; delete from evenements_paiement; delete from remboursements; delete from commandes; delete from compteurs_jour;` (détail : [PROMPT.md](PROMPT.md) §11) ;
   - membre d'équipe de test : déjà retiré par la migration `20261112090000_correctifs_securite.sql` ; vérifier qu'aucune adresse en `.test` ne reste (le build de production échoue sinon) ;
-  - imprimantes de test « Test pizza (préversion) » et « Test cuisine (préversion) ».
+  - imprimantes de test « Test pizza (préversion) » et « Test cuisine (préversion) » ;
+  - ce que le build ne contrôle pas (audit de sécurité 2, S2-09) : plats et plats du jour ajoutés depuis le back-office pendant la construction (`select slug, nom, prix_centimes, jour, commandable from plats where origine <> 'carte'`), photos envoyées (`photos_plats`), comptes clients de test (`comptes` en `.test` ou `@exemple`). Claude les liste, Jérémy dit ce qui reste.
 - [ ] Jérémy : saisir les clés Stripe live et le secret du webhook live. Claude crée avec lui le webhook live vers `https://<domaine>/api/stripe/webhook` (mêmes quatre événements).
 - [ ] Claude : poser `PAGES_LEGALES_VALIDEES=1` (relecture faite) et `URL_SITE`.
 - [ ] Jérémy et Claude : relier le domaine à Netlify (DNS), attendre le certificat HTTPS.

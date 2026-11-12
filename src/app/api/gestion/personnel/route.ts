@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { corpsJson, refus } from "@/lib/comptes/api";
+import { emailNormalise } from "@/lib/comptes/securite";
 import { fonctionSql } from "@/lib/db/serveur";
 import { exigerGerant } from "@/lib/personnel/session";
 
@@ -42,7 +43,10 @@ export async function POST(requete: Request) {
     if (c.action === "ajouter") {
       const role = ROLE(c.role);
       if (typeof c.email !== "string" || c.email.length > 120 || typeof c.nom !== "string" || c.nom.length > 60 || !role) return refus("Remplissez l'e-mail, le nom et le rôle.");
-      await fonctionSql("ajouter_personnel", { p_email: c.email, p_nom: c.nom, p_role: role, p_personnel: qui });
+      // Même normalisation qu'à la connexion : une espace insécable collée ne crée pas un membre injoignable.
+      const email = emailNormalise(c.email);
+      if (!email) return refus(ERREURS.adresse_invalide);
+      await fonctionSql("ajouter_personnel", { p_email: email, p_nom: c.nom, p_role: role, p_personnel: qui });
       return NextResponse.json({ enregistre: true, message: "Ajouté. Il se connecte avec son e-mail et le code reçu." });
     }
     if (typeof c.id !== "string" || !UUID.test(c.id)) return refus("Membre inconnu.", 404);

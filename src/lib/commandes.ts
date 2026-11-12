@@ -176,7 +176,7 @@ export async function rembourserApresCoup(
   motif: string,
   cle: string,
   personnelId: string,
-): Promise<{ ok: boolean; message: string }> {
+): Promise<{ ok: boolean; message: string; enCours?: boolean }> {
   let r: LigneRemboursement;
   try {
     r = await fonctionSql<LigneRemboursement>("demander_remboursement", {
@@ -217,7 +217,7 @@ async function rembourserChezStripe(
   c: Commande,
   montantCentimes: number,
   cle: string,
-): Promise<{ r: LigneRemboursement; envoyer: boolean } | { refus: { ok: false; message: string } }> {
+): Promise<{ r: LigneRemboursement; envoyer: boolean } | { refus: { ok: false; message: string; enCours?: boolean } }> {
   if (r.moyen !== "stripe" || r.statut !== "en_cours") return { r, envoyer: r.statut === "fait" && !r.deja && r.moyen === "stripe" };
   try {
     const pi = c.stripe_payment_intent ?? "";
@@ -228,7 +228,7 @@ async function rembourserChezStripe(
     const detail = e instanceof Error ? e.message : String(e);
     if (r.deja || !refusNetStripe(e)) {
       console.error(`Relance du remboursement de la commande ${c.numero} pas encore aboutie : ${detail}`);
-      return { refus: { ok: false, message: "Ce remboursement est encore en cours chez Stripe. Rechargez dans une minute." } };
+      return { refus: { ok: false, message: "Ce remboursement est encore en cours chez Stripe. Rechargez dans une minute.", enCours: true } };
     }
     console.error(`Remboursement de la commande ${c.numero} refusé par Stripe : ${detail}`);
     await fonctionSql("terminer_remboursement", { p_id: r.id, p_ok: false, p_refund_id: null, p_erreur: detail });
