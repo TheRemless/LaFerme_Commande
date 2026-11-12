@@ -2,9 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Categorie, LignePlat } from "@/lib/carte";
 import { lireChoix, type Choix } from "@/lib/choix";
+import { PHOTOS_SERREES } from "@/lib/photos";
 import { calculerPanier, type Catalogue } from "@/lib/panier";
 import { usePanier, usePrixServeur } from "@/lib/panier-local";
 import { prixChf, prixCourt } from "@/lib/prix";
@@ -42,11 +43,44 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
     : categories;
   const trouves = visibles.reduce((s, c) => s + c.plats.length, 0);
 
+  // Onglet de la catégorie lue (D20) : la section qui passe sous la barre des catégories devient active,
+  // et son onglet glisse dans la barre sur téléphone.
+  const [actif, setActif] = useState<string | null>(null);
+  const barre = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const sections = [...document.querySelectorAll<HTMLElement>("section.categorie")];
+    if (sections.length === 0) return;
+    let image = 0;
+    // Dernière section dont le haut est passé sous l'en-tête et la barre des catégories.
+    const lire = () => {
+      image = 0;
+      const limite = (barre.current?.getBoundingClientRect().bottom ?? 0) + 24;
+      const passees = sections.filter((s) => s.getBoundingClientRect().top <= limite);
+      setActif((passees.at(-1) ?? sections[0]).id);
+    };
+    const surDefilement = () => {
+      if (!image) image = window.requestAnimationFrame(lire);
+    };
+    lire();
+    window.addEventListener("scroll", surDefilement, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", surDefilement);
+      if (image) window.cancelAnimationFrame(image);
+    };
+  }, [visibles.length, q]);
+  useEffect(() => {
+    const lien = actif ? barre.current?.querySelector<HTMLElement>(`a[href="#${actif}"]`) : null;
+    if (lien && barre.current) {
+      const doux = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      barre.current.scrollTo({ left: lien.offsetLeft - 12, behavior: doux ? "smooth" : "auto" });
+    }
+  }, [actif]);
+
   return (
     <>
-      <nav className="cats" aria-label="Catégories">
+      <nav className="cats" aria-label="Catégories" ref={barre}>
         {visibles.map((c) => (
-          <a key={c.slug} href={`#${c.slug}`}>
+          <a key={c.slug} href={`#${c.slug}`} aria-current={actif === c.slug ? "true" : undefined}>
             {c.nom}
           </a>
         ))}
@@ -91,7 +125,7 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
                 <li key={p.slug} className={`plat ${p.photo ? "a-photo" : "sans-image"}${motif ? " epuise" : ""}`} data-slug={p.slug}>
                   <button type="button" className="plat-carte" onClick={() => setOuvert(p)} disabled={Boolean(motif)}>
                     {p.photo && (
-                      <span className="plat-media">
+                      <span className={`plat-media${PHOTOS_SERREES.includes(p.photo) ? " serre" : ""}`}>
                         <Image
                           src={`/plats/${p.photo}`}
                           alt=""

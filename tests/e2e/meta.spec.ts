@@ -8,7 +8,7 @@ test("accueil : description, Open Graph et Schema.org du restaurant", async ({ p
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", "La Ferme, livraison et à emporter");
   await expect(page.locator('meta[property="og:locale"]')).toHaveAttribute("content", "fr_CH");
   await expect(page.locator('meta[property="og:image"]')).toHaveAttribute("content", /opengraph-image/);
-  await expect(page.locator('meta[property="og:image:alt"]')).toHaveAttribute("content", "Pizzas, pâtes et burger de La Ferme vus du dessus");
+  await expect(page.locator('meta[property="og:image:alt"]')).toHaveAttribute("content", "Pizzas, pâtes et burger de La Ferme vus du dessus, avec le logo du restaurant");
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /^http:\/\/localhost:3000\/?$/);
   await expect(page.locator('link[rel="manifest"]')).toHaveAttribute("href", "/manifest.webmanifest");
 
