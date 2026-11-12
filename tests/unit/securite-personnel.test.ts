@@ -114,3 +114,18 @@ describe("S11 : même plancher quand l'envoi échoue", () => {
     }
   });
 });
+
+describe("S11 : la vérification répond pareil pour une adresse de l'équipe et une adresse inconnue", () => {
+  it("deux codes faux coup sur coup : même suite de réponses, avec ou sans code en base", async () => {
+    const suites: string[][] = [];
+    for (const [email, ip] of [["gerant-bureau@laferme.test", "203.0.113.20"], ["inconnu-s11@exemple.test", "203.0.113.21"]]) {
+      await ouvrirEnvois();
+      await demanderCodePersonnel(email, ip);
+      const suite: string[] = [];
+      for (let i = 0; i < 3; i++) suite.push((await verifierCodePersonnel(email, "00000000", ip, null)).statut);
+      suites.push(suite);
+    }
+    expect(suites[0]).toEqual(["invalide", "attente", "attente"]);
+    expect(suites[1]).toEqual(suites[0]);
+  });
+});

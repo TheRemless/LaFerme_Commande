@@ -1,4 +1,5 @@
 import "server-only";
+import { after } from "next/server";
 import { courrielBlocagePersonnel, courrielCode } from "@/lib/courriel/modeles";
 import { envoyerCodeParCourriel, envoyerParResend, resendConfigure } from "@/lib/courriel/envoi";
 import { enregistrerCourriel, fonctionSql } from "@/lib/db/serveur";
@@ -52,7 +53,8 @@ export async function verifierCodePersonnel(email: string, code: string, ip: str
     p_ancienne_session_hache: ancienJeton ? empreinte("session-personnel", ancienJeton) : null,
   });
   // 15e code faux sur une adresse de l'équipe : on prévient le membre et le restaurant (une fois par blocage).
-  if (r.bloque && r.jusqu_a) await prevenirBlocage(email, r.jusqu_a).catch((e) => console.error(`Alerte de blocage non envoyée : ${e instanceof Error ? e.message : e}`));
+  // Envoyé après la réponse : attendre les courriels ralentirait le 15e essai pour la seule équipe (S11).
+  if (r.bloque && r.jusqu_a) await apresReponse(prevenirBlocage(email, r.jusqu_a).catch((e) => console.error(`Alerte de blocage non envoyée : ${e instanceof Error ? e.message : e}`)));
   if (r.statut === "ok") return { statut: "ok", jeton };
   if (r.statut === "attente") return { statut: "attente", attente: r.attente ?? 60 };
   return { statut: "invalide" };
@@ -70,4 +72,13 @@ async function prevenirBlocage(email: string, jusquA: string): Promise<void> {
     `La connexion par code est bloquée jusqu'au ${quand}. Les appareils déjà connectés restent connectés.`,
     "Si ce n'était pas ce membre de l'équipe, quelqu'un connaît son adresse et essaie d'entrer.",
   ]);
+}
+
+// after() de Next (waitUntil de Netlify) dans une requête ; hors requête (tests), on attend.
+async function apresReponse(travail: Promise<void>): Promise<void> {
+  try {
+    after(travail);
+  } catch {
+    await travail;
+  }
 }
