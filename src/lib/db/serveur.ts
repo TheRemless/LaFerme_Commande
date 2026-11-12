@@ -136,6 +136,9 @@ export type Commande = {
   quand_date: string | null;
   quand_minutes: number | null;
   heure_confirmee: string | null;
+  zone_numero: number | null;
+  pizzas_seulement: boolean;
+  avertissement: string | null;
   sous_total_centimes: number;
   frais_centimes: number;
   total_centimes: number;

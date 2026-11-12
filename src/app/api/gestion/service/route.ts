@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { corpsJson, refus } from "@/lib/comptes/api";
+import { lirePublic } from "@/lib/db/lecture";
 import { fonctionSql } from "@/lib/db/serveur";
 import { champsHoraire, champsZone, dateValide } from "@/lib/gestion";
 import { exigerGerant } from "@/lib/personnel/session";
@@ -8,7 +9,17 @@ import { rafraichirCaches } from "@/lib/tablette";
 export async function GET(requete: Request) {
   const g = await exigerGerant(requete, { lecture: true });
   if ("reponse" in g) return g.reponse;
-  return NextResponse.json(await fonctionSql("gestion_service", {}), { headers: { "Cache-Control": "no-store" } });
+  const [service, reglages] = await Promise.all([
+    fonctionSql<Record<string, unknown>>("gestion_service", {}),
+    lirePublic<{ cle: string; valeur: unknown; proposition: boolean }>("reglages"),
+  ]);
+  const cap = (cle: string) => reglages.find((r) => r.cle === cle);
+  const capacites = {
+    livraison: Number(cap("capacite_livraisons_par_creneau")?.valeur ?? 0),
+    retrait: Number(cap("capacite_retraits_par_creneau")?.valeur ?? 0),
+    proposition: Boolean(cap("capacite_livraisons_par_creneau")?.proposition || cap("capacite_retraits_par_creneau")?.proposition),
+  };
+  return NextResponse.json({ ...service, capacites }, { headers: { "Cache-Control": "no-store" } });
 }
 
 // { type: "zone", numero, champs } | { type: "horaire", id, champs }
@@ -33,6 +44,14 @@ export async function POST(requete: Request) {
     if (!id) return refus("Horaire inconnu.", 404);
     if (!champs.ok) return refus(champs.erreur);
     ok = await fonctionSql<boolean>("modifier_horaire", { p_id: id, p: champs.valeur, p_personnel: qui });
+  } else if (c.type === "capacite") {
+    // Commandes au plus par créneau choisi (audit « samedi soir », SS-02). 0 : sans limite.
+    const valeur = (v: unknown) => (Number.isInteger(v) && (v as number) >= 0 && (v as number) <= 50 ? (v as number) : null);
+    const livraison = valeur(c.livraison);
+    const retrait = valeur(c.retrait);
+    if (livraison === null || retrait === null) return refus("Capacité : un nombre entier de 0 à 50.");
+    await fonctionSql("regler_capacite", { p_mode: "livraison", p_valeur: livraison, p_personnel: qui });
+    await fonctionSql("regler_capacite", { p_mode: "retrait", p_valeur: retrait, p_personnel: qui });
   } else if (c.type === "fermeture") {
     const debut = dateValide(c.debut);
     const fin = dateValide(c.fin);

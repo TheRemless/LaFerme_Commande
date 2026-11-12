@@ -28,11 +28,18 @@ update personnel set actif = false where email = 'prenom@exemple.ch';
 - Mise à jour : relecture toutes les 15 secondes pendant le service, toutes les 60 secondes hors service (toutes les 5 secondes si le signal ne passe pas). Le signal Supabase Realtime (message vide sur le canal `tablette`, aucune donnée) déclenche une relecture immédiate. Perte de connexion : bandeau avec l'heure du dernier contact.
 - Chaque changement de statut est tracé dans `evenements_commande` avec son auteur (`tablette:Prénom`).
 
-## Pas encore fait
+## Correctifs du 13.11.2026 (audit « samedi soir »)
 
-- Impression à l'acceptation (lot 7c).
-- Surveillance de la tablette par le serveur (pause automatique sans signe de vie) : avec l'impression, au lot 7c.
-- Alerte si une commande n'est pas acceptée après un délai.
+Détail : `docs/audits/samedi-soir.md`, « Suivi des corrections ».
+
+- Chaque geste envoie l'état que la tablette affichait. Si une autre tablette a changé la commande entre-temps, rien ne se fait et l'écran le dit.
+- Annuler une commande acceptée retire ses tickets de la file et imprime « ANNULÉE, NE PAS PRÉPARER » aux postes qui avaient déjà le leur.
+- Refus d'une commande payée quand le remboursement échoue : le client reçoit « refusée, remboursement en cours », le restaurant une alerte, la tablette un bandeau. La commande reste dans « Terminées » avec « Rembourser » jusqu'au remboursement, même les jours suivants.
+- Une commande payée pendant une pause, après une rupture ou trop tard pour son heure arrive avec un avertissement jaune.
+- Retrait payé au comptoir : « Retirée et payée » d'un seul geste. Une commande retirée sans être encaissée garde « Encaissée » dans « Terminées ».
+- Seul un appareil qui a touché « Démarrer le service » (ou « Continuer sans son ») donne le signe de vie surveillé par le serveur. Le son est relancé au retour de veille.
+- Une commande acceptée sans ticket affiche « Ticket non créé » et « Réimprimer ».
+- Numéros : une commande à l'avance prend un numéro du jour où elle est servie.
 
 ## Risques assumés
 

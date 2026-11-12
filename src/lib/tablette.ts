@@ -1,16 +1,17 @@
 import "server-only";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { rembourserCommande } from "@/lib/commandes";
-import { imprimerCommande } from "@/lib/impression/service";
+import { annulerImpression, imprimerCommande } from "@/lib/impression/service";
 import { chargerCatalogue } from "@/lib/catalogue";
 import { chargerConfigService } from "@/lib/config-service";
-import { courrielAcceptation, courrielNouvelleHeure, courrielPrete, courrielRefus } from "@/lib/courriel/modeles";
+import { courrielAcceptation, courrielNouvelleHeure, courrielPrete, courrielRefus, courrielRefusRemboursementEnCours } from "@/lib/courriel/modeles";
 import { envoyerCourriel } from "@/lib/courriel/envoi";
 import { commandeParId, fonctionSql, type Commande } from "@/lib/db/serveur";
 import { detailsTablette } from "@/lib/tablette-details";
 import { auteur, type Personnel } from "@/lib/personnel/session";
 import { hhmm } from "@/lib/heures";
 import { depuisHeureGeneve } from "@/lib/service";
+import { alerter } from "@/lib/surveillance";
 
 // Ce que fait la tablette. Les passages de statut sont contrôlés en base (changer_statut) ; ici, les
 // courriels au client, le remboursement d'un refus et le signal aux autres tablettes.
@@ -36,6 +37,10 @@ export type CommandeTablette = {
   total_centimes: number;
   frais_centimes: number;
   motif: string | null;
+  // Écart noté au paiement (pause, plat épuisé, heure dépassée) : audit « samedi soir », SS-08.
+  avertissement: string | null;
+  // Paiement en ligne confirmé, ou création pour le comptoir : point de départ de « Attend depuis ».
+  attend_depuis: string;
   lignes: { nom: string; qte: number; station: "pizza" | "cuisine"; choix: Record<string, string[]>; retraits: string[]; note: string; details: string[] }[];
   // Calculée ici : heure demandée par le client, ou au plus tôt pour « dès que possible ».
   heure_proposee: string;
@@ -100,14 +105,19 @@ export async function signalerTablette(): Promise<void> {
 
 export type ResultatAction = { ok: boolean; message?: string };
 
+// de : l'état que la tablette affichait. S'il a changé entre-temps (autre tablette), rien ne se fait (SS-06).
 export type Action =
-  | { action: "accepter"; heure: string }
-  | { action: "refuser"; motif: string }
-  | { action: "statut"; vers: "en_preparation" | "prete" | "partie" | "terminee" }
+  | { action: "accepter"; heure: string; de?: string }
+  | { action: "refuser"; motif: string; de?: string }
+  | { action: "statut"; vers: "en_preparation" | "prete" | "partie" | "terminee"; de?: string }
   | { action: "heure"; heure: string }
   | { action: "encaisser" }
+  | { action: "retiree_payee" }
   | { action: "reimprimer"; station?: "pizza" | "cuisine" }
   | { action: "rembourser" };
+
+const changerStatut = (commande: string, vers: string, par: string, extra: { heure?: string; motif?: string; de?: string } = {}) =>
+  fonctionSql<boolean>("changer_statut", { p_commande: commande, p_vers: vers, p_par: par, p_heure: extra.heure ?? null, p_motif: extra.motif ?? null, p_de: extra.de ?? null });
 
 export async function agir(commandeId: string, a: Action, p: Personnel): Promise<ResultatAction> {
   const par = auteur(p);
@@ -117,7 +127,7 @@ export async function agir(commandeId: string, a: Action, p: Personnel): Promise
   let message: string | undefined;
   switch (a.action) {
     case "accepter":
-      ok = await fonctionSql<boolean>("changer_statut", { p_commande: commandeId, p_vers: "acceptee", p_par: par, p_heure: a.heure, p_motif: null });
+      ok = await changerStatut(commandeId, "acceptee", par, { heure: a.heure, de: a.de });
       if (ok) {
         // L'acceptation, et elle seule, lance l'impression. Un ticket qui ne part pas ne défait pas l'acceptation :
         // la tablette le montre et propose de réimprimer.
@@ -126,15 +136,30 @@ export async function agir(commandeId: string, a: Action, p: Personnel): Promise
       }
       break;
     case "refuser": {
-      ok = await fonctionSql<boolean>("changer_statut", { p_commande: commandeId, p_vers: "refusee", p_par: par, p_heure: null, p_motif: a.motif });
+      ok = await changerStatut(commandeId, "refusee", par, { motif: a.motif, de: a.de });
       if (!ok) break;
+      // Commande déjà acceptée : la cuisine a peut-être son ticket. Les tickets en file partent, et chaque
+      // poste qui a déjà le sien reçoit « ANNULÉE » (SS-03).
+      if (avant.statut === "acceptee" || avant.statut === "en_preparation") {
+        await annulerImpression(avant).catch((e) => console.error(`Annulation non imprimée pour la commande ${avant.numero} : ${e instanceof Error ? e.message : e}`));
+      }
       if (avant.moyen_paiement === "en_ligne" && avant.statut_paiement === "paye") {
         // TWINT n'a pas de capture différée : le refus d'une commande payée se rembourse en entier.
         const r = await rembourserCommande(commandeId, a.motif).catch((e) => {
           console.error(`Remboursement impossible pour la commande ${avant.numero} : ${e instanceof Error ? e.message : e}`);
           return { rembourse: false };
         });
-        message = r.rembourse ? "Commande refusée et remboursée." : "Commande refusée, mais le remboursement n'est pas passé. Réessayez.";
+        if (r.rembourse) {
+          message = "Commande refusée et remboursée.";
+        } else {
+          // Le client a payé : il apprend tout de suite le refus, et que le remboursement suit (SS-04).
+          await prevenir(avant, courrielRefusRemboursementEnCours(avant, a.motif));
+          await alerter(`Commande ${avant.numero} : remboursement à refaire`, [
+            `La commande ${avant.numero} est refusée, mais le remboursement de ${(avant.total_centimes / 100).toFixed(2)} CHF n'est pas passé.`,
+            "Sur la tablette, onglet « Terminées », touchez « Rembourser ». Si ça ne passe toujours pas, remboursez depuis Stripe.",
+          ]).catch((e) => console.error(`Alerte non envoyée : ${e instanceof Error ? e.message : e}`));
+          message = "Commande refusée, mais le remboursement n'est pas passé. Réessayez.";
+        }
       } else {
         await prevenir(avant, courrielRefus(avant, a.motif));
         message = "Commande refusée. Le client est prévenu.";
@@ -145,11 +170,13 @@ export async function agir(commandeId: string, a: Action, p: Personnel): Promise
       if (avant.statut !== "refusee") return { ok: false, message: "Seule une commande refusée se rembourse ici." };
       const r = await rembourserCommande(commandeId, avant.motif ?? "").catch(() => ({ rembourse: false }));
       ok = r.rembourse;
+      // Deux appuis en même temps : le second trouve la commande déjà remboursée (SS-16).
+      if (!ok && (await commandeParId(commandeId))?.statut_paiement === "rembourse") ok = true;
       message = ok ? "Remboursement fait." : "Le remboursement n'est pas passé. Vérifiez dans Stripe ou appelez Jérémy.";
       break;
     }
     case "statut":
-      ok = await fonctionSql<boolean>("changer_statut", { p_commande: commandeId, p_vers: a.vers, p_par: par, p_heure: null, p_motif: null });
+      ok = await changerStatut(commandeId, a.vers, par, { de: a.de });
       if (ok && (a.vers === "prete" || a.vers === "partie")) await prevenir(avant, courrielPrete(avant));
       break;
     case "heure":
@@ -159,10 +186,16 @@ export async function agir(commandeId: string, a: Action, p: Personnel): Promise
     case "encaisser":
       ok = await fonctionSql<boolean>("marquer_encaisse", { p_commande: commandeId, p_par: par });
       break;
+    case "retiree_payee":
+      // Retrait payé au comptoir : encaissée et retirée d'un seul geste (audit du gérant, G01).
+      if (avant.statut !== "prete") break;
+      ok = await changerStatut(commandeId, "terminee", par, { de: "prete" });
+      if (ok && avant.statut_paiement === "a_encaisser_retrait") await fonctionSql<boolean>("marquer_encaisse", { p_commande: commandeId, p_par: par });
+      break;
     case "reimprimer":
       if (!["acceptee", "en_preparation", "prete", "partie", "terminee"].includes(avant.statut)) return { ok: false, message: "Seule une commande acceptée s'imprime." };
       ok = (await imprimerCommande(commandeId, { reimpression: true, station: a.station })) > 0;
-      message = ok ? "Ticket renvoyé à l'imprimante." : "Rien à imprimer pour ce poste.";
+      message = ok ? "Ticket renvoyé à l'imprimante." : "Rien de plus à imprimer : le ticket attend encore l'imprimante.";
       break;
   }
   if (ok) await signalerTablette();

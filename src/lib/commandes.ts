@@ -2,7 +2,10 @@ import "server-only";
 import { chargerCatalogue } from "@/lib/catalogue";
 import { courrielConfirmation, courrielRemboursement } from "@/lib/courriel/modeles";
 import { envoyerCourriel } from "@/lib/courriel/envoi";
-import { appliquerPaiement, commandeParId, type Commande } from "@/lib/db/serveur";
+import { chargerConfigService } from "@/lib/config-service";
+import { appliquerPaiement, commandeParId, fonctionSql, type Commande } from "@/lib/db/serveur";
+import type { Catalogue } from "@/lib/panier";
+import { pauseEnCours, quandPossible, type ConfigService } from "@/lib/service";
 import { paiementDisponible, passerelle, remboursementSimule } from "@/lib/paiement/passerelle";
 import { signalerTablette } from "@/lib/tablette";
 
@@ -20,6 +23,27 @@ async function envoyerConfirmation(c: Commande): Promise<void> {
   });
 }
 
+// Ce qui a changé entre la commande et son paiement (le client peut rester 30 minutes sur la page de
+// paiement) : pause, plat épuisé, heure qui ne tient plus. Noté sur la commande pour la tablette (SS-08).
+export function avertissementsPaiement(c: Commande, config: ConfigService, cat: Catalogue | null, maintenant = new Date()): string[] {
+  const a: string[] = [];
+  if (pauseEnCours(config, maintenant, c.mode)) a.push("Payée pendant la pause des commandes en ligne.");
+  const epuises = [...new Set(c.lignes.filter((l) => cat?.plats[l.plat_slug]?.rupture_motif).map((l) => l.nom))];
+  if (epuises.length) a.push(`Épuisé depuis la commande : ${epuises.join(", ")}.`);
+  const zone = config.zones.find((z) => z.numero === c.zone_numero);
+  const quand = c.quand_type === "creneau" && c.quand_date && c.quand_minutes !== null ? { type: "creneau" as const, date: c.quand_date, minutes: c.quand_minutes } : { type: "asap" as const };
+  if (!quandPossible({ ...config, pause: undefined }, maintenant, c.mode, zone, c.pizzas_seulement, quand)) {
+    a.push(quand.type === "asap" ? "Payée après la dernière heure de commande." : "L'heure demandée ne tient plus au moment du paiement.");
+  }
+  return a;
+}
+
+async function noterAvertissements(c: Commande): Promise<void> {
+  const [config, cat] = await Promise.all([chargerConfigService(), chargerCatalogue().catch(() => null)]);
+  const a = avertissementsPaiement(c, config, cat);
+  if (a.length) await fonctionSql("noter_avertissement", { p_commande: c.id, p_texte: a.join(" ") });
+}
+
 export type PreuvePaiement = { sessionId: string; montantCentimes: number | null; devise: string | null; paymentIntent?: string };
 
 // Un paiement ne confirme la commande que s'il vient de sa session en cours, en francs, pour son montant exact.
@@ -34,7 +58,11 @@ export async function confirmerPaiement(commandeId: string, evenement: string, p
   const applique = await appliquerPaiement(evenement, commandeId, "paye", preuve.paymentIntent, preuve.montantCentimes);
   if (applique) {
     const apres = await commandeParId(commandeId);
-    if (apres) await envoyerConfirmation(apres);
+    if (apres) {
+      // Un avertissement raté ne défait pas le paiement : la commande arrive quand même sur la tablette.
+      await noterAvertissements(apres).catch((e) => console.error(`Avertissement non noté pour la commande ${apres.numero} : ${e instanceof Error ? e.message : e}`));
+      await envoyerConfirmation(apres);
+    }
   }
   return applique;
 }

@@ -2,7 +2,7 @@ import "server-only";
 import { chargerConfigService } from "@/lib/config-service";
 import { envoyerParResend, resendConfigure } from "@/lib/courriel/envoi";
 import { enregistrerCourriel, fonctionSql } from "@/lib/db/serveur";
-import { etatService } from "@/lib/service";
+import { etatService, type ConfigService } from "@/lib/service";
 import { rafraichirCaches } from "@/lib/tablette";
 
 // Surveillance du service, une fois par minute au plus, déclenchée par les passages des imprimantes,
@@ -43,10 +43,18 @@ export async function surveillanceAuPassage(): Promise<void> {
   await executerSurveillance().catch((e) => console.error(`Surveillance : ${e instanceof Error ? e.message : e}`));
 }
 
+// Le restaurant est-il dans les heures d'un service, pause ou non ? Hors service, la tablette éteinte et une
+// commande pour plus tard sont normales : ni alerte, ni pause automatique (SS-09).
+export function dansUnService(config: ConfigService, maintenant: Date): boolean {
+  return etatService({ ...config, pause: undefined }, maintenant, "retrait").etat === "ouvert";
+}
+
 export async function executerSurveillance(maintenant = new Date()): Promise<{ fait: boolean; retards: number; pause: boolean }> {
   if (!(await fonctionSql<boolean>("tour_de_surveillance", {}))) return { fait: false, retards: 0, pause: false };
 
-  const retards = await fonctionSql<{ numero: number; cree_le: string }[]>("commandes_en_retard", {});
+  const config = await chargerConfigService();
+  const service = dansUnService(config, maintenant);
+  const retards = service ? await fonctionSql<{ numero: number; cree_le: string }[]>("commandes_en_retard", {}) : [];
   if (retards.length) {
     const numeros = retards.map((r) => r.numero).join(", ");
     await alerter(retards.length > 1 ? `Commandes ${numeros} pas encore acceptées` : `Commande ${numeros} pas encore acceptée`, [
@@ -56,17 +64,15 @@ export async function executerSurveillance(maintenant = new Date()): Promise<{ f
   }
 
   let pause = false;
-  if (await fonctionSql<boolean>("tablette_muette", { p_secondes: TABLETTE_MUETTE_S })) {
-    const config = await chargerConfigService();
-    // Seulement pendant le service : hors service, la tablette éteinte est normale.
-    if (etatService(config, maintenant, "retrait").etat === "ouvert" && (await fonctionSql<boolean>("pause_automatique", {}))) {
-      pause = true;
-      rafraichirCaches("config-service");
-      await alerter("Tablette injoignable : commandes en ligne en pause", [
-        "La tablette ne répond plus depuis plus de 3 minutes.",
-        "Les commandes en ligne sont en pause. Rallumez la tablette, puis touchez « Reprendre les commandes ».",
-      ]).catch((e) => console.error(`Alerte non envoyée : ${e instanceof Error ? e.message : e}`));
-    }
+  // pause_automatique ne remplace pas une pause en cours (datée ou sans fin) : elle n'agit que si les
+  // commandes en ligne sont ouvertes.
+  if (service && (await fonctionSql<boolean>("tablette_muette", { p_secondes: TABLETTE_MUETTE_S })) && (await fonctionSql<boolean>("pause_automatique", {}))) {
+    pause = true;
+    rafraichirCaches("config-service");
+    await alerter("Tablette injoignable : commandes en ligne en pause", [
+      "La tablette ne répond plus depuis plus de 3 minutes.",
+      "Les commandes en ligne sont en pause. Rallumez la tablette, puis touchez « Reprendre les commandes ».",
+    ]).catch((e) => console.error(`Alerte non envoyée : ${e instanceof Error ? e.message : e}`));
   }
   return { fait: true, retards: retards.length, pause };
 }
