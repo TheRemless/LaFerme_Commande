@@ -321,7 +321,7 @@ export function EspaceCompte({ donnees, preversion }: { donnees: DonneesEspace; 
                 type="button"
                 className="bouton-supprimer"
                 disabled={!confirmer || envoi}
-                onClick={() => action("/api/compte/supprimer", { confirmer: true }, () => router.refresh())}
+                onClick={() => action("/api/compte/supprimer", { confirmer: true }, () => window.location.assign("/compte?supprime=1"))}
               >
                 Supprimer définitivement
               </button>

@@ -5,6 +5,9 @@ import { PiedDePage } from "@/components/PiedDePage";
 import { Actualiser } from "@/components/suivi/Actualiser";
 import { CreerCompte } from "@/components/suivi/CreerCompte";
 import { chargerCatalogue } from "@/lib/catalogue";
+import { chargerConfigService } from "@/lib/config-service";
+import { estimationAsap } from "@/lib/estimation";
+import { heureTexte } from "@/lib/service";
 import { reconcilier } from "@/lib/commandes";
 import { detailsLigne, quandTexte } from "@/lib/courriel/modeles";
 import { commandeParJeton } from "@/lib/db/serveur";
@@ -33,6 +36,7 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
   if (!c) notFound();
   c = await reconcilier(c);
   const cat = await chargerCatalogue().catch(() => null);
+  const estimation = c.heure_confirmee ? null : await chargerConfigService().then((config) => estimationAsap(config, c!)).catch(() => null);
 
   const position = POSITION[c.statut] ?? -1;
   const termine = ["terminee", "refusee", "annulee"].includes(c.statut);
@@ -91,7 +95,9 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
               </h1>
               {!c.heure_confirmee && (
                 <p className="suivi-change">
-                  {c.quand_type === "asap" ? "Demandée dès que possible." : `Demandée pour ${quandTexte(c)}.`} Le restaurant confirme l&apos;heure en acceptant la commande.
+                  {c.quand_type === "asap"
+                    ? `Demandée dès que possible${estimation !== null ? `, vers ${heureTexte(estimation)}` : ""}.`
+                    : `Demandée pour ${quandTexte(c)}.`} Le restaurant confirme l&apos;heure en acceptant la commande.
                 </p>
               )}
               <ol className="etapes">

@@ -101,3 +101,52 @@ describe("promesse d'heure", () => {
     expect(depuisHeureGeneve("2026-11-10T19:05")?.toISOString()).toBe("2026-11-10T18:05:00.000Z");
   });
 });
+
+// Rapport client mystère (CM-06) : fermeture annuelle annoncée à l'avance, commandes pour la réouverture.
+describe("fermeture annuelle vue par le client", () => {
+  it("annonce la fermeture qui tombe dans les jours où l'on peut commander", async () => {
+    const { fermetureProche } = await import("@/lib/service");
+    const f = fermetureProche(config, geneve("2026-12-19T22:30:00"));
+    expect(f).toMatchObject({ fermeture: { debut: "2026-12-22", fin: "2027-01-11" }, reouverture: "2027-01-12" });
+    expect(fermetureProche(config, geneve("2026-11-10T19:05:00"))).toBeNull();
+  });
+  it("propose les créneaux de la réouverture pendant la fermeture, dans la limite des jours d'avance", () => {
+    const pendant = creneaux(config, geneve("2027-01-08T12:00:00"), "retrait");
+    expect(pendant[0]?.date).toBe("2027-01-12");
+    expect(creneaux(config, geneve("2026-12-23T12:00:00"), "retrait")).toEqual([]);
+  });
+});
+
+// CM-08 : sans aucun créneau, on dit pourquoi au lieu de « choisissez une autre heure ».
+describe("message sans créneau", () => {
+  it("donne les dates de la fermeture annuelle", async () => {
+    const { messageSansCreneau } = await import("@/lib/service");
+    expect(messageSansCreneau(config, geneve("2026-12-23T12:00:00"))).toBe(
+      "Fermé du mardi 22 décembre au lundi 11 janvier. On rouvre le mardi 12 janvier.",
+    );
+    expect(messageSansCreneau(config, geneve("2026-11-10T19:05:00"))).toBe("La commande en ligne est fermée en ce moment.");
+  });
+});
+
+// CM-05 : l'heure « vers » de l'accueil reste connue après la commande.
+describe("estimation dès que possible", () => {
+  it("redonne l'heure de l'accueil pour une commande passée pendant le service", async () => {
+    const { estimationAsap } = await import("@/lib/estimation");
+    const quand = geneve("2026-11-10T19:05:00");
+    const accueil = etatService(config, quand, "livraison", zone(1));
+    const e = estimationAsap(config, { quand_type: "asap", mode: "livraison", zone_numero: 1, cree_le: quand.toISOString() });
+    expect(accueil.etat).toBe("ouvert");
+    expect(e).toBe(accueil.etat === "ouvert" ? accueil.desQuePossible : -1);
+    expect(estimationAsap(config, { quand_type: "creneau", mode: "retrait", zone_numero: null, cree_le: quand.toISOString() })).toBeNull();
+    expect(estimationAsap(config, { quand_type: "asap", mode: "retrait", zone_numero: null, cree_le: geneve("2026-11-10T03:00:00").toISOString() })).toBeNull();
+  });
+});
+
+describe("service en cours (revue de CM-03)", () => {
+  it("distingue avant l'ouverture, pendant le service et entre deux services", async () => {
+    const { serviceEnCours } = await import("@/lib/service");
+    expect(serviceEnCours(config, geneve("2026-11-10T10:15:00"))).toBe(false);
+    expect(serviceEnCours(config, geneve("2026-11-10T22:14:00"))).toBe(true);
+    expect(serviceEnCours(config, geneve("2026-11-10T15:30:00"))).toBe(false);
+  });
+});

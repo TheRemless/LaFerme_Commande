@@ -7,7 +7,12 @@ export function refus(message: string, status = 422) {
   return NextResponse.json({ erreur: message }, { status, headers: { "Cache-Control": "no-store" } });
 }
 
-export function attenteTexte(secondes: number): string {
+// envoi : attente entre deux envois de code, sans essai faux (CM-16).
+export function attenteTexte(secondes: number, envoi = false): string {
+  if (envoi && secondes < 2 * 3600) {
+    const duree = secondes < 60 ? `${secondes} seconde${secondes > 1 ? "s" : ""}` : `${Math.ceil(secondes / 60)} minute${Math.ceil(secondes / 60) > 1 ? "s" : ""}`;
+    return `Un nouveau code pourra partir dans ${duree}.`;
+  }
   if (secondes < 60) return `Trop d'essais. Réessayez dans ${secondes} seconde${secondes > 1 ? "s" : ""}.`;
   if (secondes < 2 * 3600) {
     const m = Math.ceil(secondes / 60);

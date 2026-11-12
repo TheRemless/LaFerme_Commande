@@ -54,7 +54,7 @@ export function ContenuPanier({
           return (
             <li className="ligne" key={i}>
               <div className="ligne-haut">
-                <span className="ligne-nom">{plat ? nomAffiche({ nom: plat.nom, categorie_slug: plat.categorie_slug }) : l.slug}</span>
+                <span className="ligne-nom">{plat ? nomAffiche({ nom: plat.nom, categorie_slug: plat.categorie_slug }) : "Plat indisponible"}</span>
                 <span className="ligne-prix">{prixCourt(calcul?.total_centimes ?? 0)}</span>
               </div>
               {(details.length > 0 || l.note) && (
@@ -115,7 +115,7 @@ export function ContenuPanier({
       {t.manque_minimum_centimes > 0 && minimum !== undefined && (
         <div className="minimum" role="status">
           <p>
-            Encore <strong>{prixChf(t.manque_minimum_centimes)}</strong> pour le minimum de livraison ({prixCourt(minimum)}).
+            Encore <strong>{prixChf(t.manque_minimum_centimes)}</strong> de plats pour le minimum de livraison ({prixCourt(minimum)}).
           </p>
           <span className="jauge" aria-hidden="true">
             <span style={{ width: `${Math.min(100, Math.round((t.sous_total_centimes / minimum) * 100))}%` }} />

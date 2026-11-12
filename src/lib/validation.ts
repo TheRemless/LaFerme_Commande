@@ -54,15 +54,36 @@ export function emailNormalise(v: unknown): string | null {
   return e.length >= 5 && e.length <= 120 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e) ? e : null;
 }
 
-export function clientValide(v: unknown): Client | null {
+// Même règle dans le navigateur (avant l'envoi) et sur le serveur.
+export function telephoneValide(t: string): boolean {
+  const v = t.trim();
+  return v.length >= 8 && v.length <= 20 && /^\+?[0-9 ().-]{8,20}$/.test(v) && (v.match(/\d/g) ?? []).length >= 9;
+}
+
+export type ChampClient = "prenom" | "nom" | "telephone" | "email";
+
+export const MESSAGE_CHAMP: Record<ChampClient, string> = {
+  prenom: "Indiquez votre prénom.",
+  nom: "Indiquez votre nom.",
+  telephone: "Vérifiez le numéro de téléphone, il faut au moins neuf chiffres.",
+  email: "Vérifiez l'adresse e-mail.",
+};
+
+// Premier champ faux, pour le nommer au client (CM-09). null si tout est bon.
+export function champClientInvalide(v: unknown): ChampClient | null {
   const c = (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
-  const prenom = texte(c.prenom, 1, 60);
-  const nom = texte(c.nom, 1, 60);
+  if (!texte(c.prenom, 1, 60)) return "prenom";
+  if (!texte(c.nom, 1, 60)) return "nom";
   const telephone = texte(c.telephone, 8, 20);
-  const email = emailNormalise(c.email);
-  if (!prenom || !nom || !telephone || !email) return null;
-  if (!/^\+?[0-9 ().-]{8,20}$/.test(telephone) || (telephone.match(/\d/g) ?? []).length < 9) return null;
-  return { prenom, nom, telephone, email };
+  if (!telephone || !telephoneValide(telephone)) return "telephone";
+  if (!emailNormalise(c.email)) return "email";
+  return null;
+}
+
+export function clientValide(v: unknown): Client | null {
+  if (champClientInvalide(v)) return null;
+  const c = v as Record<string, unknown>;
+  return { prenom: texte(c.prenom, 1, 60)!, nom: texte(c.nom, 1, 60)!, telephone: texte(c.telephone, 8, 20)!, email: emailNormalise(c.email)! };
 }
 
 export function detailsValides(v: unknown): Details | null {

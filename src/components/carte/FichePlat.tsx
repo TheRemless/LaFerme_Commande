@@ -15,12 +15,15 @@ export function FichePlat({
   plat,
   catalogue,
   preversion,
+  ferme = false,
   onAjouter,
   onFermer,
 }: {
   plat: LignePlat;
   catalogue: Catalogue;
   preversion: boolean;
+  // Aucun moment de commande possible (fermeture) : la fiche se lit, rien ne s'ajoute (CM-08).
+  ferme?: boolean;
   onAjouter: (l: LignePanier) => void;
   onFermer: () => void;
 }) {
@@ -181,6 +184,11 @@ export function FichePlat({
               Note pour la cuisine <span className="facultatif">facultatif</span>
             </label>
             <input id={`${ids}-note`} maxLength={LIMITES.note} value={note} onChange={(e) => setNote(e.target.value)} />
+            {note.length > 0 && (
+              <p className="aide">
+                {note.length} sur {LIMITES.note} caractères
+              </p>
+            )}
           </div>
         </div>
         <div className="fiche-pied">
@@ -196,13 +204,13 @@ export function FichePlat({
           <button
             type="button"
             className="bouton-principal"
-            disabled={Boolean(manquant)}
+            disabled={ferme || Boolean(manquant)}
             onClick={() => {
               onAjouter(ligne);
               onFermer();
             }}
           >
-            {manquant ? `Choisissez vos ${manquant.nom.toLowerCase()}` : `Ajouter, ${prixChf(total)}`}
+            {ferme ? "Commande en ligne fermée" : manquant ? `Choisissez vos ${manquant.nom.toLowerCase()}` : `Ajouter, ${prixChf(total)}`}
           </button>
         </div>
       </div>

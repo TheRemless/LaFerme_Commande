@@ -3,7 +3,7 @@ import { chargerCatalogue } from "@/lib/catalogue";
 import { chargerConfigService } from "@/lib/config-service";
 import { calculerPanier } from "@/lib/panier";
 import { lignesValides, quandValide } from "@/lib/validation";
-import { depuisHeureGeneve, enMinutes, heureTexte, instantGeneve, jourIso, quandPossible, type Zone, messagePause, pauseEnCours } from "@/lib/service";
+import { depuisHeureGeneve, enMinutes, heureTexte, instantGeneve, jourIso, quandPossible, type Zone, messagePause, messageSansCreneau, pauseEnCours } from "@/lib/service";
 import { zoneServeur } from "@/lib/zone-serveur";
 
 // Prix du panier calculé par le serveur à partir de la base : options, frais de zone, minimum, TVA,
@@ -55,6 +55,8 @@ export async function POST(requete: Request) {
       messageQuand = h
         ? `Après ${heureTexte(enMinutes(h.derniere_commande))}, on ne prend plus que les pizzas. Retirez les autres plats ou choisissez une autre heure.`
         : "À cette heure-là, on ne prend plus que les pizzas. Retirez les autres plats ou choisissez une autre heure.";
+    } else if (quand.type === "aucun") {
+      messageQuand = messageSansCreneau(config, maintenant);
     } else {
       messageQuand = "Ce moment n'est plus disponible. Choisissez une autre heure.";
     }

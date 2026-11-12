@@ -458,6 +458,15 @@ fieldset.details legend {
   margin: 0;
   font-weight: 600;
 }
+/* Champ faux (CM-09) : texte appuyé et bordure épaisse, sans rouge. */
+.aide-erreur {
+  font-weight: 600;
+  color: var(--encre);
+}
+.champ input[aria-invalid="true"] {
+  border-color: var(--encre);
+  box-shadow: inset 0 0 0 2px var(--encre);
+}
 .saisie-adresse {
   position: relative;
   display: flex;

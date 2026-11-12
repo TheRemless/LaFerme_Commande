@@ -11,9 +11,16 @@ export async function POST(requete: Request) {
   } catch {
     return NextResponse.json({ erreur: "Requête illisible." }, { status: 400 });
   }
-  const r = await zoneServeur(await chargerConfigService(), corps);
+  // Saisie à la main : retrouvée dans le registre fédéral dès l'accueil, comme au paiement (CM-01).
+  const r = await zoneServeur(await chargerConfigService(), corps, true);
   if ("erreur" in r) return NextResponse.json({ erreur: r.erreur }, { status: r.code });
   if (r.statut !== "livrable") return NextResponse.json({ statut: "hors-zone", verifiee: r.verifiee });
   const { numero, frais_centimes, minimum_centimes, delai_min, delai_max } = r.zone;
-  return NextResponse.json({ statut: "livrable", verifiee: r.verifiee, zone: { numero, frais_centimes, minimum_centimes, delai_min, delai_max } });
+  // L'adresse officielle (avec son identifiant du registre) remplace celle tapée par le client.
+  return NextResponse.json({
+    statut: "livrable",
+    verifiee: r.verifiee,
+    adresse: r.adresse,
+    zone: { numero, frais_centimes, minimum_centimes, delai_min, delai_max },
+  });
 }

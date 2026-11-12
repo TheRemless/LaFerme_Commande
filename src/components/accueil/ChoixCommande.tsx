@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useLayoutEffect, useMemo, useState } from "react";
-import { adresseTexte, chercherAdresses, type Adresse, type Details } from "@/lib/adresse";
+import { adresseTexte, chercherAdresses, numeroTape, type Adresse, type Details } from "@/lib/adresse";
 import { ecrireChoix, lireChoix, type Quand, type ZoneChoisie } from "@/lib/choix";
 import { prixCourt } from "@/lib/prix";
 import {
@@ -11,7 +11,10 @@ import {
   depuisHeureGeneve,
   enMinutes,
   etatService,
+  fermetureProche,
   heureTexte,
+  serviceEnCours,
+  instantGeneve,
   jourTexte,
   messagePause,
   zonePour,
@@ -21,8 +24,11 @@ import {
 import { Icone } from "@/components/Icone";
 
 type Verdict =
-  | { statut: "livrable"; zone: ZoneChoisie; verifiee: boolean; controleImpossible?: boolean }
+  // adresse : l'adresse officielle du registre fédéral quand le serveur l'a retrouvée (saisie à la main).
+  | { statut: "livrable"; zone: ZoneChoisie; verifiee: boolean; controleImpossible?: boolean; adresse?: Adresse }
   | { statut: "hors-zone" }
+  | { statut: "introuvable"; message: string }
+  | { statut: "verification" }
   | { statut: "attente" };
 
 const DETAILS_VIDES: Details = { etage: "", sonnette: "", code: "", instructions: "" };
@@ -47,6 +53,8 @@ export function ChoixCommande({
   const [suggestions, setSuggestions] = useState<Adresse[]>([]);
   const [rechercheEchouee, setRechercheEchouee] = useState(false);
   const [adresse, setAdresse] = useState<Adresse | null>(null);
+  // Numéro tapé quand la suggestion choisie en porte un autre (CM-07).
+  const [numeroDifferent, setNumeroDifferent] = useState<string | null>(null);
   const [manuel, setManuel] = useState(false);
   const [adresseManuelle, setAdresseManuelle] = useState({ rue: "", numero: "", npa: "", localite: "" });
   const [verdict, setVerdict] = useState<Verdict>({ statut: "attente" });
@@ -125,40 +133,53 @@ export function ChoixCommande({
   }, [saisie, adresse, manuel]);
 
   const adresseRetenue: Adresse | null = manuel
-    ? /^\d{4}$/.test(adresseManuelle.npa) && adresseManuelle.rue && adresseManuelle.localite
+    ? /^\d{4}$/.test(adresseManuelle.npa) && adresseManuelle.rue.trim().length >= 3 && adresseManuelle.numero.trim() && adresseManuelle.localite
       ? adresseManuelle
       : null
     : adresse;
 
-  // Zone : réponse immédiate calculée ici, puis contrôle du serveur qui fait foi.
+  // Zone : réponse immédiate calculée ici pour une adresse choisie dans les suggestions, puis contrôle du
+  // serveur qui fait foi. Une adresse saisie à la main est d'abord retrouvée dans le registre fédéral par le
+  // serveur, comme au paiement : on n'annonce rien avant sa réponse (rapport client mystère, CM-01).
   useEffect(() => {
     if (mode !== "livraison" || !adresseRetenue) {
       setVerdict({ statut: "attente" });
       return;
     }
     const local = zonePour(config, adresseRetenue.npa, adresseRetenue.localite);
-    setVerdict(local.statut === "livrable" ? { statut: "livrable", zone: local.zone, verifiee: false } : { statut: "hors-zone" });
+    const verdictLocal: Verdict = local.statut === "livrable" ? { statut: "livrable", zone: local.zone, verifiee: false } : { statut: "hors-zone" };
+    const aLaMain = !adresseRetenue.featureId;
+    setVerdict(aLaMain ? { statut: "verification" } : verdictLocal);
     const ctrl = new AbortController();
-    fetch("/api/adresse", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(adresseRetenue.featureId ? { featureId: adresseRetenue.featureId } : adresseRetenue),
-      signal: ctrl.signal,
-    })
-      .then((r) => r.json())
-      .then((r: { statut?: string; zone?: ZoneChoisie; verifiee?: boolean }) => {
-        if (r.statut === "livrable" && r.zone) setVerdict({ statut: "livrable", zone: r.zone, verifiee: Boolean(r.verifiee) });
-        else if (r.statut === "hors-zone") setVerdict({ statut: "hors-zone" });
-        else setVerdict((v) => (v.statut === "livrable" ? { ...v, controleImpossible: true } : v));
-      })
-      .catch((e) => {
-        if (e instanceof DOMException && e.name === "AbortError") return;
-        setVerdict((v) => (v.statut === "livrable" ? { ...v, controleImpossible: true } : v));
-      });
-    return () => ctrl.abort();
+    const t = window.setTimeout(
+      () => {
+        fetch("/api/adresse", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(adresseRetenue.featureId ? { featureId: adresseRetenue.featureId } : adresseRetenue),
+          signal: ctrl.signal,
+        })
+          .then(async (r) => ({ code: r.status, corps: (await r.json()) as { statut?: string; zone?: ZoneChoisie; verifiee?: boolean; adresse?: Adresse; erreur?: string } }))
+          .then(({ code, corps: r }) => {
+            if (r.statut === "livrable" && r.zone) setVerdict({ statut: "livrable", zone: r.zone, verifiee: Boolean(r.verifiee), adresse: r.adresse });
+            else if (r.statut === "hors-zone") setVerdict({ statut: "hors-zone" });
+            else if (code === 422 && r.erreur) setVerdict({ statut: "introuvable", message: r.erreur });
+            else setVerdict(verdictLocal.statut === "livrable" ? { ...verdictLocal, controleImpossible: true } : verdictLocal);
+          })
+          .catch((e) => {
+            if (e instanceof DOMException && e.name === "AbortError") return;
+            setVerdict(verdictLocal.statut === "livrable" ? { ...verdictLocal, controleImpossible: true } : verdictLocal);
+          });
+      },
+      aLaMain ? 800 : 0,
+    );
+    return () => {
+      ctrl.abort();
+      window.clearTimeout(t);
+    };
     // adresseRetenue change d'identité à chaque rendu en saisie manuelle : on suit ses champs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, adresseRetenue?.featureId, adresseRetenue?.npa, adresseRetenue?.localite, adresseRetenue?.rue, config]);
+  }, [mode, adresseRetenue?.featureId, adresseRetenue?.npa, adresseRetenue?.localite, adresseRetenue?.rue, adresseRetenue?.numero, config]);
 
   const zone = mode === "livraison" && verdict.statut === "livrable" ? config.zones.find((z) => z.numero === verdict.zone.numero) : undefined;
   // Deux calculs : carte complète, et panier 100 % pizzas (dernière commande plus tardive le soir).
@@ -169,6 +190,11 @@ export function ChoixCommande({
   const etat = asapPizzasSeulement ? etatPizzas : etatCarte;
   const listeCarte = useMemo(() => creneaux(config, maintenant, mode, zone), [config, maintenant, mode, zone]);
   const liste = useMemo(() => creneaux(config, maintenant, mode, zone, true), [config, maintenant, mode, zone]);
+  const fermetureAVenir = useMemo(() => fermetureProche(config, maintenant), [config, maintenant]);
+  // Premier créneau proposé dans la liste (la plus large : pizzas comprises). Le message « fermé » le suit,
+  // pour ne jamais annoncer demain quand la liste propose encore ce soir (CM-03).
+  const premier = liste[0];
+  const premierAujourdhui = premier?.date === instantGeneve(maintenant).date && serviceEnCours(config, maintenant);
   const pourTous = useMemo(() => new Set(listeCarte.map((c) => `${c.date} ${c.minutes}`)), [listeCarte]);
   const derniereCarte = config.horaires.find((h) => h.derniere_commande !== h.derniere_commande_pizzas)?.derniere_commande;
   const jours = useMemo(() => [...new Set(liste.map((c) => c.date))], [liste]);
@@ -181,7 +207,10 @@ export function ChoixCommande({
   const pretDetails = mode === "retrait" || details.sonnette.trim() !== "";
   const asap = etat.etat === "ouvert" && !plusTard;
   const suspendu = messagePause(etat);
-  const quand: Quand = etat.etat === "fermeture" || etat.etat === "aucun-creneau" || suspendu
+  // Pendant une fermeture, les créneaux de la réouverture restent proposés s'ils tombent dans les jours
+  // d'avance (CM-06). Sinon, aucune commande possible.
+  const choixCreneau = etat.etat === "ferme" || (etat.etat === "fermeture" && liste.length > 0);
+  const quand: Quand = (etat.etat === "fermeture" && liste.length === 0) || etat.etat === "aucun-creneau" || suspendu
     ? { type: "aucun" }
     : asap
       ? { type: "asap" }
@@ -194,18 +223,22 @@ export function ChoixCommande({
     if (!peutContinuer) return;
     ecrireChoix({
       mode,
-      adresse: mode === "livraison" ? (adresseRetenue ?? undefined) : undefined,
+      // Saisie à la main retrouvée dans le registre : on garde l'adresse officielle et son identifiant.
+      adresse: mode === "livraison" ? ((verdict.statut === "livrable" ? verdict.adresse : undefined) ?? adresseRetenue ?? undefined) : undefined,
       details: mode === "livraison" ? details : undefined,
       zone: mode === "livraison" && verdict.statut === "livrable" ? verdict.zone : undefined,
       quand,
       pizzasSeulement:
         quand.type === "asap" ? asapPizzasSeulement : quand.type === "creneau" ? !pourTous.has(`${quand.date} ${quand.minutes}`) : false,
       heureSimulee,
+      estimation: quand.type === "asap" && etat.etat === "ouvert" ? etat.desQuePossible : undefined,
     });
     router.push("/carte");
   }
 
   function choisirSuggestion(a: Adresse) {
+    const tape = numeroTape(saisie);
+    setNumeroDifferent(tape && tape !== a.numero.toLowerCase() ? tape : null);
     setAdresse(a);
     setSaisie(`${a.rue}${a.numero ? ` ${a.numero}` : ""}`);
     setSuggestions([]);
@@ -214,10 +247,12 @@ export function ChoixCommande({
   function choisirEnregistree(a: AdresseEnregistree) {
     setManuel(false);
     choisirSuggestion(a.adresse);
+    setNumeroDifferent(null);
     setDetails({ ...DETAILS_VIDES, ...a.details });
   }
 
   function effacerAdresse() {
+    setNumeroDifferent(null);
     setAdresse(null);
     setSaisie("");
     setVerdict({ statut: "attente" });
@@ -323,6 +358,11 @@ export function ChoixCommande({
                     ))}
                   </ul>
                 )}
+                {adresse && numeroDifferent && (
+                  <p className="aide aide-erreur" role="status">
+                    Vous aviez tapé le numéro {numeroDifferent}. Vérifiez que c&apos;est bien le vôtre.
+                  </p>
+                )}
                 {rechercheEchouee && (
                   <p className="aide" id={`${ids}-erreur`} role="alert">
                     La recherche d&apos;adresses ne répond pas.
@@ -348,6 +388,7 @@ export function ChoixCommande({
                 <div className="champ">
                   <label htmlFor={`${ids}-npa`}>NPA</label>
                   <input id={`${ids}-npa`} inputMode="numeric" autoComplete="postal-code" maxLength={4} value={adresseManuelle.npa} onChange={(e) => setAdresseManuelle({ ...adresseManuelle, npa: e.target.value.replace(/\D/g, "") })} />
+                  {adresseManuelle.npa.length > 0 && adresseManuelle.npa.length < 4 && <p className="aide">Le NPA a quatre chiffres.</p>}
                 </div>
                 <div className="champ">
                   <label htmlFor={`${ids}-localite`}>Localité</label>
@@ -383,6 +424,7 @@ export function ChoixCommande({
                       </dd>
                     </div>
                   </dl>
+                  {manuel && verdict.adresse && <p className="aide">On livrera {adresseTexte(verdict.adresse)}.</p>}
                   {verdict.controleImpossible && <p className="aide">Adresse contrôlée de nouveau au moment de payer.</p>}
                 </div>
                 <div className="details">
@@ -412,6 +454,22 @@ export function ChoixCommande({
               </>
             )}
 
+            {verdict.statut === "verification" && (
+              <p className="aide" role="status">
+                Vérification de l&apos;adresse…
+              </p>
+            )}
+
+            {verdict.statut === "introuvable" && (
+              <div className="verdict verdict-hors" role="status">
+                <p className="verdict-titre">{verdict.message}</p>
+                <p>Vous pouvez aussi commander à emporter, Route de Chancy 132 à Onex.</p>
+                <button type="button" className="bouton-second" onClick={() => setMode("retrait")}>
+                  Commander à emporter
+                </button>
+              </div>
+            )}
+
             {verdict.statut === "hors-zone" && adresseRetenue && (
               <div className="verdict verdict-hors" role="status">
                 <p className="verdict-titre">{adresseTexte(adresseRetenue)} est hors de notre zone de livraison.</p>
@@ -435,7 +493,7 @@ export function ChoixCommande({
           </div>
         )}
 
-        {pretAdresse && (etat.etat === "ouvert" || etat.etat === "ferme") && (
+        {pretAdresse && (etat.etat === "ouvert" || choixCreneau) && (
           <fieldset className="quand">
             <legend>Pour quand ?</legend>
             {etat.etat === "ouvert" ? (
@@ -452,13 +510,18 @@ export function ChoixCommande({
                   <p className="aide">Après {heureTexte(enMinutes(derniereCarte))}, on ne prend plus que les pizzas.</p>
                 )}
               </>
-            ) : (
+            ) : premier && premierAujourdhui ? (
               <p className="aide-forte">
-                La cuisine est fermée en ce moment. Vous pouvez déjà commander pour le {jourTexte(etat.prochain.date)}, à partir de{" "}
-                {heureTexte(etat.prochain.minutes)}.
+                Trop tard pour «&nbsp;dès que possible&nbsp;». Vous pouvez encore commander pour {heureTexte(premier.minutes)}
+                {pourTous.has(`${premier.date} ${premier.minutes}`) ? "" : ", pizzas seulement"}.
               </p>
-            )}
-            {(plusTard || etat.etat === "ferme") && (
+            ) : premier ? (
+              <p className="aide-forte">
+                {etat.etat === "fermeture" ? "" : "La cuisine est fermée en ce moment. "}Vous pouvez déjà commander pour le{" "}
+                {jourTexte(premier.date)}, à partir de {heureTexte(premier.minutes)}.
+              </p>
+            ) : null}
+            {(plusTard || choixCreneau) && (
               <div className="creneau">
                 <div className="champ">
                   <label htmlFor={`${ids}-jour`}>Jour</label>
@@ -486,11 +549,19 @@ export function ChoixCommande({
           </fieldset>
         )}
 
-        {etat.etat === "aucun-creneau" && (
-          <p className="aide-forte" role="status">
-            Aucun créneau libre dans les {config.reglages.avance_jours} prochains jours. Une question ? 022 792 16 89.
-          </p>
-        )}
+        {etat.etat === "aucun-creneau" &&
+          (fermetureAVenir ? (
+            <div className="verdict verdict-info" role="status">
+              <p className="verdict-titre">
+                Fermé du {jourTexte(fermetureAVenir.fermeture.debut)} au {jourTexte(fermetureAVenir.fermeture.fin)}.
+              </p>
+              {fermetureAVenir.reouverture && <p>On rouvre le {jourTexte(fermetureAVenir.reouverture)}.</p>}
+            </div>
+          ) : (
+            <p className="aide-forte" role="status">
+              Aucun créneau libre dans les {config.reglages.avance_jours} prochains jours. Une question ? 022 792 16 89.
+            </p>
+          ))}
 
         <button type="button" className="bouton-principal" onClick={continuer} disabled={!peutContinuer}>
           Voir la carte

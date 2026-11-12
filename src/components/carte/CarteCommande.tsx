@@ -25,6 +25,8 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
 
   // Après la dernière commande de la carte, seules les pizzas restent commandables pour l'heure choisie.
   const seulementPizzas = Boolean(choix?.pizzasSeulement);
+  // Fermé sans créneau possible : la carte se consulte, rien ne s'ajoute (CM-08).
+  const ferme = choix?.quand.type === "aucun";
   const nbArticles = lignes.reduce((s, l) => s + l.qte, 0);
   const local = calculerPanier(catalogue, lignes, choix?.mode === "livraison" && choix.zone ? choix.zone : null);
   const montants = reponse && !reponse.erreur ? reponse : local;
@@ -40,6 +42,11 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
       </nav>
       <div className="carte-corps">
         <div className="carte-liste">
+          {ferme && (
+            <p className="panier-alerte" role="status">
+              La commande en ligne est fermée en ce moment. La carte reste à consulter. <Link href="/">Voir quand commander</Link>
+            </p>
+          )}
           {categories.map((c, i) => {
             const avecPhoto = c.plats.filter((p) => p.photo);
             const sansPhoto = c.plats.filter((p) => !p.photo);
@@ -65,7 +72,7 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
                       {motif && <span className="plat-rupture">{motif}</span>}
                     </span>
                     <span className="plat-prix">{prixCourt(p.prix_centimes)}</span>
-                    {!motif && (
+                    {!motif && !ferme && (
                       <span className="plat-ajout" aria-hidden="true">
                         +
                       </span>
@@ -94,7 +101,7 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
           <span className="barre-nb">{nbArticles}</span>
           <span className="barre-txt">
             Voir le panier
-            {montants.manque_minimum_centimes > 0 && <small>Encore {prixChf(montants.manque_minimum_centimes)} pour le minimum</small>}
+            {montants.manque_minimum_centimes > 0 && <small>Encore {prixChf(montants.manque_minimum_centimes)} de plats pour le minimum</small>}
           </span>
           <span className="barre-total">{prixChf(montants.total_centimes)}</span>
         </Link>
@@ -107,6 +114,7 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
           plat={ouvert}
           catalogue={catalogue}
           preversion={preversion}
+          ferme={ferme}
           onAjouter={(ligne) => {
             ajouter(ligne);
             const total = nbArticles + ligne.qte;
