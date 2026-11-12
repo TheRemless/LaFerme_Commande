@@ -155,3 +155,4 @@ Le remboursement n'est possible qu'une fois la commande prête, partie ou livré
 3. « Réservé au gérant ». Le compte utilisé a l'accès « Tablette ». Se reconnecter avec l'e-mail du gérant.
 4. « Stripe a refusé le remboursement ». Rien n'a été rendu. Réessayer plus tard. « Encore en cours chez Stripe » : attendre une minute, rouvrir la commande puis toucher « Relancer » sur la ligne du remboursement. Il ne part jamais deux fois. Si ça dure, appeler le numéro ci-dessus.
 5. Une commande au comptoir manque dans l'export. Elle n'a pas été notée comme encaissée. Sur la tablette, onglet « Terminées » le jour même, toucher « Encaissée ».
+6. Un e-mail « Connexion bloquée 24 heures » arrive. Quelqu'un a tapé 15 codes faux avec cette adresse. Les appareils déjà connectés continuent de marcher. Pour se connecter ailleurs, attendre l'heure donnée dans l'e-mail ou passer par un appareil déjà connecté.
