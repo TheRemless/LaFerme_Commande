@@ -11,7 +11,9 @@
   });
 
   document.querySelectorAll("[data-qr]").forEach((el) => {
-    const adresse = params.get("qr") || champs[el.dataset.qr];
+    // ?site=https://exemple.ch remplace seulement le domaine : chaque support garde son ref.
+    const site = params.get("site");
+    const adresse = site ? champs[el.dataset.qr].replace(/^https:\/\/[^/]+/, site.replace(/\/$/, "")) : champs[el.dataset.qr];
     const qr = qrcode(0, "M");
     qr.addData(adresse);
     qr.make();

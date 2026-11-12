@@ -1,6 +1,6 @@
 // Rend les supports en PDF (avec fond perdu, pour l'imprimeur) et en JPEG (pour relire).
 // Depuis la racine du dépôt : node docs/lancement/supports/rendre.mjs
-// Option : QR=https://exemple.ch/?ref=flyer-a5 node docs/lancement/supports/rendre.mjs
+// Option : SITE=https://exemple.ch node docs/lancement/supports/rendre.mjs (domaine seul, chaque support garde son ref)
 import { chromium } from "playwright";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import path from "node:path";
@@ -19,7 +19,7 @@ const navigateur = await chromium.launch({ channel: "chrome" });
 const page = await navigateur.newPage({ deviceScaleFactor: 3 });
 for (const s of supports) {
   const url = pathToFileURL(path.join(dossier, s.fichier));
-  if (process.env.QR) url.searchParams.set("qr", process.env.QR);
+  if (process.env.SITE) url.searchParams.set("site", process.env.SITE);
   await page.goto(url.href, { waitUntil: "networkidle" });
   await page.waitForFunction(() => document.documentElement.dataset.pret === "1");
   await page.evaluate(() => document.fonts.ready);

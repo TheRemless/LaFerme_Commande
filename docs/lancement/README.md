@@ -16,7 +16,7 @@ Documents préparés le 12.11.2026, aucun code du site modifié. Rien n'a été 
 
 - Rendus : `supports/rendus/flyer-a5.pdf` (deux pages, 154 × 216 mm, fond perdu de 3 mm inclus), `supports/rendus/autocollant-80mm.pdf` (86 × 86 mm, découpe ronde de 80 mm au centre), et les images JPEG de chaque face.
 - Les champs non validés (adresse du site, offre, code, communes, horaires) se règlent dans `supports/champs.js` et restent surlignés en jaune tant qu'ils commencent par « [ ».
-- Pour refaire les PDF une fois les champs remplis, depuis la racine du dépôt : `node docs/lancement/supports/rendre.mjs`. L'adresse du QR peut aussi se passer en variable : `QR=https://… node docs/lancement/supports/rendre.mjs`.
+- Pour refaire les PDF une fois les champs remplis, depuis la racine du dépôt : `node docs/lancement/supports/rendre.mjs`. Le domaine du QR peut aussi se passer en variable, chaque support gardant son `ref` : `SITE=https://… node docs/lancement/supports/rendre.mjs`.
 - Textes et source de chaque fait : `supports/textes-supports.md`.
 - Photos : shooting pro (`public/accueil.jpg`, `public/plats/margherita.jpg`), droits acquis. Logo : `public/logo-la-ferme.png`.
 - À dire à l'imprimeur : fichier en RVB, il convertit en quadrichromie. Demander une épreuve papier avant le tirage complet et scanner le QR imprimé avec deux téléphones.

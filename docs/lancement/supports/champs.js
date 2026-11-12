@@ -1,6 +1,6 @@
 // Champs à confirmer par Jérémy avant impression.
 // Une valeur entre crochets s'affiche surlignée en jaune sur la maquette : elle n'est pas validée.
-// L'adresse du QR peut aussi se passer dans l'URL de la page : flyer.html?qr=https://exemple.ch/?ref=flyer-a5
+// Le domaine du QR peut aussi se passer dans l'URL de la page : flyer.html?site=https://exemple.ch
 window.CHAMPS = {
   // Adresse codée dans le QR. Le paramètre ref sert à compter les visites venues de chaque support.
   qrFlyer: "https://[adresse-du-site-a-confirmer]/?ref=flyer-a5",
