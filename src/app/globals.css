@@ -71,6 +71,12 @@ ul {
   outline: 3px solid var(--encre);
   outline-offset: 2px;
 }
+/* Sur le béton, le contour d'encre se voyait mal (3,4:1) : contour blanc (D28). */
+.cats :focus-visible,
+.carte-liste :focus-visible,
+.page-suivi .etapes :focus-visible {
+  outline-color: var(--blanc);
+}
 
 /* Lien d'évitement : caché jusqu'au premier Tab */
 .evitement {
@@ -155,7 +161,8 @@ ul {
   white-space: nowrap;
   border-bottom: 3px solid transparent;
 }
-.cats a:hover {
+.cats a:hover,
+.cats a[aria-current="true"] {
   border-bottom-color: var(--blanc);
 }
 .carte-liste {
@@ -241,6 +248,10 @@ ul {
 .plat-media img {
   object-fit: cover;
   transform: scale(1.04);
+}
+/* Plats posés sur une ardoise : l'assiette était petite dans le carré, on resserre (D22). */
+.plat-media.serre img {
+  transform: scale(1.65);
 }
 .plat-txt {
   grid-column: 1;
@@ -1059,6 +1070,21 @@ body.fiche-ouverte {
 .fiche-media img {
   object-fit: cover;
 }
+/* Téléphone : la fiche remplit l'écran, la barre d'ajout descend en bas même quand le contenu est court (D11). */
+@media (max-width: 899px) {
+  .fiche {
+    display: flex;
+    flex-direction: column;
+  }
+  .fiche-corps {
+    flex: 1 0 auto;
+  }
+  /* La fiche défile : ni la photo ni la barre d'ajout ne doivent rétrécir quand le contenu est long. */
+  .fiche-media,
+  .fiche-pied {
+    flex-shrink: 0;
+  }
+}
 .fiche-sans-photo {
   display: none;
 }
@@ -1403,15 +1429,28 @@ body.fiche-ouverte {
   color: var(--blanc);
   border-bottom: 1px solid rgb(255 255 255 / 0.3);
 }
+/* Étapes du suivi (D18) : une coche pour ce qui est fait, un disque plein pour l'étape en cours,
+   un simple point pour la suite. Plus rien qui ressemble à un bouton radio. */
 .puce {
-  width: 24px;
-  height: 24px;
-  border: 2px solid rgb(255 255 255 / 0.6);
+  display: grid;
+  place-items: center;
+  justify-self: center;
+  width: 10px;
+  height: 10px;
+  color: var(--encre);
+  background: rgb(255 255 255 / 0.55);
   border-radius: 50%;
 }
-.fait .puce {
+.fait .puce,
+.en-cours .puce {
+  width: 26px;
+  height: 26px;
   background: var(--blanc);
-  border-color: var(--blanc);
+}
+.puce .ic {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.4;
 }
 .en-cours {
   font-size: 19px;
@@ -1419,8 +1458,8 @@ body.fiche-ouverte {
   color: var(--blanc);
 }
 .en-cours .puce {
-  border-color: var(--blanc);
-  box-shadow: inset 0 0 0 5px var(--beton), inset 0 0 0 12px var(--blanc);
+  outline: 3px solid rgb(255 255 255 / 0.45);
+  outline-offset: 3px;
 }
 .suivi-info {
   color: var(--blanc);
