@@ -98,10 +98,8 @@ Claude donne les noms et les contextes, Jérémy saisit les valeurs secrètes.
 | `BASE_DE_TEST` = `1` | jamais (le build échoue) | seulement avec la clé d'un projet Supabase de test | Jérémy |
 
 - [ ] Jérémy et Claude : saisir les variables du tableau. Détail : [comptes.md](comptes.md).
-- [ ] Jérémy : lancer la migration `20261112090000_correctifs_securite.sql` (`npx supabase db push --remote`). Elle retire le gérant de test de la vraie base, plafonne les essais de code par jour, limite les commandes au comptoir et retire aux visiteurs les droits d'écriture. Détail : [audits/securite.md](audits/securite.md).
+- [x] Jérémy : migrations de la base lancées. 23 sur 23 appliquées le 12.11.2026, la dernière étant `20261123090000_plafond_codes.sql`. Toute nouvelle migration se lance par `cd ~/Desktop/LaFerme_Commande && git pull && npx supabase db push --remote`, une fois sa PR intégrée, jamais avant.
 - [ ] Jérémy : se créer le premier accès gérant avec sa propre adresse e-mail, une seule fois : dans Supabase, ouvrir le projet, SQL Editor, puis exécuter `insert into personnel (email, nom, role) values ('<son adresse en minuscules>', 'Jérémy', 'gerant');`. Les autres membres (Giuseppe, l'équipe) s'ajoutent ensuite dans le back-office, rubrique « Équipe ». Le code arrive par e-mail une fois l'envoi branché (préversions et production). Sans lui, aucune connexion n'est possible sur une préversion branchée sur la vraie base.
-- [ ] Jérémy : lancer la migration `20261114090000_correctifs_gerant.sql` (`npx supabase db push --remote`). Elle ajoute l'équipe, le remboursement après coup, la liste des commandes, le retard du soir et la remise à zéro de chaque nuit. Détail : [audits/gerant.md](audits/gerant.md).
-- [ ] Jérémy : lancer la migration `20261115090000_plafond_comptoir.sql` (même commande, elle part avec les autres). Elle pose le plafond de CHF 100 par commande payée au comptoir et le fait revérifier par la base. Sans elle, le site ne propose plus le paiement au comptoir.
 
 ### Stripe
 
