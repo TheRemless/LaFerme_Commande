@@ -69,6 +69,7 @@ declare
   l commande_lignes%rowtype;
   prec jsonb;
   qte_deja integer;
+  opts_deja integer;
   prix integer;
   montant integer := 0;
   parties text[] := '{}';
@@ -114,34 +115,39 @@ begin
     if not found then
       raise exception 'ligne_inconnue';
     end if;
+    -- Plats de la ligne déjà signalés, et prix des suppléments de la ligne déjà rendus (par plat).
+    select coalesce(sum((x ->> 'qte')::integer), 0) into qte_deja from jsonb_array_elements(prec) x
+    where (x ->> 'ligne')::integer = l.position and coalesce(x ->> 'groupe', '') = '';
+    select coalesce(sum(o.prix_centimes), 0) into opts_deja
+    from jsonb_array_elements(prec) x
+    join groupes_options g on g.slug = x ->> 'groupe'
+    join options o on o.groupe_id = g.id and o.nom = x ->> 'nom'
+    where (x ->> 'ligne')::integer = l.position and coalesce(x ->> 'groupe', '') <> '';
     if coalesce(e ->> 'groupe', '') = '' then
-      -- Le plat entier : prix de la ligne, suppléments compris.
+      -- Le plat entier : prix de la ligne, suppléments compris, moins les suppléments déjà rendus.
       if (e ->> 'qte')::integer is null or (e ->> 'qte')::integer < 1 then
         raise exception 'elements_invalides';
       end if;
-      select coalesce(sum((x ->> 'qte')::integer), 0) into qte_deja from jsonb_array_elements(prec) x
-      where (x ->> 'ligne')::integer = l.position and coalesce(x ->> 'groupe', '') = '';
       if qte_deja + (e ->> 'qte')::integer > l.qte then
         raise exception 'deja_signale';
       end if;
       prec := prec || jsonb_build_array(e);
-      montant := montant + l.unitaire_centimes * (e ->> 'qte')::integer;
+      montant := montant + greatest(l.unitaire_centimes - opts_deja, 0) * (e ->> 'qte')::integer;
       parties := parties || ((e ->> 'qte') || ' × ' || l.nom);
     else
-      -- Un supplément choisi sur la ligne : son prix actuel, pour chaque plat de la ligne.
+      -- Un supplément choisi sur la ligne : son prix actuel, pour chaque plat de la ligne pas encore rendu.
       if not coalesce(l.choix -> (e ->> 'groupe') ? (e ->> 'nom'), false) then
         raise exception 'option_absente';
       end if;
-      if exists (select 1 from jsonb_array_elements(prec) x
-                 where (x ->> 'ligne')::integer = l.position and (x ->> 'groupe' = e ->> 'groupe' and x ->> 'nom' = e ->> 'nom'
-                   or (coalesce(x ->> 'groupe', '') = '' and (x ->> 'qte')::integer >= l.qte))) then
+      if qte_deja >= l.qte or exists (select 1 from jsonb_array_elements(prec) x
+          where (x ->> 'ligne')::integer = l.position and x ->> 'groupe' = e ->> 'groupe' and x ->> 'nom' = e ->> 'nom') then
         raise exception 'deja_signale';
       end if;
       select o.prix_centimes into prix from options o join groupes_options g on g.id = o.groupe_id
       where g.slug = e ->> 'groupe' and o.nom = e ->> 'nom';
       prec := prec || jsonb_build_array(e);
-      montant := montant + coalesce(prix, 0) * l.qte;
-      parties := parties || ((e ->> 'nom') || ' sur ' || l.qte || ' × ' || l.nom);
+      montant := montant + coalesce(prix, 0) * (l.qte - qte_deja);
+      parties := parties || ((e ->> 'nom') || ' sur ' || (l.qte - qte_deja) || ' × ' || l.nom);
     end if;
   end loop;
   select coalesce(sum(montant_centimes), 0) into engage from remboursements where commande_id = p_commande and statut in ('en_cours', 'fait');
@@ -479,7 +485,8 @@ begin
     raise exception 'non_annulable';
   end if;
 
-  select max(id) into nouvelle from journal_gestion;
+  -- Dernière ligne écrite par cette transaction dans le journal (pas celle d'un autre gérant au même moment).
+  nouvelle := currval(pg_get_serial_sequence('journal_gestion', 'id'));
   update journal_gestion set annule_par = nouvelle where id = p_id;
   return jsonb_build_object('annule', p_id, 'par', nouvelle);
 end;

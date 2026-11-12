@@ -329,6 +329,7 @@ const LIBELLES: Record<string, string> = {
 
 function valeurLisible(cle: string, v: unknown): string {
   if (v === null || v === undefined || v === "") return "vide";
+  if (typeof v === "string" && /^\d{2}:\d{2}:\d{2}$/.test(v)) return v.slice(0, 5);
   if (cle.endsWith("_centimes") && typeof v === "number") return (v / 100).toFixed(2);
   if (typeof v === "boolean") return v ? "oui" : "non";
   if (Array.isArray(v)) return v.join(", ") || "vide";
@@ -381,7 +382,8 @@ function resume(e: Entree): string {
     if (!e.apres) return "Suppression";
     return `${JSON.stringify(e.avant)} → ${JSON.stringify(e.apres)}`;
   }
-  const cles = Object.keys(e.apres).filter((k) => JSON.stringify(e.avant![k]) !== JSON.stringify(e.apres![k]));
+  // « Proposition » passe à non à chaque enregistrement : sans intérêt pour le gérant.
+  const cles = Object.keys(e.apres).filter((k) => k !== "proposition" && JSON.stringify(e.avant![k]) !== JSON.stringify(e.apres![k]));
   return cles.length
     ? cles.map((k) => `${LIBELLES[k] ?? k} : ${valeurLisible(k, e.avant![k])} → ${valeurLisible(k, e.apres![k])}`).join(" ; ")
     : "Enregistré sans changement";

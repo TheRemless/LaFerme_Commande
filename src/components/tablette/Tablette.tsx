@@ -12,6 +12,7 @@ import type { LigneTicket } from "@/lib/impression/ticket";
 import { heureDe as heure, jourGeneveDe as jourGeneve } from "@/lib/heures";
 import { heureTexte, jourTexte } from "@/lib/service";
 import { MOTIFS_REFUS } from "@/lib/motifs";
+import { nouvelleCle } from "@/lib/cle";
 
 // Tablette posée en cuisine : file des commandes, alerte sonore, accepter, refuser, statuts.
 // Relecture toutes les 15 secondes en service, 60 hors service, 5 sans signal Realtime, et tout de suite quand Supabase Realtime signale un changement.
@@ -497,7 +498,7 @@ function CarteCommande({
           <p className="tab-paiement">{paiement}</p>
           {c.manques && c.manques.length > 0 && (
             <p className="tab-manque">
-              Manque : {c.manques.join(" ; ")}. {prixChf(deduit)} {c.statut_paiement === "a_encaisser_retrait" ? "déduits" : "remboursés"}.
+              Manque : {c.manques.join(" ; ")}. {prixChf(deduit).replace(" ", "\u00a0")} {c.statut_paiement === "a_encaisser_retrait" ? "déduits" : "remboursés"}.
             </p>
           )}
           {c.motif && c.statut === "refusee" && <p>{c.motif}</p>}
@@ -682,7 +683,7 @@ function PanneauManque({ c, fermer }: { c: CommandeTablette; fermer: () => Promi
   const [resultat, setResultat] = useState<{ ok: boolean; texte: string } | null>(null);
   const [envoi, setEnvoi] = useState(false);
   // Même clé jusqu'à ce que le geste aboutisse : un double appui ne rembourse pas deux fois.
-  const [cle, setCle] = useState(() => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `manque-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`));
+  const [cle, setCle] = useState(nouvelleCle);
 
   const elements = [
     ...Object.entries(plats)
@@ -700,7 +701,7 @@ function PanneauManque({ c, fermer }: { c: CommandeTablette; fermer: () => Promi
     const texte = String(r.donnees.message ?? r.donnees.erreur ?? "Pas passé. Réessayez.");
     if (!confirmer) setEstimation(r.ok ? texte : null);
     if (confirmer || !r.ok) setResultat({ ok: r.ok, texte });
-    if (confirmer && (r.ok || r.statut === 409)) setCle(crypto.randomUUID?.() ?? `manque-${Date.now()}`);
+    if (confirmer && (r.ok || r.statut === 409)) setCle(nouvelleCle());
     setEnvoi(false);
   }
 
@@ -754,7 +755,8 @@ function PanneauManque({ c, fermer }: { c: CommandeTablette; fermer: () => Promi
         })}
         {c.lignes.flatMap((l, i) =>
           Object.entries(l.choix ?? {}).flatMap(([groupe, noms]) =>
-            noms.map((nom) => {
+            // Seulement les suppléments payants (« + » sur la carte de commande), pas un choix obligatoire comme les pâtes.
+            noms.filter((nom) => l.details.includes(`+ ${nom}`)).map((nom) => {
               const k = `${i}|${groupe}|${nom}`;
               const pris = options.includes(k);
               return (

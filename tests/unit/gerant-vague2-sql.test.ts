@@ -131,6 +131,35 @@ describe("G07 : un plat ou un supplément manque sur une commande acceptée", ()
     );
   });
 
+  it("un supplément puis le plat entier : le supplément n'est pas remboursé deux fois", async () => {
+    const c = await acceptee();
+    const opt = await f<{ montant_centimes: number }>("signaler_manque($1, $2, 'cle-manque-20', $3, true)", [c.id, [{ ligne: 0, groupe: "supplements-pizza", nom: "Ananas" }], service]);
+    expect(opt.montant_centimes).toBe(400);
+    const plat = await f<{ montant_centimes: number }>("signaler_manque($1, $2, 'cle-manque-21', $3, true)", [c.id, [{ ligne: 0, qte: 2 }], service]);
+    // 2 × (2300 − 200 d'ananas déjà rendus).
+    expect(plat.montant_centimes).toBe(4200);
+  });
+
+  it("une pizza puis le supplément : le supplément n'est rendu que pour la pizza qui reste", async () => {
+    const c = await acceptee();
+    await f("signaler_manque($1, $2, 'cle-manque-22', $3, true)", [c.id, [{ ligne: 0, qte: 1 }], service]);
+    const opt = await f<{ montant_centimes: number; description: string }>("signaler_manque($1, $2, 'cle-manque-23', $3, true)", [
+      c.id,
+      [{ ligne: 0, groupe: "supplements-pizza", nom: "Ananas" }],
+      service,
+    ]);
+    expect(opt).toMatchObject({ montant_centimes: 200, description: "Ananas sur 1 × Pizza Margherita" });
+  });
+
+  it("les deux pizzas signalées en deux fois : plus de supplément à rendre", async () => {
+    const c = await acceptee();
+    await f("signaler_manque($1, $2, 'cle-manque-24', $3, true)", [c.id, [{ ligne: 0, qte: 1 }], service]);
+    await f("signaler_manque($1, $2, 'cle-manque-25', $3, true)", [c.id, [{ ligne: 0, qte: 1 }], service]);
+    expect(await erreur("signaler_manque($1, $2, 'cle-manque-26', $3, true)", [c.id, [{ ligne: 0, groupe: "supplements-pizza", nom: "Ananas" }], service])).toContain(
+      "deja_signale",
+    );
+  });
+
   it("au comptoir pas encore payé, le manque se déduit de ce qu'il reste à encaisser", async () => {
     const c = await acceptee({ statut: "nouvelle", statut_paiement: "a_encaisser_retrait", moyen_paiement: "comptoir" }, false);
     const r = await f<{ moyen: string; statut: string }>("signaler_manque($1, $2, 'cle-manque-09', $3, true)", [c.id, [{ ligne: 1, qte: 1 }], service]);
