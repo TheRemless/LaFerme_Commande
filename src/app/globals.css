@@ -2938,3 +2938,40 @@ body.fiche-ouverte {
 .ges-confirmer {
   flex: 1 1 100%;
 }
+
+/* Tablette : manque signalé sur une commande (audit du gérant, G07). */
+.tab-manque {
+  padding: 6px 10px;
+  background: var(--papier);
+  border-left: 4px solid var(--encre);
+}
+
+/* Back-office : journal en liste (lisible au téléphone), communes d'une zone (audit du gérant, vague 2). */
+.ges-journal-liste > li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px;
+}
+.ges-journal-liste p {
+  margin: 0;
+}
+.ges-journal-tete {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+.ges-journal-tete span {
+  color: var(--encre-douce);
+  font-size: 14px;
+}
+.ges-journal-liste .lien,
+.ges-journal-liste .boutons-ligne {
+  align-self: flex-start;
+}
+.ges-communes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}

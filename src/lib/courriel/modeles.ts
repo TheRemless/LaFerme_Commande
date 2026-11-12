@@ -278,3 +278,21 @@ export function courrielRemboursementGeste(c: Commande, montantCentimes: number,
     "La somme revient sur le moyen de paiement utilisé. Le délai dépend de votre banque.",
   ], false);
 }
+
+// Un plat ou un supplément manque sur une commande acceptée (audit du gérant, G07). Le client apprend ce qui
+// manque, ce qui lui est rendu, et que le reste est préparé. moyen : stripe (remboursé), deduction (au comptoir,
+// pas encore payé), especes (déjà payé au comptoir, rendu sur place).
+export function courrielManque(c: Commande, description: string, montantCentimes: number, moyen: "stripe" | "especes" | "deduction", resteCentimes: number) {
+  const montant = prixChf(montantCentimes);
+  const argent =
+    moyen === "stripe"
+      ? [`Nous vous remboursons ${montant}.`, "La somme revient sur le moyen de paiement utilisé. Le délai dépend de votre banque."]
+      : moyen === "deduction"
+        ? [`Vous payez ${prixChf(resteCentimes)} au comptoir au lieu de ${prixChf(c.total_centimes)}.`]
+        : [`Nous vous rendons ${montant} au comptoir.`];
+  return courrielCourt(c, `Il manque une partie de votre commande ${c.numero}, La Ferme`, [
+    `Nous ne pouvons pas préparer toute votre commande n° ${c.numero}. Il manque ${description}.`,
+    ...argent,
+    "Le reste de la commande est préparé comme prévu.",
+  ]);
+}

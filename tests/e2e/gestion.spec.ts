@@ -40,8 +40,8 @@ test("un plat se modifie, ce qui bloque s'affiche, la modification va au journal
   await expect(gestion.getByRole("button", { name: /^Pizza tonno/ })).not.toContainText("allergènes manquants");
 
   await gestion.getByRole("button", { name: "Journal" }).click();
-  await expect(gestion.locator(".ges-journal")).toContainText("pizza-tonno");
-  await expect(gestion.locator(".ges-journal")).toContainText("gluten, lait, poisson (test)");
+  await expect(gestion.locator(".ges-journal-liste")).toContainText("Plat Pizza tonno");
+  await expect(gestion.locator(".ges-journal-liste")).toContainText("gluten, lait, poisson (test)");
 });
 
 test("l'import du tableau montre les changements avant de les appliquer", async () => {
@@ -136,6 +136,27 @@ test("un membre de l'équipe s'ajoute puis se retire", async ({}, info) => {
   await ligne.getByRole("button", { name: /^Oui, retirer/ }).click();
   await expect(gestion.getByText("Retiré. Ses sessions sont coupées.")).toBeVisible();
   await expect(gestion.getByRole("heading", { name: "Anciens membres" })).toBeVisible();
+});
+
+// Audit du gérant, vague 2 : fermer un seul soir, puis le rouvrir depuis le journal (G11).
+test("un soir se ferme, puis se rouvre par le journal", async ({}, info) => {
+  const jour = info.project.name === "bureau" ? "2027-01-05" : "2027-01-12";
+  await gestion.getByRole("button", { name: "Livraison et horaires" }).click();
+  const bloc = gestion.locator(".ges-bloc", { has: gestion.getByRole("heading", { name: "Fermetures" }) });
+  await bloc.getByLabel("Fermer").selectOption("soir");
+  await bloc.getByLabel("Le", { exact: true }).fill(jour);
+  await bloc.getByLabel("Motif (pour vous)").fill(`Soirée privée ${info.project.name}`);
+  await bloc.getByRole("button", { name: "Ajouter la fermeture" }).click();
+  await expect(bloc.getByText("Fermeture ajoutée.")).toBeVisible();
+  await expect(bloc).toContainText(`le soir, Soirée privée ${info.project.name}`);
+
+  await gestion.getByRole("button", { name: "Journal" }).click();
+  const ligne = gestion.locator(".ges-journal-liste li", { hasText: `Soirée privée ${info.project.name}` }).first();
+  await ligne.getByRole("button", { name: "Annuler" }).click();
+  await ligne.getByRole("button", { name: "Oui, remettre l'ancienne valeur" }).click();
+  await expect(gestion.getByText("Ancienne valeur remise.")).toBeVisible();
+  await gestion.getByRole("button", { name: "Livraison et horaires" }).click();
+  await expect(gestion.locator(".ges-bloc", { has: gestion.getByRole("heading", { name: "Fermetures" }) })).not.toContainText(`Soirée privée ${info.project.name}`);
 });
 
 test("le back-office est fermé au personnel de service, aux clients et aux autres sites", async ({ page, request }, info) => {

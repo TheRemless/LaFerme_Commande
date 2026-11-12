@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useId, useState } from "react";
 import { heureDe, jourGeneveDe } from "@/lib/heures";
+import { nouvelleCle } from "@/lib/cle";
 import { prixChf as chf } from "@/lib/prix";
 import { poster } from "@/lib/requete-client";
 import { ajouterJours, jourTexte } from "@/lib/service";
@@ -61,10 +62,6 @@ const EVENEMENT: Record<string, string> = {
   encaisse: "Encaissée",
   remboursement: "Remboursement",
 };
-
-function nouvelleCle(): string {
-  return typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
-}
 
 export function GestionCommandes() {
   const ids = useId();

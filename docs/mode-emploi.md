@@ -1,6 +1,6 @@
 # Mode d'emploi
 
-Deux pages à imprimer. La première se colle en cuisine près de la tablette, la seconde reste avec le gérant. Elles décrivent le site tel qu'il est au 14.11.2026. Le numéro à appeler reste à remplir.
+Deux pages à imprimer. La première se colle en cuisine près de la tablette, la seconde reste avec le gérant. Elles décrivent le site tel qu'il est au 16.11.2026. Le numéro à appeler reste à remplir.
 
 ---
 
@@ -31,6 +31,15 @@ Ne pas toucher « Continuer sans son ». Sans son, personne n'entend les command
 - En livraison, toucher « Livrée » au retour du livreur.
 - « Changer l'heure » envoie la nouvelle heure au client.
 
+### Il manque un plat ou un supplément sur une commande
+
+1. Accepter la commande si ce n'est pas fait, puis l'ouvrir dans « En cours ».
+2. Toucher « Il manque… » et choisir ce qui manque (le plat entier, ou un supplément sur un plat).
+3. Toucher « Calculer le montant ». La tablette affiche ce qui sera rendu.
+4. Toucher « Confirmer et prévenir le client ». Le client reçoit un e-mail avec ce qui manque et le montant.
+
+Payée en ligne, le montant lui est remboursé. À payer au comptoir, il est déduit : la carte affiche le nouveau montant à encaisser. Le reste de la commande se prépare normalement. Une fois la commande prête ou partie, seul le gérant peut le faire.
+
 ### Un client appelle
 
 - Il veut changer sa commande. Ce n'est pas possible sur la tablette. Annuler la commande et lui demander de recommander.
@@ -42,9 +51,7 @@ Ne pas toucher « Continuer sans son ». Sans son, personne n'entend les command
 - Trop de monde. Toucher « Pause 30 min », « Pause 1 h » ou « Pause jusqu'à reprise ». Les commandes déjà reçues restent à faire.
 - La cuisine prend du retard. Toucher +5 sous « Retard ce soir ». Le retard s'ajoute aux heures annoncées aux clients, à emporter et en livraison. Il revient à zéro dans la nuit.
 - Pas de livreur. Toucher « Fermer la livraison ». Le retrait reste ouvert. La livraison se rouvre toute seule la nuit.
-- Un plat est fini. Chercher le plat puis toucher « Disponible », qui devient « Épuisé ». Il revient tout seul le lendemain.
-- Une commande déjà reçue contient ce plat. Appeler le client, puis refuser avec le motif « Un des plats commandés est épuisé. ». Il peut recommander autre chose.
-- Les suppléments (burrata, jambon…) ne se mettent pas en rupture ici. Prévenir le gérant.
+- Un plat ou un supplément est fini (burrata, jambon…). Le chercher puis toucher « Disponible », qui devient « Épuisé ». Il revient tout seul le lendemain.
 - Toucher « Fermer les réglages » pour revoir les commandes.
 
 ### Les onglets
@@ -62,7 +69,7 @@ Ne pas toucher « Continuer sans son ». Sans son, personne n'entend les command
 2. Bandeau « Pas de connexion depuis… ». Vérifier le Wi-Fi de la tablette. Les nouvelles commandes ne s'affichent plus. Au bout de 3 minutes, le site met les commandes en ligne en pause tout seul.
 3. Imprimante « plus de papier », « capot ouvert » ou « hors ligne ». Changer le rouleau, fermer le capot ou vérifier le câble et l'interrupteur. Les tickets en attente sortent quand elle revient. En attendant, toucher « Ticket » sur la commande pour la lire sur la tablette. Si un ticket est en « échec », toucher « Réimprimer ».
 4. Bandeau « Pause automatique ». La tablette n'a pas répondu pendant le service. Ouvrir « Pause, délai, ruptures » puis toucher « Reprendre les commandes ».
-5. La tablette demande un e-mail. Elle a été déconnectée. Entrer l'e-mail de l'équipe, lire le code reçu par e-mail puis le taper. Ne jamais toucher « Déconnexion » pendant un service.
+5. La tablette demande un e-mail. Elle a été déconnectée. Entrer l'e-mail de l'équipe, lire le code reçu par e-mail puis le taper. « Déconnexion » demande une confirmation : répondre « Non » pendant un service.
 
 ---
 
@@ -114,8 +121,13 @@ Le remboursement n'est possible qu'une fois la commande prête, partie ou livré
 - Zone. Frais, minimum, délai annoncé, zone ouverte ou non, puis « Enregistrer la zone ». Les communes ne se changent pas ici.
 - Délai de préparation habituel. Le temps annoncé pour un retrait « dès que possible ». Un soir chargé, on ajoute plutôt du retard sur la tablette.
 - Horaires. Quatre heures par service, puis « Enregistrer » sur la ligne du service.
-- Fermeture (jour férié, vacances). En bas de la page, remplir « Du », « Au (inclus) » et le motif, puis « Ajouter la fermeture ». Une fermeture couvre des jours entiers. Pour fermer un seul service, mettre la tablette en « Pause jusqu'à reprise ».
-- Avant une fermeture, regarder l'onglet « À l'avance » de la tablette. Les commandes déjà prises pour ces jours restent. Les annuler une par une.
+- Fermeture (jour férié, vacances). Dans « Fermetures », choisir « Des journées entières », remplir « Du », « Au (inclus) » et le motif, puis « Ajouter la fermeture ».
+- Fermer un seul service. Choisir « Un midi » ou « Un soir », le jour et le motif. Les clients ne peuvent plus choisir ce moment.
+- Si des commandes sont déjà prises pour ce moment, le back-office donne leurs numéros. Les annuler sur la tablette, onglet « À l'avance ».
+- Ouvrir un jour normalement fermé (un dimanche de fête) ou changer les heures d'un service ce jour-là. Dans « Ouvertures exceptionnelles », choisir le jour, le service, les quatre heures et le motif. Les clients peuvent choisir ce moment tout de suite.
+- « Supprimer » une fermeture ou une ouverture demande une confirmation.
+- Communes d'une zone. Sous chaque zone, « Retirer » une commune, ou écrire un NPA et une localité puis « Ajouter à la zone ». Écrire la localité comme sur l'adresse officielle (Petit-Lancy, Le Lignon).
+- Paiement au comptoir. Le montant le plus haut qu'un client peut payer au comptoir (100 francs au départ). Au-delà, il paie en ligne.
 
 ### Imprimantes
 
@@ -138,14 +150,13 @@ Le remboursement n'est possible qu'une fois la commande prête, partie ou livré
 ### Journal
 
 - Qui a changé quoi et quand, remboursements et équipe compris.
-- Il n'y a pas de bouton pour revenir en arrière. Lire l'ancienne valeur et la retaper.
+- Une erreur de prix, de zone, d'horaire, de fermeture ou de commune. Toucher « Annuler » sur la ligne, puis « Oui, remettre l'ancienne valeur ». Si la valeur a changé depuis, le back-office refuse : corriger à la main.
+- L'équipe, les remboursements et l'import du tableau ne s'annulent pas depuis le journal.
 
 ### Ce qui ne se fait pas ici (appeler le numéro ci-dessus)
 
 - Ajouter un plat, un supplément ou une catégorie, ou un plat du jour.
 - Envoyer une nouvelle photo.
-- Changer les communes d'une zone.
-- Fermer un seul service à une date donnée.
 - Remplacer une imprimante.
 
 ### Que faire si…
