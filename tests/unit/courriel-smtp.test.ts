@@ -74,7 +74,7 @@ async function commande(): Promise<string> {
 
 async function copies(id: string) {
   const db = await baseLocale();
-  return (await db.query<{ sujet: string; texte: string; fournisseur: string }>("select sujet, texte, fournisseur from courriels where commande_id = $1 order by envoye_le", [id])).rows;
+  return (await db.query<{ sujet: string; texte: string; fournisseur: string }>("select sujet, texte, fournisseur from courriels where commande_id = $1 order by envoye_le, ctid", [id])).rows;
 }
 
 describe("réglages du serveur d'envoi", () => {

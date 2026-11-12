@@ -202,7 +202,9 @@ export async function courrielsPartis(commandeId: string): Promise<{ destinatair
   }
   const db = await baseLocale();
   return (await db.query<{ destinataire: string; sujet: string; texte: string }>(
-    "select destinataire, sujet, texte from courriels where commande_id = $1 and fournisseur <> 'doublure' and envoye_le > now() - interval '24 hours' order by envoye_le desc",
+    // La base embarquée horodate à la milliseconde : deux courriels enregistrés dans la même milliseconde se
+    // départagent par leur ordre d'écriture (ctid), sinon « le dernier parti » est tiré au sort.
+    "select destinataire, sujet, texte from courriels where commande_id = $1 and fournisseur <> 'doublure' and envoye_le > now() - interval '24 hours' order by envoye_le desc, ctid desc",
     [commandeId],
   )).rows;
 }
