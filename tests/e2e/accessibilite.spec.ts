@@ -136,8 +136,8 @@ test("axe : tablette et back-office connectés", async ({ page }, info) => {
   await connecterPersonnel(page, `a11y-${info.project.name}@laferme.test`);
   await page.getByRole("button", { name: "Continuer sans son" }).click();
   await expect(page.getByRole("button", { name: /^À accepter/ })).toBeVisible();
-  // Après la connexion (router.refresh), Next renvoie les métadonnées en flux : sur le runner GitHub, axe
-  // passait parfois entre le retrait de l'ancien titre et l'arrivée du nouveau (« document-title »).
+  // Après la connexion (router.refresh), la page doit garder son titre. Avec les métadonnées en flux, Next le
+  // retirait parfois sans le remettre (next.config.ts, htmlLimitedBots).
   await expect(page).toHaveTitle("Tablette, La Ferme");
   await controler(page, "tablette-file");
   await page.getByRole("button", { name: "Pause, délai, ruptures" }).click();
