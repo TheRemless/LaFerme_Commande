@@ -142,7 +142,11 @@ export async function agir(commandeId: string, a: Action, p: Personnel): Promise
       }
       break;
     case "refuser": {
-      ok = await changerStatut(commandeId, "refusee", par, { motif: a.motif, de: a.de });
+      // Livraison partie (client absent, adresse introuvable) : fonction à part, le livreur le lit sur son téléphone.
+      ok =
+        avant.statut === "partie"
+          ? (a.de === undefined || a.de === "partie") && (await fonctionSql<boolean>("annuler_commande_partie", { p_commande: commandeId, p_par: par, p_motif: a.motif }))
+          : await changerStatut(commandeId, "refusee", par, { motif: a.motif, de: a.de });
       if (!ok) break;
       // Commande déjà acceptée : la cuisine a peut-être son ticket. Les tickets en file partent, et chaque
       // poste qui a déjà le sien reçoit « ANNULÉE » (SS-03).

@@ -11,7 +11,8 @@
 alter table personnel drop constraint personnel_role_check;
 alter table personnel add constraint personnel_role_check check (role in ('service', 'gerant', 'livreur'));
 
--- Mêmes fonctions que la migration 20261114090000_correctifs_gerant.sql, avec le rôle livreur en plus.
+-- Objets partagés recréés (signalé en tête de la PR) : dernières définitions de origin/main
+-- (20261114090000_correctifs_gerant.sql, inchangées depuis), avec seulement le rôle livreur en plus.
 create or replace function ajouter_personnel(p_email text, p_nom text, p_role text, p_personnel uuid) returns uuid
 language plpgsql as $$
 declare
@@ -95,41 +96,20 @@ end;
 $$;
 
 -- ---------- Annulation d'une commande partie ----------
--- Client absent, adresse introuvable : la commande partie doit pouvoir être annulée depuis la tablette
--- (remboursement comme pour toute annulation). Même fonction que 20261113090000_correctifs_service.sql,
--- avec « partie » parmi les états d'où l'on peut refuser.
-create or replace function changer_statut(p_commande uuid, p_vers text, p_par text, p_heure timestamptz default null, p_motif text default null, p_de text default null)
-returns boolean
+-- Client absent, adresse introuvable : une commande partie doit pouvoir être annulée depuis la tablette
+-- (remboursement comme pour toute annulation). changer_statut, partagée, n'est pas touchée : cette
+-- fonction neuve ne fait que partie → refusee, avec la même trace dans evenements_commande.
+create function annuler_commande_partie(p_commande uuid, p_par text, p_motif text) returns boolean
 language plpgsql as $$
 declare
   c commandes%rowtype;
-  permis boolean;
 begin
   select * into c from commandes where id = p_commande for update;
-  if not found or (p_de is not null and c.statut <> p_de) then
+  if not found or c.statut <> 'partie' or coalesce(btrim(p_motif), '') = '' then
     return false;
   end if;
-  permis := case p_vers
-    when 'acceptee' then c.statut = 'nouvelle' and p_heure is not null
-    when 'refusee' then c.statut in ('nouvelle', 'acceptee', 'en_preparation', 'partie') and coalesce(btrim(p_motif), '') <> ''
-    when 'en_preparation' then c.statut = 'acceptee'
-    when 'prete' then c.statut in ('acceptee', 'en_preparation') and c.mode = 'retrait'
-    when 'partie' then c.statut in ('acceptee', 'en_preparation') and c.mode = 'livraison'
-    when 'terminee' then c.statut in ('prete', 'partie')
-    else false
-  end;
-  if not permis then
-    return false;
-  end if;
-  update commandes set
-    statut = p_vers,
-    heure_confirmee = coalesce(p_heure, heure_confirmee),
-    accepte_le = case when p_vers = 'acceptee' then now() else accepte_le end,
-    termine_le = case when p_vers in ('terminee', 'refusee') then now() else termine_le end,
-    motif = case when p_vers = 'refusee' then btrim(p_motif) else motif end
-  where id = p_commande;
-  insert into evenements_commande (commande_id, de, vers, par, detail)
-    values (p_commande, c.statut, p_vers, p_par, case when p_vers = 'refusee' then btrim(p_motif) when p_heure is not null then p_heure::text end);
+  update commandes set statut = 'refusee', termine_le = now(), motif = btrim(p_motif) where id = p_commande;
+  insert into evenements_commande (commande_id, de, vers, par, detail) values (p_commande, 'partie', 'refusee', p_par, btrim(p_motif));
   return true;
 end;
 $$;
@@ -495,11 +475,13 @@ language sql stable as $$
 $$;
 
 revoke execute on function
+  annuler_commande_partie(uuid, text, text),
   livreurs_tablette(), livraisons_a_ordonner(uuid), attribuer_livraison(uuid, uuid, text), retirer_livraison(uuid, text),
   ordonner_livraisons(uuid, uuid[], boolean, text), regler_probleme_livraison(uuid, text), livraisons_livreur(uuid),
   geste_livreur(text, uuid, uuid, text, text, text), journal_livraison(uuid)
   from public, anon, authenticated;
 grant execute on function
+  annuler_commande_partie(uuid, text, text),
   livreurs_tablette(), livraisons_a_ordonner(uuid), attribuer_livraison(uuid, uuid, text), retirer_livraison(uuid, text),
   ordonner_livraisons(uuid, uuid[], boolean, text), regler_probleme_livraison(uuid, text), livraisons_livreur(uuid),
   geste_livreur(text, uuid, uuid, text, text, text), journal_livraison(uuid)
