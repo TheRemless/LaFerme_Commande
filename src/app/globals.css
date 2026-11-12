@@ -516,6 +516,29 @@ ul {
 .accueil-photo img {
   object-fit: cover;
 }
+/* Téléphone : la photo devient une bande, pour que le choix livraison ou retrait et le champ d'adresse
+   tiennent dans le premier écran, même sur 375 × 667 avec le bandeau de préversion. Le bureau garde la
+   photo en plein cadre (règles à partir de 900 px). */
+@media (max-width: 899px) {
+  .accueil-photo {
+    height: clamp(112px, 18vh, 180px);
+    min-height: 0;
+  }
+  .accueil-photo img {
+    object-position: 50% 45%;
+  }
+  .accueil-panneau {
+    gap: 14px;
+    padding-top: 18px;
+  }
+  .accueil h1 {
+    font-size: clamp(30px, 8.6vw, 40px);
+  }
+  .choix-mode button {
+    min-height: 72px;
+    padding: 10px 12px;
+  }
+}
 .accueil-panneau {
   position: relative;
   display: flex;
