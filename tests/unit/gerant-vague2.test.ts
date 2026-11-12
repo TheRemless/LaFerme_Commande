@@ -11,7 +11,7 @@ vi.mock("@/lib/paiement/passerelle", async (original) => ({
     async rembourser(pi: string, options: { montantCentimes?: number; cle?: string } = {}) {
       stripe.appels.push({ pi, ...options });
       if (stripe.panne) throw Object.assign(new Error("Refus de Stripe (simulé)"), { type: "StripeInvalidRequestError" });
-      return { id: `re_${options.cle ?? pi}` };
+      return { id: `re_${options.cle ?? pi}`, statut: "succeeded" as const };
     },
     async creerSession() {
       throw new Error("non utilisé");

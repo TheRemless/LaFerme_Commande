@@ -13,7 +13,8 @@ vi.mock("@/lib/paiement/passerelle", async (original) => ({
       stripe.appels.push({ pi, ...options });
       if (stripe.panne) throw Object.assign(new Error("Refus de Stripe (simulé)"), { type: "StripeInvalidRequestError" });
       if (stripe.muet) throw Object.assign(new Error("Délai dépassé (simulé)"), { type: "StripeConnectionError" });
-      return { id: `re_${options.cle ?? pi}` };
+      // Contrat de la passerelle depuis l'audit de sécurité 2 (S2-03) : l'état du remboursement chez Stripe.
+      return { id: `re_${options.cle ?? pi}`, statut: "succeeded" as const };
     },
     async creerSession() {
       throw new Error("non utilisé");

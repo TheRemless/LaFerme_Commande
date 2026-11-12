@@ -8,7 +8,8 @@ import { chargerConfigService } from "@/lib/config-service";
 import { appliquerPaiement, commandeParId, fonctionSql, type Commande } from "@/lib/db/serveur";
 import type { Catalogue } from "@/lib/panier";
 import { pauseEnCours, quandPossible, type ConfigService } from "@/lib/service";
-import { paiementDisponible, passerelle, remboursementSimule } from "@/lib/paiement/passerelle";
+import { type EtatRemboursement, paiementDisponible, passerelle, remboursementSimule } from "@/lib/paiement/passerelle";
+import { alerter } from "@/lib/surveillance";
 import { signalerTablette } from "@/lib/tablette";
 
 // Ce qui suit un événement de paiement. Une seule source de vérité : appliquer_paiement en base,
@@ -119,7 +120,17 @@ export async function rembourserCommande(commandeId: string, motif: string): Pro
   const c = await commandeParId(commandeId);
   if (!c || c.moyen_paiement !== "en_ligne" || c.statut_paiement !== "paye" || !c.stripe_payment_intent) return { rembourse: false };
   const r = remboursementSimule(c.stripe_payment_intent) ?? (await passerelle().rembourser(c.stripe_payment_intent));
+  // Stripe a refusé tout de suite : rien n'est rendu (la tablette propose de recommencer).
+  if (r.statut === "failed" || r.statut === "canceled") {
+    console.error(`Remboursement de la commande ${c.numero} refusé par Stripe (${r.statut}).`);
+    return { rembourse: false };
+  }
+  // Accepté par Stripe : le client lit « remboursé », comme avant. Une ligne suit le remboursement jusqu'à sa
+  // confirmation (charge.refund.updated) ; un échec plus tard alerte le restaurant (audit de sécurité 2, S2-03).
   const applique = await appliquerPaiement(`remboursement:${r.id}`, c.id, "rembourse");
+  await fonctionSql("noter_remboursement_refus", { p_commande: c.id, p_refund_id: r.id, p_fait: r.statut === "succeeded", p_motif: motif }).catch((e) =>
+    console.error(`Suivi du remboursement de la commande ${c.numero} non noté : ${e instanceof Error ? e.message : e}`),
+  );
   if (applique) {
     const m = courrielRemboursement(c, motif);
     await envoyerCourriel({ commandeId: c.id, destinataire: c.client_email, ...m }).catch((e) =>
@@ -138,6 +149,7 @@ type LigneRemboursement = {
   moyen: "stripe" | "especes" | "deduction";
   statut: "en_cours" | "fait" | "echec";
   erreur: string | null;
+  stripe_refund_id?: string | null;
   deja?: boolean;
   change?: boolean;
 };
@@ -206,6 +218,7 @@ export async function rembourserApresCoup(
   if (r.statut === "echec") return { ok: false, message: "Ce remboursement a déjà échoué. Rechargez la fiche pour en refaire un." };
   const montant = (montantCentimes / 100).toFixed(2);
   if (r.moyen === "especes") return { ok: true, message: `CHF ${montant} notés comme rendus en espèces.` };
+  if (r.statut === "en_cours") return { ok: true, message: `Remboursement de CHF ${montant} demandé à Stripe, en attente de sa confirmation. Le client reçoit un e-mail.` };
   return { ok: true, message: r.deja && !envoyer ? `Remboursement de CHF ${montant} déjà fait.` : `CHF ${montant} remboursés. Le client reçoit un e-mail.` };
 }
 
@@ -219,9 +232,23 @@ async function rembourserChezStripe(
   cle: string,
 ): Promise<{ r: LigneRemboursement; envoyer: boolean } | { refus: { ok: false; message: string; enCours?: boolean } }> {
   if (r.moyen !== "stripe" || r.statut !== "en_cours") return { r, envoyer: r.statut === "fait" && !r.deja && r.moyen === "stripe" };
+  // Déjà accepté par Stripe, en attente de sa confirmation : rien à redemander (S2-03).
+  if (r.stripe_refund_id) {
+    return { refus: { ok: false, message: "Ce remboursement attend la confirmation de Stripe. Rechargez dans quelques minutes.", enCours: true } };
+  }
   try {
     const pi = c.stripe_payment_intent ?? "";
     const s = remboursementSimule(pi, cle) ?? (await passerelle().rembourser(pi, { montantCentimes, cle }));
+    if (s.statut === "failed" || s.statut === "canceled") {
+      await fonctionSql("terminer_remboursement", { p_id: r.id, p_ok: false, p_refund_id: s.id, p_erreur: `Stripe : ${s.statut}` });
+      return { refus: { ok: false, message: "Stripe a refusé le remboursement. Rien n'a été rendu. Réessayez plus tard ou vérifiez dans Stripe." } };
+    }
+    if (s.statut !== "succeeded") {
+      // Accepté mais pas encore rendu (TWINT notamment) : la ligne reste en cours, hors de l'export, jusqu'à
+      // l'événement charge.refund.updated. Le client est prévenu dès maintenant, comme avant (S2-03).
+      const notee = await fonctionSql<LigneRemboursement>("noter_remboursement_stripe", { p_id: r.id, p_refund_id: s.id });
+      return { r: notee, envoyer: notee.change === true };
+    }
     const fini = await fonctionSql<LigneRemboursement>("terminer_remboursement", { p_id: r.id, p_ok: true, p_refund_id: s.id, p_erreur: null });
     return { r: fini, envoyer: fini.statut === "fait" && fini.change === true };
   } catch (e) {
@@ -234,6 +261,29 @@ async function rembourserChezStripe(
     await fonctionSql("terminer_remboursement", { p_id: r.id, p_ok: false, p_refund_id: null, p_erreur: detail });
     return { refus: { ok: false, message: "Stripe a refusé le remboursement. Rien n'a été rendu. Réessayez plus tard ou vérifiez dans Stripe." } };
   }
+}
+
+// État final d'un remboursement annoncé par Stripe (webhook charge.refund.updated, ou la doublure). Seul
+// « succeeded » rend la ligne « faite » (elle entre alors dans l'export) ; « failed » ou « canceled » la passe
+// en échec et alerte le restaurant, une seule fois. Les états intermédiaires et les remboursements inconnus
+// (faits dans le tableau de bord Stripe) ne changent rien (audit de sécurité 2, S2-03).
+export async function appliquerEtatRemboursement(refundId: string, etat: EtatRemboursement, raison: string | null): Promise<boolean> {
+  if (etat !== "succeeded" && etat !== "failed" && etat !== "canceled") return false;
+  const ok = etat === "succeeded";
+  const r = await fonctionSql<(LigneRemboursement & { numero: number }) | null>("maj_remboursement_stripe", {
+    p_refund_id: refundId,
+    p_ok: ok,
+    p_erreur: ok ? null : `Stripe : ${raison ?? etat}`,
+  });
+  if (!r || r.change !== true) return false;
+  if (!ok) {
+    await alerter(`Commande ${r.numero} : remboursement échoué chez Stripe`, [
+      `Stripe n'a pas pu rendre CHF ${(r.montant_centimes / 100).toFixed(2)} au client de la commande ${r.numero} (${raison ?? etat}).`,
+      "Le client a déjà reçu l'e-mail de remboursement. Rappelez-le, puis remboursez-le depuis le tableau de bord Stripe ou en espèces.",
+      "Dans le back-office, la fiche de la commande montre ce remboursement « échoué ». Il n'entre pas dans l'export comptable.",
+    ]).catch((e) => console.error(`Alerte de remboursement échoué non envoyée (commande ${r.numero}) : ${e instanceof Error ? e.message : e}`));
+  }
+  return true;
 }
 
 // ---------- Manque signalé depuis la tablette (audit du gérant, G07 option A) ----------

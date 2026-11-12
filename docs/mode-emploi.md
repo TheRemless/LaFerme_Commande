@@ -110,6 +110,8 @@ Le back-office s'ouvre sur « Commandes ». Les autres rubriques sont juste en d
 
 Le remboursement n'est possible qu'une fois la commande prête, partie ou livrée. Avant, on l'annule sur la tablette.
 
+Avec TWINT, Stripe confirme parfois un remboursement plus tard. La fiche le montre « en cours » jusque-là. S'il échoue, le restaurant reçoit une alerte par e-mail et la fiche le montre « échoué ». Il faut alors rappeler le client et le rembourser depuis Stripe ou en espèces.
+
 Client absent à la livraison : la commande est close sans remboursement, avec le motif « Client absent à la livraison. » et une alerte par e-mail au gérant. Ouvrir la commande et décider au cas par cas (rien, une partie ou tout).
 
 ### Équipe

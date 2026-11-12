@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { annulerPaiement, confirmerPaiement } from "@/lib/commandes";
+import { annulerPaiement, appliquerEtatRemboursement, confirmerPaiement } from "@/lib/commandes";
 import { commandeParId } from "@/lib/db/serveur";
 import { doublureActive } from "@/lib/paiement/passerelle";
 
@@ -10,7 +10,16 @@ export async function POST(requete: Request) {
   if (!doublureActive()) {
     return NextResponse.json({ erreur: "Introuvable." }, { status: 404 });
   }
-  const corps = (await requete.json().catch(() => ({}))) as { commande?: unknown; issue?: unknown };
+  const corps = (await requete.json().catch(() => ({}))) as { commande?: unknown; issue?: unknown; remboursement?: unknown };
+  // Fin d'un remboursement de la doublure joué « en attente » (DOUBLURE_REMBOURSEMENT=pending), par le même
+  // chemin que le webhook charge.refund.updated (audit de sécurité 2, S2-03).
+  if (corps.remboursement !== undefined) {
+    if (typeof corps.remboursement !== "string" || !/^re_doublure_[A-Za-z0-9_-]{1,100}$/.test(corps.remboursement) || (corps.issue !== "fait" && corps.issue !== "echec")) {
+      return NextResponse.json({ erreur: "Remboursement inconnu." }, { status: 404 });
+    }
+    const change = await appliquerEtatRemboursement(corps.remboursement, corps.issue === "fait" ? "succeeded" : "failed", corps.issue === "fait" ? null : "doublure");
+    return NextResponse.json({ change });
+  }
   if (typeof corps.commande !== "string" || !/^[0-9a-f-]{36}$/.test(corps.commande)) {
     return NextResponse.json({ erreur: "Commande inconnue." }, { status: 404 });
   }

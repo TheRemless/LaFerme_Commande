@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
-import { annulerPaiement, confirmerPaiement } from "@/lib/commandes";
-import { clientStripe } from "@/lib/paiement/passerelle";
+import { annulerPaiement, appliquerEtatRemboursement, confirmerPaiement } from "@/lib/commandes";
+import { clientStripe, etatRemboursement } from "@/lib/paiement/passerelle";
 
 // Webhook Stripe : seule source qui confirme un paiement (avec la réconciliation, qui relit Stripe).
 // Signature vérifiée sur le corps brut. Chaque événement n'est appliqué qu'une fois (appliquer_paiement).
@@ -48,6 +48,12 @@ export async function POST(requete: Request) {
         await annulerPaiement(commandeId, evenement.id, session.id);
         break;
     }
+  }
+  // Remboursement qui finit plus tard (TWINT) : seul « succeeded » le rend fait, « failed » alerte le restaurant
+  // (audit de sécurité 2, S2-03). Rejoué ou reçu dans le désordre : la base ne change qu'une ligne en cours.
+  if (evenement.type === "charge.refund.updated" || evenement.type === "refund.updated") {
+    const refund = evenement.data.object as Stripe.Refund;
+    await appliquerEtatRemboursement(refund.id, etatRemboursement(refund.status), refund.failure_reason ?? null);
   }
   return NextResponse.json({ recu: true });
 }

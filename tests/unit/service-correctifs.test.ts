@@ -12,7 +12,7 @@ vi.mock("@/lib/paiement/passerelle", async (original) => ({
       etatPasserelle.appels += 1;
       if (etatPasserelle.panne) throw new Error("Stripe indisponible (simulé)");
       await new Promise((ok) => setTimeout(ok, 20));
-      return { id: `re_${pi}` };
+      return { id: `re_${pi}`, statut: "succeeded" as const };
     },
     async creerSession() {
       throw new Error("non utilisé");

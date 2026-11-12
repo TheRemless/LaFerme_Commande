@@ -25,12 +25,29 @@ export type EtatSession = {
   devise: string | null;
 };
 
+// État d'un remboursement chez Stripe. Seul « succeeded » veut dire que l'argent est rendu ; « pending » et
+// « requires_action » attendent l'événement charge.refund.updated (audit de sécurité 2, S2-03).
+export type EtatRemboursement = "succeeded" | "pending" | "requires_action" | "failed" | "canceled";
+export type Remboursement = { id: string; statut: EtatRemboursement };
+
+const ETATS_REMBOURSEMENT: readonly string[] = ["succeeded", "pending", "requires_action", "failed", "canceled"];
+// Un état inconnu de Stripe (nouvelle valeur) se traite comme « pending » : rien n'est tenu pour rendu.
+export function etatRemboursement(v: unknown): EtatRemboursement {
+  return typeof v === "string" && ETATS_REMBOURSEMENT.includes(v) ? (v as EtatRemboursement) : "pending";
+}
+
+// Doublure, hors production : DOUBLURE_REMBOURSEMENT=pending joue un remboursement en attente, que
+// /api/paiement-test termine ensuite (« fait » ou « échec ») comme le ferait le webhook.
+function etatDoublure(): EtatRemboursement {
+  return process.env.CONTEXTE_DEPLOIEMENT !== "production" && process.env.DOUBLURE_REMBOURSEMENT === "pending" ? "pending" : "succeeded";
+}
+
 export interface Passerelle {
   nom: "stripe" | "doublure";
   creerSession(d: DemandeSession): Promise<{ id: string; url: string }>;
   lireSession(id: string): Promise<EtatSession>;
   // Sans montant : tout ce qui reste. Avec une clé : un remboursement partiel précis, rejouable sans doublon.
-  rembourser(paymentIntent: string, options?: { montantCentimes?: number; cle?: string }): Promise<{ id: string }>;
+  rembourser(paymentIntent: string, options?: { montantCentimes?: number; cle?: string }): Promise<Remboursement>;
   expirerSession(id: string): Promise<void>;
 }
 
@@ -91,7 +108,7 @@ const passerelleStripe = (s: Stripe): Passerelle => ({
       { payment_intent: paymentIntent, ...(options.montantCentimes ? { amount: options.montantCentimes } : {}) },
       { idempotencyKey: options.cle ? `remboursement-geste-${options.cle}` : `remboursement-${paymentIntent}` },
     );
-    return { id: r.id };
+    return { id: r.id, statut: etatRemboursement(r.status) };
   },
   async expirerSession(id) {
     const session = await s.checkout.sessions.retrieve(id);
@@ -110,7 +127,7 @@ const passerelleDoublure: Passerelle = {
     return { statut: "en_attente", montantCentimes: null, devise: null };
   },
   async rembourser(paymentIntent, options = {}) {
-    return { id: `re_doublure_${options.cle ?? paymentIntent}` };
+    return { id: `re_doublure_${options.cle ?? paymentIntent}`, statut: etatDoublure() };
   },
   async expirerSession() {},
 };
@@ -145,6 +162,6 @@ export function doublureActive(): boolean {
 
 // Remboursement d'un paiement simulé (commande de test déjà payée par la doublure) : aucun argent n'a
 // circulé, rien à demander à Stripe ni à la passerelle du moment.
-export function remboursementSimule(paymentIntent: string, cle?: string): { id: string } | null {
-  return paymentIntent.startsWith("pi_doublure_") ? { id: `re_doublure_${cle ?? paymentIntent}` } : null;
+export function remboursementSimule(paymentIntent: string, cle?: string): Remboursement | null {
+  return paymentIntent.startsWith("pi_doublure_") ? { id: `re_doublure_${cle ?? paymentIntent}`, statut: etatDoublure() } : null;
 }
