@@ -2,6 +2,18 @@
 
 Documents préparés le 12.11.2026, aucun code du site modifié. Rien n'a été publié, aucun compte créé.
 
+## Décisions attendues de Jérémy
+
+Tant qu'elles manquent, les champs en jaune des supports restent à confirmer et rien ne part à l'impression.
+
+| Décision | Où regarder | Ce qui en dépend |
+|---|---|---|
+| Offre de première commande (A 10 %, B livraison offerte, C CHF 10 dès CHF 40, ou aucune) | [offre-premiere-commande.md](offre-premiere-commande.md) | Code promo à coder par une autre session, texte du flyer et de l'autocollant, post Google « Offre » |
+| Adresse du site (domaine principal ou sous-domaine de restaurantlaferme.ch) | [plan-de-lancement.md](plan-de-lancement.md), `docs/mise-en-ligne.md` | QR et adresse imprimés, lien de commande de la fiche Google, redirections du site Wix |
+| Zones et horaires de livraison, validés dans le back-office | `docs/mise-en-ligne.md` phase 1 | Communes et horaires du flyer, horaires de livraison sur Google |
+| Demande écrite au gestionnaire de compte Uber Eats avant tout flyer ou autocollant dans les sacs Uber | [uber-eats-vers-le-site.md](uber-eats-vers-le-site.md), six questions prêtes | Autocollant sur les commandes Uber |
+| Tirage et mode de distribution (zone 1 seule ou toute la zone, Poste ou équipe) | [impression-distribution.md](impression-distribution.md) | Commande d'impression en S-3, dépôt à la Poste le 4.01 |
+
 | Fichier | Contenu |
 |---|---|
 | [plan-de-lancement.md](plan-de-lancement.md) | Semaine par semaine, de S-4 à S+4, qui fait quoi |
