@@ -1,0 +1,48 @@
+# Mises à jour des dépendances : une fois par semaine, le lundi à 6h (heure de Genève), hors service.
+# Tout est regroupé : au plus une PR par écosystème et par semaine pour les versions mineures et correctives,
+# une PR à part pour les versions majeures (souvent à adapter). Les PR de sécurité gardent leur rythme.
+# Chaque PR lance les vérifications (environ 10 minutes d'Actions) et une préversion Netlify (gratuite).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Zurich
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "Dépendances"
+    groups:
+      mineures:
+        update-types: [minor, patch]
+      majeures:
+        update-types: [major]
+    ignore:
+      # Next et React se mettent à jour ensemble, à la main : l'adaptateur Netlify et eslint-config-next suivent.
+      - dependency-name: next
+        update-types: [version-update:semver-major]
+      - dependency-name: eslint-config-next
+        update-types: [version-update:semver-major]
+      - dependency-name: react
+        update-types: [version-update:semver-major]
+      - dependency-name: react-dom
+        update-types: [version-update:semver-major]
+      # Version de Node figée sur celle de Netlify (netlify.toml, NODE_VERSION = 22).
+      - dependency-name: "@types/node"
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Zurich
+    open-pull-requests-limit: 2
+    commit-message:
+      prefix: "Actions"
+    groups:
+      actions:
+        patterns: ["*"]

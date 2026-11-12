@@ -6,6 +6,7 @@ Restaurant La Ferme, Route de Chancy 132, 1213 Onex. Site neuf, sans lien avec `
 
 - Par lots (`docs/PROMPT.md` §11). Une branche et une PR par lot, jamais de commit direct sur `main`.
 - Avant chaque PR : `code-review`, plus `security-review` dès qu'il y a auth, paiement ou données clients.
+- Avant chaque fusion : vérifications GitHub vertes (`gh pr checks <numéro>`), lint, types, Vitest, build et Playwright. La protection de `main` n'existe pas sur le plan GitHub Free : c'est la règle qui la remplace (`docs/filet.md`).
 - Après chaque lot : rendu bureau et mobile vérifié soi-même, puis montré.
 - Pas de déploiement pendant un service (mardi à samedi, de 11h à 14h et de 18h30 à 23h). Aucune mise en production, vrai paiement ni e-mail à un vrai client sans accord écrit de Jérémy. Stripe en mode test.
 
@@ -36,7 +37,7 @@ Next.js (App Router, TypeScript) sur Netlify (choisi par Jérémy le 6.11.2026 �
 
 - `npm run dev` : sans `.env.local`, la carte vient d'une base Postgres embarquée (PGlite) qui rejoue `supabase/migrations` et `supabase/seed.sql`.
 - `BASE_LOCALE=1 npm run build` en local : accueil, carte et panier sont mis en cache dès le build et lisent la base embarquée (sans la variable, le build refuse).
-- `npm test` (Vitest, base et sécurité par ligne), `npm run test:e2e` (Playwright sur un build de production local, Chrome du Mac).
+- `npm test` (Vitest, base et sécurité par ligne), `npm run test:e2e` (Playwright sur un build de production local, Chrome du Mac). `PORT_E2E=3217` pour lancer les tests e2e de deux worktrees en même temps.
 - `npm run seed:generer` : régénère `supabase/seed.sql` depuis `docs/carte-proposee.json`. Ne jamais modifier le seed à la main.
 - `prebuild` (lancé par la commande de `netlify.toml`) lance `scripts/verifier-mise-en-ligne.ts` : sur Netlify en production, le build échoue tant que la vue `plats_bloquants` n'est pas vide.
 

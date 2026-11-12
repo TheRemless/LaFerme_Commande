@@ -1,10 +1,11 @@
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
+import { SITE } from "./site";
 
 // Tablette du restaurant : connexion du personnel, file, accepter, statuts, refus et remboursement, rupture.
 // Un membre d'équipe par projet (supabase/local/donnees-test.sql) : un seul code par e-mail toutes les 30 s.
 test.describe.configure({ mode: "serial" });
 
-const ORIGINE = { Origin: "http://localhost:3200" };
+const ORIGINE = { Origin: SITE };
 let tablette: Page;
 
 async function commander(request: APIRequestContext, prenom: string, moyen: "comptoir" | "en_ligne"): Promise<{ numero: string; suivi: string }> {
@@ -36,7 +37,7 @@ async function commander(request: APIRequestContext, prenom: string, moyen: "com
 }
 
 test.beforeAll(async ({ browser }, info) => {
-  tablette = await browser.newPage({ baseURL: "http://localhost:3200" });
+  tablette = await browser.newPage({ baseURL: SITE });
   await tablette.goto("/tablette");
   await tablette.getByLabel("E-mail", { exact: true }).fill(`equipe-${info.project.name}@laferme.test`);
   await tablette.getByRole("button", { name: "Recevoir un code" }).click();
@@ -58,7 +59,8 @@ test("une commande arrive, on l'accepte, puis prête, retirée et payée", async
   await expect(carte).toBeVisible({ timeout: 10_000 });
   await expect(carte).toContainText("CHOIX Penne");
   await expect(carte).toContainText("À encaisser au comptoir");
-  await expect(tablette.locator(".tab-attente")).toBeVisible();
+  // Bandeau des commandes à accepter. Une imprimante laissée hors ligne par impression.spec.ts ajoute le sien.
+  await expect(tablette.locator(".tab-attente", { hasText: /à accepter/ })).toBeVisible();
 
   await carte.getByRole("button", { name: "+15 min" }).click();
   await carte.getByRole("button", { name: /^Accepter pour/ }).click();

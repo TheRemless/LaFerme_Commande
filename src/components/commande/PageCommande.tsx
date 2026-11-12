@@ -152,12 +152,13 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
           creerCompte: !compte && creerCompte,
         }),
       });
-      const r = (await rep.json()) as { redirection?: string; erreur?: string };
+      // Une erreur du serveur sans réponse lisible (base injoignable) n'est pas une coupure du réseau du client.
+      const r = (await rep.json().catch(() => ({}))) as { redirection?: string; erreur?: string };
       if (r.redirection) {
         window.location.assign(r.redirection);
         return;
       }
-      setErreur(r.erreur ?? "La commande n'est pas passée. Réessayez.");
+      setErreur(r.erreur ?? "La commande n'est pas passée. Réessayez dans un instant ou appelez-nous au 022 792 16 89.");
       setCreneauComplet(rep.status === 409);
       setRelance((n) => n + 1);
     } catch {
