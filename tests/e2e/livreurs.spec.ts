@@ -5,7 +5,9 @@ import { expect, test, type APIRequestContext, type Browser, type BrowserContext
 // Livreurs : la tablette (1024 px) donne les commandes, deux téléphones (375 px tactiles) les livrent.
 // Cas : deux livreurs, réattribution, déconnexion en tournée, annulation pendant la tournée, réseau
 // coupé (geste renvoyé sans doublon), client absent. Un seul projet : les comptes ont un code par 30 s.
-test.describe.configure({ mode: "serial" });
+// 60 s par cas : le runner GitHub a deux processeurs. Les cas ne supposent pas une liste vide (un essai
+// relancé retrouve les commandes de l'essai raté sur le même serveur).
+test.describe.configure({ mode: "serial", timeout: 60_000 });
 
 const BASE = SITE;
 const ORIGINE = { Origin: BASE };
@@ -80,6 +82,17 @@ const LIGNON = { rue: "Avenue du Lignon", numero: "40", npa: "1219", localite: "
 const ongletLivraisons = () => tablette.getByRole("button", { name: /^Livraisons/ });
 const aAttribuer = (numero: string) => tablette.locator(".liv-carte", { has: tablette.locator(".tab-num", { hasText: new RegExp(`^${numero}$`) }) });
 const tournee = (nom: string) => tablette.locator(".liv-tournee", { has: tablette.getByRole("heading", { name: nom, exact: true }) });
+// L'ordre relatif de deux commandes, sur la tablette (N° 12) ou le téléphone (n° 12).
+async function avant(liste: ReturnType<Page["locator"]>, prefixe: string, premier: string, second: string) {
+  await expect(async () => {
+    const textes = await liste.allInnerTexts();
+    const i = textes.findIndex((t) => t.includes(`${prefixe} ${premier} `) || t.includes(`${prefixe} ${premier}\n`) || t.endsWith(`${prefixe} ${premier}`));
+    const j = textes.findIndex((t) => t.includes(`${prefixe} ${second} `) || t.includes(`${prefixe} ${second}\n`) || t.endsWith(`${prefixe} ${second}`));
+    expect(i, textes.join(" | ")).toBeGreaterThanOrEqual(0);
+    expect(j, textes.join(" | ")).toBeGreaterThan(i);
+  }).toPass({ timeout: 10_000 });
+}
+
 const arret = (page: Page, numero: string) => page.locator(".liv-arret", { hasText: `n° ${numero}` });
 
 test.beforeAll(async ({ browser }, info) => {
@@ -116,12 +129,12 @@ test("tournée de deux livraisons, ordre proposé, Je pars, Livrée : plus rien 
   await aAttribuer(a).getByRole("button", { name: "À Marco" }).click();
   await aAttribuer(b).getByRole("button", { name: "À Marco" }).click();
   // Ordre proposé : Onex (zone 1) avant Le Lignon (zone 2).
-  await expect(tournee("Marco").locator(".liv-arret-tab").first()).toContainText(`N° ${b}`);
+  await avant(tournee("Marco").locator(".liv-arret-tab"), "N°", b, a);
   await tablette.screenshot({ path: "test-results/livreurs/tablette-1024-tournee.png", fullPage: true });
   await axe(tablette, "tablette-livraisons");
 
   await marco.reload();
-  await expect(marco.locator(".liv-arret").first()).toContainText(`n° ${b}`);
+  await avant(marco.locator(".liv-arret"), "n°", b, a);
   const premier = arret(marco, b);
   await expect(premier).toContainText("Avenue du Gros-Chêne 20");
   await expect(premier).toContainText("Code 4512");
@@ -134,20 +147,26 @@ test("tournée de deux livraisons, ordre proposé, Je pars, Livrée : plus rien 
   await axe(marco, "livreur");
 
   // À la main : Le Lignon d'abord.
-  await tournee("Marco").getByRole("button", { name: `Passer le ${a} plus tôt` }).click();
-  await expect(tournee("Marco").locator(".liv-arret-tab").first()).toContainText(`N° ${a}`);
+  // Un cran à la fois, jusqu'à passer devant b (une commande restée d'un essai raté peut être entre les deux).
+  const rangDe = async (numero: string) => (await tournee("Marco").locator(".liv-arret-tab").allInnerTexts()).findIndex((t) => t.includes(`N° ${numero} `));
+  for (let essai = 0; essai < 6 && (await rangDe(a)) > (await rangDe(b)); essai++) {
+    const rang = await rangDe(a);
+    await tournee("Marco").getByRole("button", { name: `Passer le ${a} plus tôt` }).click();
+    await expect.poll(() => rangDe(a)).toBe(rang - 1);
+  }
+  await avant(tournee("Marco").locator(".liv-arret-tab"), "N°", a, b);
   await expect(tournee("Marco").getByRole("button", { name: "Reprendre l'ordre proposé" })).toBeVisible();
   await marco.reload();
-  await expect(marco.locator(".liv-arret").first()).toContainText(`n° ${a}`);
+  await avant(marco.locator(".liv-arret"), "n°", a, b);
 
-  await marco.getByRole("button", { name: "Je pars avec les 2" }).click();
+  await marco.getByRole("button", { name: /^Je pars avec les \d+$/ }).click();
   await expect(arret(marco, a)).toContainText("En route.");
   await expect(arret(marco, b)).toContainText("En route.");
   await expect(tournee("Marco")).toContainText("2 livraisons, 2 en route", { timeout: 10_000 });
   await arret(marco, a).getByRole("button", { name: "Livrée" }).click();
   await expect(arret(marco, a)).toHaveCount(0);
   await arret(marco, b).getByRole("button", { name: "Livrée" }).click();
-  await expect(marco.getByText("Rien pour vous pour le moment.")).toBeVisible();
+  await expect(arret(marco, b)).toHaveCount(0);
   await tablette.getByRole("button", { name: /^Terminées/ }).click();
   await expect(tablette.locator(".tab-commande", { has: tablette.locator(".tab-num", { hasText: new RegExp(`^${a}$`) }) })).toContainText(/Livrée/, { timeout: 15_000 });
 });
@@ -159,7 +178,8 @@ test("deux livreurs et réattribution : l'ancien ne voit plus l'adresse", async 
   await marco.reload();
   await arret(marco, c).getByRole("button", { name: "Je pars" }).click();
   await expect(arret(marco, c)).toContainText("En route.");
-  await expect(ines.getByText("Rien pour vous pour le moment.")).toBeVisible();
+  await ines.reload();
+  await expect(arret(ines, c)).toHaveCount(0);
 
   await tournee("Marco").getByRole("button", { name: "Donner à Inès" }).click();
   await marco.reload();
