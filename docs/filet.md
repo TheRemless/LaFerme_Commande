@@ -45,6 +45,10 @@ Pas disponible aujourd'hui : sur un dépôt privé, la protection de branche et 
 
 En attendant, la règle tient lieu de protection : aucune fusion sans vérifications vertes (`gh pr checks <numéro>`), écrite dans `CLAUDE.md`.
 
+**Même limite pour le secret de la sauvegarde** (audit de sécurité 2, S2-12, point 6). Le secret `SUPABASE_URL_SAUVEGARDE` lit toutes les données de la base. Sur ce plan, n'importe quel workflow poussé sur n'importe quelle branche du dépôt peut le lire : un fichier ajouté dans `.github/workflows/` suffit, sans PR ni fusion. Les PR de Dependabot et des forks n'y ont pas accès. Une personne ou une session qui peut pousser sur le dépôt, oui. Le remède est un environnement protégé limité à `main`, qui ne donne le secret qu'aux passages sur `main`. Sur un dépôt privé, il demande GitHub Pro (docs.github.com, « Managing environments for deployment », lu le 12.11.2026). En attendant, seuls Jérémy et ses sessions Claude poussent sur le dépôt, et une PR qui ajoute ou modifie un fichier de `.github/workflows/` se relit avant sa fusion pour vérifier qu'elle ne lit aucun `secrets.`.
+
+Si Jérémy passe en Pro, en plus des règles de branche ci-dessous : **Settings**, **Environments**, **New environment** `sauvegarde`, **Deployment branches and tags** limité à `main`, y déplacer le secret `SUPABASE_URL_SAUVEGARDE`, puis ajouter `environment: sauvegarde` au job de `.github/workflows/sauvegarde.yml`.
+
 Si Jérémy passe en Pro, marche à suivre (cinq minutes) :
 
 1. github.com/TheRemless/LaFerme_Commande, **Settings**, **Rules**, **Rulesets**, **New ruleset**, **New branch ruleset**.
@@ -53,6 +57,18 @@ Si Jérémy passe en Pro, marche à suivre (cinq minutes) :
 4. Cocher **Require a pull request before merging**, avec 0 approbation (Jérémy est seul à relire).
 5. Cocher **Require status checks to pass**, puis ajouter `Lint, types et Vitest` et `Build (base embarquée) et Playwright`. Cocher aussi **Require branches to be up to date before merging**.
 6. **Bypass list** : laisser vide. **Create**.
+
+### Actions permises (Jérémy, deux minutes, possible sur le plan Free)
+
+Audit de sécurité 2, S2-12, point 5. Aujourd'hui le dépôt accepte n'importe quelle action, désignée par une étiquette que son auteur peut déplacer. Les workflows n'utilisent que des actions de GitHub (`actions/checkout`, `actions/setup-node`, `actions/cache`, `actions/upload-artifact`), toutes épinglées par l'empreinte complète de leur commit (vérifié le 12.11.2026 dans `verifications.yml` et `sauvegarde.yml`). Les deux réglages ne cassent donc rien. Ils empêchent qu'une action d'un inconnu, ou une action désignée par une étiquette, entre plus tard sans qu'on le voie. Dependabot n'est pas touché : ses passages ignorent ces réglages (docs.github.com, « Dependabot on GitHub Actions runners », lu le 12.11.2026).
+
+1. github.com/TheRemless/LaFerme_Commande, **Settings**, puis dans la colonne de gauche **Actions**, **General**.
+2. Bloc **Actions permissions** : choisir **Allow TheRemless, and select non-TheRemless, actions and reusable workflows**.
+3. Cocher **Allow actions created by GitHub**. Laisser décochés « Allow actions by Marketplace verified creators » et vide la liste des actions permises.
+4. Cocher **Require actions to be pinned to a full-length commit SHA**.
+5. **Save**. Puis relancer un passage pour vérifier : onglet **Actions**, **Vérifications**, **Run workflow**, branche `main`. Il doit rester vert.
+
+Libellés lus dans docs.github.com, « Managing GitHub Actions settings for a repository », le 12.11.2026. Si l'écran diffère, me l'envoyer en capture.
 
 ## 2. Surveillance du site
 
@@ -167,5 +183,7 @@ La sauvegarde lit la base une fois par nuit, par le pooler partagé. Rien de fac
 | Supabase, SQL Editor | rôle `sauvegarde` | [sauvegardes.md](sauvegardes.md), étape 2 | sauvegarde |
 | UptimeRobot | moniteur `/api/sante` | au lancement | site ou base tombés |
 | GitHub, Settings, Notifications | Actions : e-mail pour les échecs | coché | échec d'une sauvegarde |
+| GitHub, dépôt, Settings, Actions, General | Allow TheRemless, and select non-TheRemless, actions… puis Allow actions created by GitHub | coché | seules les actions de GitHub (S2-12) |
+| GitHub, dépôt, Settings, Actions, General | Require actions to be pinned to a full-length commit SHA | coché | aucune action par étiquette (S2-12) |
 
 Marches à suivre détaillées : [sauvegardes.md](sauvegardes.md) (« Mise en place ») et la section 2 ci-dessus.

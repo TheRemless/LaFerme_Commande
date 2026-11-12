@@ -98,11 +98,17 @@ GitHub prévient d'un échec, pas d'une tâche qui ne se lance plus. Pour ça, u
 
 1. Sur github.com, **Actions**, **Sauvegarde de la base**, ouvrir le passage voulu, télécharger l'artefact `sauvegarde-…` et le décompresser dans un dossier vide.
 2. Créer un projet Supabase neuf à Zurich (ou utiliser une base Postgres 17 vide pour vérifier d'abord). Dans son SQL Editor : `create role sauvegarde nologin;` (les droits de la copie le citent).
-3. Sur le Mac, avec Postgres 17 (`brew install postgresql@17`, puis `export PATH=/opt/homebrew/opt/postgresql@17/bin:$PATH`) et `age` :
+3. Sur le Mac, avec Postgres 17 (`brew install postgresql@17`, puis `export PATH=/opt/homebrew/opt/postgresql@17/bin:$PATH`) et `age`, dans le Terminal ouvert sur le dossier `LaFerme_Commande` :
+   1. Sur supabase.com, dans le projet neuf, bouton **Connect**, **Session pooler** : copier l'adresse et **retirer** `:[YOUR-PASSWORD]`. Elle doit ressembler à `postgresql://postgres.<ref>@aws-….pooler.supabase.com:5432/postgres`, sans aucun mot de passe.
+   2. Lancer, avec cette adresse entre guillemets :
 
 ```bash
-scripts/exploitation/restaurer.sh laferme-base-<date>.dump.age <fichier de la clé privée> "<adresse de connexion du projet neuf, rôle postgres>"
+scripts/exploitation/restaurer.sh laferme-base-<date>.dump.age <fichier de la clé privée> "postgresql://postgres.<ref>@aws-….pooler.supabase.com:5432/postgres"
 ```
+
+   3. Le script demande « Mot de passe de la base cible ». Coller le mot de passe de la base du projet neuf (Supabase, **Project Settings**, **Database**), puis Entrée. Rien ne s'affiche pendant la saisie, c'est normal.
+
+   Le mot de passe ne passe jamais sur la ligne de commande. Il ne reste pas dans l'historique du Terminal et les autres programmes du Mac ne le voient pas : le script le donne seulement aux commandes `psql` qui se connectent (audit de sécurité 2, S2-12). Si l'adresse contient encore un mot de passe, le script s'arrête avant de commencer et le dit. Si c'était le vrai mot de passe, il est déjà dans l'historique : le changer dans Supabase.
 
    Le script déchiffre dans un dossier temporaire effacé à la fin, restaure en une seule transaction (tout ou rien), retire les droits que Supabase accorde par défaut à tout objet neuf pour ne garder que ceux de la copie, puis compare le résultat à l'empreinte de la sauvegarde : « Restauration identique à l'empreinte de la sauvegarde. »
 4. Brancher le site sur le nouveau projet : dans Netlify, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` et `SUPABASE_SECRET_KEY` du nouveau projet, puis redéployer. Refaire le rôle `sauvegarde` avec un mot de passe, et le secret GitHub.
@@ -123,6 +129,17 @@ En local, sur Postgres 17.11 (Homebrew), sans Supabase ni aucune vraie donnée.
 | `restaurer.sh` dans une troisième base vide | « Restauration identique à l'empreinte de la sauvegarde », 25 commandes, en moins d'une seconde |
 | Droits après restauration | un visiteur (`anon`) ne lit toujours pas les commandes |
 | Déchiffrement avec une autre clé | refusé : « no identity matched any of the recipients » |
+| Dossier en mémoire après passage | vide |
+
+Deuxième essai le 12.11.2026, après le retrait du mot de passe de la ligne de commande (S2-12), en local sur une grappe Postgres 17.11 jetable, mot de passe de test tiré au hasard avec `@`, `:`, `/` et `%` (pour le décodage de l'adresse) :
+
+| Étape | Résultat |
+|---|---|
+| Base d'origine : rôles, les 23 migrations, l'amorçage, les comptes de test | 80 plats, 37 tables |
+| `sauvegarder.sh`, adresses avec mot de passe encodé comme le secret GitHub | « Copie restaurée identique à l'original (37 tables) », 351 Ko chiffrés |
+| `restaurer.sh` avec le mot de passe dans l'adresse | arrêt avant tout déchiffrement, message clair |
+| `restaurer.sh` avec l'adresse sans mot de passe, mot de passe tapé à l'invite (simulée par `expect`) | « Restauration identique à l'empreinte de la sauvegarde » ; un visiteur (`anon`) ne lit pas les commandes |
+| Toutes les lignes de commande du poste relevées toutes les 20 ms pendant les deux scripts (6 866 lignes) | mot de passe vu 0 fois, ni en clair ni encodé. Témoin : passé en argument, il est vu 18 fois |
 | Dossier en mémoire après passage | vide |
 
 Pas encore joué : contre la vraie base Supabase (il faut les réglages de Jérémy). Le premier passage lancé à la main (étape 3.4) le fera, avec la même comparaison.
