@@ -49,7 +49,7 @@ begin
     return null;
   end if;
   return terminer_remboursement(rid, p_ok, p_refund_id, p_erreur)
-    || (select jsonb_build_object('numero', o.numero, 'refusee', o.statut = 'refusee')
+    || (select jsonb_build_object('numero', o.numero)
         from remboursements r join commandes o on o.id = r.commande_id where r.id = rid);
 end;
 $$;

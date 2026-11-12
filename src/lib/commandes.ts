@@ -270,7 +270,7 @@ async function rembourserChezStripe(
 export async function appliquerEtatRemboursement(refundId: string, etat: EtatRemboursement, raison: string | null): Promise<boolean> {
   if (etat !== "succeeded" && etat !== "failed" && etat !== "canceled") return false;
   const ok = etat === "succeeded";
-  const r = await fonctionSql<(LigneRemboursement & { numero: number; refusee: boolean }) | null>("maj_remboursement_stripe", {
+  const r = await fonctionSql<(LigneRemboursement & { numero: number }) | null>("maj_remboursement_stripe", {
     p_refund_id: refundId,
     p_ok: ok,
     p_erreur: ok ? null : `Stripe : ${raison ?? etat}`,
