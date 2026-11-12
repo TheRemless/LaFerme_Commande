@@ -5,7 +5,7 @@ Audit du 12.11.2026, sur `main` au commit `b4681c9` (PR #19 à #40 comprises). M
 Terrain :
 
 - attaques actives sur une instance locale (`BASE_LOCALE=1 npm run build`, `next start -p 3103`, base embarquée PGlite) : 27 routes du personnel jouées avec trois profils (livreur, service, anonyme), photos piégées, gestes de livreur, remboursements, carte ;
-- droits SQL relevés dans le catalogue d'une base neuve qui rejoue les 24 migrations : 128 fonctions, toutes les tables, vues et politiques ;
+- droits SQL relevés dans le catalogue d'une base neuve qui rejoue les 23 migrations de `main` : 128 fonctions, toutes les tables, vues et politiques ;
 - sur la préversion https://deploy-preview-30--boisterous-beijinho-c37e44.netlify.app, des contrôles passifs seulement (en-têtes, pages fermées, `/api/sante`, `/photos` inconnue, route du livreur sans session) : rien n'y est écrit ;
 - réglages du dépôt GitHub lus avec `gh api`, sans rien changer.
 
@@ -103,7 +103,7 @@ Trois constats importants demandent une décision de Jérémy (S2-01, S2-02) ou 
 | S7 contexte local | oui | `verifierContexte()` appelée par `db/serveur.ts:13` et `comptes/securite.ts:47` |
 | S8 écriture des visiteurs | oui sur les tables | les vues n'étaient pas couvertes : S2-08 |
 | S9 en-têtes | oui | préversion : `frame-ancestors 'none'`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`, `noindex`, sur toutes les pages essayées, `/photos` et `/livreur` compris |
-| S10 surveillance | oui | `/api/surveillance` en GET : 405, en POST sans jeton : refusé |
+| S10 surveillance | oui | `/api/surveillance` en GET : 405 (vérifié) ; en POST, jeton HMAC comparé en temps constant (lu dans le code, `api/surveillance/route.ts:10`) |
 | S11 durée des réponses | oui | inchangé depuis la PR #27 |
 | S12 dépendances | oui | `npm audit --omit=dev` : seulement PostCSS par `next` 15.5.29, non exploitable ici |
 | S13 imprimante | procédure | inchangé |
@@ -223,7 +223,7 @@ Trois constats importants demandent une décision de Jérémy (S2-01, S2-02) ou 
   - Chaque `?x=1`, `?x=2`… sur une photo existante a sa propre place dans le cache du CDN (supposé, clé de cache de Netlify) et relit la photo en base, jusqu'à 3 Mo en base64 par appel. Une boucle anonyme fait monter le trafic sortant de Supabase.
   - Une photo retirée répond 404 côté serveur (vérifié), mais l'adresse déjà servie reste un an dans les caches (`immutable`). Le risque : une photo envoyée par erreur (un ticket avec le nom d'un client).
   - Le `Content-Security-Policy: default-src 'none'` de la route est remplacé par celui du site (`frame-ancestors 'none'`). Sans conséquence : le fichier est un JPEG réencodé, servi avec `nosniff`.
-- **Correction (faite)** : 404 dès qu'il y a des paramètres, sans lire la base. Pour une photo envoyée par erreur : la retirer, puis vider le cache du site dans Netlify (Deploys, « Clear cache and deploy site »).
+- **Correction (faite)** : 404 dès qu'il y a des paramètres, sans lire la base. Les pages et `next/image` demandent la photo sans paramètre ; à vérifier sur une préversion à la première photo envoyée dans la vraie base. Pour une photo envoyée par erreur : la retirer, puis vider le cache du site dans Netlify (Deploys, « Clear cache and deploy site »).
 - **Effort** : petit.
 
 <a id="s2-12"></a>
