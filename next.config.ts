@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
   },
   // Manifeste de la tablette servi avec son vrai type par next start (sur Netlify : netlify.toml).
   poweredByHeader: false,
+  // Métadonnées (titre, robots) écrites dans <head> pour tout le monde, pas envoyées en flux dans <body>.
+  // En flux, Next retirait parfois le <title> au router.refresh() d'une connexion sans le remettre : la
+  // tablette connectée restait sans titre (test axe « document-title », 3 échecs sur 10).
+  htmlLimitedBots: /.*/,
   async headers() {
     return [
       { source: "/tablette.webmanifest", headers: [{ key: "Content-Type", value: "application/manifest+json" }] },
