@@ -206,7 +206,7 @@ function Tournee({
                         >
                           Oui, clore sans rembourser
                         </button>
-                        <button type="button" className="lien" onClick={() => setConfirmer(null)}>
+                        <button type="button" className="bouton-second" onClick={() => setConfirmer(null)}>
                           Garder
                         </button>
                       </div>
@@ -246,7 +246,7 @@ function Tournee({
                         Donner à {a.nom}
                       </button>
                     ))}
-                    <button type="button" className="lien" disabled={envoi} onClick={() => faire({ action: "retirer", commande: x.commande_id })}>
+                    <button type="button" className="bouton-second" disabled={envoi} onClick={() => faire({ action: "retirer", commande: x.commande_id })}>
                       Reprendre
                     </button>
                   </div>

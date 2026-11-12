@@ -734,7 +734,7 @@ function CarteCommande({
               parPoste.length > 1 &&
               parPoste.map((t) => (
                 <button key={t.station} type="button" className="bouton-second" disabled={envoi} onClick={() => faire({ action: "reimprimer", station: t.station })}>
-                  Réimprimer {t.station}
+                  Réimprimer {t.station === "pizza" ? "Pizza" : "Cuisine"}
                 </button>
               ))}
           </div>
