@@ -38,7 +38,7 @@ Ne pas toucher « Continuer sans son ». Sans son, personne n'entend les command
 3. Toucher « Calculer le montant ». La tablette affiche ce qui sera rendu.
 4. Toucher « Confirmer et prévenir le client ». Le client reçoit un e-mail avec ce qui manque et le montant.
 
-Payée en ligne, le montant lui est remboursé. À payer au comptoir, il est déduit : la carte affiche le nouveau montant à encaisser. Le reste de la commande se prépare normalement.
+Payée en ligne, le montant lui est remboursé. À payer au comptoir, il est déduit : la carte affiche le nouveau montant à encaisser. Le reste de la commande se prépare normalement. Une fois la commande prête ou partie, seul le gérant peut le faire.
 
 ### Un client appelle
 

@@ -168,6 +168,14 @@ describe("G07 : un plat ou un supplément manque sur une commande acceptée", ()
     expect(a.find((x) => x.commande_id === c.id)).toMatchObject({ deduit_centimes: 1800, manques: ["1 × Lasagne de bœuf"] });
   });
 
+  it("une fois prête ou partie, réservé au gérant (même limite que l'annulation)", async () => {
+    const c = await acceptee();
+    await f("changer_statut($1, 'prete', 'tablette:Test')", [c.id]);
+    expect(await erreur("signaler_manque($1, $2, 'cle-manque-30', $3, true)", [c.id, [{ ligne: 1, qte: 1 }], service])).toContain("reserve_au_gerant");
+    const r = await f<{ montant_centimes: number }>("signaler_manque($1, $2, 'cle-manque-31', $3, true)", [c.id, [{ ligne: 1, qte: 1 }], gerant]);
+    expect(r.montant_centimes).toBe(1800);
+  });
+
   it("seulement une fois acceptée, et par un membre actif", async () => {
     const c = (await db.query<{ id: string }>("select * from creer_commande($1)", [commande()])).rows[0];
     await f("appliquer_paiement($1, $2, 'paye', 'pi_v2', 6400)", [`evt-${c.id}`, c.id]);

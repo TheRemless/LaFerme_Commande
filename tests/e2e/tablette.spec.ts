@@ -115,7 +115,8 @@ test("il manque un plat : remboursé en partie, le client est prévenu", async (
 test("supplément épuisé : refusé à la commande, puis revient", async ({ request }) => {
   await tablette.getByRole("button", { name: "Pause, délai, ruptures" }).click();
   await tablette.getByLabel("Chercher un plat ou un supplément").fill("Burrata");
-  const ligne = tablette.locator(".tab-plats li", { hasText: "Burrata" });
+  // Le supplément seul, pas les plats dont le nom contient « Burrata ».
+  const ligne = tablette.locator(".tab-plats li").filter({ has: tablette.getByText("Burrata", { exact: true }) });
   await ligne.getByRole("button", { name: "Disponible" }).click();
   await expect(ligne.getByRole("button", { name: "Épuisé" })).toBeVisible();
   const rep = await request.post("/api/commandes", {

@@ -246,6 +246,7 @@ const ERREURS_MANQUE: Record<string, string> = {
   option_absente: "Choix invalide. Rechargez la page.",
   elements_invalides: "Choisissez ce qui manque.",
   statut_non_remboursable: "Acceptez d'abord la commande.",
+  reserve_au_gerant: "Commande déjà prête ou partie : seul le gérant peut rembourser ce qui manque.",
   pas_encaissee: "Commande pas payée, ou déjà remboursée.",
   montant_trop_eleve: "Plus rien à rembourser sur cette commande.",
   personnel_inactif: "Session terminée. Reconnectez-vous.",

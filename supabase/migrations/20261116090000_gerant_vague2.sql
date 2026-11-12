@@ -57,12 +57,14 @@ alter table remboursements add constraint remboursements_moyen_check check (moye
 alter table remboursements add column elements jsonb;
 
 -- Calcule et, si p_confirmer, enregistre le remboursement de ce qui manque. Le montant vient de la base
--- (prix de la ligne, prix actuel du supplément), jamais de l'écran. Tout membre actif peut le faire
--- (la cuisine le constate) ; le remboursement libre reste au gérant (demander_remboursement).
+-- (prix de la ligne, prix actuel du supplément), jamais de l'écran. Tout membre actif peut le faire tant que
+-- la commande est acceptée ou en préparation (la cuisine le constate) ; une fois prête ou partie, le gérant
+-- seulement. Le remboursement libre reste au gérant (demander_remboursement).
 create function signaler_manque(p_commande uuid, p_elements jsonb, p_cle text, p_personnel uuid, p_confirmer boolean) returns jsonb
 language plpgsql as $$
 declare
   auteur text;
+  role_auteur text;
   c commandes%rowtype;
   r remboursements%rowtype;
   e jsonb;
@@ -76,7 +78,7 @@ declare
   engage integer;
   m text;
 begin
-  select nom into auteur from personnel where id = p_personnel and actif;
+  select nom, role into auteur, role_auteur from personnel where id = p_personnel and actif;
   if auteur is null then
     raise exception 'personnel_inactif';
   end if;
@@ -99,6 +101,10 @@ begin
   end if;
   if c.statut not in ('acceptee', 'en_preparation', 'prete', 'partie') then
     raise exception 'statut_non_remboursable';
+  end if;
+  -- Même limite que l'annulation depuis la tablette : une fois prête ou partie, seul le gérant rend de l'argent.
+  if c.statut in ('prete', 'partie') and role_auteur <> 'gerant' then
+    raise exception 'reserve_au_gerant';
   end if;
   if c.statut_paiement not in ('paye', 'encaisse', 'a_encaisser_retrait') then
     raise exception 'pas_encaissee';
