@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useId, useState } from "react";
 import { enregistrer } from "@/components/gestion/enregistrer";
+import { poster } from "@/lib/requete-client";
 import { jourTexte } from "@/lib/service";
 
 type Zone = {
@@ -25,9 +26,18 @@ type Horaire = {
   derniere_commande_pizzas: string;
   proposition: boolean;
 };
-type Fermeture = { id: number; debut: string; fin: string; motif: string };
+type Fermeture = { id: number; debut: string; fin: string; motif: string; service?: "midi" | "soir" | null };
+type Ouverture = { id: number; jour: string; service: "midi" | "soir"; premiere_heure: string; derniere_heure: string; motif: string };
 type Capacites = { livraison: number; retrait: number; proposition: boolean };
-type Donnees = { zones: Zone[]; horaires: Horaire[]; fermetures: Fermeture[]; capacites: Capacites; preparation: number };
+type Donnees = {
+  zones: Zone[];
+  horaires: Horaire[];
+  fermetures: Fermeture[];
+  ouvertures: Ouverture[];
+  capacites: Capacites;
+  preparation: number;
+  plafond_comptoir_centimes: number | null;
+};
 
 const JOURS = ["", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
 const chf = (c: number) => (c / 100).toFixed(2);
@@ -50,7 +60,7 @@ export function GestionService() {
         <p className="aide">Enregistrer une zone la valide : elle n&apos;est plus marquée « proposition » sur le site.</p>
         <div className="ges-zones">
           {d.zones.map((z) => (
-            <FicheZone key={z.numero} zone={z} recharger={charger} />
+            <FicheZone key={z.numero} zone={z} zones={d.zones} recharger={charger} />
           ))}
         </div>
       </section>
@@ -65,12 +75,14 @@ export function GestionService() {
       </section>
       <Preparation minutes={d.preparation} recharger={charger} />
       <Capacite capacites={d.capacites} recharger={charger} />
+      <Plafond centimes={d.plafond_comptoir_centimes} recharger={charger} />
       <Fermetures fermetures={d.fermetures} recharger={charger} />
+      <Ouvertures ouvertures={d.ouvertures ?? []} recharger={charger} />
     </div>
   );
 }
 
-function FicheZone({ zone, recharger }: { zone: Zone; recharger: () => Promise<void> }) {
+function FicheZone({ zone, zones, recharger }: { zone: Zone; zones: Zone[]; recharger: () => Promise<void> }) {
   const ids = useId();
   const [f, setF] = useState({ frais: chf(zone.frais_centimes), minimum: chf(zone.minimum_centimes), delai_min: String(zone.delai_min), delai_max: String(zone.delai_max), active: zone.active });
   const [message, setMessage] = useState<string | null>(null);
@@ -97,7 +109,7 @@ function FicheZone({ zone, recharger }: { zone: Zone; recharger: () => Promise<v
         {zone.nom}
         {zone.proposition && <span className="ges-badge">proposition</span>}
       </h3>
-      <p className="aide">{zone.npa.map((n) => `${n.npa} ${n.localite}`).join(", ")}</p>
+      <Communes zone={zone} zones={zones} recharger={recharger} />
       <div className="details deux">
         <div className="champ">
           <label htmlFor={`${ids}-frais`}>Frais (CHF)</label>
@@ -262,20 +274,28 @@ function LigneHoraire({ h, recharger }: { h: Horaire; recharger: () => Promise<v
 
 function Fermetures({ fermetures, recharger }: { fermetures: Fermeture[]; recharger: () => Promise<void> }) {
   const ids = useId();
-  const [f, setF] = useState({ debut: "", fin: "", motif: "" });
+  // Journée entière (Du, Au) ou un seul service d'un jour (audit du gérant, vague 2).
+  const [f, setF] = useState({ debut: "", fin: "", motif: "", service: "" as "" | "midi" | "soir" });
   const [message, setMessage] = useState<string | null>(null);
+  const [confirmer, setConfirmer] = useState<number | null>(null);
   async function ajouter(e: React.FormEvent) {
     e.preventDefault();
     setMessage(null);
-    const erreur = await enregistrer("/api/gestion/service", { type: "fermeture", ...f });
-    setMessage(erreur ?? "Fermeture ajoutée.");
-    if (!erreur) {
-      setF({ debut: "", fin: "", motif: "" });
-      await recharger();
-    }
+    const r = await poster("/api/gestion/service", { type: "fermeture", debut: f.debut, fin: f.service ? f.debut : f.fin, motif: f.motif, service: f.service || null });
+    if (!r.ok) return setMessage(String(r.donnees.erreur ?? "Pas enregistré."));
+    // Commandes déjà prises sur la période : à annuler sur la tablette (G15).
+    const prises = Array.isArray(r.donnees.commandes) ? (r.donnees.commandes as number[]) : [];
+    setMessage(
+      prises.length
+        ? `Fermeture ajoutée. Attention : ${prises.length === 1 ? "la commande" : "les commandes"} ${prises.join(", ")} ${prises.length === 1 ? "est déjà prise" : "sont déjà prises"} pour ce moment. Annulez-les sur la tablette, onglet « À l'avance ».`
+        : "Fermeture ajoutée.",
+    );
+    setF({ debut: "", fin: "", motif: "", service: "" });
+    await recharger();
   }
   async function supprimer(id: number) {
     setMessage(null);
+    setConfirmer(null);
     const erreur = await enregistrer("/api/gestion/service", { type: "fermeture-suppr", id });
     setMessage(erreur ?? "Fermeture supprimée.");
     if (!erreur) await recharger();
@@ -291,30 +311,253 @@ function Fermetures({ fermetures, recharger }: { fermetures: Fermeture[]; rechar
           {fermetures.map((x) => (
             <li key={x.id}>
               <span>
-                Du {jour(x.debut)} au {jour(x.fin)}, {x.motif}
+                {x.service ? `Le ${jour(x.debut)}, ${x.service === "midi" ? "le midi" : "le soir"}` : `Du ${jour(x.debut)} au ${jour(x.fin)}`}, {x.motif}
               </span>
-              <button type="button" className="lien" onClick={() => supprimer(x.id)}>
-                Supprimer
-              </button>
+              {confirmer === x.id ? (
+                <span className="boutons-ligne">
+                  <button type="button" className="bouton-second" onClick={() => supprimer(x.id)}>
+                    Oui, rouvrir
+                  </button>
+                  <button type="button" className="lien" onClick={() => setConfirmer(null)}>
+                    Garder
+                  </button>
+                </span>
+              ) : (
+                <button type="button" className="lien" onClick={() => setConfirmer(x.id)}>
+                  Supprimer
+                </button>
+              )}
             </li>
           ))}
         </ul>
       )}
       <form className="details" onSubmit={ajouter}>
+        <div className="champ champ-large">
+          <label htmlFor={`${ids}-service`}>Fermer</label>
+          <select id={`${ids}-service`} value={f.service} onChange={(e) => setF({ ...f, service: e.target.value as "" | "midi" | "soir" })}>
+            <option value="">Des journées entières</option>
+            <option value="midi">Un midi</option>
+            <option value="soir">Un soir</option>
+          </select>
+        </div>
         <div className="champ">
-          <label htmlFor={`${ids}-debut`}>Du</label>
+          <label htmlFor={`${ids}-debut`}>{f.service ? "Le" : "Du"}</label>
           <input id={`${ids}-debut`} type="date" required value={f.debut} onChange={(e) => setF({ ...f, debut: e.target.value })} />
         </div>
-        <div className="champ">
-          <label htmlFor={`${ids}-fin`}>Au (inclus)</label>
-          <input id={`${ids}-fin`} type="date" required value={f.fin} onChange={(e) => setF({ ...f, fin: e.target.value })} />
-        </div>
+        {!f.service && (
+          <div className="champ">
+            <label htmlFor={`${ids}-fin`}>Au (inclus)</label>
+            <input id={`${ids}-fin`} type="date" required value={f.fin} onChange={(e) => setF({ ...f, fin: e.target.value })} />
+          </div>
+        )}
         <div className="champ champ-large">
           <label htmlFor={`${ids}-motif`}>Motif (pour vous)</label>
           <input id={`${ids}-motif`} required maxLength={120} value={f.motif} onChange={(e) => setF({ ...f, motif: e.target.value })} />
         </div>
         <button type="submit" className="bouton-second champ-large">
           Ajouter la fermeture
+        </button>
+      </form>
+      {message && (
+        <p className="aide-forte" role="status">
+          {message}
+        </p>
+      )}
+    </section>
+  );
+}
+
+// Ouvrir un jour normalement fermé, ou un service avec d'autres heures ce jour-là (audit du gérant, vague 2).
+function Ouvertures({ ouvertures, recharger }: { ouvertures: Ouverture[]; recharger: () => Promise<void> }) {
+  const ids = useId();
+  const vide = { jour: "", service: "soir" as "midi" | "soir", premiere_heure: "18:45", derniere_heure: "22:45", derniere_commande: "21:30", derniere_commande_pizzas: "22:15", motif: "" };
+  const [f, setF] = useState(vide);
+  const [message, setMessage] = useState<string | null>(null);
+  const [confirmer, setConfirmer] = useState<number | null>(null);
+  async function ajouter(e: React.FormEvent) {
+    e.preventDefault();
+    setMessage(null);
+    const { jour, service, motif, ...champs } = f;
+    const erreur = await enregistrer("/api/gestion/service", { type: "ouverture", jour, service, motif, champs });
+    setMessage(erreur ?? "Ouverture ajoutée. Les clients peuvent choisir ce moment tout de suite.");
+    if (!erreur) {
+      setF(vide);
+      await recharger();
+    }
+  }
+  async function supprimer(id: number) {
+    setMessage(null);
+    setConfirmer(null);
+    const erreur = await enregistrer("/api/gestion/service", { type: "ouverture-suppr", id });
+    setMessage(erreur ?? "Ouverture supprimée.");
+    if (!erreur) await recharger();
+  }
+  const heures: [keyof typeof f, string][] = [
+    ["premiere_heure", "Première heure"],
+    ["derniere_heure", "Dernière heure"],
+    ["derniere_commande", "Dernière commande"],
+    ["derniere_commande_pizzas", "Dernière pizza"],
+  ];
+  return (
+    <section className="ges-bloc">
+      <h2>Ouvertures exceptionnelles</h2>
+      <p className="aide">Un jour normalement fermé (dimanche, lundi), ou d&apos;autres heures pour un service ce jour-là.</p>
+      {ouvertures.length > 0 && (
+        <ul className="ges-fermetures">
+          {ouvertures.map((x) => (
+            <li key={x.id}>
+              <span>
+                Le {jourTexte(String(x.jour).slice(0, 10))}, {x.service === "midi" ? "le midi" : "le soir"}, de {hm(x.premiere_heure)} à {hm(x.derniere_heure)}, {x.motif}
+              </span>
+              {confirmer === x.id ? (
+                <span className="boutons-ligne">
+                  <button type="button" className="bouton-second" onClick={() => supprimer(x.id)}>
+                    Oui, supprimer
+                  </button>
+                  <button type="button" className="lien" onClick={() => setConfirmer(null)}>
+                    Garder
+                  </button>
+                </span>
+              ) : (
+                <button type="button" className="lien" onClick={() => setConfirmer(x.id)}>
+                  Supprimer
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      <form className="details" onSubmit={ajouter}>
+        <div className="champ">
+          <label htmlFor={`${ids}-jour`}>Le</label>
+          <input id={`${ids}-jour`} type="date" required value={f.jour} onChange={(e) => setF({ ...f, jour: e.target.value })} />
+        </div>
+        <div className="champ">
+          <label htmlFor={`${ids}-service`}>Service</label>
+          <select id={`${ids}-service`} value={f.service} onChange={(e) => setF({ ...f, service: e.target.value as "midi" | "soir" })}>
+            <option value="midi">Midi</option>
+            <option value="soir">Soir</option>
+          </select>
+        </div>
+        {heures.map(([cle, titre]) => (
+          <div className="champ" key={cle}>
+            <label htmlFor={`${ids}-${cle}`}>{titre}</label>
+            <input id={`${ids}-${cle}`} type="time" required value={f[cle]} onChange={(e) => setF({ ...f, [cle]: e.target.value })} />
+          </div>
+        ))}
+        <div className="champ champ-large">
+          <label htmlFor={`${ids}-motif`}>Motif (pour vous)</label>
+          <input id={`${ids}-motif`} required maxLength={120} value={f.motif} onChange={(e) => setF({ ...f, motif: e.target.value })} />
+        </div>
+        <button type="submit" className="bouton-second champ-large">
+          Ajouter l&apos;ouverture
+        </button>
+      </form>
+      {message && (
+        <p className="aide-forte" role="status">
+          {message}
+        </p>
+      )}
+    </section>
+  );
+}
+
+// Communes d'une zone : la zone d'une adresse vient toujours de l'adresse officielle du registre fédéral.
+function Communes({ zone, zones, recharger }: { zone: Zone; zones: Zone[]; recharger: () => Promise<void> }) {
+  const ids = useId();
+  const [f, setF] = useState({ npa: "", localite: "" });
+  const [message, setMessage] = useState<string | null>(null);
+  const [retirer, setRetirer] = useState<string | null>(null);
+  async function envoyer(corps: Record<string, unknown>, ok: string) {
+    setMessage(null);
+    const erreur = await enregistrer("/api/gestion/service", { type: "npa", ...corps });
+    setMessage(erreur ?? ok);
+    setRetirer(null);
+    if (!erreur) await recharger();
+    return !erreur;
+  }
+  return (
+    <div className="ges-communes">
+      <ul className="ges-fermetures">
+        {zone.npa.map((n) => {
+          const k = `${n.npa} ${n.localite}`;
+          return (
+            <li key={k}>
+              <span>{k}</span>
+              {retirer === k ? (
+                <span className="boutons-ligne">
+                  <button type="button" className="bouton-second" onClick={() => envoyer({ npa: n.npa, localite: n.localite, retirer: true }, `${k} retiré.`)}>
+                    Oui, retirer
+                  </button>
+                  <button type="button" className="lien" onClick={() => setRetirer(null)}>
+                    Garder
+                  </button>
+                </span>
+              ) : (
+                <button type="button" className="lien" onClick={() => setRetirer(k)}>
+                  Retirer
+                </button>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      <div className="details deux">
+        <div className="champ">
+          <label htmlFor={`${ids}-npa`}>NPA</label>
+          <input id={`${ids}-npa`} inputMode="numeric" maxLength={4} value={f.npa} onChange={(e) => setF({ ...f, npa: e.target.value })} />
+        </div>
+        <div className="champ">
+          <label htmlFor={`${ids}-localite`}>Localité</label>
+          <input id={`${ids}-localite`} maxLength={60} value={f.localite} onChange={(e) => setF({ ...f, localite: e.target.value })} />
+        </div>
+      </div>
+      <p className="aide">
+        Écrivez la localité comme sur l&apos;adresse officielle (ex. Petit-Lancy). Une commune déjà dans une autre zone y est déplacée.
+      </p>
+      <button
+        type="button"
+        className="bouton-second"
+        onClick={async () => {
+          if (await envoyer({ npa: f.npa.trim(), localite: f.localite.trim(), zone: zone.numero }, `${f.npa} ${f.localite} ajouté à la ${zone.nom}.`)) setF({ npa: "", localite: "" });
+        }}
+      >
+        Ajouter à la {zone.nom}
+      </button>
+      {message && (
+        <p className="aide-forte" role="status">
+          {message}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// Plafond du paiement au comptoir (décision de Jérémy : 100 CHF au départ). Au-delà, paiement en ligne seulement.
+function Plafond({ centimes, recharger }: { centimes: number | null; recharger: () => Promise<void> }) {
+  const ids = useId();
+  const [v, setV] = useState(centimes === null ? "" : (centimes / 100).toFixed(0));
+  const [message, setMessage] = useState<string | null>(null);
+  async function sauver(e: React.FormEvent) {
+    e.preventDefault();
+    setMessage(null);
+    const erreur = await enregistrer("/api/gestion/service", { type: "plafond", francs: v.trim() });
+    setMessage(erreur ?? "Enregistré.");
+    if (!erreur) await recharger();
+  }
+  return (
+    <section className="ges-bloc">
+      <h2>Paiement au comptoir</h2>
+      <p className="aide">
+        Montant le plus haut qu&apos;un client peut payer au comptoir, à emporter. Au-delà, il paie en ligne. 0 : pas de paiement au comptoir.
+      </p>
+      <form className="ges-retraits" onSubmit={sauver}>
+        <div className="champ">
+          <label htmlFor={`${ids}-plafond`}>Jusqu&apos;à (CHF)</label>
+          <input id={`${ids}-plafond`} inputMode="decimal" value={v} onChange={(e) => setV(e.target.value)} />
+        </div>
+        <button type="submit" className="bouton-second">
+          Enregistrer
         </button>
       </form>
       {message && (

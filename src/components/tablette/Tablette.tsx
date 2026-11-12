@@ -195,6 +195,7 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
     await charger();
   }
 
+  const [confirmerDeconnexion, setConfirmerDeconnexion] = useState(false);
   async function deconnecter() {
     await poster("/api/personnel/deconnexion", {});
     router.refresh();
@@ -241,9 +242,21 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
         <button type="button" className="bouton-second" aria-expanded={reglagesOuverts} onClick={() => setReglagesOuverts((v) => !v)}>
           {reglagesOuverts ? "Fermer les réglages" : "Pause, délai, ruptures"}
         </button>
-        <button type="button" className="lien" onClick={deconnecter}>
-          Déconnexion
-        </button>
+        {/* Un appui de trop pendant le service coupe la tablette : on confirme (audit du gérant, G16). */}
+        {confirmerDeconnexion ? (
+          <span className="boutons-ligne">
+            <button type="button" className="bouton-second" onClick={deconnecter}>
+              Oui, déconnecter
+            </button>
+            <button type="button" className="lien" onClick={() => setConfirmerDeconnexion(false)}>
+              Non
+            </button>
+          </span>
+        ) : (
+          <button type="button" className="lien" onClick={() => setConfirmerDeconnexion(true)}>
+            Déconnexion
+          </button>
+        )}
       </header>
 
       {horsLigne && (
@@ -306,6 +319,7 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
               maintenant={donnees.maintenant}
               taches={(donnees.impression.taches ?? []).filter((t) => t.commande_id === c.id)}
               agir={(corps) => agir(c.id, corps)}
+              recharger={charger}
             />
           ))}
         </ol>
@@ -327,12 +341,14 @@ function CarteCommande({
   maintenant,
   taches,
   agir,
+  recharger,
 }: {
   c: CommandeTablette;
   aujourdHui: string;
   maintenant: string;
   taches: Tache[];
   agir: (corps: Record<string, unknown>) => Promise<void>;
+  recharger: () => Promise<void>;
 }) {
   const [tickets, setTickets] = useState<{ station: string; contenu: LigneTicket[] }[] | null>(null);
 
@@ -347,7 +363,7 @@ function CarteCommande({
     .filter((t): t is Tache => Boolean(t));
   // Depuis le paiement en ligne, ou la création pour le comptoir : le temps passé sur la page de paiement ne compte pas.
   const attente = Math.floor((new Date(maintenant).getTime() - new Date(c.attend_depuis ?? c.cree_le).getTime()) / 60_000);
-  const [panneau, setPanneau] = useState<"aucun" | "refuser" | "heure">("aucun");
+  const [panneau, setPanneau] = useState<"aucun" | "refuser" | "heure" | "manque">("aucun");
   // Décalage choisi à la main, appliqué à l'heure de base : celle-ci suit la proposition recalculée à chaque
   // vérification, pour ne jamais accepter avec une heure déjà passée.
   const [decalage, setDecalage] = useState(0);
@@ -368,11 +384,13 @@ function CarteCommande({
     c.quand_type === "creneau" && c.quand_date && c.quand_minutes !== null
       ? `${c.quand_date === aujourdHui ? "" : `${jourTexte(c.quand_date)}, `}${heureTexte(c.quand_minutes)}`
       : "dès que possible";
+  // Manques signalés (G07) : déduits de ce qu'il reste à encaisser au comptoir.
+  const deduit = c.deduit_centimes ?? 0;
   const paiement =
     c.statut_paiement === "paye"
       ? `Payée en ligne ${prixChf(c.total_centimes)}`
       : c.statut_paiement === "a_encaisser_retrait"
-        ? `À encaisser au comptoir ${prixChf(c.total_centimes)}`
+        ? `À encaisser au comptoir ${prixChf(c.total_centimes - deduit)}`
         : c.statut_paiement === "encaisse"
           ? `Encaissée ${prixChf(c.total_centimes)}`
           : c.statut_paiement === "rembourse"
@@ -414,7 +432,9 @@ function CarteCommande({
           <p className="tab-meta">
             Reçue {jourGeneve(c.cree_le) === aujourdHui ? "" : `le ${jourTexte(jourGeneve(c.cree_le))} `}à {heure(c.cree_le)}. {STATUT[c.statut] ?? c.statut}
             {c.heure_confirmee ? ` pour ${heure(c.heure_confirmee)}` : ""}.
-            {c.statut === "nouvelle" && attente >= 3 && <strong className="tab-attend"> Attend depuis {attente} min.</strong>}
+            {c.statut === "nouvelle" && attente >= 3 && !(c.quand_date && c.quand_date > aujourdHui) && (
+              <strong className="tab-attend"> Attend depuis {attente} min.</strong>
+            )}
           </p>
         </div>
         {/* Une fois acceptée, l'heure promise se lit à un mètre (audit design, D05, maquette de la tablette). */}
@@ -475,6 +495,11 @@ function CarteCommande({
             </p>
           )}
           <p className="tab-paiement">{paiement}</p>
+          {c.manques && c.manques.length > 0 && (
+            <p className="tab-manque">
+              Manque : {c.manques.join(" ; ")}. {prixChf(deduit)} {c.statut_paiement === "a_encaisser_retrait" ? "déduits" : "remboursés"}.
+            </p>
+          )}
           {c.motif && c.statut === "refusee" && <p>{c.motif}</p>}
         </div>
       </div>
@@ -557,6 +582,11 @@ function CarteCommande({
           <button type="button" className="bouton-second" onClick={() => setPanneau("heure")}>
             Changer l&apos;heure
           </button>
+          {["paye", "encaisse", "a_encaisser_retrait"].includes(c.statut_paiement) && (
+            <button type="button" className="bouton-second" onClick={() => setPanneau("manque")}>
+              Il manque…
+            </button>
+          )}
           {c.statut !== "prete" && c.statut !== "partie" && (
             // À l'écart des autres boutons : elle annule la commande (et rembourse si elle est payée).
             <>
@@ -576,6 +606,16 @@ function CarteCommande({
             Encaissée
           </button>
         </div>
+      )}
+
+      {panneau === "manque" && (
+        <PanneauManque
+          c={c}
+          fermer={async () => {
+            setPanneau("aucun");
+            await recharger();
+          }}
+        />
       )}
 
       {panneau === "heure" && (
@@ -629,5 +669,128 @@ function CarteCommande({
         </div>
       )}
     </li>
+  );
+}
+
+// Un plat ou un supplément manque (audit du gérant, G07) : on coche ce qui manque, la base calcule le montant,
+// puis on confirme. Le client est prévenu par e-mail. Payée en ligne : remboursé ; au comptoir : déduit.
+function PanneauManque({ c, fermer }: { c: CommandeTablette; fermer: () => Promise<void> }) {
+  // Plats entiers : quantité manquante par ligne. Suppléments : « ligne|groupe|nom ».
+  const [plats, setPlats] = useState<Record<number, number>>({});
+  const [options, setOptions] = useState<string[]>([]);
+  const [estimation, setEstimation] = useState<string | null>(null);
+  const [resultat, setResultat] = useState<{ ok: boolean; texte: string } | null>(null);
+  const [envoi, setEnvoi] = useState(false);
+  // Même clé jusqu'à ce que le geste aboutisse : un double appui ne rembourse pas deux fois.
+  const [cle, setCle] = useState(() => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `manque-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`));
+
+  const elements = [
+    ...Object.entries(plats)
+      .filter(([, q]) => q > 0)
+      .map(([ligne, qte]) => ({ ligne: Number(ligne), qte })),
+    ...options.map((o) => {
+      const [ligne, groupe, nom] = o.split("|");
+      return { ligne: Number(ligne), groupe, nom };
+    }),
+  ];
+
+  async function envoyer(confirmer: boolean) {
+    setEnvoi(true);
+    const r = await poster("/api/tablette/manque", { commande: c.id, elements, cle, confirmer });
+    const texte = String(r.donnees.message ?? r.donnees.erreur ?? "Pas passé. Réessayez.");
+    if (!confirmer) setEstimation(r.ok ? texte : null);
+    if (confirmer || !r.ok) setResultat({ ok: r.ok, texte });
+    if (confirmer && (r.ok || r.statut === 409)) setCle(crypto.randomUUID?.() ?? `manque-${Date.now()}`);
+    setEnvoi(false);
+  }
+
+  function changer(f: () => void) {
+    f();
+    setEstimation(null);
+    setResultat(null);
+  }
+
+  if (resultat?.ok) {
+    return (
+      <div className="tab-actions">
+        <p className="aide-forte" role="status">
+          {resultat.texte}
+        </p>
+        <button type="button" className="bouton-principal" onClick={fermer}>
+          Fermer
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="tab-actions tab-refus">
+      <p className="aide-forte">Qu&apos;est-ce qui manque ? Le client est prévenu par e-mail.</p>
+      <div className="tab-motifs">
+        {c.lignes.map((l, i) => {
+          const q = plats[i] ?? 0;
+          return (
+            <span key={`p${i}`} className="boutons-ligne">
+              <button
+                type="button"
+                className="bouton-second"
+                aria-pressed={q > 0}
+                onClick={() => changer(() => setPlats({ ...plats, [i]: q > 0 ? 0 : l.qte }))}
+              >
+                {q > 0 ? q : l.qte} × {l.nom}
+              </button>
+              {q > 0 && l.qte > 1 && (
+                <>
+                  <button type="button" className="bouton-second" aria-label={`Une ${l.nom} de moins`} disabled={q <= 1} onClick={() => changer(() => setPlats({ ...plats, [i]: q - 1 }))}>
+                    −1
+                  </button>
+                  <button type="button" className="bouton-second" aria-label={`Une ${l.nom} de plus`} disabled={q >= l.qte} onClick={() => changer(() => setPlats({ ...plats, [i]: q + 1 }))}>
+                    +1
+                  </button>
+                </>
+              )}
+            </span>
+          );
+        })}
+        {c.lignes.flatMap((l, i) =>
+          Object.entries(l.choix ?? {}).flatMap(([groupe, noms]) =>
+            noms.map((nom) => {
+              const k = `${i}|${groupe}|${nom}`;
+              const pris = options.includes(k);
+              return (
+                <button
+                  key={k}
+                  type="button"
+                  className="bouton-second"
+                  aria-pressed={pris}
+                  disabled={(plats[i] ?? 0) >= l.qte}
+                  onClick={() => changer(() => setOptions(pris ? options.filter((x) => x !== k) : [...options, k]))}
+                >
+                  {nom} sur {l.nom}
+                </button>
+              );
+            }),
+          ),
+        )}
+      </div>
+      {estimation && <p className="aide-forte">{estimation}</p>}
+      {resultat && !resultat.ok && (
+        <p className="panier-alerte" role="alert">
+          {resultat.texte}
+        </p>
+      )}
+      {estimation ? (
+        <button type="button" className="bouton-principal" disabled={envoi} onClick={() => envoyer(true)}>
+          Confirmer et prévenir le client
+        </button>
+      ) : (
+        <button type="button" className="bouton-principal" disabled={envoi || elements.length === 0} onClick={() => envoyer(false)}>
+          Calculer le montant
+        </button>
+      )}
+      <button type="button" className="bouton-second" onClick={fermer}>
+        Fermer
+      </button>
+    </div>
   );
 }

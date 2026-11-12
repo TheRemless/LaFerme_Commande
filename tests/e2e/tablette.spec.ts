@@ -94,6 +94,44 @@ test("refus d'une commande payée en ligne : remboursée, le client est prévenu
   expect(page).toContain("Remboursée");
 });
 
+// Audit du gérant, G07 option A : un plat manque sur une commande acceptée, remboursé en partie.
+test("il manque un plat : remboursé en partie, le client est prévenu", async ({ request }) => {
+  const { numero } = await commander(request, "Carla", "en_ligne");
+  await tablette.getByRole("button", { name: /^À accepter/ }).click();
+  const carte = tablette.locator(".tab-commande", { has: tablette.locator(".tab-num", { hasText: new RegExp(`^${numero}$`) }) });
+  await expect(carte).toBeVisible({ timeout: 10_000 });
+  await carte.getByRole("button", { name: /^Accepter pour/ }).click();
+  await tablette.getByRole("button", { name: /^En cours/ }).click();
+  await carte.getByRole("button", { name: "Il manque…" }).click();
+  await carte.getByRole("button", { name: "1 × Pasta alla carbonara" }).click();
+  await carte.getByRole("button", { name: "Calculer le montant" }).click();
+  await expect(carte.getByText(/^À rembourser : CHF \d+\.\d{2} \(1 × Pasta alla carbonara\)\.$/)).toBeVisible();
+  await carte.getByRole("button", { name: "Confirmer et prévenir le client" }).click();
+  await expect(carte.getByText(/remboursés\. Le client est prévenu par e-mail\./)).toBeVisible();
+  await carte.getByRole("button", { name: "Fermer" }).click();
+  await expect(carte.locator(".tab-manque")).toContainText("Manque : 1 × Pasta alla carbonara");
+});
+
+test("supplément épuisé : refusé à la commande, puis revient", async ({ request }) => {
+  await tablette.getByRole("button", { name: "Pause, délai, ruptures" }).click();
+  await tablette.getByLabel("Chercher un plat ou un supplément").fill("Burrata");
+  const ligne = tablette.locator(".tab-plats li", { hasText: "Burrata" });
+  await ligne.getByRole("button", { name: "Disponible" }).click();
+  await expect(ligne.getByRole("button", { name: "Épuisé" })).toBeVisible();
+  const rep = await request.post("/api/commandes", {
+    headers: ORIGINE,
+    data: {
+      cle: `burrata-${Date.now()}`, mode: "retrait", moyen: "comptoir", quand: { type: "asap" }, heure: "2026-11-10T19:05",
+      client: { prenom: "Dora", nom: "Test", telephone: "079 000 00 00", email: "dora@laferme.test" },
+      lignes: [{ slug: "pizza-margherita", qte: 1, choix: { "supplements-pizza": ["Burrata"] }, retraits: [], note: "" }],
+    },
+  });
+  expect((await rep.json()).erreur).toContain("Burrata : épuisé pour aujourd'hui.");
+  await ligne.getByRole("button", { name: "Épuisé" }).click();
+  await expect(ligne.getByRole("button", { name: "Disponible" })).toBeVisible();
+  await tablette.getByRole("button", { name: "Fermer les réglages" }).click();
+});
+
 test("rupture du jour : le plat est grisé sur la carte, puis revient", async ({ page }) => {
   await tablette.getByRole("button", { name: "Pause, délai, ruptures" }).click();
   await tablette.getByLabel("Chercher un plat").fill("miss Italia");

@@ -2,7 +2,7 @@ import "server-only";
 import { unstable_cache } from "next/cache";
 import { lirePublic } from "@/lib/db/lecture";
 import { lirePlafondComptoir } from "@/lib/plafond-comptoir";
-import type { ConfigService, Fermeture, Horaire, Zone, ZoneNpa } from "@/lib/service";
+import type { ConfigService, Fermeture, Horaire, Ouverture, Zone, ZoneNpa } from "@/lib/service";
 
 type LigneReglage = { cle: string; valeur: unknown };
 
@@ -14,12 +14,14 @@ function nombre(reglages: LigneReglage[], cle: string): number {
 
 // Tout ce qu'il faut pour décider zone, créneaux et état du restaurant, lu en base.
 async function lireConfigService(): Promise<ConfigService & { plafondComptoirCentimes: number | null }> {
-  const [zones, npa, horaires, fermetures, reglages] = await Promise.all([
+  const [zones, npa, horaires, fermetures, reglages, ouvertures] = await Promise.all([
     lirePublic<Zone>("zones_livraison"),
     lirePublic<ZoneNpa>("zone_npa"),
     lirePublic<Horaire>("horaires"),
     lirePublic<Fermeture & { debut: string | Date; fin: string | Date }>("fermetures"),
     lirePublic<LigneReglage>("reglages"),
+    // Ouvertures exceptionnelles (audit du gérant, vague 2). Table absente tant que la base n'est pas migrée.
+    lirePublic<Ouverture & { jour: string | Date }>("ouvertures").catch(() => [] as (Ouverture & { jour: string | Date })[]),
   ]);
   // PGlite rend les dates en objets Date, Supabase en texte : on ramène tout au format AAAA-MM-JJ.
   const jour = (d: string | Date) => (typeof d === "string" ? d.slice(0, 10) : d.toISOString().slice(0, 10));
@@ -32,7 +34,15 @@ async function lireConfigService(): Promise<ConfigService & { plafondComptoirCen
     zones: retard ? zones.map((z) => ({ ...z, delai_min: z.delai_min + retard, delai_max: z.delai_max + retard })) : zones,
     npa,
     horaires,
-    fermetures: fermetures.map((f) => ({ ...f, debut: jour(f.debut), fin: jour(f.fin) })),
+    fermetures: fermetures.map((f) => ({ ...f, debut: jour(f.debut), fin: jour(f.fin), service: f.service ?? null })),
+    ouvertures: ouvertures.map((o) => ({
+      jour: jour(o.jour),
+      service: o.service,
+      premiere_heure: o.premiere_heure,
+      derniere_heure: o.derniere_heure,
+      derniere_commande: o.derniere_commande,
+      derniere_commande_pizzas: o.derniere_commande_pizzas,
+    })),
     reglages: {
       preparation_minutes: preparation + retard,
       preparation_base: preparation,

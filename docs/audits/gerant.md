@@ -33,6 +33,23 @@ Corrigé sur la branche `claude/audit-gerant-312b49`, migration `supabase/migrat
 | G07, G08 | propositions | Voir « Propositions » ci-dessous |
 | G12 à G17, G19 à G21 | restants | Hors de ce lot |
 
+## Suivi, vague 2 (16.11.2026)
+
+| Constat | État | Comment |
+|---|---|---|
+| G07 | corrigé (option A) | Rupture d'un supplément sur la tablette, remise à zéro le lendemain. « Il manque… » sur une commande acceptée : montant calculé par la base, remboursé (en ligne) ou déduit (comptoir), e-mail au client |
+| Fonction manquante 2 | corrigé | Fermer un midi ou un soir, ouvrir un jour non prévu, effet immédiat sur les créneaux |
+| Fonction manquante 7 | corrigé | Communes d'une zone dans le back-office, journalisées |
+| G11 | corrigé | Journal en liste lisible au téléphone, libellés en clair, « Annuler » avec confirmation |
+| G15 | corrigé | Fermeture : numéros des commandes déjà prises, confirmation avant suppression, fermeture d'un seul service |
+| G16 | corrigé | Déconnexion de la tablette confirmée |
+| G17 | en partie | Un remboursement d'une commande refusée ensuite ne sort plus en négatif dans l'export |
+| G19 | en partie | « Attend depuis » seulement pour le jour même |
+| Plafond du comptoir | corrigé | Réglable au back-office (« Paiement au comptoir »), journalisé, annulable |
+| G08 | confié | Session « service » (impression le jour J) |
+| G12 à G14, G18 (photo) | confiés | Session « carte » (tableau de validation, photos) |
+| G20, mots de la tablette | confiés | Session « design », après les fusions |
+
 ## Propositions (non codées)
 
 ### G07 : un plat manque sur une commande déjà passée

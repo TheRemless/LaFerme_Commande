@@ -8,6 +8,7 @@ import { GestionEquipe } from "@/components/gestion/GestionEquipe";
 import { GestionImprimantes } from "@/components/gestion/GestionImprimantes";
 import { GestionService } from "@/components/gestion/GestionService";
 import { heureDe, jourGeneveDe } from "@/lib/heures";
+import { poster } from "@/lib/requete-client";
 import { jourTexte } from "@/lib/service";
 
 type Onglet = "commandes" | "carte" | "supplements" | "service" | "imprimantes" | "equipe" | "import" | "export" | "journal";
@@ -245,7 +246,62 @@ function Export() {
   );
 }
 
-type Entree = { id: number; personnel_nom: string; objet: string; cle: string; avant: Record<string, unknown> | null; apres: Record<string, unknown> | null; le: string };
+type Entree = {
+  id: number;
+  personnel_nom: string;
+  objet: string;
+  cle: string;
+  avant: Record<string, unknown> | null;
+  apres: Record<string, unknown> | null;
+  le: string;
+  annule_par?: number | null;
+};
+
+// Ce qui se remet depuis le journal (audit du gérant, G11), comme dans annuler_journal en base.
+const REGLAGES_ANNULABLES = ["plafond_comptoir_centimes", "capacite_livraisons_par_creneau", "capacite_retraits_par_creneau", "alerte_acceptation_minutes"];
+function annulable(e: Entree): boolean {
+  if (e.annule_par) return false;
+  if (e.objet === "reglage") return REGLAGES_ANNULABLES.includes(e.cle) && e.avant !== null;
+  return ["zone", "horaire", "plat", "option", "fermeture", "ouverture", "zone_npa"].includes(e.objet);
+}
+
+const REGLAGES: Record<string, (v: unknown) => string> = {
+  plafond_comptoir_centimes: (v) => `Paiement au comptoir jusqu'à CHF ${(Number(v) / 100).toFixed(2)}`,
+  capacite_livraisons_par_creneau: (v) => `${v} livraisons par créneau`,
+  capacite_retraits_par_creneau: (v) => `${v} retraits par créneau`,
+  alerte_acceptation_minutes: (v) => `Alerte après ${v} min`,
+};
+
+function quoi(e: Entree): string {
+  switch (e.objet) {
+    case "plat":
+      return `Plat ${String((e.apres ?? e.avant)?.nom ?? e.cle)}`;
+    case "option":
+      return `Supplément ${e.cle.split("/").slice(1).join("/")}`;
+    case "zone":
+      return `Zone ${e.cle}`;
+    case "zone_npa":
+      return `Commune ${e.cle}`;
+    case "horaire":
+      return "Horaire";
+    case "fermeture":
+      return "Fermeture";
+    case "ouverture":
+      return "Ouverture exceptionnelle";
+    case "reglage":
+      return "Réglage";
+    case "personnel":
+      return `Équipe, ${e.cle}`;
+    case "remboursement":
+      return `Commande ${e.cle}`;
+    case "import":
+      return "Import du tableau";
+    case "imprimante":
+      return `Imprimante ${e.cle}`;
+    default:
+      return `${e.objet} ${e.cle}`;
+  }
+}
 
 const LIBELLES: Record<string, string> = {
   nom: "Nom",
@@ -281,7 +337,31 @@ function valeurLisible(cle: string, v: unknown): string {
 
 const ROLE: Record<string, string> = { service: "tablette", gerant: "tablette et back-office" };
 
+function jourCourt(d: unknown): string {
+  return jourTexte(String(d).slice(0, 10));
+}
+
 function resume(e: Entree): string {
+  if (e.objet === "reglage") {
+    const f = REGLAGES[e.cle] ?? ((v: unknown) => String(v));
+    return `${e.avant === null ? "vide" : f(e.avant)} → ${f(e.apres)}`;
+  }
+  if (e.objet === "fermeture" || e.objet === "ouverture") {
+    const x = (e.apres ?? e.avant ?? {}) as { debut?: string; fin?: string; jour?: string; service?: string | null; motif?: string };
+    const quand = x.jour
+      ? `le ${jourCourt(x.jour)}, ${x.service === "midi" ? "midi" : "soir"}`
+      : x.service
+        ? `le ${jourCourt(x.debut)}, ${x.service}`
+        : `du ${jourCourt(x.debut)} au ${jourCourt(x.fin)}`;
+    return `${e.apres ? "Ajout" : "Suppression"} : ${quand}, ${x.motif ?? ""}`;
+  }
+  if (e.objet === "zone_npa") {
+    const av = e.avant as { zone_numero?: number } | null;
+    const ap = e.apres as { zone_numero?: number } | null;
+    if (!av) return `Ajoutée à la zone ${ap?.zone_numero}`;
+    if (!ap) return `Retirée de la zone ${av.zone_numero}`;
+    return `Zone ${av.zone_numero} → zone ${ap.zone_numero}`;
+  }
   if (e.objet === "remboursement" && e.apres) {
     const a = e.apres as { montant_centimes?: number; motif?: string; moyen?: string };
     return `Commande ${e.cle} : CHF ${((a.montant_centimes ?? 0) / 100).toFixed(2)} remboursés${a.moyen === "especes" ? " en espèces" : ""}. ${a.motif ?? ""}`;
@@ -309,41 +389,71 @@ function resume(e: Entree): string {
 
 function Journal() {
   const [entrees, setEntrees] = useState<Entree[] | null>(null);
-  useEffect(() => {
-    fetch("/api/gestion/journal", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : []))
-      .then(setEntrees)
-      .catch(() => setEntrees([]));
+  const [confirmer, setConfirmer] = useState<number | null>(null);
+  const [message, setMessage] = useState<{ ok: boolean; texte: string } | null>(null);
+  const [envoi, setEnvoi] = useState(false);
+  const charger = useCallback(async () => {
+    const r = await fetch("/api/gestion/journal", { cache: "no-store" }).catch(() => null);
+    setEntrees(r?.ok ? await r.json() : []);
   }, []);
+  useEffect(() => {
+    charger();
+  }, [charger]);
+
+  // Retour arrière (G11) : la base refuse si la valeur a changé depuis.
+  async function annuler(id: number) {
+    setEnvoi(true);
+    setMessage(null);
+    const r = await poster("/api/gestion/journal", { action: "annuler", id });
+    setMessage({ ok: r.ok, texte: String(r.donnees.message ?? r.donnees.erreur ?? "Pas annulé.") });
+    setConfirmer(null);
+    await charger();
+    setEnvoi(false);
+  }
+
   if (!entrees) return <p className="aide">Chargement…</p>;
   if (entrees.length === 0) return <p className="aide">Aucune modification pour l&apos;instant.</p>;
   return (
     <section className="ges-bloc">
       <h2>Journal des modifications</h2>
-      <table className="ges-table ges-journal">
-        <thead>
-          <tr>
-            <th>Quand</th>
-            <th>Qui</th>
-            <th>Quoi</th>
-            <th>Avant → après</th>
-          </tr>
-        </thead>
-        <tbody>
-          {entrees.map((e) => (
-            <tr key={e.id}>
-              <td>
-                {jourTexte(jourGeneveDe(e.le))}, {heureDe(e.le)}
-              </td>
-              <td>{e.personnel_nom}</td>
-              <td>
-                {e.objet} {e.cle}
-              </td>
-              <td className="ges-diff">{resume(e)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <p className="aide">Les 200 dernières. « Annuler » remet l&apos;ancienne valeur, si rien n&apos;a changé depuis.</p>
+      {message && (
+        <p className={message.ok ? "tab-message" : "panier-alerte"} role={message.ok ? "status" : "alert"}>
+          {message.texte}
+        </p>
+      )}
+      <ul className="ges-plats ges-journal-liste">
+        {entrees.map((e) => (
+          <li key={e.id} className={e.annule_par ? "ges-retire" : ""}>
+            <p className="ges-journal-tete">
+              <strong>{quoi(e)}</strong>
+              <span>
+                {jourTexte(jourGeneveDe(e.le))}, {heureDe(e.le)}, {e.personnel_nom}
+              </span>
+            </p>
+            <p className="ges-diff">{resume(e)}</p>
+            {e.annule_par ? (
+              <p className="aide">Annulée.</p>
+            ) : (
+              annulable(e) &&
+              (confirmer === e.id ? (
+                <span className="boutons-ligne">
+                  <button type="button" className="bouton-second" disabled={envoi} onClick={() => annuler(e.id)}>
+                    Oui, remettre l&apos;ancienne valeur
+                  </button>
+                  <button type="button" className="lien" onClick={() => setConfirmer(null)}>
+                    Non
+                  </button>
+                </span>
+              ) : (
+                <button type="button" className="lien" onClick={() => setConfirmer(e.id)}>
+                  Annuler
+                </button>
+              ))
+            )}
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

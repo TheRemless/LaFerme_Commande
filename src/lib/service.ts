@@ -22,7 +22,10 @@ export type Horaire = {
   derniere_commande: string;
   derniere_commande_pizzas: string;
 };
-export type Fermeture = { debut: string; fin: string; motif: string };
+// Sans service : la journée entière. Avec : seulement ce service (audit du gérant, vague 2).
+export type Fermeture = { debut: string; fin: string; motif: string; service?: "midi" | "soir" | null };
+// Service ouvert un jour donné, avec ses heures : jour normalement fermé, ou heures différentes ce jour-là.
+export type Ouverture = { jour: string; service: "midi" | "soir"; premiere_heure: string; derniere_heure: string; derniere_commande: string; derniere_commande_pizzas: string };
 // preparation_minutes et les délais des zones comprennent déjà le retard du soir (config-service.ts).
 export type Reglages = { preparation_minutes: number; creneau_minutes: number; avance_jours: number; preparation_base?: number; retard_minutes?: number };
 
@@ -31,6 +34,7 @@ export type ConfigService = {
   npa: ZoneNpa[];
   horaires: Horaire[];
   fermetures: Fermeture[];
+  ouvertures?: Ouverture[];
   reglages: Reglages;
   // Réglé depuis la tablette : pause des commandes en ligne (jusqu'à une heure, ou sans fin) et livraison fermée.
   pause?: { jusqua: string | null; active: boolean; livraisonFermee: boolean; auto?: boolean };
@@ -135,15 +139,29 @@ function reouvertureApres(config: ConfigService, fermeture: Fermeture): string |
   return null;
 }
 
+// Fermeture de la journée entière (une fermeture d'un seul service n'en est pas une).
 export function fermeturePour(config: Pick<ConfigService, "fermetures">, date: string): Fermeture | undefined {
-  return config.fermetures.find((f) => f.debut <= date && date <= f.fin);
+  return config.fermetures.find((f) => !f.service && f.debut <= date && date <= f.fin);
 }
 
 function servicesDu(config: ConfigService, date: string): Horaire[] {
   if (fermeturePour(config, date)) return [];
-  return config.horaires
-    .filter((h) => h.jour === jourIso(date))
-    .sort((a, b) => enMinutes(a.premiere_heure) - enMinutes(b.premiere_heure));
+  const fermes = new Set(config.fermetures.filter((f) => f.service && f.debut <= date && date <= f.fin).map((f) => f.service));
+  const ouverts = (config.ouvertures ?? []).filter((o) => o.jour === date);
+  const jour = jourIso(date);
+  // Une ouverture remplace les horaires habituels du même service ce jour-là.
+  const services: Horaire[] = [
+    ...config.horaires.filter((h) => h.jour === jour && !ouverts.some((o) => o.service === h.service)),
+    ...ouverts.map(({ service, premiere_heure, derniere_heure, derniere_commande, derniere_commande_pizzas }) => ({
+      jour,
+      service,
+      premiere_heure,
+      derniere_heure,
+      derniere_commande,
+      derniere_commande_pizzas,
+    })),
+  ];
+  return services.filter((h) => !fermes.has(h.service)).sort((a, b) => enMinutes(a.premiere_heure) - enMinutes(b.premiere_heure));
 }
 
 // Temps entre la commande et la remise : préparation au retrait, délai le plus court de la zone en livraison.
@@ -261,7 +279,7 @@ export function fermetureProche(config: ConfigService, maintenant: Date): { ferm
   const ici = instantGeneve(maintenant);
   const limite = ajouterJours(ici.date, config.reglages.avance_jours);
   const fermeture = config.fermetures
-    .filter((f) => f.fin >= ici.date && f.debut <= limite)
+    .filter((f) => !f.service && f.fin >= ici.date && f.debut <= limite)
     .sort((a, b) => (a.debut < b.debut ? -1 : 1))[0];
   if (!fermeture) return null;
   return { fermeture, reouverture: reouvertureApres(config, fermeture) };

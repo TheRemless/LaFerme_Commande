@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { corpsJson, refus } from "@/lib/comptes/api";
 import { lirePublic } from "@/lib/db/lecture";
 import { fonctionSql } from "@/lib/db/serveur";
-import { champsHoraire, champsZone, dateValide } from "@/lib/gestion";
+import { centimes, champsHoraire, champsZone, dateValide } from "@/lib/gestion";
 import { exigerGerant } from "@/lib/personnel/session";
 import { rafraichirCaches } from "@/lib/tablette";
 
@@ -21,7 +21,12 @@ export async function GET(requete: Request) {
   };
   // Délai habituel (audit du gérant, G05) : réglé ici, plus sur la tablette, qui n'a que le retard du soir.
   const preparation = Number(cap("preparation_minutes")?.valeur ?? 20);
-  return NextResponse.json({ ...service, capacites, preparation }, { headers: { "Cache-Control": "no-store" } });
+  // Plafond du paiement au comptoir (décision de Jérémy, 100 CHF au départ) : null si absent.
+  const plafond = cap("plafond_comptoir_centimes")?.valeur;
+  return NextResponse.json(
+    { ouvertures: [], ...service, capacites, preparation, plafond_comptoir_centimes: typeof plafond === "number" ? plafond : null },
+    { headers: { "Cache-Control": "no-store" } },
+  );
 }
 
 // { type: "zone", numero, champs } | { type: "horaire", id, champs }
@@ -59,12 +64,58 @@ export async function POST(requete: Request) {
     if (!Number.isInteger(v) || (v as number) < 5 || (v as number) > 120) return refus("Délai de préparation : un nombre de minutes de 5 à 120.");
     await fonctionSql("regler_service", { p: { preparation_minutes: v }, p_personnel: qui });
   } else if (c.type === "fermeture") {
+    // Journée entière (service absent) ou un seul service (midi, soir) d'un jour (audit du gérant, vague 2).
     const debut = dateValide(c.debut);
-    const fin = dateValide(c.fin);
+    const service = c.service === "midi" || c.service === "soir" ? c.service : null;
+    const fin = service ? debut : dateValide(c.fin);
     const motif = typeof c.motif === "string" ? c.motif.trim() : "";
     if (!debut || !fin || fin < debut) return refus("Dates de fermeture invalides.");
     if (motif.length < 2 || motif.length > 120) return refus("Indiquez un motif (120 caractères au plus).");
-    await fonctionSql("ajouter_fermeture", { p_debut: debut, p_fin: fin, p_motif: motif, p_personnel: qui });
+    if (service) await fonctionSql("ajouter_fermeture_service", { p_jour: debut, p_service: service, p_motif: motif, p_personnel: qui });
+    else await fonctionSql("ajouter_fermeture", { p_debut: debut, p_fin: fin, p_motif: motif, p_personnel: qui });
+    // Commandes déjà prises sur la période : à annuler sur la tablette (G15).
+    const prises = await fonctionSql<number[]>("commandes_dans_periode", { p_debut: debut, p_fin: fin, p_service: service }).catch(() => []);
+    rafraichirCaches("config-service");
+    return NextResponse.json({ enregistre: true, commandes: prises });
+  } else if (c.type === "ouverture") {
+    const jour = dateValide(c.jour);
+    const service = c.service === "midi" || c.service === "soir" ? c.service : null;
+    const motif = typeof c.motif === "string" ? c.motif.trim() : "";
+    const heures = champsHoraire(c.champs);
+    if (!jour || !service) return refus("Choisissez le jour et le service.");
+    if (!heures.ok) return refus(heures.erreur);
+    if (motif.length < 2 || motif.length > 120) return refus("Indiquez un motif (120 caractères au plus).");
+    try {
+      await fonctionSql("ajouter_ouverture", { p: { jour, service, motif, ...heures.valeur }, p_personnel: qui });
+    } catch (e) {
+      if (e instanceof Error && /duplicate|unique/i.test(e.message)) return refus("Ce service est déjà ouvert ce jour-là.");
+      throw e;
+    }
+  } else if (c.type === "ouverture-suppr") {
+    const id = entier(c.id);
+    if (!id) return refus("Ouverture inconnue.", 404);
+    ok = await fonctionSql<boolean>("supprimer_ouverture", { p_id: id, p_personnel: qui });
+  } else if (c.type === "npa") {
+    // Communes d'une zone : ajouter (ou déplacer) un couple NPA et localité, ou le retirer.
+    const npa = typeof c.npa === "string" ? c.npa.trim() : "";
+    const localite = typeof c.localite === "string" ? c.localite.trim() : "";
+    if (!/^12\d{2}$/.test(npa)) return refus("NPA genevois à 4 chiffres (12xx).");
+    if (localite.length < 2 || localite.length > 60) return refus("Écrivez la localité comme sur l'adresse officielle.");
+    if (c.retirer === true) ok = await fonctionSql<boolean>("retirer_npa_zone", { p_npa: npa, p_localite: localite, p_personnel: qui });
+    else {
+      const zone = entier(c.zone);
+      if (!zone) return refus("Zone inconnue.", 404);
+      try {
+        await fonctionSql("ajouter_npa_zone", { p_npa: npa, p_localite: localite, p_zone: zone, p_personnel: qui });
+      } catch (e) {
+        if (e instanceof Error && e.message.includes("zone_inconnue")) return refus("Zone inconnue.", 404);
+        throw e;
+      }
+    }
+  } else if (c.type === "plafond") {
+    const v = centimes(c.francs);
+    if (v === null) return refus("Plafond : un montant en francs de 0 à 500.");
+    await fonctionSql("regler_plafond_comptoir", { p_centimes: v, p_personnel: qui });
   } else if (c.type === "fermeture-suppr") {
     const id = entier(c.id);
     if (!id) return refus("Fermeture inconnue.", 404);

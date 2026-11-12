@@ -10,6 +10,8 @@ type Props = {
 };
 
 type Plat = { slug: string; nom: string; categorie: string; rupture: boolean };
+// Supplément (audit du gérant, G07) : épuisé pour la journée comme un plat.
+type Option = { groupe: string; groupe_nom: string; nom: string; rupture: boolean };
 
 
 // Pause des commandes en ligne, livraison, délai de préparation et ruptures du jour.
@@ -19,9 +21,14 @@ export function Reglages({ reglages, onChange }: Props) {
   const [erreur, setErreur] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState(false);
 
+  const [options, setOptions] = useState<Option[] | null>(null);
   async function chargerPlats() {
-    const rep = await fetch("/api/tablette/plats", { cache: "no-store" }).catch(() => null);
+    const [rep, repOptions] = await Promise.all([
+      fetch("/api/tablette/plats", { cache: "no-store" }).catch(() => null),
+      fetch("/api/tablette/options", { cache: "no-store" }).catch(() => null),
+    ]);
     if (rep?.ok) setPlats(await rep.json());
+    if (repOptions?.ok) setOptions(await repOptions.json());
   }
   useEffect(() => {
     chargerPlats();
@@ -33,6 +40,15 @@ export function Reglages({ reglages, onChange }: Props) {
     const r = await poster("/api/tablette/reglages", corps);
     if (!r.ok) setErreur(String(r.donnees.erreur ?? "Pas enregistré. Réessayez."));
     await onChange();
+    setEnvoi(false);
+  }
+
+  async function ruptureOption(o: Option) {
+    setEnvoi(true);
+    setErreur(null);
+    const r = await poster("/api/tablette/options", { groupe: o.groupe, nom: o.nom, rupture: !o.rupture });
+    if (!r.ok) setErreur(String(r.donnees.erreur ?? "Pas enregistré. Réessayez."));
+    await chargerPlats();
     setEnvoi(false);
   }
 
@@ -53,6 +69,8 @@ export function Reglages({ reglages, onChange }: Props) {
     return (plats ?? []).filter((x) => !q || x.nom.toLowerCase().includes(q));
   }, [plats, recherche]);
   const enRupture = (plats ?? []).filter((x) => x.rupture);
+  const optionsEpuisees = (options ?? []).filter((x) => x.rupture);
+  const optionsFiltrees = (options ?? []).filter((x) => !recherche.trim() || x.nom.toLowerCase().includes(recherche.trim().toLowerCase()));
 
   return (
     <section className="tab-reglages" aria-label="Réglages du service">
@@ -123,7 +141,7 @@ export function Reglages({ reglages, onChange }: Props) {
         <h2>Épuisés aujourd&apos;hui</h2>
         {enRupture.length > 0 && <p>{enRupture.map((x) => x.nom).join(", ")}</p>}
         <div className="champ">
-          <label htmlFor="recherche-plat">Chercher un plat</label>
+          <label htmlFor="recherche-plat">Chercher un plat ou un supplément</label>
           <input id="recherche-plat" value={recherche} onChange={(e) => setRecherche(e.target.value)} />
         </div>
         {plats === null ? (
@@ -142,7 +160,25 @@ export function Reglages({ reglages, onChange }: Props) {
             ))}
           </ul>
         )}
-        <p className="aide">Un plat épuisé redevient disponible tout seul le lendemain.</p>
+        {options !== null && options.length > 0 && (
+          <>
+            <h3>Suppléments</h3>
+            {optionsEpuisees.length > 0 && <p>{optionsEpuisees.map((x) => x.nom).join(", ")}</p>}
+            <ul className="tab-plats">
+              {optionsFiltrees.map((x) => (
+                <li key={`${x.groupe}/${x.nom}`}>
+                  <span>
+                    {x.nom} <small>{x.groupe_nom}</small>
+                  </span>
+                  <button type="button" className={x.rupture ? "bouton-principal" : "bouton-second"} disabled={envoi} aria-pressed={x.rupture} onClick={() => ruptureOption(x)}>
+                    {x.rupture ? "Épuisé" : "Disponible"}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+        <p className="aide">Un plat ou un supplément épuisé redevient disponible tout seul le lendemain.</p>
       </div>
     </section>
   );
