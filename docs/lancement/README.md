@@ -26,7 +26,7 @@ Tant qu'elles manquent, les champs en jaune des supports restent à confirmer et
 
 ## Supports imprimés
 
-- Rendus : `supports/rendus/flyer-a5.pdf` (deux pages, 154 × 216 mm, fond perdu de 3 mm inclus), `supports/rendus/autocollant-80mm.pdf` (86 × 86 mm, découpe ronde de 80 mm au centre), et les images JPEG de chaque face.
+- Rendus : `supports/rendus/flyer-a5.pdf` (deux pages, 154 × 216 mm, fond perdu de 3 mm inclus), `supports/rendus/autocollant-80mm.pdf` (86 × 86 mm, découpe ronde de 80 mm au centre). Une image JPEG de chaque face.
 - Les champs non validés (adresse du site, offre, code, communes, horaires) se règlent dans `supports/champs.js` et restent surlignés en jaune tant qu'ils commencent par « [ ».
 - Pour refaire les PDF une fois les champs remplis, depuis la racine du dépôt : `node docs/lancement/supports/rendre.mjs`. Le domaine du QR peut aussi se passer en variable, chaque support gardant son `ref` : `SITE=https://… node docs/lancement/supports/rendre.mjs`.
 - Textes et source de chaque fait : `supports/textes-supports.md`.
