@@ -12,8 +12,3 @@ export function lirePlafondComptoir(reglages: { cle: string; valeur: unknown }[]
 export function comptoirPermis(totalCentimes: number | null, plafondCentimes: number | null): boolean {
   return plafondCentimes !== null && totalCentimes !== null && totalCentimes <= plafondCentimes;
 }
-
-// « CHF 100 » pour un montant rond, « CHF 99.50 » sinon, avec une espace insécable : lisible dans une phrase.
-export function montantPlafond(centimes: number): string {
-  return centimes % 100 === 0 ? `CHF\u00a0${centimes / 100}` : `CHF\u00a0${(centimes / 100).toFixed(2)}`;
-}

@@ -9,10 +9,16 @@ on conflict (cle) do nothing;
 create function verifier_plafond_comptoir() returns trigger
 language plpgsql as $$
 declare
-  plafond integer := (select (valeur #>> '{}')::integer from reglages where cle = 'plafond_comptoir_centimes');
+  plafond numeric;
 begin
-  -- Réglage absent : pas de comptoir.
-  if new.moyen_paiement = 'comptoir' and (plafond is null or new.total_centimes > plafond) then
+  -- Lu seulement pour le comptoir : un réglage mal saisi ne bloque jamais le paiement en ligne.
+  if new.moyen_paiement <> 'comptoir' then
+    return new;
+  end if;
+  select (valeur #>> '{}')::numeric into plafond from reglages
+  where cle = 'plafond_comptoir_centimes' and jsonb_typeof(valeur) = 'number';
+  -- Réglage absent ou illisible : pas de comptoir.
+  if plafond is null or new.total_centimes > plafond then
     raise exception 'plafond_comptoir';
   end if;
   return new;

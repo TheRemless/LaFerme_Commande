@@ -6,8 +6,8 @@ import { useEffect, useId, useState } from "react";
 import { lireChoix, type Choix } from "@/lib/choix";
 import type { Catalogue } from "@/lib/panier";
 import { usePanier, usePrixServeur } from "@/lib/panier-local";
-import { comptoirPermis, montantPlafond } from "@/lib/plafond-comptoir";
-import { prixChf, prixCourt } from "@/lib/prix";
+import { comptoirPermis } from "@/lib/plafond-comptoir";
+import { prixChf, prixCourt, prixPhrase } from "@/lib/prix";
 import { heureTexte, jourTexte } from "@/lib/service";
 import { ContenuPanier } from "@/components/panier/ContenuPanier";
 import { champClientInvalide, MESSAGE_CHAMP, type ChampClient } from "@/lib/validation";
@@ -276,7 +276,7 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
               <p className="aide" id={`${ids}-plafond`}>
                 {plafond === null
                   ? "Le paiement au comptoir est indisponible pour le moment. Payez en ligne ou appelez-nous au 022 792 16 89."
-                  : `Le paiement au comptoir est possible jusqu'à ${montantPlafond(plafond)}. Pour cette commande, payez en ligne.`}
+                  : `Le paiement au comptoir est possible jusqu'à ${prixPhrase(plafond)}. Pour cette commande, payez en ligne.`}
               </p>
             )}
             <fieldset className="paiements">

@@ -1,7 +1,8 @@
 import { PGlite } from "@electric-sql/pglite";
 import { beforeAll, describe, expect, it } from "vitest";
 import { creerBaseLocale } from "@/lib/db/locale";
-import { comptoirPermis, lirePlafondComptoir, montantPlafond } from "@/lib/plafond-comptoir";
+import { comptoirPermis, lirePlafondComptoir } from "@/lib/plafond-comptoir";
+import { prixPhrase } from "@/lib/prix";
 
 // Plafond des commandes à payer au comptoir (décision de Jérémy du 12.11.2026, suite de S5 de l'audit de sécurité).
 // Le montant vient de la base : aucun prix en dur ici.
@@ -80,6 +81,17 @@ describe("contrôle en base à l'enregistrement", () => {
     await expect(commande("en_ligne", plafond * 2)).resolves.toBeDefined();
   });
 
+  it("un réglage mal saisi refuse le comptoir sans bloquer le paiement en ligne", async () => {
+    await db.query("begin");
+    try {
+      await db.query(`update reglages set valeur = '"cent"' where cle = 'plafond_comptoir_centimes'`);
+      await expect(commande("en_ligne", plafond)).resolves.toBeDefined();
+      await expect(commande("comptoir", 100)).rejects.toThrow(/plafond_comptoir/);
+    } finally {
+      await db.query("rollback");
+    }
+  });
+
   it("refuse le comptoir si le réglage a disparu", async () => {
     await db.query("begin");
     try {
@@ -93,7 +105,7 @@ describe("contrôle en base à l'enregistrement", () => {
 
 describe("affichage", () => {
   it("garde « CHF » et le montant sur la même ligne", () => {
-    expect(montantPlafond(10000)).toBe("CHF\u00a0100");
-    expect(montantPlafond(9950)).toBe("CHF\u00a099.50");
+    expect(prixPhrase(10000)).toBe("CHF\u00a0100");
+    expect(prixPhrase(9950)).toBe("CHF\u00a099.50");
   });
 });
