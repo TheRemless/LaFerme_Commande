@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Autocollant La Ferme</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="supports.css" />
+    <style>
+      @page {
+        size: 86mm 86mm;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="feuille rond" aria-label="Autocollant rond de 80 mm">
+      <div class="disque">
+        <img class="logo" src="../../../public/logo-la-ferme.png" alt="La Ferme" />
+        <h1>La prochaine fois, commandez sur notre site.</h1>
+        <div class="qr" data-qr="qrAutocollant"></div>
+        <p class="adresse" data-champ="adresseAffichee"></p>
+        <p><span data-champ="offre"></span> avec le code <span data-champ="code"></span></p>
+      </div>
+    </section>
+
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+    <script src="champs.js"></script>
+    <script src="remplir.js"></script>
+  </body>
+</html>
