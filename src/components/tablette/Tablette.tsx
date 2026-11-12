@@ -672,7 +672,7 @@ function CarteCommande({
           {c.statut === "partie" && !gerant && (
             // Livraison partie : l'annuler rembourse tout, donc gérant seulement (audit de sécurité 2, S2-01).
             // Client absent : onglet Livraisons, sans remboursement.
-            <p className="aide">Annuler une livraison partie : seul le gérant peut le faire.</p>
+            <p className="aide">Seul le gérant peut annuler une livraison partie.</p>
           )}
           {c.statut !== "prete" && (c.statut !== "partie" || gerant) && (
             // À l'écart des autres boutons : elle annule la commande (et rembourse si elle est payée). Une

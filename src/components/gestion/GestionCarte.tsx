@@ -344,7 +344,7 @@ export function FichePlat({ plat, donnees, recharger }: { plat: PlatGestion; don
                 <span>Prix validé</span>
               </label>
             )}
-            {sortDeLaVente && <p className="aide">Prix pas encore validé : le plat sort de la vente et y revient dès que la case est cochée.</p>}
+            {sortDeLaVente && <p className="aide">Prix pas encore validé. Le plat sort de la vente et y revient dès que la case est cochée.</p>}
           </div>
           <div className="champ champ-large">
             <label htmlFor={`${ids}-description`}>Description</label>
