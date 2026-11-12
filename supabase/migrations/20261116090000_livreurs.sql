@@ -411,7 +411,8 @@ begin
     end if;
     return avant.resultat || jsonb_build_object('deja', true, 'prevenir', false);
   end if;
-  select 'livreur:' || nom into par from personnel where id = p_livreur;
+  -- La route l'a déjà vérifié ; la base le revérifie : seul un livreur actif fait un geste.
+  select 'livreur:' || nom into par from personnel where id = p_livreur and role = 'livreur' and actif;
   if p_geste not in ('partie', 'livree', 'probleme', 'compris') or par is null then
     return jsonb_build_object('ok', false, 'raison', 'geste');
   end if;
