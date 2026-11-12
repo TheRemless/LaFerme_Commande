@@ -52,7 +52,7 @@ test.afterAll(async () => {
   await tablette.close();
 });
 
-test("une commande arrive, on l'accepte, puis prête, encaissée et retirée", async ({ request }) => {
+test("une commande arrive, on l'accepte, puis prête, retirée et payée", async ({ request }) => {
   const { numero, suivi } = await commander(request, "Alice", "comptoir");
   const carte = tablette.locator(".tab-commande", { has: tablette.locator(".tab-num", { hasText: new RegExp(`^${numero}$`) }) });
   await expect(carte).toBeVisible({ timeout: 10_000 });
@@ -69,11 +69,11 @@ test("une commande arrive, on l'accepte, puis prête, encaissée et retirée", a
 
   await carte.getByRole("button", { name: "Prête au comptoir" }).click();
   await expect(carte).toContainText("Prête au comptoir pour");
-  await carte.getByRole("button", { name: "Encaissée" }).click();
-  await expect(carte).toContainText("Encaissée CHF");
-  await carte.getByRole("button", { name: "Retirée" }).click();
+  // Retrait payé au comptoir : un seul geste, retirée et encaissée (audit du gérant, G01).
+  await carte.getByRole("button", { name: "Retirée et payée" }).click();
   await tablette.getByRole("button", { name: /^Terminées/ }).click();
   await expect(carte).toContainText(/Retirée pour \d{2}h\d{2}/);
+  await expect(carte).toContainText("Encaissée CHF");
 });
 
 test("refus d'une commande payée en ligne : remboursée, le client est prévenu", async ({ request }) => {

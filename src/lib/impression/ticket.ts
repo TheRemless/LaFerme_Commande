@@ -80,6 +80,22 @@ export function ticketsDeCommande(
   });
 }
 
+// Ticket « ANNULÉE » pour un poste qui a déjà reçu la commande (annulation après acceptation, SS-03).
+export function ticketAnnulation(
+  c: Pick<CommandePourTicket, "numero" | "mode" | "client_prenom" | "client_nom" | "heure_confirmee">,
+  station: "pizza" | "cuisine",
+  maintenant: string | Date = new Date(),
+): LigneTicket[] {
+  return [
+    { t: "texte", texte: "ANNULÉE", taille: 3, gras: true },
+    { t: "deux", gauche: station === "pizza" ? "PIZZA" : "CUISINE", droite: `N° ${String(c.numero).padStart(3, "0")}`, taille: 3, gras: true },
+    { t: "texte", texte: "NE PAS PRÉPARER", taille: 2, gras: true },
+    { t: "filet" },
+    { t: "texte", texte: `${c.mode === "livraison" ? "Livraison" : "À emporter"}${c.heure_confirmee ? ` pour ${heure(c.heure_confirmee)}` : ""}, client ${c.client_prenom} ${c.client_nom.charAt(0)}.` },
+    { t: "texte", texte: `Annulée à ${heure(maintenant)}` },
+  ];
+}
+
 // ---------- Rendu texte (secours CloudPRNT text/plain) ----------
 
 // La page de codes par défaut de l'imprimante n'est pas connue : le texte de secours reste en ASCII.

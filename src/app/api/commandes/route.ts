@@ -142,6 +142,8 @@ export async function POST(requete: Request) {
     });
   } catch (e) {
     if (e instanceof ConfigurationManquante) return refus(e.message, 503);
+    // Capacité du créneau atteinte, contrôlée en base sous verrou (audit « samedi soir », SS-02).
+    if (e instanceof Error && e.message.includes("creneau_complet")) return refus("Ce créneau est complet. Choisissez une autre heure ou appelez-nous au 022 792 16 89.", 409);
     throw e;
   }
   const suivi = `${origine}/suivi/${creee.jeton_suivi}`;

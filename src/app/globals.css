@@ -2351,6 +2351,14 @@ body.fiche-ouverte {
 .tab-impression .bouton-second {
   min-height: 48px;
 }
+.tab-avertissement {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  font-size: 18px;
+  font-weight: 700;
+  background: #f5e6a3;
+  border-radius: 4px;
+}
 .tab-attend {
   color: var(--encre);
   background: #f5e6a3;

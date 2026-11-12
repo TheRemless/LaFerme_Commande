@@ -9,6 +9,8 @@ import { fileTablette } from "@/lib/tablette";
 
 // Signe de vie de la tablette : la surveillance met le site en pause s'il manque 3 minutes pendant le
 // service. Une écriture toutes les 30 secondes au plus par instance de fonction suffit largement.
+// Seul un appareil qui a démarré le service (?service=1) le donne : un téléphone qui regarde /tablette
+// ne doit pas masquer une tablette de cuisine éteinte (SS-10).
 let dernierSigne = 0;
 async function signeDeVie(): Promise<void> {
   const t = Date.now();
@@ -27,7 +29,8 @@ const ACTIVES = new Set(["nouvelle", "acceptee", "en_preparation", "prete", "par
 export async function GET(requete: Request) {
   const g = await exigerPersonnel(requete, { lecture: true });
   if ("reponse" in g) return g.reponse;
-  await Promise.all([signeDeVie(), surveillanceAuPassage()]);
+  const enServiceIci = new URL(requete.url).searchParams.get("service") === "1";
+  await Promise.all([enServiceIci ? signeDeVie() : undefined, surveillanceAuPassage()]);
   const [commandes, config, impression] = await Promise.all([fileTablette(), chargerConfigService(), etatImpression()]);
   const maintenant = new Date();
   const etat = etatService(config, maintenant, "retrait").etat;

@@ -83,6 +83,30 @@ export function courrielConfirmation(c: Commande, cat: Catalogue | null) {
   return { sujet, texte, html };
 }
 
+// Commande payée en ligne refusée, remboursement pas encore passé (prestataire en panne) : le client
+// apprend le refus tout de suite. Le courriel de remboursement suit quand il est fait (audit, SS-04).
+export function courrielRefusRemboursementEnCours(c: Commande, motif: string) {
+  const sujet = `Commande ${c.numero} annulée, La Ferme`;
+  const remboursement = `Vous avez payé ${prixChf(c.total_centimes)}. Le remboursement n'est pas encore parti. Nous le relançons et vous écrivons dès qu'il est fait.`;
+  const texte = [
+    `Bonjour ${c.client_prenom},`,
+    "",
+    `Nous ne pouvons pas préparer votre commande n° ${c.numero}. ${motif}`,
+    remboursement,
+    "",
+    `Une question ? Appelez-nous au ${TELEPHONE}.`,
+    "",
+    RESTAURANT,
+  ].join("\n");
+  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#1c1b1a;max-width:560px">
+<p>Bonjour ${echapper(c.client_prenom)},</p>
+<p>Nous ne pouvons pas préparer votre commande n° <strong>${c.numero}</strong>. ${echapper(motif)}</p>
+<p>${remboursement}</p>
+<p>Une question ? Appelez-nous au ${TELEPHONE}.</p>
+<p style="color:#55524f;font-size:13px">${RESTAURANT}</p></div>`;
+  return { sujet, texte, html };
+}
+
 export function courrielRemboursement(c: Commande, motif: string) {
   const sujet = `Commande ${c.numero} annulée, La Ferme`;
   const texte = [

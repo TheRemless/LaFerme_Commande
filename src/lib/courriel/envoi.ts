@@ -1,5 +1,5 @@
 import "server-only";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { enregistrerCourriel } from "@/lib/db/serveur";
 
 // Courriels aux clients. Resend en vrai ; sans clé, hors production, une doublure qui garde le courriel
@@ -25,9 +25,15 @@ export async function envoyerParResend(destinataire: string, sujet: string, text
   if (!rep.ok) throw new Error(`Resend a répondu ${rep.status}`);
 }
 
+// Clé d'idempotence Resend : le même courriel rejoué (webhook répété) ne part qu'une fois, mais deux
+// courriels au même sujet et au contenu différent (deux changements d'heure) partent tous les deux (SS-15).
+export function cleIdempotence(c: Courriel): string {
+  return `${c.commandeId}-${createHash("sha256").update(`${c.sujet}\n${c.texte}`).digest("hex").slice(0, 32)}`;
+}
+
 export async function envoyerCourriel(c: Courriel): Promise<void> {
   const resend = resendConfigure();
-  if (resend) await envoyerParResend(c.destinataire, c.sujet, c.texte, c.html, `${c.commandeId}-${c.sujet}`);
+  if (resend) await envoyerParResend(c.destinataire, c.sujet, c.texte, c.html, cleIdempotence(c));
   else if (process.env.CONTEXTE_DEPLOIEMENT === "production") throw new Error("RESEND_API_KEY ou COURRIEL_EXPEDITEUR manquant en production.");
   await enregistrerCourriel({
     commande_id: c.commandeId,

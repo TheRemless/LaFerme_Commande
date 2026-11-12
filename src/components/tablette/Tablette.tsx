@@ -35,6 +35,7 @@ const ETAT_TACHE: Record<Tache["etat"], string> = {
   imprimee: "imprimé",
   echec: "échec",
   sans_imprimante: "pas d'imprimante",
+  annulee: "annulé",
 };
 
 function etatImprimante(i: EtatImpression["imprimantes"][number]): string {
@@ -79,10 +80,13 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
   const [message, setMessage] = useState<string | null>(null);
   const audio = useRef<AudioContext | null>(null);
   const verrou = useRef<WakeLockSentinel | null>(null);
+  // Seule une tablette qui a démarré le service donne le signe de vie surveillé par le serveur (SS-10).
+  const enService = useRef(false);
+  enService.current = demarre;
 
   const charger = useCallback(async () => {
     try {
-      const rep = await fetch("/api/tablette/file", { cache: "no-store" });
+      const rep = await fetch(enService.current ? "/api/tablette/file?service=1" : "/api/tablette/file", { cache: "no-store" });
       if (rep.status === 401) return router.refresh();
       if (!rep.ok) throw new Error(String(rep.status));
       setDonnees(await rep.json());
@@ -167,16 +171,19 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
   useEffect(() => {
     const surRetour = async () => {
       if (demarre && document.visibilityState === "visible") {
+        // La veille peut suspendre le son (iPad) : on le relance avec l'écran.
+        await audio.current?.resume().catch(() => undefined);
         try {
           verrou.current = await navigator.wakeLock?.request("screen");
         } catch {
           // ignoré
         }
+        charger();
       }
     };
     document.addEventListener("visibilitychange", surRetour);
     return () => document.removeEventListener("visibilitychange", surRetour);
-  }, [demarre]);
+  }, [demarre, charger]);
 
   async function agir(commande: string, corps: Record<string, unknown>) {
     setMessage(null);
@@ -197,6 +204,8 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
   const imprimantesKo = imprimantes.filter((i) => etatImprimante(i) !== "en ligne");
   const enPause = pause?.active && (!pause.jusqua || new Date(pause.jusqua).getTime() > Date.now());
   const liste = listes[onglet];
+  // Refus payés dont le remboursement n'est pas passé : visibles jusqu'au remboursement, même le lendemain.
+  const aRembourser = (donnees?.commandes ?? []).filter((c) => c.statut === "refusee" && c.statut_paiement === "paye");
   const ONGLETS: [Onglet, string][] = [
     ["traiter", "À accepter"],
     ["cours", "En cours"],
@@ -244,6 +253,12 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
       {pause?.auto && enPause && (
         <p className="tab-alerte" role="alert">
           Pause automatique : la tablette ne répondait plus pendant le service. Ouvrez les réglages et touchez « Reprendre les commandes ».
+        </p>
+      )}
+      {aRembourser.length > 0 && (
+        <p className="tab-alerte" role="alert">
+          Remboursement pas passé : {aRembourser.length === 1 ? "commande" : "commandes"} {aRembourser.map((c) => c.numero).join(", ")}. Ouvrez « Terminées » et
+          touchez « Rembourser ».
         </p>
       )}
       {imprimantesKo.map((i) => (
@@ -297,6 +312,9 @@ export function Tablette({ nom, supabase }: { nom: string; supabase: { url: stri
   );
 }
 
+// Commandes acceptées et pas encore terminées : leur ticket doit exister, sinon on propose de l'imprimer.
+const ACCEPTEES = ["acceptee", "en_preparation", "prete", "partie"];
+
 function decaler(iso: string, minutes: number): string {
   return new Date(new Date(iso).getTime() + minutes * 60_000).toISOString();
 }
@@ -325,7 +343,8 @@ function CarteCommande({
   const parPoste = (["pizza", "cuisine"] as const)
     .map((s) => taches.filter((t) => t.station === s).at(-1))
     .filter((t): t is Tache => Boolean(t));
-  const attente = Math.floor((new Date(maintenant).getTime() - new Date(c.cree_le).getTime()) / 60_000);
+  // Depuis le paiement en ligne, ou la création pour le comptoir : le temps passé sur la page de paiement ne compte pas.
+  const attente = Math.floor((new Date(maintenant).getTime() - new Date(c.attend_depuis ?? c.cree_le).getTime()) / 60_000);
   const [panneau, setPanneau] = useState<"aucun" | "refuser" | "heure">("aucun");
   // Décalage choisi à la main, appliqué à l'heure de base : celle-ci suit la proposition recalculée à chaque
   // vérification, pour ne jamais accepter avec une heure déjà passée.
@@ -398,6 +417,8 @@ function CarteCommande({
         </div>
       </div>
 
+      {c.avertissement && c.statut === "nouvelle" && <p className="tab-avertissement">{c.avertissement}</p>}
+
       <div className="tab-corps">
         <ul className="tab-lignes">
           {c.lignes.map((l, i) => (
@@ -449,7 +470,7 @@ function CarteCommande({
       {c.statut === "nouvelle" && panneau !== "refuser" && (
         <div className="tab-actions">
           {reglageHeure}
-          <button type="button" className="bouton-principal" disabled={envoi} onClick={() => faire({ action: "accepter", heure: heureChoisie })}>
+          <button type="button" className="bouton-principal" disabled={envoi} onClick={() => faire({ action: "accepter", heure: heureChoisie, de: c.statut })}>
             Accepter pour {heure(heureChoisie)}
           </button>
           <button type="button" className="lien" onClick={() => setPanneau("refuser")}>
@@ -472,7 +493,7 @@ function CarteCommande({
             <label htmlFor={`motif-${c.id}`}>Autre motif</label>
             <input id={`motif-${c.id}`} maxLength={200} value={MOTIFS.includes(motif) ? "" : motif} onChange={(e) => setMotif(e.target.value)} />
           </div>
-          <button type="button" className="bouton-principal" disabled={envoi || motif.trim().length < 3} onClick={() => faire({ action: "refuser", motif })}>
+          <button type="button" className="bouton-principal" disabled={envoi || motif.trim().length < 3} onClick={() => faire({ action: "refuser", motif, de: c.statut })}>
             {c.statut_paiement === "paye" ? `Refuser et rembourser ${prixChf(c.total_centimes)}` : "Refuser la commande"}
           </button>
           <button type="button" className="lien" onClick={() => setPanneau("aucun")}>
@@ -484,7 +505,7 @@ function CarteCommande({
       {["acceptee", "en_preparation", "prete", "partie"].includes(c.statut) && panneau === "aucun" && (
         <div className="tab-actions tab-actions-ligne">
           {c.statut === "acceptee" && (
-            <button type="button" className="bouton-second" disabled={envoi} onClick={() => faire({ action: "statut", vers: "en_preparation" })}>
+            <button type="button" className="bouton-second" disabled={envoi} onClick={() => faire({ action: "statut", vers: "en_preparation", de: c.statut })}>
               En préparation
             </button>
           )}
@@ -493,17 +514,24 @@ function CarteCommande({
               type="button"
               className="bouton-principal"
               disabled={envoi}
-              onClick={() => faire({ action: "statut", vers: c.mode === "livraison" ? "partie" : "prete" })}
+              onClick={() => faire({ action: "statut", vers: c.mode === "livraison" ? "partie" : "prete", de: c.statut })}
             >
               {c.mode === "livraison" ? "Partie en livraison" : "Prête au comptoir"}
             </button>
           )}
-          {(c.statut === "prete" || c.statut === "partie") && (
-            <button type="button" className="bouton-principal" disabled={envoi} onClick={() => faire({ action: "statut", vers: "terminee" })}>
-              {c.mode === "livraison" ? "Livrée" : "Retirée"}
+          {c.statut === "prete" && c.statut_paiement === "a_encaisser_retrait" ? (
+            // Retrait payé au comptoir : un seul geste, pour ne jamais oublier l'encaissement (audit du gérant, G01).
+            <button type="button" className="bouton-principal" disabled={envoi} onClick={() => faire({ action: "retiree_payee" })}>
+              Retirée et payée
             </button>
+          ) : (
+            (c.statut === "prete" || c.statut === "partie") && (
+              <button type="button" className="bouton-principal" disabled={envoi} onClick={() => faire({ action: "statut", vers: "terminee", de: c.statut })}>
+                {c.mode === "livraison" ? "Livrée" : "Retirée"}
+              </button>
+            )
           )}
-          {c.statut_paiement === "a_encaisser_retrait" && (
+          {c.statut_paiement === "a_encaisser_retrait" && c.statut !== "prete" && (
             <button type="button" className="bouton-second" disabled={envoi} onClick={() => faire({ action: "encaisser" })}>
               Encaissée
             </button>
@@ -519,6 +547,15 @@ function CarteCommande({
         </div>
       )}
 
+      {c.statut === "terminee" && c.statut_paiement === "a_encaisser_retrait" && (
+        <div className="tab-actions">
+          <p className="aide-forte">Pas encore notée comme encaissée.</p>
+          <button type="button" className="bouton-principal" disabled={envoi} onClick={() => faire({ action: "encaisser" })}>
+            Encaissée
+          </button>
+        </div>
+      )}
+
       {panneau === "heure" && (
         <div className="tab-actions">
           {reglageHeure}
@@ -531,15 +568,19 @@ function CarteCommande({
         </div>
       )}
 
-      {parPoste.length > 0 && (
+      {(parPoste.length > 0 || ACCEPTEES.includes(c.statut)) && (
         <div className="tab-impression">
           <p>
-            {parPoste.map((t) => `Ticket ${t.station} : ${ETAT_TACHE[t.etat]}${t.etat === "echec" && t.derniere_erreur ? ` (${t.derniere_erreur})` : ""}`).join(". ")}.
+            {parPoste.length === 0
+              ? "Ticket non créé."
+              : `${parPoste.map((t) => `Ticket ${t.station} : ${ETAT_TACHE[t.etat]}${t.etat === "echec" && t.derniere_erreur ? ` (${t.derniere_erreur})` : ""}`).join(". ")}.`}
           </p>
           <div className="boutons-ligne">
-            <button type="button" className="bouton-second" onClick={ouvrirTicket}>
-              Ticket
-            </button>
+            {parPoste.length > 0 && (
+              <button type="button" className="bouton-second" onClick={ouvrirTicket}>
+                Ticket
+              </button>
+            )}
             {c.statut !== "refusee" && (
               <button type="button" className="bouton-second" disabled={envoi} onClick={() => faire({ action: "reimprimer" })}>
                 Réimprimer

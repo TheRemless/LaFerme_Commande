@@ -3,7 +3,7 @@
 // panne d'imprimante, pause manuelle puis automatique. Jetable : ne modifie que la base embarquée.
 // Lancer : node scripts/audit/service-charge.mjs > sortie.log
 import { writeFile } from "node:fs/promises";
-import { attendre, commander, connecter, http, journal, LIGNES, mesurer, noter, payer, resumeMesures, t0 } from "./lib.mjs";
+import { attendre, commander, connecter, http, journal, LIGNES, noter, payer, resumeMesures, t0 } from "./lib.mjs";
 
 const SORTIE = process.env.AUDIT_SORTIE ?? "resultats-service.json";
 const POLL_IMPRIMANTE_MS = Number(process.env.POLL_IMPRIMANTE_MS ?? 2000);

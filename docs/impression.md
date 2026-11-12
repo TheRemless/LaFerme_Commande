@@ -7,6 +7,7 @@
 - Protocole Star CloudPRNT (HTTP) : l'imprimante interroge son adresse toutes les quelques secondes (POST), télécharge le ticket (GET) puis confirme (DELETE). Un ticket ne quitte la file qu'après confirmation. Il reste en file si l'imprimante est éteinte et sort à son retour.
 - Le ticket est envoyé en image (PNG, 576 points de large, police DejaVu Sans Condensed) : grandes tailles, accents et « œ » sans dépendre de la page de codes de l'imprimante. Un texte de secours en ASCII existe si l'imprimante ne prend pas l'image.
 - Format d'après la v1 §8 : poste et numéro en très grand, mode et heure en grand, client, adresse et compléments, lignes avec `SANS`, `+`, `CHOIX` et la note, ce qui sort à l'autre poste, paiement en clair. Pas de prix.
+- Ticket renvoyé parce que l'imprimante n'a pas confirmé le précédent (2 minutes) : il commence par « RENVOI : CE TICKET EST PEUT-ÊTRE DÉJÀ SORTI ». « Réimprimer » ne double pas un ticket qui attend encore en file. Une commande annulée après acceptation : ses tickets en file sont retirés, « ANNULÉE » sort aux postes qui avaient déjà le leur. Une imprimante ajoutée ou réactivée reprend les tickets « sans imprimante » des commandes en cours.
 - Tablette : état de chaque imprimante (en ligne, hors ligne depuis…, plus de papier, capot ouvert), état du ticket de chaque poste, « Réimprimer » (tout ou un poste), « Ticket » en grand en secours. Après trois échecs signalés par l'imprimante, le ticket passe en échec et reste réimprimable.
 
 ## Sécurité
@@ -19,8 +20,8 @@
 
 Chaque minute en production (fonction planifiée Netlify `netlify/functions/surveillance.mts`). Les passages des imprimantes et les relectures de la tablette la relancent aussi, une fois par minute au plus, ce qui la fait tourner sur les préversions :
 
-- une commande du jour pas acceptée après le délai réglé (5 minutes par défaut, back-office) : un e-mail au restaurant (`ALERTE_EMAIL`), une seule fois par commande. La tablette affiche « Attend depuis N min » ;
-- la tablette muette depuis 3 minutes pendant un service : commandes en ligne mises en pause, e-mail au restaurant, bandeau sur la tablette. La reprise se fait à la main (« Reprendre les commandes »).
+- pendant les heures d'un service seulement, une commande du jour pas acceptée après le délai réglé (5 minutes par défaut, back-office, compté depuis le paiement en ligne ou la création au comptoir) : un e-mail au restaurant (`ALERTE_EMAIL`), une seule fois par commande. La tablette affiche « Attend depuis N min » ;
+- la tablette muette depuis 3 minutes pendant un service : commandes en ligne mises en pause, e-mail au restaurant, bandeau sur la tablette. La reprise se fait à la main (« Reprendre les commandes »). Une pause en cours (datée ou sans fin) n'est pas remplacée ; une pause datée finie ne bloque plus rien. Le signe de vie ne vient que d'un appareil qui a démarré le service.
 
 ## Imprimante à acheter
 

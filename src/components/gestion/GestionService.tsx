@@ -26,7 +26,8 @@ type Horaire = {
   proposition: boolean;
 };
 type Fermeture = { id: number; debut: string; fin: string; motif: string };
-type Donnees = { zones: Zone[]; horaires: Horaire[]; fermetures: Fermeture[] };
+type Capacites = { livraison: number; retrait: number; proposition: boolean };
+type Donnees = { zones: Zone[]; horaires: Horaire[]; fermetures: Fermeture[]; capacites: Capacites };
 
 const JOURS = ["", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
 const chf = (c: number) => (c / 100).toFixed(2);
@@ -62,6 +63,7 @@ export function GestionService() {
           ))}
         </div>
       </section>
+      <Capacite capacites={d.capacites} recharger={charger} />
       <Fermetures fermetures={d.fermetures} recharger={charger} />
     </div>
   );
@@ -126,6 +128,52 @@ function FicheZone({ zone, recharger }: { zone: Zone; recharger: () => Promise<v
         </p>
       )}
     </form>
+  );
+}
+
+// Commandes au plus par créneau de 15 minutes, pour un créneau choisi par le client. 0 : sans limite.
+function Capacite({ capacites, recharger }: { capacites: Capacites; recharger: () => Promise<void> }) {
+  const ids = useId();
+  const [f, setF] = useState({ livraison: String(capacites.livraison), retrait: String(capacites.retrait) });
+  const [message, setMessage] = useState<string | null>(null);
+  async function sauver(e: React.FormEvent) {
+    e.preventDefault();
+    setMessage(null);
+    const erreur = await enregistrer("/api/gestion/service", { type: "capacite", livraison: Number(f.livraison), retrait: Number(f.retrait) });
+    setMessage(erreur ?? "Enregistré.");
+    if (!erreur) await recharger();
+  }
+  return (
+    <section className="ges-bloc">
+      <h2>
+        Commandes par créneau
+        {capacites.proposition && <span className="ges-badge">proposition</span>}
+      </h2>
+      <p className="aide">
+        Au plus, pour une même heure choisie par le client. Une commande de plus pour un créneau plein est refusée avant le paiement. Les commandes « dès que possible » ne
+        comptent pas. 0 : sans limite.
+      </p>
+      <form className="ges-zone" onSubmit={sauver}>
+        <div className="details deux">
+          <div className="champ">
+            <label htmlFor={`${ids}-livraison`}>Livraisons</label>
+            <input id={`${ids}-livraison`} inputMode="numeric" value={f.livraison} onChange={(e) => setF({ ...f, livraison: e.target.value })} />
+          </div>
+          <div className="champ">
+            <label htmlFor={`${ids}-retrait`}>Retraits</label>
+            <input id={`${ids}-retrait`} inputMode="numeric" value={f.retrait} onChange={(e) => setF({ ...f, retrait: e.target.value })} />
+          </div>
+        </div>
+        <button type="submit" className="bouton-second">
+          Enregistrer
+        </button>
+        {message && (
+          <p className="aide-forte" role="status">
+            {message}
+          </p>
+        )}
+      </form>
+    </section>
   );
 }
 

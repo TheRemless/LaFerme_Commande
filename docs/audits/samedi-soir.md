@@ -14,7 +14,31 @@ Scripts jetables, sur cette branche, dans `scripts/audit/` :
 | `heures.audit.test.ts` | 5 tests : heure d'été et d'hiver, changement de jour, ticket d'une commande à l'avance |
 | `tablette-reseau.mjs` | La vraie page `/tablette` dans Chrome : coupure réseau, geste hors ligne, rechargement |
 
-Relancer les tests : `npx vitest run --config scripts/audit/vitest.audit.config.ts`. Chaque test affirme le comportement observé aujourd'hui : un test qui casse après une correction est le signe que le constat est corrigé.
+Les trois fichiers `*.audit.test.ts` figeaient les bugs observés. Ils figurent dans le premier commit de la PR des corrections (« Audit samedi soir ») et ont été retirés ensuite : les tests de non-régression qui les remplacent sont `tests/unit/service-correctifs-sql.test.ts`, `tests/unit/service-correctifs.test.ts` et `tests/unit/tablette-signe.test.ts`. `scripts/audit/verifier-correctifs.mjs` rejoue les corrections de bout en bout avec le faux client CloudPRNT.
+
+## Suivi des corrections (13.11.2026)
+
+| Constat | État | Comment |
+|---|---|---|
+| SS-01 | corrigé | `pause_automatique()` n'est bloquée que par une pause réellement en cours |
+| SS-02 | corrigé | Capacité contrôlée en base sous verrou (`creer_commande`), réglable dans le back-office (« Commandes par créneau »), valeurs déjà en base gardées (3 livraisons, 4 retraits). Les « dès que possible » ne comptent pas : choix à confirmer par Jérémy. Le client voit le refus au paiement, le créneau n'est pas encore grisé dans la liste |
+| SS-03 | corrigé | Tickets en file annulés, ticket « ANNULÉE, NE PAS PRÉPARER » aux postes qui avaient déjà le leur |
+| SS-04 | corrigé | E-mail « refusée, remboursement en cours » au client, alerte au restaurant, bandeau sur la tablette, commande gardée jusqu'au remboursement |
+| SS-05 | corrigé | Numéro du jour de service (colonne `jour_service`), `jour` reste la date de vente |
+| SS-06 | corrigé | La tablette envoie l'état qu'elle affichait, contrôlé par `changer_statut` |
+| SS-07 | corrigé | « RENVOI : CE TICKET EST PEUT-ÊTRE DÉJÀ SORTI » en tête du ticket renvoyé |
+| SS-08 | corrigé | Avertissement noté au paiement (pause, plat épuisé, heure dépassée), affiché sur la carte de la commande |
+| SS-09 | corrigé | Alerte seulement pendant les heures de service, attente comptée depuis le paiement |
+| SS-10 | corrigé | Signe de vie seulement d'un appareil qui a touché « Démarrer le service » (ou « Continuer sans son ») |
+| SS-12 | corrigé | « Ticket non créé » et « Réimprimer » sur toute commande acceptée |
+| SS-15 | corrigé | Clé d'idempotence Resend calculée sur le sujet et le texte |
+| SS-16 | corrigé | Le second appui voit la commande remboursée et le dit |
+| SS-17 | corrigé | Pas de second ticket tant que le premier attend en file |
+| SS-18 | corrigé en partie | Le son est relancé au retour de veille ; l'écran « Démarrer le service » après un rechargement reste (règle des navigateurs) |
+| SS-19 | corrigé | Une imprimante ajoutée ou réactivée reprend les tickets « sans imprimante » des commandes en cours |
+| SS-20 | corrigé | Verrou sur la clé d'idempotence dans `creer_commande` (à rejouer contre Supabase, R-01) |
+| G01 (audit du gérant) | corrigé | « Retirée et payée » d'un geste au comptoir, « Encaissée » encore possible dans « Terminées » |
+| SS-11, SS-13, SS-14, SS-21, SS-22 | restants | Impression différée des commandes à l'avance, temps des gestes (Francfort), trous de numéros, recette avec une imprimante branchée, redéploiement pendant la recette |
 
 Légende : **vérifié** = reproduit par un script ou un test ; **lu** = établi par lecture du code, sans reproduction ; **supposé** = hypothèse à confirmer sur la vraie infrastructure.
 
