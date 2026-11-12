@@ -69,7 +69,7 @@ export function usePanier() {
   return { lignes, charge, ajouter, quantite };
 }
 
-export type ReponsePanier = Totaux & { message_quand: string | null; erreur?: string };
+export type ReponsePanier = Totaux & { message_quand: string | null; erreur?: string; plafond_comptoir_centimes?: number | null };
 
 // Montants calculés par le serveur, redemandés 300 ms après chaque changement du panier.
 // Une réponse ne sert que pour le contenu exact qu'elle a calculé : sinon le navigateur affiche son propre calcul.

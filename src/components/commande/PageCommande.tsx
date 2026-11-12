@@ -6,7 +6,8 @@ import { useEffect, useId, useState } from "react";
 import { lireChoix, type Choix } from "@/lib/choix";
 import type { Catalogue } from "@/lib/panier";
 import { usePanier, usePrixServeur } from "@/lib/panier-local";
-import { prixChf, prixCourt } from "@/lib/prix";
+import { comptoirPermis } from "@/lib/plafond-comptoir";
+import { prixChf, prixCourt, prixPhrase } from "@/lib/prix";
 import { heureTexte, jourTexte } from "@/lib/service";
 import { ContenuPanier } from "@/components/panier/ContenuPanier";
 import { champClientInvalide, MESSAGE_CHAMP, type ChampClient } from "@/lib/validation";
@@ -109,6 +110,10 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
   const total = reponse && !reponse.erreur ? reponse.total_centimes : null;
   const pret = Boolean(reponse?.valide) && !envoi;
   const raison = raisonBlocage(reponse, catalogue, choix);
+  // Plafond du comptoir (réglage en base, renvoyé avec le prix du panier) : au-delà, en ligne seulement.
+  const plafond = reponse?.plafond_comptoir_centimes ?? null;
+  const comptoirFerme = Boolean(reponse && !reponse.erreur) && !comptoirPermis(total, plafond);
+  const auComptoir = moyen === "comptoir" && choix?.mode === "retrait" && !comptoirFerme;
 
   async function commander(e: React.FormEvent) {
     e.preventDefault();
@@ -126,7 +131,7 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          cle: cleCommande(JSON.stringify([lignes, choix, moyen, client])),
+          cle: cleCommande(JSON.stringify([lignes, choix, auComptoir, client])),
           lignes,
           mode: choix.mode,
           adresse: choix.adresse,
@@ -134,7 +139,7 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
           quand: choix.quand,
           heure: choix.heureSimulee,
           client,
-          moyen: choix.mode === "retrait" ? moyen : "en_ligne",
+          moyen: auComptoir ? "comptoir" : "en_ligne",
           creerCompte: !compte && creerCompte,
         }),
       });
@@ -267,10 +272,17 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
             <h2>
               <span className="etape-n">3</span> Paiement
             </h2>
+            {choix?.mode === "retrait" && comptoirFerme && (
+              <p className="aide" id={`${ids}-plafond`}>
+                {plafond === null
+                  ? "Le paiement au comptoir est indisponible pour le moment. Payez en ligne ou appelez-nous au 022 792 16 89."
+                  : `Le paiement au comptoir est possible jusqu'à ${prixPhrase(plafond)}. Pour cette commande, payez en ligne.`}
+              </p>
+            )}
             <fieldset className="paiements">
               <legend className="sr-only">Moyen de paiement</legend>
               <label className="option paiement">
-                <input type="radio" name={`${ids}-moyen`} checked={moyen === "en_ligne" || choix?.mode !== "retrait"} onChange={() => setMoyen("en_ligne")} />
+                <input type="radio" name={`${ids}-moyen`} checked={!auComptoir} onChange={() => setMoyen("en_ligne")} />
                 <span>
                   <strong>En ligne</strong>
                   <br />
@@ -278,8 +290,15 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
                 </span>
               </label>
               {choix?.mode === "retrait" && (
-                <label className="option paiement">
-                  <input type="radio" name={`${ids}-moyen`} checked={moyen === "comptoir"} onChange={() => setMoyen("comptoir")} />
+                <label className={`option paiement${comptoirFerme ? " bloque" : ""}`}>
+                  <input
+                    type="radio"
+                    name={`${ids}-moyen`}
+                    checked={auComptoir}
+                    disabled={comptoirFerme}
+                    aria-describedby={comptoirFerme ? `${ids}-plafond` : undefined}
+                    onChange={() => setMoyen("comptoir")}
+                  />
                   <span>
                     <strong>Au comptoir</strong>
                     <br />
@@ -309,7 +328,7 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
           <button type="submit" className="bouton-principal" disabled={!pret}>
             {envoi
               ? "Un instant…"
-              : moyen === "comptoir" && choix?.mode === "retrait"
+              : auComptoir
                 ? `Commander, je paie au comptoir`
                 : `Payer ${total !== null ? prixChf(total) : ""}`}
           </button>

@@ -89,6 +89,7 @@ Claude donne les noms et les contextes, Jérémy saisit les valeurs secrètes.
 - [ ] Jérémy : lancer la migration `20261112090000_correctifs_securite.sql` (`npx supabase db push --remote`). Elle retire le gérant de test de la vraie base, plafonne les essais de code par jour, limite les commandes au comptoir et retire aux visiteurs les droits d'écriture. Détail : [audits/securite.md](audits/securite.md).
 - [ ] Jérémy : se créer le premier accès gérant avec sa propre adresse e-mail, une seule fois : dans Supabase, ouvrir le projet, SQL Editor, puis exécuter `insert into personnel (email, nom, role) values ('<son adresse en minuscules>', 'Jérémy', 'gerant');`. Les autres membres (Giuseppe, l'équipe) s'ajoutent ensuite dans le back-office, rubrique « Équipe ». Le code arrive par e-mail une fois Resend branché (préversions et production). Sans Resend, aucune connexion n'est possible sur une préversion branchée sur la vraie base.
 - [ ] Jérémy : lancer la migration `20261114090000_correctifs_gerant.sql` (`npx supabase db push --remote`). Elle ajoute l'équipe, le remboursement après coup, la liste des commandes, le retard du soir et la remise à zéro de chaque nuit. Détail : [audits/gerant.md](audits/gerant.md).
+- [ ] Jérémy : lancer la migration `20261115090000_plafond_comptoir.sql` (même commande, elle part avec les autres). Elle pose le plafond de CHF 100 par commande payée au comptoir et le fait revérifier par la base. Sans elle, le site ne propose plus le paiement au comptoir.
 
 ### Stripe
 
@@ -96,9 +97,9 @@ Claude donne les noms et les contextes, Jérémy saisit les valeurs secrètes.
 
 ### Imprimantes et tablette
 
-- [ ] Claude : ajouter chaque imprimante dans le back-office (rubrique Imprimantes) et donner son adresse à copier. Détail : [impression.md](impression.md).
+- [ ] Claude : ajouter chaque imprimante dans le back-office (rubrique Imprimantes) seulement quand elle est branchée et allumée, et donner son adresse à coller tout de suite (audit de sécurité, S13). Détail : [impression.md](impression.md).
 - [ ] Jérémy, guidé par Claude : brancher l'imprimante en Ethernet, mettre à jour son micrologiciel, activer CloudPRNT (HTTP), coller l'adresse et régler l'intervalle à 10 secondes. Détail : [impression.md](impression.md).
-- [ ] Claude : vérifier les deux tickets (pizza et cuisine) à l'acceptation d'une commande de test, puis la réimpression.
+- [ ] Claude : vérifier les deux tickets (pizza et cuisine) à l'acceptation d'une commande de test, puis la réimpression. Un ticket qui ne sort pas alors que la tablette dit l'imprimante « en ligne » : « Nouvelle adresse » dans le back-office et recommencer.
 - [ ] Jérémy : sur la tablette, se connecter à `/tablette`, l'ajouter à l'écran d'accueil (elle s'ouvre alors en plein écran) et autoriser le son. Claude vérifie que le signal Realtime passe (relecture toutes les 15 s, pas 5). Détail : [tablette.md](tablette.md).
 
 ## Phase 3 : recette en service fictif

@@ -18,15 +18,15 @@ Marquage : **vérifié** = reproduit ou lu en direct. **Lu dans le code** = cert
 | S2 | corrigé | Doublure de paiement et clé Stripe de test refusées sur un vrai projet hors production (sauf `BASE_DE_TEST=1`). Le paiement en ligne y est refusé avant la création de la commande. Retrait de la clé secrète des préversions placé avant la recette dans `docs/mise-en-ligne.md`. |
 | S3 | corrigé | `scripts/verifier-mise-en-ligne.ts` bloque le build s'il reste un membre en `.test`, une imprimante de test ou une commande d'une préversion. |
 | S4 | corrigé en partie | Quinze essais faux par jour et par e-mail (`verifier_code_limite`, `verifier_code_personnel_limite`), IPv6 regroupée par /64. Pas fait : code à 8 chiffres pour le personnel, alerte au gérant. |
-| S5 | corrigé en partie | Deux commandes au comptoir à retirer par téléphone ou e-mail, cinq par connexion et par heure (`limite_comptoir`). Pas fait : plafond de montant au comptoir (montant à fixer par Jérémy). |
+| S5 | corrigé | Deux commandes au comptoir à retirer par téléphone ou e-mail, cinq par connexion et par heure (`limite_comptoir`). Plafond de CHF 100 par commande au comptoir (décision de Jérémy du 12.11.2026), réglage `plafond_comptoir_centimes` revérifié par la base (migration `20261115090000_plafond_comptoir.sql`). |
 | S6 | corrigé | `SECRET_COMPTES` obligatoire en production (empreintes et build). |
 | S7 | corrigé | Le serveur refuse le contexte « local » quand il tourne sur Netlify. |
 | S8 | corrigé | Écriture retirée à `anon` et `authenticated` sur les tables lisibles (même migration). |
 | S9 | corrigé | `frame-ancestors 'none'`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, plus de `X-Powered-By`. Pas de CSP complète. |
 | S10 | corrigé | `/api/surveillance` exige le jeton de la fonction planifiée. |
-| S11 | non corrigé | Envoi après la réponse à valider sur Netlify avant d'y toucher. |
+| S11 | non corrigé | Envoi après la réponse (`after()` de Next) à valider sur Netlify avec Resend branché : sans preuve que l'envoi part bien, le risque est de couper la connexion. |
 | S12 | corrigé | `fflate` 0.8.3. `next` reste en 15.5.29 (avis PostCSS non exploitable ici). |
-| S13 | non corrigé | Procédure de branchement de l'imprimante inchangée. |
+| S13 | procédure | Règle de branchement écrite dans `docs/impression.md` et `docs/mise-en-ligne.md` (créer l'imprimante une fois branchée, coller l'adresse tout de suite, vérifier un ticket). Pas fait : MAC liée affichée dans le back-office (session du gérant en cours sur `/gestion`). |
 
 ## Les 10 constats les plus importants
 

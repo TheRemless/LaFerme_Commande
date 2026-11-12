@@ -14,6 +14,7 @@
 
 - Une adresse par imprimante : `https://<site>/api/cloudprnt/<jeton>`. Le jeton (32 octets aléatoires) n'est montré qu'une fois dans le back-office (rubrique Imprimantes) ; seule son empreinte est en base.
 - Au premier passage, l'imprimante est liée à son adresse MAC. Un autre appareil avec le même jeton est refusé. « Nouvelle adresse » coupe l'ancienne et délie l'appareil.
+- Entre la création de l'adresse et le premier passage, n'importe quel appareil qui la connaît peut se lier à la place de l'imprimante (audit de sécurité, S13). D'où la règle de branchement : créer l'imprimante dans le back-office seulement quand elle est branchée et allumée, coller l'adresse tout de suite, puis vérifier qu'un ticket de test sort bien de cette imprimante. Si la tablette la dit « en ligne » mais que rien ne sort, « Nouvelle adresse » et recommencer.
 - Une imprimante ne peut lire et confirmer que ses propres tickets.
 
 ## Surveillance
