@@ -37,6 +37,7 @@ begin
   end if;
   if found then
     update personnel set nom = n, role = p_role, actif = true where id = avant.id returning id into pid;
+    -- Un membre retiré à l'ancienne (actif = false en SQL) pouvait garder ses sessions : on les coupe.
     update sessions_personnel set revoquee_le = now() where personnel_id = pid and revoquee_le is null;
   else
     insert into personnel (email, nom, role) values (e, n, p_role) returning id into pid;
@@ -57,6 +58,7 @@ declare
   apres personnel%rowtype;
   n text;
 begin
+  -- Verrou sur les gérants actifs : deux retraits simultanés ne laissent pas la maison sans gérant.
   perform 1 from personnel where role = 'gerant' and actif for update;
   select * into avant from personnel where id = p_id for update;
   if not found then

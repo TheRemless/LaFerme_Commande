@@ -2,7 +2,7 @@ import type { PGlite } from "@electric-sql/pglite";
 import { beforeEach, describe, expect, it } from "vitest";
 import { creerBaseLocale } from "@/lib/db/locale";
 
-// Livreurs côté base (migration 20261117090000_livreurs.sql) : attribution, réattribution, deux livreurs,
+// Livreurs côté base (migration 20261119090000_livreurs.sql) : attribution, réattribution, deux livreurs,
 // gestes sans doublon, annulation pendant la tournée, client absent, journal.
 
 let db: PGlite;
