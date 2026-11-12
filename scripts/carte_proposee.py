@@ -39,7 +39,7 @@ PHOTOS = {
     "Lasagne de bœuf": "lasagne", "Pasta al pesto": "spaghettialpesto",
     "Linguine aux fruits de mer": "linguineaifruttidimare", "Tartare de bœuf": "tartare",
     "Cheeseburger de bœuf": "cheeseburger", "Chiacchiere alla Nutella": "chiacchiere",
-    "Tiramisu": "tiramisu", "Panna cotta": "pannacotta", "Salade mêlée": "salade-melee",
+    "Tiramisu": "tiramisu", "Panna cotta": "pannacotta",
 }
 
 # Provenances écrites sur la carte de la salle (notes des sections Poissons et Viandes).

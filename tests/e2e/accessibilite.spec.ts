@@ -17,6 +17,14 @@ async function preparerRetrait(page: Page) {
 }
 
 async function controler(page: Page, nom: string) {
+  // La fiche et la barre du panier apparaissent en fondu : on mesure les contrastes une fois l'animation finie.
+  // Une animation annulée (élément retiré) rejette « finished » : on l'ignore, et on n'attend jamais plus d'une seconde.
+  await page.evaluate(() =>
+    Promise.race([
+      Promise.all(document.getAnimations().map((a) => a.finished.catch(() => undefined))),
+      new Promise((fin) => setTimeout(fin, 1000)),
+    ]),
+  );
   const r = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
   const resume = r.violations.map((v) => `${nom} ${v.id} (${v.impact}) : ${v.nodes.map((n) => n.target.join(" ")).slice(0, 4).join(" | ")}`);
   expect.soft(resume, resume.join("\n")).toEqual([]);

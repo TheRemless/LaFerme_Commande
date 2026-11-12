@@ -275,7 +275,7 @@ export function ChoixCommande({
         <Image src="/accueil.jpg" alt="Pizzas, pâtes et burger de La Ferme vus du dessus" fill priority sizes="100vw" />
       </figure>
       <div className="accueil-panneau">
-        <h1>Livraison ou à emporter&nbsp;?</h1>
+        <h1>Livraison ou à&nbsp;emporter&nbsp;?</h1>
 
         <div className="choix-mode" role="group" aria-label="Livraison ou à emporter">
           <button type="button" aria-pressed={mode === "livraison"} onClick={() => setMode("livraison")}>
@@ -414,11 +414,15 @@ export function ChoixCommande({
                   <dl className="chiffres">
                     <div>
                       <dt>Livraison</dt>
-                      <dd>{prixCourt(verdict.zone.frais_centimes)}</dd>
+                      <dd>
+                        <span className="devise">CHF</span>&nbsp;{prixCourt(verdict.zone.frais_centimes)}
+                      </dd>
                     </div>
                     <div>
                       <dt>Minimum</dt>
-                      <dd>{prixCourt(verdict.zone.minimum_centimes)}</dd>
+                      <dd>
+                        <span className="devise">CHF</span>&nbsp;{prixCourt(verdict.zone.minimum_centimes)}
+                      </dd>
                     </div>
                     <div>
                       <dt>{etat.etat === "ouvert" ? "Chez vous vers" : "Délai"}</dt>

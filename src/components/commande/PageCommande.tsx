@@ -206,7 +206,7 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
                   </p>
                   {choix.details && (
                     <p>
-                      {[choix.details.etage && `${choix.details.etage} étage`, `sonnette ${choix.details.sonnette}`, choix.details.code && `code ${choix.details.code}`]
+                      {[choix.details.etage && `étage ${choix.details.etage}`, `sonnette ${choix.details.sonnette}`, choix.details.code && `code ${choix.details.code}`]
                         .filter(Boolean)
                         .join(", ")}
                     </p>
@@ -260,7 +260,9 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
               <label className="option case-compte">
                 <input type="checkbox" checked={creerCompte} onChange={(e) => setCreerCompte(e.target.checked)} />
                 <span>
-                  <strong>Créer mon compte avec cet e-mail</strong>
+                  <strong>
+                    Créer mon compte avec cet <span className="sans-coupure">e-mail</span>
+                  </strong>
                   <br />
                   Pour retrouver vos adresses et vos commandes. Après la commande, vous demandez un code par e-mail pour le confirmer.
                 </span>

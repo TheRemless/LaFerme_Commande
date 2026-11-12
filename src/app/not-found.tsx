@@ -17,7 +17,7 @@ export default function Introuvable() {
             </Link>
           </p>
           <p>
-            Une question sur une commande&nbsp;? Appelez-nous au <a href="tel:+41227921689">022&nbsp;792&nbsp;16&nbsp;89</a>.
+            Une question sur une commande&nbsp;? <span className="sans-coupure">Appelez-nous</span> au <a href="tel:+41227921689">022&nbsp;792&nbsp;16&nbsp;89</a>.
           </p>
         </div>
       </main>
