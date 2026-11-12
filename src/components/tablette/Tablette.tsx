@@ -559,9 +559,12 @@ function CarteCommande({
           </button>
           {c.statut !== "prete" && c.statut !== "partie" && (
             // À l'écart des autres boutons : elle annule la commande (et rembourse si elle est payée).
-            <button type="button" className="bouton-second tab-annuler" onClick={() => setPanneau("refuser")}>
-              Annuler la commande
-            </button>
+            <>
+              <span className="tab-saut" aria-hidden="true" />
+              <button type="button" className="bouton-second tab-annuler" onClick={() => setPanneau("refuser")}>
+                Annuler la commande
+              </button>
+            </>
           )}
         </div>
       )}

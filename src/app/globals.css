@@ -2179,8 +2179,18 @@ body.fiche-ouverte {
   min-height: 56px;
   font-size: 18px;
 }
-.tab-actions .tab-annuler {
-  margin-left: auto;
+/* Annuler la commande : seule sur sa ligne sous 1280 px, rejetée au bout de la rangée au-delà. */
+.tab-saut {
+  flex-basis: 100%;
+  height: 0;
+}
+@media (min-width: 1280px) {
+  .tab-saut {
+    display: none;
+  }
+  .tab-actions .tab-annuler {
+    margin-left: auto;
+  }
 }
 .tab-actions-ligne {
   flex-direction: row;
