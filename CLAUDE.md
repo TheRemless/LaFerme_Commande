@@ -53,3 +53,4 @@ Next.js (App Router, TypeScript) sur Netlify (choisi par Jérémy le 6.11.2026 �
 - Tout texte client passe par `redaction-fr` avec le registre de faits `~/.claude/skills/redaction-fr/references/faits/la-ferme.md` et la fiche de voix `giuseppe-la-ferme.md`.
 - Rien d'inventé : prix, provenance, allergène, délai, slogan. Pas de « fait maison » sans confirmation. Faits interdits : four napolitain, 450 °C, chêne, banquets, tram, tiramisù maison, mot du patron.
 - Données client jamais dans une URL ni un outil d'analyse.
+- Exception décidée par Jérémy le 12.11.2026 (audit de sécurité 2, S2-14) : le lien « Itinéraire » du livreur envoie l'adresse de livraison seule (sans nom, téléphone ni code) à Apple Plans, Google Maps ou l'appli de navigation Android.
