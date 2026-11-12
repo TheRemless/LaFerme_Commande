@@ -51,7 +51,7 @@ export type Totaux = {
 export const LIMITES = { lignes: 30, quantite: 20, note: 80 } as const;
 
 // Lecture sûre : un slug comme « __proto__ » ou « toString » ne doit pas tomber sur Object.prototype.
-function platDe(cat: Catalogue, slug: string): PlatCatalogue | undefined {
+export function platDe(cat: Catalogue, slug: string): PlatCatalogue | undefined {
   return Object.hasOwn(cat.plats, slug) ? cat.plats[slug] : undefined;
 }
 function groupeDe(cat: Catalogue, slug: string): GroupeCatalogue | undefined {

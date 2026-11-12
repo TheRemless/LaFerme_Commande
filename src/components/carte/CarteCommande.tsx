@@ -14,7 +14,8 @@ import { FichePlat } from "@/components/carte/FichePlat";
 import { ContenuPanier } from "@/components/panier/ContenuPanier";
 
 export function CarteCommande({ categories, catalogue, preversion }: { categories: Categorie[]; catalogue: Catalogue; preversion: boolean }) {
-  const { lignes, charge, ajouter, quantite } = usePanier();
+  const panier = usePanier();
+  const { lignes, charge, ajouter, quantite } = panier;
   const reponse = usePrixServeur(lignes, charge);
   const [choix, setChoix] = useState<Choix | null>(null);
   const [ouvert, setOuvert] = useState<LignePlat | null>(null);
@@ -127,7 +128,7 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
         </div>
         <aside className="panier-col" aria-label="Votre commande">
           <h2 className="panier-titre">Votre commande</h2>
-          <ContenuPanier lignes={lignes} quantite={quantite} catalogue={catalogue} choix={choix} reponse={reponse} preversion={preversion} />
+          <ContenuPanier lignes={lignes} quantite={quantite} catalogue={catalogue} choix={choix} reponse={reponse} preversion={preversion} suivi={panier} />
         </aside>
       </div>
       {nbArticles > 0 && (

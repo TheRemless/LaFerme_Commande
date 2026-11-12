@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { EnTete } from "@/components/EnTete";
 import { BoutonsTest } from "@/components/suivi/BoutonsTest";
 import { commandeParId } from "@/lib/db/serveur";
@@ -16,7 +16,9 @@ export default async function PaiementTest({ params }: { params: Promise<{ id: s
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const c = await commandeParId(id);
-  if (!c || c.statut_paiement !== "en_attente") notFound();
+  if (!c) notFound();
+  // Retour arrière après le paiement (CM-11) : le client retombe sur son suivi, pas sur « Page introuvable ».
+  if (c.statut_paiement !== "en_attente") redirect(`/suivi/${c.jeton_suivi}`);
   return (
     <>
       <EnTete />

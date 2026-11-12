@@ -86,7 +86,7 @@ test("commande en invité avec « créer mon compte », code sur le suivi, puis 
   await page.getByRole("link", { name: "Voir mon compte" }).click();
   await expect(page.getByRole("heading", { name: "Bonjour Léa" })).toBeVisible();
   await expect(page.locator(".ancienne-num")).toHaveText(numero);
-  await expect(page.locator(".ancienne-lignes")).toContainText("2 × Pizza Margherita");
+  await expect(page.locator(".ancienne-lignes")).toContainText("2 × Margherita");
   await expect(page.getByLabel("Téléphone")).toHaveValue("079 000 00 00");
 
   // Recommander avec un panier en cours : confirmation d'abord.
@@ -96,10 +96,11 @@ test("commande en invité avec « créer mon compte », code sur le suivi, puis 
   await page.getByRole("button", { name: "Recommander la même chose" }).click();
   await page.getByRole("button", { name: "Garder mon panier" }).click();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("laferme.panier.v1")!).lignes[0].qte)).toBe(5);
-  // Puis on remplace : mêmes plats que la commande, prix actuels, retour à la carte.
+  // Puis on remplace : mêmes plats que la commande, prix actuels, panier contrôlé à l'heure choisie (CM-19).
   await page.getByRole("button", { name: "Recommander la même chose" }).click();
   await page.getByRole("button", { name: "Remplacer mon panier" }).click();
-  await expect(page).toHaveURL(/\/carte/);
+  await expect(page).toHaveURL(/\/panier/);
+  await expect(page.getByText("2 plats remis dans votre panier.")).toBeVisible();
   const panier = await page.evaluate(() => JSON.parse(localStorage.getItem("laferme.panier.v1") ?? "{}"));
   expect(panier.lignes).toEqual([{ slug: "pizza-margherita", qte: 2, choix: {}, retraits: [], note: "" }]);
 });

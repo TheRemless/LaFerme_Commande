@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useLayoutEffect, useMemo, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { adresseTexte, chercherAdresses, numeroTape, type Adresse, type Details } from "@/lib/adresse";
 import { ecrireChoix, lireChoix, type Quand, type ZoneChoisie } from "@/lib/choix";
 import { prixCourt } from "@/lib/prix";
@@ -68,6 +68,16 @@ export function ChoixCommande({
   const [adressesEnregistrees, setAdressesEnregistrees] = useState<AdresseEnregistree[]>([]);
   // Créneaux pleins (capacité atteinte) : jamais proposés, le premier proposé est le suivant libre.
   const [pleins, setPleins] = useState<CreneauPlein[]>([]);
+  const champAdresse = useRef<HTMLInputElement>(null);
+  // Sur téléphone, « Voir la carte » tombe sous l'écran : après un geste du client (adresse choisie,
+  // à emporter), on le fait monter juste assez pour le voir (CM-26).
+  const boutonCarte = useRef<HTMLButtonElement>(null);
+  const defiler = useRef(false);
+  const [montrerBouton, setMontrerBouton] = useState(0);
+  const montrer = () => {
+    defiler.current = true;
+    setMontrerBouton((n) => n + 1);
+  };
 
   // La page vient du cache : l'heure où elle a été faite peut dater. On prend aussitôt celle du
   // téléphone, puis celle du serveur, qui fait foi (l'horloge d'un téléphone peut être fausse).
@@ -104,13 +114,25 @@ export function ChoixCommande({
   // Reprendre le choix précédent (retour depuis la carte avec « Modifier »).
   useEffect(() => {
     const c = lireChoix();
-    if (!c) return;
-    setMode(c.mode);
-    if (c.adresse) {
-      setAdresse(c.adresse);
-      setSaisie(`${c.adresse.rue}${c.adresse.numero ? ` ${c.adresse.numero}` : ""}`);
+    if (c) {
+      setMode(c.mode);
+      if (c.adresse) {
+        setAdresse(c.adresse);
+        setSaisie(`${c.adresse.rue}${c.adresse.numero ? ` ${c.adresse.numero}` : ""}`);
+      }
+      if (c.details) setDetails(c.details);
     }
-    if (c.details) setDetails(c.details);
+    // Réseau lent (CM-21) : un tap sur « Livraison » ou « À emporter », ou une adresse tapée, avant que la
+    // page réponde. Le petit script de src/app/page.tsx a gardé le tap ; le champ a gardé le texte.
+    const w = window as Window & { __laFermePret?: boolean; __laFermeMode?: string };
+    w.__laFermePret = true;
+    if (w.__laFermeMode === "livraison" || w.__laFermeMode === "retrait") {
+      setMode(w.__laFermeMode);
+      if (w.__laFermeMode === "retrait") montrer();
+    }
+    delete w.__laFermeMode;
+    const tape = champAdresse.current?.value.trim();
+    if (tape && !c?.adresse) setSaisie(tape);
   }, []);
 
   // Suggestions geo.admin, 250 ms après la dernière frappe.
@@ -224,6 +246,20 @@ export function ChoixCommande({
         : { type: "aucun" };
   const peutContinuer = pretAdresse && pretDetails;
 
+  // Une fois l'adresse acceptée (ou à emporter choisi), une seule fois par geste. Une adresse refusée
+  // annule le geste : la saisie qui suit ne fait pas bouger la page.
+  useEffect(() => {
+    if (!defiler.current) return;
+    // En livraison, on attend la réponse sur l'adresse.
+    if (mode === "livraison" && (verdict.statut === "attente" || verdict.statut === "verification")) return;
+    defiler.current = false;
+    if (!pretAdresse || !boutonCarte.current) return;
+    const b = boutonCarte.current.getBoundingClientRect();
+    if (b.bottom <= window.innerHeight) return;
+    const doux = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    boutonCarte.current.scrollIntoView({ block: "nearest", behavior: doux ? "smooth" : "auto" });
+  }, [montrerBouton, pretAdresse, verdict.statut, mode]);
+
   function continuer() {
     if (!peutContinuer) return;
     ecrireChoix({
@@ -247,6 +283,7 @@ export function ChoixCommande({
     setAdresse(a);
     setSaisie(`${a.rue}${a.numero ? ` ${a.numero}` : ""}`);
     setSuggestions([]);
+    montrer();
   }
 
   function choisirEnregistree(a: AdresseEnregistree) {
@@ -278,11 +315,19 @@ export function ChoixCommande({
         <h1>Livraison ou à&nbsp;emporter&nbsp;?</h1>
 
         <div className="choix-mode" role="group" aria-label="Livraison ou à emporter">
-          <button type="button" aria-pressed={mode === "livraison"} onClick={() => setMode("livraison")}>
+          <button type="button" data-mode="livraison" aria-pressed={mode === "livraison"} onClick={() => setMode("livraison")}>
             <span className="choix-titre">Livraison</span>
             <span className="choix-sous">par les livreurs du restaurant</span>
           </button>
-          <button type="button" aria-pressed={mode === "retrait"} onClick={() => setMode("retrait")}>
+          <button
+            type="button"
+            data-mode="retrait"
+            aria-pressed={mode === "retrait"}
+            onClick={() => {
+              setMode("retrait");
+              montrer();
+            }}
+          >
             <span className="choix-titre">À emporter</span>
             <span className="choix-sous">Route de Chancy 132, Onex</span>
           </button>
@@ -332,6 +377,7 @@ export function ChoixCommande({
                 <div className="saisie-adresse">
                   <Icone nom="repere" />
                   <input
+                    ref={champAdresse}
                     id={`${ids}-adresse`}
                     type="text"
                     autoComplete="street-address"
@@ -572,7 +618,7 @@ export function ChoixCommande({
             </p>
           ))}
 
-        <button type="button" className="bouton-principal" onClick={continuer} disabled={!peutContinuer}>
+        <button type="button" className="bouton-principal" ref={boutonCarte} onClick={continuer} disabled={!peutContinuer}>
           Voir la carte
         </button>
         {mode === "livraison" && verdict.statut === "livrable" && !pretDetails && (

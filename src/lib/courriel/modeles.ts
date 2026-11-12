@@ -4,6 +4,7 @@ import { prixChf, prixCourt } from "@/lib/prix";
 import { heureDe } from "@/lib/heures";
 import { heureTexte, jourTexte } from "@/lib/service";
 import { MOTIF_DEMANDE_CLIENT } from "@/lib/motifs";
+import { nomClient } from "@/lib/nom-plat";
 
 // Textes des courriels, passés par redaction-fr (voix de Giuseppe : direct, factuel).
 // Rien d'autre que des faits du registre (adresse, téléphone) et le contenu de la commande.
@@ -58,7 +59,7 @@ function modeTexte(c: Commande, estimation: number | null = null): string {
 
 export function courrielConfirmation(c: Commande, cat: Catalogue | null, estimation: number | null = null) {
   const paiement = c.moyen_paiement === "comptoir" ? `À payer au comptoir en venant la chercher, ${prixChf(c.total_centimes)}.` : `Payée en ligne, ${prixChf(c.total_centimes)}.`;
-  const lignes = c.lignes.map((l) => ({ titre: `${l.qte} × ${l.nom}`, prix: prixCourt(l.total_centimes), details: detailsLigne(cat, l) }));
+  const lignes = c.lignes.map((l) => ({ titre: `${l.qte} × ${nomClient(l.nom, l.station === "pizza")}`, prix: prixCourt(l.total_centimes), details: detailsLigne(cat, l) }));
   const sommes = [
     ["Sous-total", prixChf(c.sous_total_centimes)],
     ...(c.mode === "livraison" ? [["Livraison", prixChf(c.frais_centimes)]] : []),

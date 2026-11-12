@@ -11,6 +11,7 @@ import { heureTexte } from "@/lib/service";
 import { reconcilier } from "@/lib/commandes";
 import { detailsLigne, quandTexte } from "@/lib/courriel/modeles";
 import { commandeParJeton } from "@/lib/db/serveur";
+import { nomClient } from "@/lib/nom-plat";
 import { prixChf, prixCourt } from "@/lib/prix";
 import { PRIVE } from "@/lib/site";
 
@@ -119,7 +120,7 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
                 <li className="ligne" key={l.position}>
                   <div className="ligne-haut">
                     <span className="ligne-nom">
-                      {l.qte} × {l.nom}
+                      {l.qte} × {nomClient(l.nom, l.station === "pizza")}
                     </span>
                     <span className="ligne-prix">{prixCourt(l.total_centimes)}</span>
                   </div>

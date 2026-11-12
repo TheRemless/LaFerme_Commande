@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { calculerPanier, type Catalogue, type LignePanier } from "@/lib/panier";
-import type { ReponsePanier } from "@/lib/panier-local";
+import { useEffect, useRef } from "react";
+import { calculerPanier, platDe, type Catalogue, type LignePanier } from "@/lib/panier";
+import type { ReponsePanier, SuiviPanier } from "@/lib/panier-local";
 import type { Choix } from "@/lib/choix";
 import { prixChf, prixCourt } from "@/lib/prix";
 import { nomAffiche } from "@/components/Plat";
@@ -16,6 +17,7 @@ export function ContenuPanier({
   choix,
   reponse,
   sansBouton = false,
+  suivi,
 }: {
   lignes: LignePanier[];
   quantite: (i: number, delta: number) => void;
@@ -24,17 +26,26 @@ export function ContenuPanier({
   reponse: ReponsePanier | null;
   preversion?: boolean;
   sansBouton?: boolean;
+  suivi?: SuiviPanier;
 }) {
   const local = calculerPanier(catalogue, lignes, choix?.mode === "livraison" && choix.zone ? choix.zone : null);
   const t = reponse && !reponse.erreur ? reponse : local;
   const minimum = choix?.mode === "livraison" ? choix.zone?.minimum_centimes : undefined;
 
+  const annonces = <AnnoncesPanier catalogue={catalogue} suivi={suivi} />;
+
   if (lignes.length === 0) {
-    return <p className="panier-vide">Votre panier est vide. Touchez un plat pour l&apos;ajouter.</p>;
+    return (
+      <>
+        {annonces}
+        <p className="panier-vide">Votre panier est vide. Touchez un plat pour l&apos;ajouter.</p>
+      </>
+    );
   }
 
   return (
     <>
+      {annonces}
       <ul className="lignes">
         {lignes.map((l, i) => {
           const plat = catalogue.plats[l.slug];
@@ -143,6 +154,36 @@ export function ContenuPanier({
             Commander, {prixChf(t.total_centimes)}
           </button>
         ))}
+    </>
+  );
+}
+
+// Panier expiré (CM-15) et ligne retirée par « − » avec « Annuler » (CM-23).
+function AnnoncesPanier({ catalogue, suivi }: { catalogue: Catalogue; suivi?: SuiviPanier }) {
+  const expire = useRef<HTMLParagraphElement>(null);
+  const montre = Boolean(suivi?.expire);
+  const oublier = suivi?.oublierExpire;
+  useEffect(() => {
+    // Oublié seulement une fois vu : le panier de côté est caché sur téléphone, sur la carte.
+    if (montre && expire.current?.getClientRects().length) oublier?.();
+  }, [montre, oublier]);
+  if (!suivi) return null;
+  const plat = suivi.retiree ? platDe(catalogue, suivi.retiree.ligne.slug) : undefined;
+  return (
+    <>
+      {suivi.expire && (
+        <p className="panier-vide" role="status" ref={expire}>
+          Votre panier précédent avait plus de 24 heures. Il a été vidé.
+        </p>
+      )}
+      {suivi.retiree && (
+        <p className="panier-vide" role="status">
+          {plat ? nomAffiche({ nom: plat.nom, categorie_slug: plat.categorie_slug }) : "Le plat"} n&apos;est plus dans le panier.{" "}
+          <button type="button" className="lien" onClick={suivi.annulerRetrait}>
+            Annuler
+          </button>
+        </p>
+      )}
     </>
   );
 }
