@@ -16,21 +16,23 @@ export function adresseDeTest(email: string): boolean {
   return /@[a-z0-9.-]+\.test$/.test(email);
 }
 
-export type ResultatDemande =
+export type ResultatDemandeCode =
   | { statut: "envoye"; codePreversion?: string }
   | { statut: "attente"; attente: number }
   | { statut: "adresse-preversion" }
   | { statut: "envoi-indisponible" };
+// Le plafond quotidien ne concerne que les codes des clients.
+export type ResultatDemande = ResultatDemandeCode | { statut: "plafond" };
 
 // Sans serveur d'envoi hors production : aucun code possible sur la vraie base, adresse en .test exigée sur une base de test.
-export function refusSansCourriel(email: string): ResultatDemande | null {
+export function refusSansCourriel(email: string): ResultatDemandeCode | null {
   if (courrielConfigure() || process.env.CONTEXTE_DEPLOIEMENT === "production") return null;
   if (!baseDeTest()) return { statut: "envoi-indisponible" };
   return adresseDeTest(email) ? null : { statut: "adresse-preversion" };
 }
 
 // Rien n'est parti : le code ne revient à l'écran que sur une base de test (second garde-fou).
-export function codeAffichable(code: string): ResultatDemande {
+export function codeAffichable(code: string): ResultatDemandeCode {
   if (!baseDeTest()) throw new Error("Code de connexion non envoyé : aucun e-mail configuré.");
   return { statut: "envoye", codePreversion: code };
 }
@@ -47,6 +49,12 @@ export async function demanderCode(email: string, ip: string): Promise<ResultatD
     p_ip_court: ipCourt(ip),
   });
   if (attente > 0) return { statut: "attente", attente };
+  // -2 : plafond global des codes clients sur 24 heures atteint (quota d'envoi de la boîte du restaurant).
+  // Aucun code n'est créé. À voir dans les journaux : c'est le signe d'un abus ou d'un plafond trop bas.
+  if (attente < 0) {
+    console.error("Plafond quotidien des codes de connexion des clients atteint.");
+    return { statut: "plafond" };
+  }
   const envoye = await envoyerCodeParCourriel({ destinataire: email, ...courrielCode(code) });
   return envoye ? { statut: "envoye" } : codeAffichable(code);
 }

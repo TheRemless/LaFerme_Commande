@@ -15,6 +15,7 @@ export async function POST(requete: Request) {
   try {
     const r = await demanderCode(email, ipDe(requete));
     if (r.statut === "attente") return refus(attenteTexte(r.attente, true), 429);
+    if (r.statut === "plafond") return refus("Trop de codes demandés aujourd'hui sur le site. Réessayez demain. Vous pouvez commander sans compte.", 429);
     if (r.statut === "envoi-indisponible") return refus("Préversion branchée sur la vraie base. La connexion attend le branchement des e-mails.", 503);
     if (r.statut === "adresse-preversion") {
       return refus("Préversion : utilisez une adresse qui finit par .test, par exemple jeremy@laferme.test.");

@@ -3,7 +3,7 @@ import { after } from "next/server";
 import { courrielBlocagePersonnel, courrielCode } from "@/lib/courriel/modeles";
 import { courrielConfigure, envoyerCodeParCourriel, envoyerParSmtp } from "@/lib/courriel/envoi";
 import { enregistrerCourriel, fonctionSql } from "@/lib/db/serveur";
-import { codeAffichable, refusSansCourriel, type ResultatDemande, type ResultatVerification } from "@/lib/comptes/connexion";
+import { codeAffichable, refusSansCourriel, type ResultatDemandeCode, type ResultatVerification } from "@/lib/comptes/connexion";
 import { empreinte, ipCourt, nouveauCode, nouveauJeton } from "@/lib/comptes/securite";
 import { heureTexte, instantGeneve, jourTexte } from "@/lib/service";
 import { alerter } from "@/lib/surveillance";
@@ -16,7 +16,7 @@ export const DUREE_MIN_DEMANDE_MS = 1500;
 // Connexion du personnel par code e-mail. Mêmes règles que les clients (docs/comptes.md), mais seules
 // les adresses inscrites dans la table personnel reçoivent un code. La réponse ne le dit pas.
 
-export async function demanderCodePersonnel(email: string, ip: string): Promise<ResultatDemande> {
+export async function demanderCodePersonnel(email: string, ip: string): Promise<ResultatDemandeCode> {
   const refus = refusSansCourriel(email);
   if (refus) return refus;
   // Même plancher en cas d'erreur (base en panne) : un refus rapide trahirait aussi une adresse de l'équipe.
@@ -25,7 +25,7 @@ export async function demanderCodePersonnel(email: string, ip: string): Promise<
   return r.value;
 }
 
-async function demander(email: string, ip: string): Promise<ResultatDemande> {
+async function demander(email: string, ip: string): Promise<ResultatDemandeCode> {
   // 8 chiffres pour l'équipe (audit de sécurité, S4) : 100 fois moins de chances par essai qu'un code client.
   const code = nouveauCode(8);
   const attente = await fonctionSql<number>("demander_code_personnel", {
