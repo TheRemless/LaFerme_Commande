@@ -6,6 +6,19 @@ Méthode : Playwright avec le Chrome du Mac, en mobile tactile 375 × 667 et 390
 
 Légende : **[vérifié]** reproduit sur la préversion, **[code]** lu dans le code sans reproduction, **[supposé]** déduit, non prouvé.
 
+## État des corrections (12.11.2026)
+
+Corrigés dans la branche `claude/audit-client-mystere-908f44`, captures avant et après dans `docs/rendus/correctifs-client/`.
+
+| Constat | État |
+|---|---|
+| CM-01 à CM-10 | corrigés, avec tests |
+| CM-13, CM-14, CM-16, CM-17, CM-18, CM-20 | corrigés (textes et aides) |
+| CM-25 | essayé puis retiré : « CHF » casse le bloc de zone sur deux lignes en mobile, à reprendre au lot design |
+| CM-11, CM-15, CM-19, CM-21, CM-22, CM-23, CM-26 | restent (confort, ou côté service, ou lot design) |
+| CM-12, CM-24 | décisions de Jérémy (Châtelaine en zone 2 par le NPA, recherche et plats populaires) |
+| Créneau complet (capacité ajoutée par la PR #20) | reste : refusé au paiement mais encore proposé dans le sélecteur. Il faut une fonction SQL qui liste les créneaux pleins, donc une migration |
+
 ## Les 10 constats les plus importants
 
 | # | Constat | Gravité | Effort |
