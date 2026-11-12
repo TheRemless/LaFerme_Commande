@@ -3,13 +3,15 @@ import { courrielCode } from "@/lib/courriel/modeles";
 import { envoyerCodeParCourriel, resendConfigure } from "@/lib/courriel/envoi";
 import { commandeParJeton, fonctionSql } from "@/lib/db/serveur";
 import { empreinte, ipCourt, nouveauCode, nouveauJeton } from "@/lib/comptes/securite";
+import { baseDeTest } from "@/lib/environnement";
 
 // Demande et vérification d'un code de connexion. Les limites de débit et le compte vivent en base
 // (demander_code, verifier_code) ; ici, les empreintes et l'envoi du courriel.
 
-// Sans Resend (poste local, préversion), aucun e-mail ne part : le code s'affiche à l'écran, mais
-// seulement pour une adresse en .test. Les préversions lisent la vraie base : afficher le code d'une
-// vraie adresse permettrait d'entrer dans le compte de quelqu'un d'autre.
+// Sans Resend, aucun e-mail ne part. Le code ne s'affiche à l'écran que sur une base de test (base
+// embarquée, ou projet déclaré par BASE_DE_TEST=1) et pour une adresse en .test. Sur une préversion qui
+// écrit dans la vraie base, jamais : n'importe qui entrerait dans un compte, ou dans la tablette avec un
+// membre de test (audit de sécurité, S1).
 export function adresseDeTest(email: string): boolean {
   return /@[a-z0-9.-]+\.test$/.test(email);
 }
@@ -17,11 +19,25 @@ export function adresseDeTest(email: string): boolean {
 export type ResultatDemande =
   | { statut: "envoye"; codePreversion?: string }
   | { statut: "attente"; attente: number }
-  | { statut: "adresse-preversion" };
+  | { statut: "adresse-preversion" }
+  | { statut: "envoi-indisponible" };
+
+// Sans Resend hors production : aucun code possible sur la vraie base, adresse en .test exigée sur une base de test.
+export function refusSansCourriel(email: string): ResultatDemande | null {
+  if (resendConfigure() || process.env.CONTEXTE_DEPLOIEMENT === "production") return null;
+  if (!baseDeTest()) return { statut: "envoi-indisponible" };
+  return adresseDeTest(email) ? null : { statut: "adresse-preversion" };
+}
+
+// Rien n'est parti : le code ne revient à l'écran que sur une base de test (second garde-fou).
+export function codeAffichable(code: string): ResultatDemande {
+  if (!baseDeTest()) throw new Error("Code de connexion non envoyé : aucun e-mail configuré.");
+  return { statut: "envoye", codePreversion: code };
+}
 
 export async function demanderCode(email: string, ip: string): Promise<ResultatDemande> {
-  const doublure = !resendConfigure();
-  if (doublure && process.env.CONTEXTE_DEPLOIEMENT !== "production" && !adresseDeTest(email)) return { statut: "adresse-preversion" };
+  const refus = refusSansCourriel(email);
+  if (refus) return refus;
   const code = nouveauCode();
   const attente = await fonctionSql<number>("demander_code", {
     p_email: email,
@@ -32,7 +48,7 @@ export async function demanderCode(email: string, ip: string): Promise<ResultatD
   });
   if (attente > 0) return { statut: "attente", attente };
   const envoye = await envoyerCodeParCourriel({ destinataire: email, ...courrielCode(code) });
-  return envoye ? { statut: "envoye" } : { statut: "envoye", codePreversion: code };
+  return envoye ? { statut: "envoye" } : codeAffichable(code);
 }
 
 export type ResultatVerification =
@@ -49,7 +65,7 @@ export async function verifierCode(
 ): Promise<ResultatVerification> {
   // Jeton neuf à chaque connexion : un jeton posé avant (par un tiers, ou une ancienne session) ne sert plus.
   const jeton = nouveauJeton();
-  const r = await fonctionSql<{ statut: string; attente?: number }>("verifier_code", {
+  const r = await fonctionSql<{ statut: string; attente?: number }>("verifier_code_limite", {
     p_email: email,
     p_cle_email: empreinte("email", email),
     p_cle_ip: empreinte("ip", ip),

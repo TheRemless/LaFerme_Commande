@@ -11,8 +11,21 @@ const nextConfig: NextConfig = {
     "/api/cloudprnt/[jeton]": ["./node_modules/@resvg/resvg-wasm/index_bg.wasm", "./node_modules/dejavu-fonts-ttf/ttf/DejaVuSansCondensed*.ttf"],
   },
   // Manifeste de la tablette servi avec son vrai type par next start (sur Netlify : netlify.toml).
+  poweredByHeader: false,
   async headers() {
-    return [{ source: "/tablette.webmanifest", headers: [{ key: "Content-Type", value: "application/manifest+json" }] }];
+    return [
+      { source: "/tablette.webmanifest", headers: [{ key: "Content-Type", value: "application/manifest+json" }] },
+      // Aucune page ne s'affiche dans le cadre d'un autre site ; le chemin (jeton de suivi) ne part pas ailleurs.
+      {
+        source: "/:chemin*",
+        headers: [
+          { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
+        ],
+      },
+    ];
   },
   env: {
     // Netlify fournit CONTEXT pendant le build (production, deploy-preview, branch-deploy).

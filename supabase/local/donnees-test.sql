@@ -1,6 +1,8 @@
 -- Base embarquée seulement (développement et tests), jamais appliquée sur Supabase.
 -- Un membre d'équipe par projet Playwright : la limite d'un code par 30 secondes est par e-mail.
+-- equipe@laferme.test : gérant des essais, retiré de la vraie base (migration 20261112090000).
 insert into personnel (email, nom, role) values
+  ('equipe@laferme.test', 'Équipe test', 'gerant'),
   ('equipe-bureau@laferme.test', 'Test bureau', 'service'),
   ('equipe-mobile@laferme.test', 'Test mobile', 'service'),
   ('gerant-bureau@laferme.test', 'Gérant bureau', 'gerant'),

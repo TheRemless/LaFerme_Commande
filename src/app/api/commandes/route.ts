@@ -4,13 +4,14 @@ import { chargerCatalogue } from "@/lib/catalogue";
 import { confirmerCommandeComptoir } from "@/lib/commandes";
 import { chargerConfigService } from "@/lib/config-service";
 import { detailsLigne } from "@/lib/courriel/modeles";
-import { commandeParId, ConfigurationManquante, creerCommande, lierSessionPaiement } from "@/lib/db/serveur";
+import { commandeParId, ConfigurationManquante, creerCommande, fonctionSql, lierSessionPaiement } from "@/lib/db/serveur";
 import { origineSure } from "@/lib/origine";
 import { calculerPanier } from "@/lib/panier";
-import { passerelle } from "@/lib/paiement/passerelle";
+import { paiementDisponible, passerelle } from "@/lib/paiement/passerelle";
 import { depuisHeureGeneve, messagePause, pauseEnCours, quandPossible, type Zone } from "@/lib/service";
 import { requeteDuSite } from "@/lib/comptes/origine-requete";
 import { compteCourant, jetonSession } from "@/lib/comptes/session";
+import { empreinte, ipDe } from "@/lib/comptes/securite";
 import { cleValide, clientValide, detailsValides, lignesValides, quandValide } from "@/lib/validation";
 import { zoneServeur, type AdresseRetenue } from "@/lib/zone-serveur";
 
@@ -45,6 +46,10 @@ export async function POST(requete: Request) {
   if (!client) return refus("Vérifiez vos coordonnées : prénom, nom, téléphone et e-mail.");
   // Paiement à la livraison désactivé (décision du prompt) : au comptoir seulement pour un retrait.
   if (moyen === "comptoir" && mode !== "retrait") return refus("Le paiement au comptoir n'est possible qu'à emporter.");
+  // Préversion branchée sur la vraie base : aucun paiement, même simulé (audit de sécurité, S2).
+  if (moyen === "en_ligne" && !paiementDisponible()) {
+    return refus("Préversion branchée sur la vraie base : le paiement en ligne y est coupé. Choisissez le paiement au comptoir.", 503);
+  }
 
   const [catalogue, config] = await Promise.all([chargerCatalogue(), chargerConfigService()]);
 
@@ -73,6 +78,21 @@ export async function POST(requete: Request) {
   if (pause) return refus(messagePause(pause) ?? "Les commandes en ligne sont en pause.");
   if (quand.type === "aucun" || !quandPossible(config, maintenant, mode, zone, totaux.pizzas_seulement, quand)) {
     return refus("Ce moment n'est plus disponible. Choisissez une autre heure.");
+  }
+
+  // Au comptoir, rien n'est payé avant le retrait : on limite les commandes en attente (audit, S5).
+  // Les tests de bout en bout (même téléphone, même IP) coupent la limite ; la production le refuse.
+  if (moyen === "comptoir" && !(process.env.SANS_LIMITE_COMPTOIR === "1" && process.env.CONTEXTE_DEPLOIEMENT !== "production")) {
+    const limite = await fonctionSql<string>("limite_comptoir", {
+      p_telephone: client.telephone,
+      p_email: client.email,
+      p_cle_ip: empreinte("ip", ipDe(requete)),
+      p_cle: cle,
+    });
+    if (limite === "contact") {
+      return refus("Vous avez déjà deux commandes à payer au comptoir. Pour en passer une autre, payez en ligne ou appelez-nous au 022 792 16 89.", 429);
+    }
+    if (limite === "ip") return refus("Trop de commandes à payer au comptoir depuis cette connexion. Payez en ligne ou appelez-nous au 022 792 16 89.", 429);
   }
 
   let creee;

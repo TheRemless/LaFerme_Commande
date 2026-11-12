@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { annulerPaiement, confirmerPaiement } from "@/lib/commandes";
 import { commandeParId } from "@/lib/db/serveur";
-import { passerelle } from "@/lib/paiement/passerelle";
+import { doublureActive } from "@/lib/paiement/passerelle";
 
 // Doublure de Stripe pour les préversions sans compte Stripe : simule l'issue du paiement en passant
-// par le même chemin que le webhook. Fermée en production et dès qu'une vraie clé Stripe est configurée.
+// par le même chemin que le webhook. Fermée en production, dès qu'une vraie clé Stripe est configurée et
+// sur une préversion qui écrit dans la vraie base.
 export async function POST(requete: Request) {
-  if (process.env.CONTEXTE_DEPLOIEMENT === "production" || passerelle().nom !== "doublure") {
+  if (!doublureActive()) {
     return NextResponse.json({ erreur: "Introuvable." }, { status: 404 });
   }
   const corps = (await requete.json().catch(() => ({}))) as { commande?: unknown; issue?: unknown };

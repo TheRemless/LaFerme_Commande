@@ -11,7 +11,8 @@ export default defineConfig({
   ],
   webServer: {
     // Accueil, carte et panier sont mis en cache dès le build : il lit déjà la base embarquée.
-    command: `BASE_LOCALE=1 npm run build && BASE_LOCALE=1 npx next start -p ${PORT}`,
+    // SANS_LIMITE_COMPTOIR : les tests passent toutes leurs commandes au comptoir avec le même téléphone.
+    command: `BASE_LOCALE=1 npm run build && BASE_LOCALE=1 SANS_LIMITE_COMPTOIR=1 npx next start -p ${PORT}`,
     url: `http://localhost:${PORT}/carte`,
     timeout: 240_000,
     reuseExistingServer: false,

@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { baseLocale } from "@/lib/db/locale";
+import { verifierContexte } from "@/lib/environnement";
 
 // Accès en écriture réservé au serveur : commandes, paiements, courriels.
 // Supabase avec la clé secrète quand elle est là, sinon la base embarquée (développement, tests).
@@ -9,6 +10,7 @@ import { baseLocale } from "@/lib/db/locale";
 let client: SupabaseClient | null = null;
 
 function supabaseServeur(): SupabaseClient | null {
+  verifierContexte();
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const cle = process.env.SUPABASE_SECRET_KEY;
   if (url && cle) {
