@@ -24,8 +24,9 @@ export function empreinte(
   return createHmac("sha256", cleHmac()).update(`${usage}:${valeur}`).digest("hex");
 }
 
-export function nouveauCode(): string {
-  return String(randomInt(0, 1_000_000)).padStart(6, "0");
+// 6 chiffres pour les clients, 8 pour le personnel (audit de sécurité, S4).
+export function nouveauCode(chiffres: 6 | 8 = 6): string {
+  return String(randomInt(0, 10 ** chiffres)).padStart(chiffres, "0");
 }
 
 export function nouveauJeton(): string {
@@ -34,10 +35,10 @@ export function nouveauJeton(): string {
 
 export { emailNormalise } from "@/lib/validation";
 
-export function codeValide(v: unknown): string | null {
+export function codeValide(v: unknown, chiffres: 6 | 8 = 6): string | null {
   if (typeof v !== "string") return null;
   const c = v.replace(/\s/g, "");
-  return /^\d{6}$/.test(c) ? c : null;
+  return c.length === chiffres && /^\d+$/.test(c) ? c : null;
 }
 
 // Adresse IP du client. Netlify la donne dans x-nf-client-connection-ip, que le client ne peut pas imposer.

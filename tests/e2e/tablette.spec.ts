@@ -41,8 +41,8 @@ test.beforeAll(async ({ browser }, info) => {
   await tablette.getByLabel("E-mail", { exact: true }).fill(`equipe-${info.project.name}@laferme.test`);
   await tablette.getByRole("button", { name: "Recevoir un code" }).click();
   const code = tablette.locator(".note-preversion strong");
-  await expect(code).toHaveText(/^\d{6}$/);
-  await tablette.getByLabel("Code à 6 chiffres").fill(await code.innerText());
+  await expect(code).toHaveText(/^\d{8}$/);
+  await tablette.getByLabel("Code à 8 chiffres").fill(await code.innerText());
   await tablette.getByRole("button", { name: "Me connecter" }).click();
   await tablette.getByRole("button", { name: "Continuer sans son" }).click();
   await expect(tablette.getByRole("button", { name: /^À accepter/ })).toBeVisible();
