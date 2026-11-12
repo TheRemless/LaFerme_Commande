@@ -33,21 +33,31 @@ export async function envoyerParSmtp(destinataire: string, sujet: string, texte:
     disableFileAccess: true,
     disableUrlAccess: true,
   });
+  // Destinataire passé comme une seule adresse, jamais comme une liste à analyser.
+  // Délai total : les délais du transport valent par étape et s'additionneraient.
+  let minuteur: ReturnType<typeof setTimeout> | undefined;
+  const tropLong = new Promise<never>((_, refus) => {
+    minuteur = setTimeout(() => refus(Object.assign(new Error("délai dépassé"), { code: "ETIMEDOUT" })), DELAI_SMTP_MS);
+  });
   try {
-    await transport.sendMail({ from: process.env.COURRIEL_EXPEDITEUR, to: destinataire, subject: sujet, text: texte, html });
+    await Promise.race([transport.sendMail({ from: process.env.COURRIEL_EXPEDITEUR, to: { name: "", address: destinataire }, subject: sujet, text: texte, html }), tropLong]);
   } catch (e) {
+    transport.close();
     // Le message du serveur peut citer l'adresse du client : seul le code part dans les journaux.
     const { responseCode, code } = e as { responseCode?: number; code?: string };
     throw new Error(`Le serveur d'envoi a répondu ${responseCode ?? code ?? "sans code"}.`);
+  } finally {
+    clearTimeout(minuteur);
   }
 }
 
-// Le même courriel rejoué (webhook répété) ne part qu'une fois en 24 heures, mais deux courriels au même
-// sujet et au contenu différent (deux changements d'heure) partent tous les deux (SS-15). La copie gardée
-// en base sert de registre : un courriel qui n'est pas parti n'y est pas et pourra repartir.
+// Le même courriel rejoué (webhook répété) ne part qu'une fois : on le compare au dernier courriel parti
+// pour ce destinataire depuis 24 heures. Deux courriels au contenu différent partent tous les deux (SS-15),
+// et un retour à une heure déjà annoncée (19h45, 20h00, puis 19h45) part aussi. La copie gardée en base
+// sert de registre : un courriel qui n'est pas parti n'y est pas et pourra repartir.
 async function dejaParti(c: Courriel): Promise<boolean> {
-  const partis = await courrielsPartis(c.commandeId);
-  return partis.some((p) => p.destinataire === c.destinataire && p.sujet === c.sujet && p.texte === c.texte);
+  const dernier = (await courrielsPartis(c.commandeId)).find((p) => p.destinataire === c.destinataire);
+  return dernier !== undefined && dernier.sujet === c.sujet && dernier.texte === c.texte;
 }
 
 export async function envoyerCourriel(c: Courriel): Promise<void> {

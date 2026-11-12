@@ -9,6 +9,7 @@ vi.mock("nodemailer", () => ({
     createTransport(options: Record<string, unknown>) {
       smtp.transports.push(options);
       return {
+        close() {},
         async sendMail(message: Record<string, unknown>) {
           if (smtp.panne) throw Object.assign(new Error("535 5.7.8 Authentification refusée pour client@exemple.test (simulé)"), { responseCode: 535 });
           smtp.messages.push(message);
@@ -99,7 +100,7 @@ describe("réglages du serveur d'envoi", () => {
     });
     expect(smtp.messages[0]).toMatchObject({
       from: "La Ferme <commande@exemple.test>",
-      to: "client@exemple.test",
+      to: { name: "", address: "client@exemple.test" },
       subject: "Votre code",
       text: "123456",
       html: "<p>123456</p>",
@@ -121,6 +122,19 @@ describe("réglages du serveur d'envoi", () => {
     const { envoyerCodeParCourriel } = await import("@/lib/courriel/envoi");
     await expect(envoyerCodeParCourriel({ destinataire: "client@exemple.test", sujet: "s", texte: "t", html: "h" })).rejects.toThrow(/SMTP_PORT/);
     expect(smtp.messages).toHaveLength(0);
+  });
+});
+
+describe("une adresse ne peut pas en cacher une autre", () => {
+  // Revue de sécurité du 12.11.2026 : « a,victime@x.ch » ou « victime@x.ch(z) » passaient la validation,
+  // partaient vers victime@x.ch et comptaient comme une autre adresse pour la limite de codes par heure.
+  it("refuse les caractères qui font une liste, un nom affiché ou un commentaire", async () => {
+    const { emailNormalise } = await import("@/lib/validation");
+    for (const e of ["a,victime@exemple.ch", "victime@exemple.ch,d.ee", "victime@exemple.ch(z)", "<victime@exemple.ch>", "a;victime@exemple.ch", '"a"@exemple.ch', "a:b@exemple.ch", "a\\b@exemple.ch", "a@[exemple].ch"]) {
+      expect(emailNormalise(e), e).toBeNull();
+    }
+    expect(emailNormalise(" Prenom.Nom+commande@Exemple-Resto.ch ")).toBe("prenom.nom+commande@exemple-resto.ch");
+    expect(emailNormalise("o'brien_1@exemple.ch")).toBe("o'brien_1@exemple.ch");
   });
 });
 
@@ -166,7 +180,10 @@ describe("courriels d'une commande par SMTP", () => {
     expect(smtp.messages).toHaveLength(1);
     await envoyerCourriel({ ...base, texte: "vers 20h00" });
     expect(smtp.messages).toHaveLength(2);
-    expect((await copies(id)).map((c) => c.texte)).toEqual(["vers 19h45", "vers 20h00"]);
+    // Retour à l'heure déjà annoncée : ce n'est pas un rejeu, le client doit le savoir.
+    await envoyerCourriel({ ...base, texte: "vers 19h45" });
+    expect(smtp.messages).toHaveLength(3);
+    expect((await copies(id)).map((c) => c.texte)).toEqual(["vers 19h45", "vers 20h00", "vers 19h45"]);
   });
 
   it("le même contenu pour un autre destinataire part aussi", async () => {

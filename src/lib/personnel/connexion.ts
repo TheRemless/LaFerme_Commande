@@ -101,6 +101,8 @@ async function apresReponse(travail: Promise<void>): Promise<void> {
   try {
     after(travail);
   } catch {
+    // En production, ce repli rendrait la durée de l'envoi visible (S11) : il doit se voir dans les journaux.
+    if (process.env.CONTEXTE_DEPLOIEMENT === "production") console.error("after() indisponible : travail attendu avant la réponse.");
     await travail;
   }
 }

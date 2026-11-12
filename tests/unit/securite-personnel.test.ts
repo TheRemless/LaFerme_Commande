@@ -12,6 +12,7 @@ const smtp = vi.hoisted(() => ({ panne: false, essais: 0 }));
 vi.mock("nodemailer", () => ({
   default: {
     createTransport: () => ({
+      close() {},
       async sendMail() {
         smtp.essais += 1;
         if (smtp.panne) throw Object.assign(new Error("connexion refusée (simulé)"), { code: "ESOCKET" });
