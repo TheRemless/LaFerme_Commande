@@ -172,6 +172,27 @@ export function courrielCode(code: string) {
   return { sujet, texte, html };
 }
 
+// Au membre de l'équipe dont l'adresse est bloquée par des codes faux (audit de sécurité, S4).
+// quand : « vendredi 13 novembre à 14h05 », heure de Genève.
+export function courrielBlocagePersonnel(quand: string) {
+  const sujet = "Connexion bloquée 24 heures, La Ferme";
+  const lignes = [
+    "Bonjour,",
+    "",
+    `Quelqu'un a entré 15 codes faux avec votre adresse sur la tablette ou le back-office de La Ferme. La connexion par code est bloquée pour cette adresse jusqu'au ${quand}.`,
+    "",
+    "Les appareils déjà connectés restent connectés.",
+    "",
+    "Si ce n'était pas vous, quelqu'un connaît votre adresse et essaie d'entrer. Aucun code n'a été trouvé. Le restaurant reçoit une copie de ce message.",
+    "",
+    RESTAURANT,
+  ];
+  const texte = lignes.join("\n");
+  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#1c1b1a;max-width:560px">
+${lignes.filter((l) => l !== "").map((l) => `<p>${echapper(l)}</p>`).join("\n")}</div>`;
+  return { sujet, texte, html };
+}
+
 // ---------- Courriels envoyés depuis la tablette (lot 7a) ----------
 
 

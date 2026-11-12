@@ -1620,6 +1620,10 @@ body.fiche-ouverte {
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.32em;
 }
+/* Code du personnel à 8 chiffres (audit de sécurité, S4) : la place des deux chiffres de plus. */
+.champ input.saisie-code-8 {
+  max-width: 300px;
+}
 .liens-code {
   display: flex;
   flex-wrap: wrap;

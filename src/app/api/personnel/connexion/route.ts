@@ -9,8 +9,8 @@ export async function POST(requete: Request) {
   if (!requeteDuSite(requete)) return refus("Requête refusée.", 403);
   const corps = await corpsJson(requete);
   const email = emailNormalise(corps?.email);
-  const code = codeValide(corps?.code);
-  if (!email || !code) return refus("Entrez le code à 6 chiffres reçu par e-mail.");
+  const code = codeValide(corps?.code, 8);
+  if (!email || !code) return refus("Entrez le code à 8 chiffres reçu par e-mail.");
   const r = await verifierCodePersonnel(email, code, ipDe(requete), await jetonPersonnel());
   if (r.statut === "attente") return refus(attenteTexte(r.attente), 429);
   if (r.statut === "invalide") return refus("Code incorrect ou expiré. Vérifiez le dernier e-mail reçu.", 400);

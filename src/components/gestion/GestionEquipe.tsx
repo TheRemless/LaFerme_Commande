@@ -47,7 +47,7 @@ export function GestionEquipe() {
     <div className="ges-service">
       <section className="ges-bloc">
         <h2>Équipe</h2>
-        <p>Chacun se connecte avec son adresse e-mail et le code à 6 chiffres qu&apos;il reçoit. Retirer quelqu&apos;un coupe son accès tout de suite.</p>
+        <p>Chacun se connecte avec son adresse e-mail et le code à 8 chiffres qu&apos;il reçoit. Retirer quelqu&apos;un coupe son accès tout de suite.</p>
         {message && (
           <p className={message.ok ? "tab-message" : "panier-alerte"} role={message.ok ? "status" : "alert"}>
             {message.texte}

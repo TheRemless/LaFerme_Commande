@@ -12,8 +12,8 @@ async function connecter(page: Page, email: string) {
   await page.getByLabel("E-mail", { exact: true }).fill(email);
   await page.getByRole("button", { name: "Recevoir un code" }).click();
   const code = page.locator(".note-preversion strong");
-  await expect(code).toHaveText(/^\d{6}$/);
-  await page.getByLabel("Code à 6 chiffres").fill(await code.innerText());
+  await expect(code).toHaveText(/^\d{8}$/);
+  await page.getByLabel("Code à 8 chiffres").fill(await code.innerText());
   await page.getByRole("button", { name: "Me connecter" }).click();
 }
 

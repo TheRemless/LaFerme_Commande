@@ -3,16 +3,16 @@
 import { poster } from "@/lib/requete-client";
 import { useEffect, useId, useRef, useState } from "react";
 
-// Connexion par code à 6 chiffres. Deux départs : un e-mail tapé (page Compte), ou le jeton d'une
+// Connexion par code à 6 chiffres (8 pour le personnel). Deux départs : un e-mail tapé (page Compte), ou le jeton d'une
 // commande (suivi, case « créer mon compte ») : l'e-mail est alors celui de la commande, jamais affiché ici.
 
 // api : routes du personnel pour la tablette, celles des clients sinon.
-type Props = { jeton?: string; titreBouton?: string; onConnecte: () => void; api?: { code: string; connexion: string } };
+type Props = { jeton?: string; titreBouton?: string; onConnecte: () => void; api?: { code: string; connexion: string }; chiffres?: 6 | 8 };
 
 const API_CLIENTS = { code: "/api/compte/code", connexion: "/api/compte/connexion" };
 
 
-export function FormCode({ jeton, titreBouton = "Me connecter", onConnecte, api = API_CLIENTS }: Props) {
+export function FormCode({ jeton, titreBouton = "Me connecter", onConnecte, api = API_CLIENTS, chiffres = 6 }: Props) {
   const ids = useId();
   const [email, setEmail] = useState("");
   const [etape, setEtape] = useState<"email" | "code">("email");
@@ -98,22 +98,22 @@ export function FormCode({ jeton, titreBouton = "Me connecter", onConnecte, api 
         </p>
       )}
       <div className="champ">
-        <label htmlFor={`${ids}-code`}>Code à 6 chiffres</label>
+        <label htmlFor={`${ids}-code`}>Code à {chiffres} chiffres</label>
         <input
           ref={champCode}
           id={`${ids}-code`}
-          className="saisie-code"
+          className={chiffres === 8 ? "saisie-code saisie-code-8" : "saisie-code"}
           inputMode="numeric"
           autoComplete="one-time-code"
-          pattern="[0-9]{6}"
-          maxLength={6}
+          pattern={`[0-9]{${chiffres}}`}
+          maxLength={chiffres}
           required
           value={code}
-          onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+          onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, chiffres))}
         />
       </div>
       {alerte}
-      <button type="submit" className="bouton-principal" disabled={envoi || code.length !== 6}>
+      <button type="submit" className="bouton-principal" disabled={envoi || code.length !== chiffres}>
         {envoi ? "Un instant…" : titreBouton}
       </button>
       <div className="liens-code">
