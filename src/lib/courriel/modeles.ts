@@ -204,8 +204,14 @@ export function courrielBlocagePersonnel(quand: string) {
     RESTAURANT,
   ];
   const texte = lignes.join("\n");
-  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#1c1b1a;max-width:560px">
-${lignes.filter((l) => l !== "").map((l) => `<p>${echapper(l)}</p>`).join("\n")}</div>`;
+  // Même mise en page que les courriels aux clients (logo, pied commun qui porte déjà l'adresse du restaurant).
+  const html = enveloppe(
+    lignes
+      .filter((l) => l !== "" && l !== RESTAURANT)
+      .map((l) => `<p>${echapper(l)}</p>`)
+      .join("\n"),
+    ADRESSE_SITE,
+  );
   return { sujet, texte, html };
 }
 
