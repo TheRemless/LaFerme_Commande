@@ -48,10 +48,15 @@ function texte(v: unknown, min: number, max: number): string | null {
 export type Client = { prenom: string; nom: string; telephone: string; email: string };
 
 // E-mail sans espaces, en minuscules, de forme valable. Même règle pour la commande et le compte.
+// Sont refusés les caractères qui écrivent une liste d'adresses, un nom affiché ou un commentaire
+// (virgule, point-virgule, deux-points, chevrons, parenthèses, guillemets, crochets, barre oblique
+// inverse) : un serveur d'envoi lirait « a,b@x.ch » comme l'adresse b@x.ch, sous une autre clé de limite.
+const CARACTERE_ADRESSE = String.raw`[^\s@,;:<>()"\[\]\\]`;
+const FORME_EMAIL = new RegExp(`^${CARACTERE_ADRESSE}+@${CARACTERE_ADRESSE}+\\.${CARACTERE_ADRESSE}{2,}$`);
 export function emailNormalise(v: unknown): string | null {
   if (typeof v !== "string") return null;
   const e = v.trim().toLowerCase();
-  return e.length >= 5 && e.length <= 120 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e) ? e : null;
+  return e.length >= 5 && e.length <= 120 && FORME_EMAIL.test(e) ? e : null;
 }
 
 // Même règle dans le navigateur (avant l'envoi) et sur le serveur.

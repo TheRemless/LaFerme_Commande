@@ -13,7 +13,7 @@ export async function POST(requete: Request) {
   try {
     const r = await demanderCodePersonnel(email, ipDe(requete));
     if (r.statut === "attente") return refus(attenteTexte(r.attente), 429);
-    if (r.statut === "envoi-indisponible") return refus("Préversion branchée sur la vraie base. La connexion attend l'envoi des e-mails (Resend).", 503);
+    if (r.statut === "envoi-indisponible") return refus("Préversion branchée sur la vraie base. La connexion attend le branchement des e-mails.", 503);
     if (r.statut === "adresse-preversion") return refus("Préversion : utilisez une adresse qui finit par .test, par exemple equipe@laferme.test.");
     return NextResponse.json({ envoye: true, codePreversion: r.codePreversion }, { headers: { "Cache-Control": "no-store" } });
   } catch (e) {

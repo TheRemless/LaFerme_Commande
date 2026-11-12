@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { baseLocale } from "@/lib/db/locale";
 import { codeValide, empreinte } from "@/lib/comptes/securite";
 import { DUREE_MIN_DEMANDE_MS, demanderCodePersonnel, verifierCodePersonnel } from "@/lib/personnel/connexion";
@@ -7,11 +7,27 @@ import { DUREE_MIN_DEMANDE_MS, demanderCodePersonnel, verifierCodePersonnel } fr
 // S11 (même durée de réponse, adresse de l'équipe ou non), S4 (code à 8 chiffres, alerte quand une adresse
 // de l'équipe est bloquée par des codes faux).
 
+// Le serveur d'envoi est remplacé : rien ne part sur le réseau, et il peut tomber en panne à la demande.
+const smtp = vi.hoisted(() => ({ panne: false, essais: 0 }));
+vi.mock("nodemailer", () => ({
+  default: {
+    createTransport: () => ({
+      close() {},
+      async sendMail() {
+        smtp.essais += 1;
+        if (smtp.panne) throw Object.assign(new Error("connexion refusée (simulé)"), { code: "ESOCKET" });
+        return { messageId: "<test@exemple.test>" };
+      },
+    }),
+  },
+}));
+
 const EQUIPE = "equipe@laferme.test";
 const IP = "203.0.113.9";
 
 beforeAll(() => {
-  delete process.env.RESEND_API_KEY;
+  delete process.env.SMTP_UTILISATEUR;
+  delete process.env.SMTP_MOT_DE_PASSE;
   delete process.env.ALERTE_EMAIL;
   process.env.CONTEXTE_DEPLOIEMENT = "local";
 });
@@ -96,21 +112,28 @@ describe("S4 : alerte quand une adresse de l'équipe est bloquée par des codes 
   });
 });
 
-describe("S11 : même plancher quand l'envoi échoue", () => {
-  it("une erreur d'envoi pour une adresse de l'équipe ne répond pas plus vite", async () => {
-    const avant = { cle: process.env.RESEND_API_KEY, exp: process.env.COURRIEL_EXPEDITEUR, f: globalThis.fetch };
-    process.env.RESEND_API_KEY = "re_factice";
-    process.env.COURRIEL_EXPEDITEUR = "La Ferme <test@exemple.test>";
-    globalThis.fetch = (async () => new Response("panne", { status: 500 })) as typeof fetch;
+describe("S11 : un envoi en panne ne trahit pas une adresse de l'équipe", () => {
+  it("serveur d'envoi en panne : même réponse et même durée minimale qu'une adresse inconnue", async () => {
+    const cles = ["SMTP_UTILISATEUR", "SMTP_MOT_DE_PASSE", "COURRIEL_EXPEDITEUR"] as const;
+    const avant = Object.fromEntries(cles.map((c) => [c, process.env[c]]));
+    process.env.SMTP_UTILISATEUR = "commande@exemple.test";
+    process.env.SMTP_MOT_DE_PASSE = "mot-de-passe-factice";
+    process.env.COURRIEL_EXPEDITEUR = "La Ferme <commande@exemple.test>";
+    smtp.panne = true;
     try {
-      await ouvrirEnvois();
-      const debut = performance.now();
-      await expect(demanderCodePersonnel(EQUIPE, IP)).rejects.toThrow();
-      expect(performance.now() - debut).toBeGreaterThanOrEqual(DUREE_MIN_DEMANDE_MS - 5);
+      for (const email of ["personne@exemple.test", EQUIPE]) {
+        await ouvrirEnvois();
+        const debut = performance.now();
+        expect(await demanderCodePersonnel(email, IP)).toEqual({ statut: "envoye" });
+        expect(performance.now() - debut).toBeGreaterThanOrEqual(DUREE_MIN_DEMANDE_MS - 5);
+      }
+      expect(smtp.essais).toBe(1);
     } finally {
-      globalThis.fetch = avant.f;
-      if (avant.cle === undefined) delete process.env.RESEND_API_KEY; else process.env.RESEND_API_KEY = avant.cle;
-      if (avant.exp === undefined) delete process.env.COURRIEL_EXPEDITEUR; else process.env.COURRIEL_EXPEDITEUR = avant.exp;
+      smtp.panne = false;
+      for (const c of cles) {
+        if (avant[c] === undefined) delete process.env[c];
+        else process.env[c] = avant[c];
+      }
     }
   });
 });

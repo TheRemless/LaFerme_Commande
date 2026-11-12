@@ -35,7 +35,7 @@ export const CONFIDENTIALITE: PageLegale = {
           "Supabase : base de données hébergée à Zurich, en Suisse. Contractant Supabase Pte. Ltd, Singapour.",
           "Netlify, Inc., États-Unis : hébergement du site et traitements du serveur. [Région de calcul des fonctions : États-Unis (Ohio) aujourd'hui, Francfort possible avec le plan Pro de Netlify.]",
           "Stripe : paiement en ligne. Contractant pour la Suisse Stripe Payments Europe, Limited. Stripe, Inc. (États-Unis) traite aussi des données.",
-          "Resend (Plus Five Five, Inc., États-Unis) : envoi des e-mails de commande et des codes de connexion.",
+          "Infomaniak Network SA, Les Acacias (Genève), Suisse : envoi des e-mails de commande et des codes de connexion, depuis la boîte e-mail du restaurant. [Lieu d'hébergement des e-mails à vérifier par le relecteur.]",
           "geo.admin.ch, service de la Confédération : quand vous tapez une adresse, votre navigateur l'envoie à ce service pour proposer les adresses officielles.",
           "Apple Plans ou Google Maps (ou l'application de navigation choisie sur Android) : quand le livreur ouvre l'itinéraire sur son téléphone, seule l'adresse de livraison part vers cette application, sans nom, téléphone ni code d'entrée. [Apple et Google la traitent selon leurs propres règles, aussi aux États-Unis. À vérifier par le relecteur.]",
         ],
@@ -44,7 +44,7 @@ export const CONFIDENTIALITE: PageLegale = {
     {
       titre: "Données envoyées hors de Suisse",
       contenu: [
-        "Vers les États-Unis : Netlify, Inc. et Stripe, Inc. sont certifiés au Swiss-U.S. Data Privacy Framework, que le Conseil fédéral reconnaît comme une protection adéquate pour les entreprises certifiées depuis le 15 septembre 2024. Resend traite les données aux États-Unis sous des clauses contractuelles types de la Commission européenne adaptées au droit suisse.",
+        "Vers les États-Unis : Netlify, Inc. et Stripe, Inc. sont certifiés au Swiss-U.S. Data Privacy Framework, que le Conseil fédéral reconnaît comme une protection adéquate pour les entreprises certifiées depuis le 15 septembre 2024.",
         "Vers Singapour (Supabase Pte. Ltd) : clauses contractuelles types avec un avenant suisse. Les données de la base restent hébergées à Zurich.",
         "[Liste et garanties à vérifier par le relecteur avec les contrats signés (DPA) de chaque prestataire.]",
       ],

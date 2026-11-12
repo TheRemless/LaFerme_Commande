@@ -57,7 +57,7 @@ test("connexion par code, mauvais code refusé, puis espace client", async ({ pa
   await expect(page.getByLabel("E-mail", { exact: true })).toHaveValue(email);
 });
 
-test("préversion sans Resend : une vraie adresse n'obtient pas de code à l'écran", async ({ page }) => {
+test("préversion sans serveur d'envoi : une vraie adresse n'obtient pas de code à l'écran", async ({ page }) => {
   await identite(page, "vraie");
   await page.goto("/compte");
   await page.getByLabel("E-mail", { exact: true }).fill("quelquun@gmail.com");

@@ -195,12 +195,3 @@ describe("SS-09 : pas d'alerte « pas acceptée » hors service", () => {
     expect((await db.query<{ a: string | null }>("select alerte_le as a from commandes where id = $1", [c.id])).rows[0].a).toBeNull();
   });
 });
-
-describe("SS-15 : courriels successifs d'une même commande", () => {
-  it("deux changements d'heure ont deux clés d'idempotence Resend différentes", async () => {
-    const { cleIdempotence } = await import("@/lib/courriel/envoi");
-    const base = { commandeId: "c1", destinataire: "a@b.ch", sujet: "Commande 4, nouvelle heure", html: "" };
-    expect(cleIdempotence({ ...base, texte: "vers 19h45" })).not.toBe(cleIdempotence({ ...base, texte: "vers 20h00" }));
-    expect(cleIdempotence({ ...base, texte: "vers 19h45" })).toBe(cleIdempotence({ ...base, texte: "vers 19h45" }));
-  });
-});

@@ -55,7 +55,7 @@ export async function http(methode, chemin, { corps, cookie, entetes = {}, nom }
   return { status: rep.status, json, texte, brut, entetes: rep.headers, ms };
 }
 
-// Connexion du personnel : la base embarquée renvoie le code à l'écran (pas de Resend).
+// Connexion du personnel : la base embarquée renvoie le code à l'écran (pas de serveur d'envoi).
 export async function connecter(email) {
   const c = await http("POST", "/api/personnel/code", { corps: { email } });
   if (!c.json?.codePreversion) throw new Error(`Code non reçu pour ${email} : ${c.status} ${c.texte}`);

@@ -23,7 +23,7 @@ Restaurant La Ferme, Route de Chancy 132, 1213 Onex. Site neuf, sans lien avec `
 
 ## Pile
 
-Next.js (App Router, TypeScript) sur Netlify (choisi par Jérémy le 6.11.2026 à la place de Vercel), Supabase Zurich `eu-central-2` (Postgres, Auth, RLS sur toutes les tables, Realtime), Stripe, Resend, impression locale (voir Décisions après le prompt), adresses par geo.admin.ch, Vitest et Playwright. Secrets en variables d'environnement seulement.
+Next.js (App Router, TypeScript) sur Netlify (choisi par Jérémy le 6.11.2026 à la place de Vercel), Supabase Zurich `eu-central-2` (Postgres, Auth, RLS sur toutes les tables, Realtime), Stripe, e-mails par le SMTP d'Infomaniak, impression locale (voir Décisions après le prompt), adresses par geo.admin.ch, Vitest et Playwright. Secrets en variables d'environnement seulement.
 
 ## Décisions après le prompt
 
@@ -31,6 +31,7 @@ Next.js (App Router, TypeScript) sur Netlify (choisi par Jérémy le 6.11.2026 �
 - **Impression, plan A (6.11.2026)** : imprimantes en câble sur le switch du restaurant. La tablette leur envoie les tickets directement par le réseau local à l'acceptation, sans passer par Internet. Elle vérifie en continu que chaque imprimante répond (papier, hors ligne) et propose « réimprimer ». Le serveur surveille la tablette : sans signe de vie, il met les commandes en ligne en pause et alerte la personne de service.
 - **Impression, plan B** : si le navigateur bloque l'envoi vers une imprimante locale, l'imprimante va chercher ses tickets (Star CloudPRNT, de préférence en MQTT). À trancher au lot 7 avec l'imprimante en main, avant l'achat.
 - La caisse du restaurant reste hors du système (confirmé par Jérémy le 6.11.2026).
+- **E-mails par Infomaniak (12.11.2026)** : choisi par Jérémy à la place de Resend. Le site envoie par le SMTP de la boîte du restaurant (`SMTP_UTILISATEUR`, `SMTP_MOT_DE_PASSE`, `COURRIEL_EXPEDITEUR`, détail dans `docs/comptes.md`). Les mentions « Resend » de `docs/PROMPT.md` se lisent « Infomaniak ».
 - **Previews sur la base de production (6.11.2026)** : faute de projet Supabase de test, les previews ont la clé secrète du projet de production. Toute commande passée sur une preview est une commande de test dans la vraie base. Deux points bloquants avant mise en ligne, dans `docs/PROMPT.md` §11 (lot 8) : vider les commandes de test, retirer la clé secrète des previews.
 
 ## Commandes

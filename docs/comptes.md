@@ -27,11 +27,11 @@ Connexion par code e-mail à 6 chiffres, faite par le site (pas par Supabase Aut
 | Journal des connexions : événement, date, huit caractères de l'empreinte de l'IP. Ni e-mail, ni code, ni jeton. Gardé six mois | `journal_connexions` |
 | Le code n'est jamais gardé en base, même en copie de courriel | `envoyerCodeParCourriel` |
 
-## Préversions sans Resend
+## Préversions sans serveur d'envoi
 
 Aucun e-mail ne part. Le code s'affiche à l'écran seulement sur une base de test et pour une adresse en `.test` (par exemple `jeremy@laferme.test`). Une base de test, c'est la base embarquée (poste local, tests) ou un projet Supabase déclaré par `BASE_DE_TEST=1`.
 
-Une préversion qui écrit dans la vraie base (clé secrète du projet de production) n'affiche **jamais** de code, même pour une adresse en `.test` : la connexion y attend Resend. Avant le 12.11.2026, n'importe qui pouvait y entrer comme gérant avec `equipe@laferme.test` (docs/audits/securite.md, S1). En production, sans Resend, l'envoi échoue.
+Une préversion qui écrit dans la vraie base (clé secrète du projet de production) n'affiche **jamais** de code, même pour une adresse en `.test` : la connexion y attend le serveur d'envoi. Avant le 12.11.2026, n'importe qui pouvait y entrer comme gérant avec `equipe@laferme.test` (docs/audits/securite.md, S1). En production, sans serveur d'envoi, l'envoi échoue.
 
 Limites des essais : cinq par code, cinq codes par heure et par e-mail, quinze essais faux par jour et par e-mail (puis attente jusqu'à ce que le plus ancien ait 24 heures). Une adresse IPv6 compte pour son /64.
 
@@ -42,7 +42,14 @@ Limites des essais : cinq par code, cinq codes par heure et par e-mail, quinze e
 
 ## Avant d'ouvrir les comptes à de vrais clients
 
-- Compte Resend avec un domaine d'envoi vérifié, puis `RESEND_API_KEY` et `COURRIEL_EXPEDITEUR` dans Netlify (production et préversions).
+- Envoi par la boîte e-mail du restaurant chez Infomaniak (décision de Jérémy du 12.11.2026, à la place de Resend). Dans Netlify, production et préversions :
+  - `SMTP_UTILISATEUR` : l'adresse d'envoi complète, de préférence une adresse dédiée (par exemple `commande@<domaine>`).
+  - `SMTP_MOT_DE_PASSE` : un mot de passe d'appareil créé pour le site, pas celui de la boîte. Dans Mail Infomaniak : menu à droite de l'adresse, réglages de l'adresse, mot de passe, « Ajouter un appareil », onglet de configuration IMAP/SMTP. Il ne s'affiche qu'une fois ([aide Infomaniak, 711](https://www.infomaniak.com/en/support/faq/711/manage-devices-passwords-from-mail-infomaniak)).
+  - `COURRIEL_EXPEDITEUR` : le nom affiché et la même adresse, par exemple `La Ferme <commande@<domaine>>`. L'adresse d'expéditeur doit être celle de l'identifiant.
+  - Facultatif : `SMTP_HOTE` (`mail.infomaniak.com` par défaut) et `SMTP_PORT` (587 avec STARTTLS par défaut, 465 admis). Réglages lus sur l'[aide Infomaniak, 2023](https://www.infomaniak.com/fr/support/faq/2023/utiliser-lenvoi-de-mail-authentifie-depuis-un-site-web-heberge-chez-infomaniak) le 12.11.2026.
+- Limite d'Infomaniak : 500 e-mails par jour pour un Service Mail, « adjustable upon request » ([infomaniak.com, Service Mail](https://www.infomaniak.com/en/ksuite/service-mail/ecosystem), lu le 12.11.2026). Une adresse gratuite a une limite plus basse, chiffre non affiché : vérifier l'offre de la boîte du restaurant. Au-delà de la limite, les e-mails ne partent plus jusqu'au lendemain, codes de connexion compris.
+- Anti-doublon : le même e-mail d'une commande (même destinataire, même sujet, même texte) ne part pas deux fois de suite en 24 heures (un rejeu est ignoré, un retour à une heure déjà annoncée part). La copie gardée en base sert de registre (`courrielsPartis`).
+- Le code du personnel part après la réponse du site (S11) : si le serveur d'envoi est en panne, la page dit quand même « envoyé » et l'échec n'apparaît que dans les journaux Netlify.
 - Obligatoire en production : `SECRET_COMPTES` (32 octets aléatoires au moins, propre à la production) dans Netlify. Sans elle, le build de production échoue et le site refuse les connexions : tirée de la clé Supabase, que les préversions ont aussi, une session ouverte sur une préversion vaudrait en production. La poser avant le premier vrai client : la changer ensuite annule les codes en cours et les sessions ouvertes.
 
 ## Connexion Google ou Apple

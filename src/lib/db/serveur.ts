@@ -185,6 +185,28 @@ export async function enregistrerCourriel(p: Record<string, unknown>): Promise<v
   await rpc("enregistrer_courriel", { p }, "select enregistrer_courriel($1)", [p]);
 }
 
+// Courriels d'une commande réellement partis depuis moins de 24 heures (pas ceux de la doublure), le plus
+// récent d'abord : registre qui évite d'envoyer deux fois de suite le même. Filtre sur la commande seule : ni adresse ni texte dans l'URL de l'appel.
+export async function courrielsPartis(commandeId: string): Promise<{ destinataire: string; sujet: string; texte: string }[]> {
+  const s = supabaseServeur();
+  if (s) {
+    const { data, error } = await s
+      .from("courriels")
+      .select("destinataire, sujet, texte")
+      .eq("commande_id", commandeId)
+      .neq("fournisseur", "doublure")
+      .gte("envoye_le", new Date(Date.now() - 24 * 3600 * 1000).toISOString())
+      .order("envoye_le", { ascending: false });
+    if (error) throw new Error(error.message);
+    return data;
+  }
+  const db = await baseLocale();
+  return (await db.query<{ destinataire: string; sujet: string; texte: string }>(
+    "select destinataire, sujet, texte from courriels where commande_id = $1 and fournisseur <> 'doublure' and envoye_le > now() - interval '24 hours' order by envoye_le desc",
+    [commandeId],
+  )).rows;
+}
+
 // Préversion seulement : les courriels d'une commande, pour les montrer à celui qui a le lien de suivi.
 export async function courrielsDeCommande(commandeId: string): Promise<{ destinataire: string; sujet: string; texte: string; envoye_le: string; fournisseur: string }[]> {
   const s = supabaseServeur();

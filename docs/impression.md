@@ -52,4 +52,4 @@ Une imprimante qui interroge toutes les 10 secondes, jour et nuit, fait environ 
 
 ## Variables à créer (Netlify)
 
-- `ALERTE_EMAIL` : l'adresse du restaurant qui reçoit les alertes (en plus de Resend, voir `docs/comptes.md`).
+- `ALERTE_EMAIL` : l'adresse du restaurant qui reçoit les alertes (en plus des réglages d'envoi, voir `docs/comptes.md`).
