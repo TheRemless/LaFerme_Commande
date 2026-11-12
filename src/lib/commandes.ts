@@ -1,6 +1,5 @@
 import "server-only";
 import { chargerCatalogue } from "@/lib/catalogue";
-import { chargerConfigService } from "@/lib/config-service";
 import { estimationAsap } from "@/lib/estimation";
 import { courrielConfirmation, courrielRemboursement } from "@/lib/courriel/modeles";
 import { envoyerCourriel } from "@/lib/courriel/envoi";
