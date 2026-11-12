@@ -20,7 +20,7 @@ Ce qui empêche une erreur de partir en ligne, ce qui prévient quand quelque ch
 
 Sur GitHub, un test qui échoue est rejoué une fois. S'il passe au second essai, Playwright le marque « flaky » et le passage échoue quand même (`failOnFlakyTests`). On voit donc chaque test instable, et on le corrige au lieu de relancer jusqu'au vert.
 
-Corrigés dans ce lot, après reproduction sur le poste :
+Corrigés dans ce lot, après reproduction sur le poste ou sur GitHub :
 
 | Test | Cause trouvée | Correction |
 |---|---|---|
