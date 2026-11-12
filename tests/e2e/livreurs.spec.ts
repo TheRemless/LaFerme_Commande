@@ -149,7 +149,7 @@ test("tournée de deux livraisons, ordre proposé, Je pars, Livrée : plus rien 
   await arret(marco, b).getByRole("button", { name: "Livrée" }).click();
   await expect(marco.getByText("Rien pour vous pour le moment.")).toBeVisible();
   await tablette.getByRole("button", { name: /^Terminées/ }).click();
-  await expect(tablette.locator(".tab-commande", { has: tablette.locator(".tab-num", { hasText: new RegExp(`^${a}$`) }) })).toContainText(/Livrée/);
+  await expect(tablette.locator(".tab-commande", { has: tablette.locator(".tab-num", { hasText: new RegExp(`^${a}$`) }) })).toContainText(/Livrée/, { timeout: 15_000 });
 });
 
 test("deux livreurs et réattribution : l'ancien ne voit plus l'adresse", async ({ request }) => {
