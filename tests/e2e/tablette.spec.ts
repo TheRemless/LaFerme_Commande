@@ -8,11 +8,25 @@ test.describe.configure({ mode: "serial" });
 const ORIGINE = { Origin: SITE };
 let tablette: Page;
 
+// Bureau et mobile tournent en même temps contre la même base. Une clé d'idempotence identique (même
+// milliseconde) renvoie la même commande aux deux projets : chaque clé porte le projet et un tirage au hasard.
+function cle(prefixe: string): string {
+  return `${prefixe}-${test.info().project.name}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+// Ruptures : état commun à toute la base. Chaque projet épuise son propre supplément et son propre plat,
+// sinon l'un remet « Disponible » pendant que l'autre attend « Épuisé ».
+const RUPTURES: Record<string, { supplement: string; recherchePlat: string; plat: string; slug: string }> = {
+  bureau: { supplement: "Burrata", recherchePlat: "miss Italia", plat: "Pizza Miss Italia", slug: "pizza-miss-italia" },
+  mobile: { supplement: "Gorgonzola", recherchePlat: "capricciosa", plat: "Pizza Capricciosa", slug: "pizza-capricciosa" },
+};
+const rupturesDuProjet = () => RUPTURES[test.info().project.name];
+
 async function commander(request: APIRequestContext, prenom: string, moyen: "comptoir" | "en_ligne"): Promise<{ numero: string; suivi: string }> {
   const rep = await request.post("/api/commandes", {
     headers: ORIGINE,
     data: {
-      cle: `tablette-${prenom}-${Date.now()}`,
+      cle: cle(`tablette-${prenom}`),
       mode: "retrait",
       moyen,
       quand: { type: "asap" },
@@ -118,20 +132,21 @@ test("il manque un plat : remboursé en partie, le client est prévenu", async (
 
 test("supplément épuisé : refusé à la commande, puis revient", async ({ request }) => {
   await tablette.getByRole("button", { name: "Pause, délai, ruptures" }).click();
-  await tablette.getByLabel("Chercher un plat ou un supplément").fill("Burrata");
-  // Le supplément seul, pas les plats dont le nom contient « Burrata ».
-  const ligne = tablette.locator(".tab-plats li").filter({ hasText: /^Burrata\s*Supplément/ });
+  const { supplement } = rupturesDuProjet();
+  await tablette.getByLabel("Chercher un plat ou un supplément").fill(supplement);
+  // Le supplément seul, pas les plats dont le nom le contient.
+  const ligne = tablette.locator(".tab-plats li").filter({ hasText: new RegExp(`^${supplement}\\s*Supplément`) });
   await ligne.getByRole("button", { name: "Disponible" }).click();
   await expect(ligne.getByRole("button", { name: "Épuisé" })).toBeVisible();
   const rep = await request.post("/api/commandes", {
     headers: ORIGINE,
     data: {
-      cle: `burrata-${Date.now()}`, mode: "retrait", moyen: "comptoir", quand: { type: "asap" }, heure: "2026-11-10T19:05",
+      cle: cle("rupture-supplement"), mode: "retrait", moyen: "comptoir", quand: { type: "asap" }, heure: "2026-11-10T19:05",
       client: { prenom: "Dora", nom: "Test", telephone: "079 000 00 00", email: "dora@laferme.test" },
-      lignes: [{ slug: "pizza-margherita", qte: 1, choix: { "supplements-pizza": ["Burrata"] }, retraits: [], note: "" }],
+      lignes: [{ slug: "pizza-margherita", qte: 1, choix: { "supplements-pizza": [supplement] }, retraits: [], note: "" }],
     },
   });
-  expect((await rep.json()).erreur).toContain("Burrata : épuisé pour aujourd'hui.");
+  expect((await rep.json()).erreur).toContain(`${supplement} : épuisé pour aujourd'hui.`);
   await ligne.getByRole("button", { name: "Épuisé" }).click();
   await expect(ligne.getByRole("button", { name: "Disponible" })).toBeVisible();
   await tablette.getByRole("button", { name: "Fermer les réglages" }).click();
@@ -139,15 +154,28 @@ test("supplément épuisé : refusé à la commande, puis revient", async ({ req
 
 test("rupture du jour : le plat est grisé sur la carte, puis revient", async ({ page }) => {
   await tablette.getByRole("button", { name: "Pause, délai, ruptures" }).click();
-  await tablette.getByLabel("Chercher un plat").fill("miss Italia");
-  const ligne = tablette.locator(".tab-plats li", { hasText: "Pizza Miss Italia" });
+  const { recherchePlat, plat, slug } = rupturesDuProjet();
+  await tablette.getByLabel("Chercher un plat").fill(recherchePlat);
+  const ligne = tablette.locator(".tab-plats li", { hasText: plat });
   await ligne.getByRole("button", { name: "Disponible" }).click();
   await expect(ligne.getByRole("button", { name: "Épuisé" })).toBeVisible();
   await page.addInitScript(() =>
     localStorage.setItem("laferme.choix.v1", JSON.stringify({ mode: "retrait", quand: { type: "asap" }, heureSimulee: "2026-11-10T19:05", enregistreLe: Date.now() })),
   );
-  await page.goto("/carte");
-  await expect(page.getByText("Épuisé pour aujourd'hui.").first()).toBeVisible();
+  // Le plat de ce projet, pas celui que l'autre projet a peut-être épuisé au même moment. La carte est en
+  // cache : un rendu commencé juste avant la rupture (par l'autre projet) et fini après la purge reste en
+  // cache jusqu'à sa régénération (revalidate = 60 s). On recharge jusque-là ; le serveur, lui, refuse le
+  // plat épuisé dès la rupture.
+  test.setTimeout(120_000);
+  await expect
+    .poll(
+      async () => {
+        await page.goto("/carte");
+        return page.locator(`li.plat[data-slug="${slug}"]`).innerText();
+      },
+      { timeout: 80_000, intervals: [1_000, 5_000] },
+    )
+    .toContain("Épuisé pour aujourd'hui.");
   await ligne.getByRole("button", { name: "Épuisé" }).click();
   await expect(ligne.getByRole("button", { name: "Disponible" })).toBeVisible();
   await tablette.getByRole("button", { name: "Fermer les réglages" }).click();

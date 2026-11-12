@@ -2,6 +2,10 @@ import { expect, test } from "@playwright/test";
 
 // Route lue par le service de disponibilité (docs/filet.md) : jamais en cache, aucune donnée personnelle.
 test("la route de santé répond 200 avec l'état de la base, de la surveillance et de la tablette", async ({ request }) => {
+  // Sur le poste et sur GitHub, la base embarquée démarre à sa première lecture (migrations rejouées : 2 s à
+  // vide, plus de 5 s sous charge) et la route répondait 503. Une première lecture la démarre ; Supabase,
+  // lui, tourne déjà.
+  await expect.poll(async () => (await request.get("/api/sante")).status(), { timeout: 30_000 }).toBe(200);
   const r = await request.get("/api/sante");
   expect(r.status()).toBe(200);
   expect(r.headers()["cache-control"]).toBe("no-store");

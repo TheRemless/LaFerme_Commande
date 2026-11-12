@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export function BoutonsTest({ commande }: { commande: string }) {
   const [envoi, setEnvoi] = useState(false);
+  // Boutons inactifs jusqu'à la prise en main par React : un clic plus tôt ne faisait rien (même cas que FormCode).
+  const [pret, setPret] = useState(false);
+  useEffect(() => setPret(true), []);
   async function issue(i: "paye" | "echec") {
     setEnvoi(true);
     const r = (await (await fetch("/api/paiement-test", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ commande, issue: i }) })).json()) as {
@@ -14,10 +17,10 @@ export function BoutonsTest({ commande }: { commande: string }) {
   }
   return (
     <div className="boutons-test">
-      <button type="button" className="bouton-principal" disabled={envoi} onClick={() => issue("paye")}>
+      <button type="button" className="bouton-principal" disabled={!pret || envoi} onClick={() => issue("paye")}>
         Simuler un paiement réussi
       </button>
-      <button type="button" className="bouton-second" disabled={envoi} onClick={() => issue("echec")}>
+      <button type="button" className="bouton-second" disabled={!pret || envoi} onClick={() => issue("echec")}>
         Simuler un refus de la banque
       </button>
     </div>

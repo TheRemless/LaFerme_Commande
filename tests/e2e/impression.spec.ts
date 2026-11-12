@@ -25,15 +25,19 @@ test.afterAll(async () => {
   await gerant?.dispose();
 });
 
-// Le faux client interroge jusqu'à trouver un ticket (ou abandonne).
-async function attendreTicket(request: APIRequestContext): Promise<string> {
-  for (let i = 0; i < 20; i++) {
+// Le faux client interroge jusqu'à trouver le ticket de cette commande (ou abandonne). La file est commune à
+// toute la base : une commande acceptée par tablette.spec.ts en même temps sort aussi sur cette imprimante.
+// Comme une vraie imprimante, le faux client imprime ces tickets-là (DELETE 200 OK) et continue.
+async function attendreTicket(request: APIRequestContext, marque: RegExp): Promise<string> {
+  for (let i = 0; i < 40; i++) {
     const r = await request.post(url, { headers: { "X-Star-Mac": MAC }, data: { statusCode: "200%20OK", printerMAC: MAC, status: "23 6 0 0 0 0 0 0 0 " } });
     expect(r.status()).toBe(200);
     const j = await r.json();
     if (j.jobReady) {
       expect(j.mediaTypes).toContain("image/png");
-      return j.jobToken;
+      if (marque.test(await (await request.get(`${url}?type=text/plain&token=${j.jobToken}&mac=${MAC}`)).text())) return j.jobToken;
+      expect((await request.delete(`${url}?code=200%20OK&token=${j.jobToken}&mac=${MAC}`)).status()).toBe(200);
+      continue;
     }
     await new Promise((ok) => setTimeout(ok, 300));
   }
@@ -57,7 +61,7 @@ test("une commande acceptée sort à l'imprimante pizza : POST, GET image/png, D
   const c = file.commandes.find((x: { client_prenom: string; statut: string }) => x.client_prenom === "Zoé" && x.statut === "nouvelle");
   expect((await gerant.post("/api/tablette/action", { data: { commande: c.id, action: "accepter", heure: c.heure_proposee } })).ok()).toBe(true);
 
-  const jeton = await attendreTicket(request);
+  const jeton = await attendreTicket(request, /oeuf a part/);
   // Un autre appareil avec la même adresse est refusé.
   expect((await request.get(`${url}?type=image/png&token=${jeton}&mac=00:11:62:99:99:99`)).status()).toBe(404);
   const png = await request.get(`${url}?type=image/png&token=${jeton}&mac=${MAC}`);
@@ -78,7 +82,7 @@ test("une commande acceptée sort à l'imprimante pizza : POST, GET image/png, D
 
   // Réimpression : un nouveau ticket marqué « RÉIMPRESSION ».
   expect((await gerant.post("/api/tablette/action", { data: { commande: c.id, action: "reimprimer" } })).ok()).toBe(true);
-  const j2 = await attendreTicket(request);
+  const j2 = await attendreTicket(request, /^REIMPRESSION[\s\S]*oeuf a part/);
   expect(await (await request.get(`${url}?type=text/plain&token=${j2}&mac=${MAC}`)).text()).toMatch(/^REIMPRESSION/);
   await request.delete(`${url}?code=200%20OK&token=${j2}&mac=${MAC}`);
 });

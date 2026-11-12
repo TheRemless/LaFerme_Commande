@@ -4,7 +4,7 @@ Ce qui empêche une erreur de partir en ligne, ce qui prévient quand quelque ch
 
 ## 1. Vérifications GitHub (intégration continue)
 
-`.github/workflows/verifications.yml`, à chaque PR vers `main`, à chaque fusion dans `main` et à la demande. Aucun secret : rien ne parle à Supabase, Stripe ni Resend.
+`.github/workflows/verifications.yml`, à chaque PR vers `main` (sauf brouillon ou fichiers `.md` seuls), à chaque fusion dans `main` (lint, types et Vitest seulement) et à la demande. Détail et raisons : section 4. Aucun secret : rien ne parle à Supabase, Stripe ni Resend.
 
 | Job | Contenu |
 |---|---|
@@ -29,6 +29,13 @@ Corrigés dans ce lot, après reproduction sur le poste ou sur GitHub :
 | Tablette : « une commande arrive, on l'accepte… » (mobile) | l'imprimante créée par `impression.spec.ts` passe « hors ligne » et ajoute un second bandeau `.tab-attente` : le test dépendait de l'ordre des fichiers | le test cherche le bandeau « à accepter ». Vert après `impression.spec.ts`, un seul processus |
 | Axe de la tablette connectée, `document-title` (le test signalé avant ce lot, vu par quatre sessions) | reproduit sur le poste (3 échecs sur 10, le fichier lancé seul) avec un observateur des `<title>` : Next 15 envoyait le titre en flux dans `<body>` ; au `router.refresh()` de la connexion, il le retirait parfois sans le remettre. La tablette connectée restait sans titre pour de bon. Défaut du site, pas du test | métadonnées écrites dans `<head>` pour tous (`htmlLimitedBots: /.*/`, `next.config.ts`, PR à part). 12 sur 12 ensuite. Aucune page ne calcule ses métadonnées : rien de plus lent. Le test vérifie le titre avant axe |
 | Tests e2e de deux worktrees en même temps | port 3200 fixe | `PORT_E2E` (CLAUDE.md, Commandes) |
+| Tablette : « supplément épuisé » (bureau ou mobile, 4 tours sur 6 le 12.11.2026) | bureau et mobile tournent en même temps contre la même base et épuisaient le même supplément (Burrata). L'un le remettait « Disponible » pendant que l'autre attendait « Épuisé », et la liste de la tablette ne se relit qu'après ses propres gestes | chaque projet a son supplément et son plat (`RUPTURES` dans `tablette.spec.ts`) |
+| Tablette : « refus d'une commande payée en ligne » (1 tour sur 6), « Cette commande a déjà changé » | clé d'idempotence `tablette-Bruno-<milliseconde>` : à la même milliseconde, le serveur renvoyait la même commande aux deux projets, et la seconde tablette la trouvait déjà refusée | clé avec le projet et un tirage au hasard |
+| Tablette : « rupture du jour », plat pas grisé sur `/carte` (2 tours sur 10, vu une fois l'assertion resserrée sur le plat du projet) | la carte est en cache. Un rendu commencé avant la rupture et fini après la purge reste en cache jusqu'à sa régénération (`revalidate = 60`). Avant, le test acceptait n'importe quel plat épuisé, celui de l'autre projet compris | le test recharge la carte jusqu'à voir son plat épuisé (80 s au plus). Côté client, retard d'une minute au pire ; le serveur refuse le plat épuisé dès la rupture |
+| Impression : file commune avec la tablette | une commande acceptée par `tablette.spec.ts` sort aussi sur l'imprimante de test : le faux client pouvait prendre ce ticket-là pour celui de sa commande. Pas reproduit en 16 tours, déduit de la file (premier arrivé, premier servi) | le faux client imprime les tickets des autres commandes et attend le sien (« oeuf a part ») |
+| Commande : « paiement en ligne réussi », CM-04 « paiement refusé » (bureau et mobile ensemble, 2 tours sur 2 sur un serveur juste démarré) | page de paiement de test : « Simuler un paiement réussi » ou « refusé » cliqué avant la prise en main par React, le clic ne faisait rien. Même cas que `FormCode` | boutons inactifs jusqu'à la prise en main (`BoutonsTest.tsx`, page des préversions seulement) |
+| Filet : « la route de santé répond 200 » (3 passages sur 3 sur un serveur juste démarré) | la base embarquée démarre à sa première lecture (2 s à vide, plus de 5 s sous charge) : `/api/sante` dépassait son seuil de 5 s et répondait 503. Rien de tel avec Supabase | le test attend un premier 200 (30 s au plus) avant ses vérifications |
+| `compte.spec:66`, signalé le 12.11.2026 | numéro de ligne d'avant #32 : c'est « commande en invité… » (ligne 68 aujourd'hui), corrigé par #32. Branche pas rebasée | aucune ; vert sur 26 tours ici |
 
 Reste sensible à la charge du poste : sous une charge de 33 (neuf sessions), une commande a mis plus de 5 secondes à répondre. Sur GitHub, le délai d'attente des tests est de 10 secondes (runner à deux processeurs).
 
@@ -120,7 +127,25 @@ Plan Free, dépôt privé : 2 000 minutes par mois (github.com/pricing). Chaque 
 
 Hypothèses : en construction, une vingtaine de PR par mois avec trois pushes chacune, plus une fusion chacune, soit 80 passages : 480 minutes, environ 700 avec la sauvegarde et Dependabot, un tiers du quota. Après le lancement, une dizaine de PR (40 passages) : environ 450 minutes par mois.
 
-Cette semaine, avec neuf sessions qui ouvrent chacune plusieurs PR par jour, le quota peut être atteint avant la fin du mois. Suivi : github.com/settings/billing, rubrique Actions. Si besoin, passer les vérifications de `main` en manuel (elles redoublent celles de la PR, rebasée juste avant la fusion).
+**Le quota est celui du compte, pas du dépôt.** Le 12.11.2026 à 07:47 UTC, GitHub a cessé de lancer les jobs (« recent account payments have failed or your spending limit needs to be increased »). Relevé des jobs du 1er au 12 novembre, API GitHub, chaque job arrondi à la minute, tous sur Linux :
+
+| Dépôt, flux | Passages | Minutes |
+|---|---|---|
+| Secrettravelandtour, CI | 107 | 1 154 |
+| Site_Anais, CI | 157 | 354 |
+| Site_Anais, IndexNow (à chaque push) | 95 | 285 |
+| Site_Anais, taux de change | 11 | 13 |
+| LaFerme_Commande, Vérifications et Dependabot | 40 | 237 |
+| **Total** | 410 | **2 043** |
+
+Ce dépôt a pris 12 % du quota, à 6,2 minutes par passage comme estimé. 759 minutes ont été consommées le 12 novembre seul. Le compteur exact (et sa date de remise à zéro) n'est lisible que dans github.com/settings/billing : l'API demande un droit que la session n'a pas.
+
+Réglages du flux depuis ce relevé, pour tenir le quota :
+
+- une PR en brouillon ne lance rien ; « Ready for review » lance les vérifications ;
+- une PR qui ne touche que des fichiers `.md` ou `maquette/` ne lance rien (les tests lisent `docs/carte-proposee.json` et `docs/validation-carte.xlsx`, qui déclenchent donc les vérifications) ;
+- après une fusion, `main` ne repasse que lint, types et Vitest (2 minutes au lieu de 6) : Playwright a tourné sur la PR. Il se relance à la main (Actions, Vérifications, Run workflow) ;
+- un nouveau push sur une PR annule le passage en cours (déjà en place).
 
 ### Netlify
 

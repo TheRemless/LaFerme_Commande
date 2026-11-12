@@ -29,6 +29,12 @@ updates:
         update-types: [version-update:semver-major]
       - dependency-name: react-dom
         update-types: [version-update:semver-major]
+      # ESLint et TypeScript suivent Next : eslint-config-next 15 demande ESLint 9 au plus, typescript-eslint
+      # TypeScript < 6.1 (npm view, 12.11.2026). Fermé : PR #37 (ESLint 10, TypeScript 7).
+      - dependency-name: eslint
+        update-types: [version-update:semver-major]
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
       # Version de Node figée sur celle de Netlify (netlify.toml, NODE_VERSION = 22).
       - dependency-name: "@types/node"
         update-types: [version-update:semver-major]
