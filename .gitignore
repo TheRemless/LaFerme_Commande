@@ -24,3 +24,9 @@ next-env.d.ts
 
 # Local Netlify folder
 .netlify
+
+# Copies de la base et clé de sauvegarde (docs/sauvegardes.md) : jamais dans le dépôt.
+*.dump
+*.dump.age
+*.empreinte.txt
+laferme-cle-sauvegarde*.txt

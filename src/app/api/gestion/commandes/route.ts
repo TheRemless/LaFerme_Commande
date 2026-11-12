@@ -47,7 +47,9 @@ export async function POST(requete: Request) {
     if (m.length < 3 || m.length > 200) return refus("Écrivez un motif (3 à 200 caractères). Le client le reçoit par e-mail.");
     if (typeof c.cle !== "string" || !/^[A-Za-z0-9-]{8,80}$/.test(c.cle)) return refus("Rechargez la fiche de la commande.");
     const r = await rembourserApresCoup(c.id, montant, /[.!?]$/.test(m) ? m : `${m}.`, c.cle, g.personnel.id);
-    return NextResponse.json(r, { status: r.ok ? 200 : 409, ...sansCache });
+    // Réponse ambiguë de Stripe : 503, pour que la fiche garde sa clé (un nouvel essai reprend le même
+    // remboursement au lieu d'en créer un second ; audit de sécurité 2, S2-04).
+    return NextResponse.json(r, { status: r.ok ? 200 : r.enCours ? 503 : 409, ...sansCache });
   }
   return refus("Action inconnue.");
 }
