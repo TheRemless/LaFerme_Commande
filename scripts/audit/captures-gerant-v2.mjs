@@ -44,7 +44,10 @@ const navigateur = await chromium.launch({ channel: "chrome" });
   await carte.waitFor();
   if (apres) {
     await carte.getByRole("button", { name: "Il manque…" }).click();
-    await carte.getByRole("button", { name: "1 × Pasta al pesto" }).click();
+    // Une pizza sur deux : on coche la ligne, puis −1 (remarque de la session principale).
+    await carte.getByRole("button", { name: "2 × Pizza Margherita" }).click();
+    await carte.getByRole("button", { name: "Une Pizza Margherita de moins" }).click();
+    await carte.getByRole("button", { name: "1 × Pizza Margherita" }).waitFor();
     await carte.getByRole("button", { name: "Calculer le montant" }).click();
     await carte.getByText(/^À rembourser/).waitFor();
   }
