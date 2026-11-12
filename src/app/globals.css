@@ -1079,6 +1079,11 @@ body.fiche-ouverte {
   .fiche-corps {
     flex: 1 0 auto;
   }
+  /* La fiche défile : ni la photo ni la barre d'ajout ne doivent rétrécir quand le contenu est long. */
+  .fiche-media,
+  .fiche-pied {
+    flex-shrink: 0;
+  }
 }
 .fiche-sans-photo {
   display: none;
