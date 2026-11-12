@@ -33,6 +33,8 @@ const nextConfig: NextConfig = {
     CONTEXTE_DEPLOIEMENT: process.env.CONTEXT ?? "local",
     // Adresse publique pour les liens absolus (méta, plan du site, Schema.org) : src/lib/site.ts.
     ADRESSE_SITE: process.env.URL_SITE ?? process.env.DEPLOY_PRIME_URL ?? "http://localhost:3000",
+    // Commit publié (Netlify fournit COMMIT_REF au build) : affiché par /api/sante pour reconnaître une version.
+    VERSION_SITE: process.env.COMMIT_REF?.slice(0, 7) ?? "",
   },
 };
 

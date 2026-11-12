@@ -10,6 +10,10 @@ const SUPABASE = path.join(process.cwd(), "supabase");
 
 export async function creerBaseLocale(): Promise<PGlite> {
   const { PGlite } = await import("@electric-sql/pglite");
+  // Tests : copie d'une base déjà migrée, faite une fois par passage de Vitest (tests/unit/instantane-base.ts).
+  // Rejouer toutes les migrations dans chaque fichier de test, en parallèle, dépassait le délai des hooks.
+  const instantane = process.env.BASE_LOCALE_INSTANTANE;
+  if (instantane) return PGlite.create({ loadDataDir: new Blob([await readFile(instantane)]) });
   const db = new PGlite();
   await db.exec(await readFile(path.join(SUPABASE, "local", "roles.sql"), "utf8"));
   const migrations = (await readdir(path.join(SUPABASE, "migrations"))).filter((f) => f.endsWith(".sql")).sort();

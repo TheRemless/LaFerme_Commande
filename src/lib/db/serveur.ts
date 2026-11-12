@@ -57,6 +57,21 @@ async function rpc<T>(nom: string, args: Record<string, unknown>, sqlLocal: stri
   return res.rows as T;
 }
 
+// Heures du dernier tour de surveillance et du dernier signe de vie de la tablette (route de santé).
+export async function lireEtatSurveillance(): Promise<{ surveillance_le: string | null; tablette_vue_le: string | null }> {
+  const s = supabaseServeur();
+  if (s) {
+    const { data, error } = await s.from("surveillance_etat").select("surveillance_le, tablette_vue_le").limit(1).single();
+    if (error) throw new Error(`surveillance_etat : ${error.message}`);
+    return data;
+  }
+  const db = await baseLocale();
+  const res = await db.query<{ surveillance_le: Date | null; tablette_vue_le: Date | null }>("select surveillance_le, tablette_vue_le from surveillance_etat limit 1");
+  const r = res.rows[0];
+  const iso = (d: Date | null | undefined) => (d ? new Date(d).toISOString() : null);
+  return { surveillance_le: iso(r?.surveillance_le), tablette_vue_le: iso(r?.tablette_vue_le) };
+}
+
 // Appelle une fonction SQL qui renvoie une seule valeur (jsonb, entier, booléen ou rien).
 // Les arguments sont passés par leur nom, dans les deux bases.
 export async function fonctionSql<T>(nom: string, args: Record<string, unknown>): Promise<T> {

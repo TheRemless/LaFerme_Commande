@@ -11,6 +11,9 @@ export default defineConfig({
   },
   test: {
     include: ["tests/unit/**/*.test.ts"],
+    globalSetup: ["tests/unit/instantane-base.ts"],
     testTimeout: 30000,
+    // La base embarquée se recharge dans les hooks : 10 s par défaut ne suffit pas sur un poste chargé.
+    hookTimeout: 60000,
   },
 });

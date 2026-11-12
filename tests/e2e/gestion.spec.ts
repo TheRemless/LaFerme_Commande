@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { SITE } from "./site";
 
 // Back-office : réservé au gérant. Un gérant de test par projet (supabase/local/donnees-test.sql).
 // L'import est seulement prévisualisé ici : l'appliquer changerait des prix pendant les autres tests
@@ -18,7 +19,7 @@ async function connecter(page: Page, email: string) {
 }
 
 test.beforeAll(async ({ browser }, info) => {
-  gestion = await browser.newPage({ baseURL: "http://localhost:3200" });
+  gestion = await browser.newPage({ baseURL: SITE });
   await connecter(gestion, `gerant-${info.project.name}@laferme.test`);
   await expect(gestion.getByRole("heading", { name: "Back-office" })).toBeVisible();
 });
@@ -76,7 +77,7 @@ test("une zone se valide, les horaires et les fermetures s'affichent", async () 
 
 // Audit du gérant, G02 et G04 : une commande livrée se retrouve par le nom et se rembourse en partie.
 test("une commande passée se retrouve et se rembourse en partie", async ({}, info) => {
-  const ORIGINE = { Origin: "http://localhost:3200" };
+  const ORIGINE = { Origin: SITE };
   const prenom = `Remb${info.project.name}`;
   const rep = await gestion.request.post("/api/commandes", {
     headers: ORIGINE,
@@ -145,11 +146,11 @@ test("le back-office est fermé au personnel de service, aux clients et aux autr
   expect((await request.get("/api/gestion/carte")).status()).toBe(401);
   expect((await request.get("/api/gestion/export?debut=2026-01-01&fin=2026-12-31")).status()).toBe(401);
   // Équipe et commandes passées : gérant seulement, requête du site seulement (audit du gérant).
-  const commeService = { Cookie: `laferme-personnel=${service.value}`, Origin: "http://localhost:3200" };
+  const commeService = { Cookie: `laferme-personnel=${service.value}`, Origin: SITE };
   expect((await request.get("/api/gestion/personnel", { headers: commeService })).status()).toBe(403);
   expect((await request.post("/api/gestion/personnel", { headers: commeService, data: { action: "ajouter", email: "x@y.ch", nom: "X", role: "gerant" } })).status()).toBe(403);
   expect((await request.post("/api/gestion/commandes", { headers: commeService, data: { action: "liste" } })).status()).toBe(403);
-  expect((await request.post("/api/gestion/commandes", { headers: { Origin: "http://localhost:3200" }, data: { action: "liste" } })).status()).toBe(401);
+  expect((await request.post("/api/gestion/commandes", { headers: { Origin: SITE }, data: { action: "liste" } })).status()).toBe(401);
   const gerant = (await gestion.context().cookies()).find((c) => c.name === "laferme-personnel")!;
   const pirate = await request.post("/api/gestion/carte", {
     headers: { Origin: "https://pirate.example", Cookie: `laferme-personnel=${gerant.value}` },
