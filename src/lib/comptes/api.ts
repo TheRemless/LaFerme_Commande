@@ -9,8 +9,12 @@ export function refus(message: string, status = 422) {
 
 export function attenteTexte(secondes: number): string {
   if (secondes < 60) return `Trop d'essais. Réessayez dans ${secondes} seconde${secondes > 1 ? "s" : ""}.`;
-  const m = Math.ceil(secondes / 60);
-  return `Trop d'essais. Réessayez dans ${m} minute${m > 1 ? "s" : ""}.`;
+  if (secondes < 2 * 3600) {
+    const m = Math.ceil(secondes / 60);
+    return `Trop d'essais. Réessayez dans ${m} minute${m > 1 ? "s" : ""}.`;
+  }
+  // Plafond du jour atteint (quinze essais faux) : jusqu'à 24 heures.
+  return `Trop d'essais. Réessayez dans ${Math.ceil(secondes / 3600)} heures ou appelez-nous au 022 792 16 89.`;
 }
 
 export async function corpsJson(requete: Request): Promise<Record<string, unknown> | null> {

@@ -1,5 +1,6 @@
 import "server-only";
 import Stripe from "stripe";
+import { baseDeTest } from "@/lib/environnement";
 
 // Paiement en ligne. Stripe Checkout en vrai (TWINT, cartes, Apple Pay et Google Pay selon ce qui est
 // activé dans le tableau de bord Stripe). Sans clé Stripe, hors production : une doublure qui simule la
@@ -41,6 +42,11 @@ export function clientStripe(): Stripe | null {
   const enProduction = process.env.CONTEXTE_DEPLOIEMENT === "production";
   if (!enProduction && !cle.startsWith("sk_test_") && !cle.startsWith("rk_test_")) {
     throw new Error("Clé Stripe de production refusée hors production.");
+  }
+  // Une préversion qui écrit dans la vraie base ne prend aucun paiement, même de test : la carte 4242
+  // y créerait une commande « payée » sur la vraie tablette (audit de sécurité, S2).
+  if (!enProduction && !baseDeTest()) {
+    throw new Error("Paiement refusé : cette préversion écrit dans la vraie base (BASE_DE_TEST=1 pour un projet de test).");
   }
   stripe ??= new Stripe(cle);
   return stripe;
@@ -109,5 +115,32 @@ export function passerelle(): Passerelle {
   const s = clientStripe();
   if (s) return passerelleStripe(s);
   if (process.env.CONTEXTE_DEPLOIEMENT === "production") throw new Error("STRIPE_SECRET_KEY manquante en production.");
+  if (!baseDeTest()) throw new Error("Paiement simulé refusé : cette préversion écrit dans la vraie base (BASE_DE_TEST=1 pour un projet de test).");
   return passerelleDoublure;
+}
+
+// Le paiement en ligne est-il possible ici ? Sans lever d'erreur, pour les pages et les contrôles.
+export function paiementDisponible(): boolean {
+  try {
+    passerelle();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// La doublure est-elle la passerelle de ce déploiement ?
+export function doublureActive(): boolean {
+  if (process.env.CONTEXTE_DEPLOIEMENT === "production") return false;
+  try {
+    return passerelle().nom === "doublure";
+  } catch {
+    return false;
+  }
+}
+
+// Remboursement d'un paiement simulé (commande de test déjà payée par la doublure) : aucun argent n'a
+// circulé, rien à demander à Stripe ni à la passerelle du moment.
+export function remboursementSimule(paymentIntent: string): { id: string } | null {
+  return paymentIntent.startsWith("pi_doublure_") ? { id: `re_doublure_${paymentIntent}` } : null;
 }

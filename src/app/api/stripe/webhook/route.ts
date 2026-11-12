@@ -6,7 +6,13 @@ import { clientStripe } from "@/lib/paiement/passerelle";
 // Webhook Stripe : seule source qui confirme un paiement (avec la réconciliation, qui relit Stripe).
 // Signature vérifiée sur le corps brut. Chaque événement n'est appliqué qu'une fois (appliquer_paiement).
 export async function POST(requete: Request) {
-  const stripe = clientStripe();
+  let stripe: ReturnType<typeof clientStripe>;
+  try {
+    stripe = clientStripe();
+  } catch {
+    // Clé refusée ici (préversion sur la vraie base, clé live hors production) : rien n'est appliqué.
+    return NextResponse.json({ erreur: "Webhook non configuré." }, { status: 503 });
+  }
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!stripe || !secret) return NextResponse.json({ erreur: "Webhook non configuré." }, { status: 503 });
 

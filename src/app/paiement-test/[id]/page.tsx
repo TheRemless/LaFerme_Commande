@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { EnTete } from "@/components/EnTete";
 import { BoutonsTest } from "@/components/suivi/BoutonsTest";
 import { commandeParId } from "@/lib/db/serveur";
-import { passerelle } from "@/lib/paiement/passerelle";
+import { doublureActive } from "@/lib/paiement/passerelle";
 import { prixChf } from "@/lib/prix";
 import { PRIVE } from "@/lib/site";
 
@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "Paiement de test, La Ferme", robots:
 
 // Doublure de la page Stripe, pour les préversions sans compte Stripe. N'existe pas en production.
 export default async function PaiementTest({ params }: { params: Promise<{ id: string }> }) {
-  if (process.env.CONTEXTE_DEPLOIEMENT === "production" || passerelle().nom !== "doublure") notFound();
+  if (!doublureActive()) notFound();
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const c = await commandeParId(id);

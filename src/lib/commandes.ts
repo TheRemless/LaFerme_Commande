@@ -3,7 +3,7 @@ import { chargerCatalogue } from "@/lib/catalogue";
 import { courrielConfirmation, courrielRemboursement } from "@/lib/courriel/modeles";
 import { envoyerCourriel } from "@/lib/courriel/envoi";
 import { appliquerPaiement, commandeParId, type Commande } from "@/lib/db/serveur";
-import { passerelle } from "@/lib/paiement/passerelle";
+import { paiementDisponible, passerelle, remboursementSimule } from "@/lib/paiement/passerelle";
 import { signalerTablette } from "@/lib/tablette";
 
 // Ce qui suit un événement de paiement. Une seule source de vérité : appliquer_paiement en base,
@@ -55,7 +55,7 @@ export async function confirmerCommandeComptoir(commandeId: string): Promise<voi
 // Réconciliation : au retour du client ou à chaque affichage du suivi tant que le paiement est en attente,
 // on relit la session chez Stripe. Rattrape un webhook en retard, perdu ou absent (previews).
 export async function reconcilier(c: Commande): Promise<Commande> {
-  if (c.statut_paiement !== "en_attente" || !c.stripe_session_id) return c;
+  if (c.statut_paiement !== "en_attente" || !c.stripe_session_id || !paiementDisponible()) return c;
   const p = passerelle();
   if (p.nom !== "stripe") return c;
   const etat = await p.lireSession(c.stripe_session_id);
@@ -77,7 +77,7 @@ export async function reconcilier(c: Commande): Promise<Commande> {
 export async function rembourserCommande(commandeId: string, motif: string): Promise<{ rembourse: boolean }> {
   const c = await commandeParId(commandeId);
   if (!c || c.moyen_paiement !== "en_ligne" || c.statut_paiement !== "paye" || !c.stripe_payment_intent) return { rembourse: false };
-  const r = await passerelle().rembourser(c.stripe_payment_intent);
+  const r = remboursementSimule(c.stripe_payment_intent) ?? (await passerelle().rembourser(c.stripe_payment_intent));
   const applique = await appliquerPaiement(`remboursement:${r.id}`, c.id, "rembourse");
   if (applique) {
     const m = courrielRemboursement(c, motif);

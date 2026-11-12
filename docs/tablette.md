@@ -37,4 +37,4 @@ update personnel set actif = false where email = 'prenom@exemple.ch';
 ## Risques assumés
 
 - Le canal Realtime `tablette` est public : un tiers peut y envoyer des messages vides, qui font seulement relire la file. Aucune donnée n'y passe.
-- Le membre de test `equipe@laferme.test` est dans la base de production pour les préversions. À retirer avant la mise en ligne (liste du lot 8).
+- Le membre de test `equipe@laferme.test` n'existe plus que dans la base embarquée (`supabase/local/donnees-test.sql`). La migration `20261112090000_correctifs_securite.sql` le retire de la vraie base avec ses sessions. Sur une préversion branchée sur la vraie base, la connexion du personnel attend Resend.
