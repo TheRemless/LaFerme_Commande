@@ -116,9 +116,11 @@ describe("ajouter un plat", () => {
   it("ne peut pas repasser incomplet une fois en vente, mais la rupture de la tablette passe", async () => {
     await f("ajouter_plat($1, $2)", [{ ...COMPLET, commandable: true }, gerant]);
     expect(await erreur("modifier_plat('risotto-essai', $1, $2)", [{ allergenes: "" }, gerant])).toContain("plat_incomplet");
-    expect(await erreur("modifier_plat('risotto-essai', $1, $2)", [{ prix_centimes: 1500 }, gerant])).toContain("plat_incomplet: prix à valider");
+    // Nouveau prix sans validation : le plat sort de la vente (audit de sécurité 2, S2-02), puis revient validé.
+    expect((await f<{ commandable: boolean }>("modifier_plat('risotto-essai', $1, $2)", [{ prix_centimes: 1500 }, gerant])).commandable).toBe(false);
     // Avec « Prix validé », le nouveau prix passe.
     await f("modifier_plat('risotto-essai', $1, $2)", [{ prix_centimes: 1500, prix_valide: true }, gerant]);
+    expect((await plat("risotto-essai")).commandable).toBe(true);
     expect(await f<boolean>("regler_rupture('risotto-essai', true, $1)", [service])).toBe(true);
     // Un supplément à valider ajouté à un plat en vente est refusé.
     expect(await erreur("modifier_plat('risotto-essai', $1, $2)", [{ groupes: ["supplements-pizza"] }, gerant])).toContain("plat_incomplet: supplément à valider");

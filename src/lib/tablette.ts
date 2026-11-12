@@ -152,9 +152,12 @@ export async function agir(commandeId: string, a: Action, p: Personnel): Promise
       break;
     case "refuser": {
       // Livraison partie (client absent, adresse introuvable) : fonction à part, le livreur le lit sur son téléphone.
+      // Annuler une livraison partie rembourse tout : gérant seulement, revérifié en base (audit de sécurité 2, S2-01).
+      if (avant.statut === "partie" && p.role !== "gerant") return { ok: false, message: "Livraison partie : seul le gérant peut l'annuler. Client absent : onglet Livraisons." };
       ok =
         avant.statut === "partie"
-          ? (a.de === undefined || a.de === "partie") && (await fonctionSql<boolean>("annuler_commande_partie", { p_commande: commandeId, p_par: par, p_motif: a.motif }))
+          ? (a.de === undefined || a.de === "partie") &&
+            (await fonctionSql<boolean>("annuler_commande_partie", { p_commande: commandeId, p_par: par, p_motif: a.motif, p_personnel: p.id }))
           : await changerStatut(commandeId, "refusee", par, { motif: a.motif, de: a.de });
       if (!ok) break;
       // Commande déjà acceptée : la cuisine a peut-être son ticket. Les tickets en file partent, et chaque

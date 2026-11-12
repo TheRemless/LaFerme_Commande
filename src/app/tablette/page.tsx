@@ -26,7 +26,7 @@ export default async function PageTablette() {
           </a>
         </div>
       ) : (
-        <Tablette nom={personnel.nom} supabase={url && cle ? { url, cle } : null} />
+        <Tablette nom={personnel.nom} gerant={personnel.role === "gerant"} supabase={url && cle ? { url, cle } : null} />
       )}
     </main>
   );

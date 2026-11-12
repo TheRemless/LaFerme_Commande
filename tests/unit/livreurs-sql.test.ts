@@ -192,9 +192,12 @@ describe("gestes", () => {
     // La tablette annule une commande partie (client absent, remboursement) : permis désormais.
     // changer_statut (partagée) ne le permet toujours pas : fonction à part.
     expect(await f<boolean>("changer_statut($1, 'refusee', 'tablette:Test', null, 'Client absent.', 'partie')", [c])).toBe(false);
-    expect(await f<boolean>("annuler_commande_partie($1, 'tablette:Test', '  ')", [c])).toBe(false);
-    expect(await f<boolean>("annuler_commande_partie($1, 'tablette:Test', 'Client absent.')", [c])).toBe(true);
-    expect(await f<boolean>("annuler_commande_partie($1, 'tablette:Test', 'Client absent.')", [c])).toBe(false);
+    // Gérant seulement (audit de sécurité 2, S2-01).
+    const g = await id("equipe@laferme.test");
+    await expect(f<boolean>("annuler_commande_partie($1, 'tablette:Test', 'Client absent.', $2)", [c, await id("livraison@laferme.test")])).rejects.toThrow(/Réservé au gérant/);
+    expect(await f<boolean>("annuler_commande_partie($1, 'tablette:Test', '  ', $2)", [c, g])).toBe(false);
+    expect(await f<boolean>("annuler_commande_partie($1, 'tablette:Test', 'Client absent.', $2)", [c, g])).toBe(true);
+    expect(await f<boolean>("annuler_commande_partie($1, 'tablette:Test', 'Client absent.', $2)", [c, g])).toBe(false);
     const m = await liste(marco);
     expect(m.livraisons.map((x) => x.commande_id)).toEqual([autre]);
     expect(m.retirees).toEqual([{ commande_id: c, numero: expect.any(Number), raison: "annulee", partie: true }]);

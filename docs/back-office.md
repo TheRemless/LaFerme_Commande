@@ -18,7 +18,7 @@ Adresse : `/gestion` (non indexée). Réservé au rôle `gerant` de la table `pe
 
 ## Règles
 
-- Un prix changé sans cocher « Prix validé » repart à valider. Le build de production reste bloqué tant qu'un plat commandable a un prix, un allergène, une provenance, un supplément ou des retraits à valider.
+- Un prix changé décoche « Prix validé ». Enregistré sans le recocher, il repart à valider : un plat qui était en vente au prix validé sort de la vente et y revient seul quand le prix est validé (audit de sécurité 2, S2-02). Un prix à 0 est refusé. Le build de production reste bloqué tant qu'un plat commandable a un prix, un allergène, une provenance, un supplément ou des retraits à valider.
 - L'import ne lit que les cases jaunes. Une case vide ne change rien. Tout passe ou rien ne passe.
 - Les textes affichés aux clients (noms, descriptions, provenances, allergènes) sont ceux que le gérant saisit. Le site n'en invente aucun.
 - Chaque écriture passe par une fonction SQL qui vérifie que l'auteur est un gérant actif, puis journalise.

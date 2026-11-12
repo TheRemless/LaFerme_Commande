@@ -33,7 +33,8 @@ export function champsPlat(v: unknown): Resultat<Record<string, unknown>> {
   }
   if ("prix" in c) {
     const x = centimes(c.prix);
-    if (x === null) return { ok: false, erreur: "Prix invalide : un montant en francs, par exemple 18 ou 4.50." };
+    // Un plat n'est jamais gratuit : 0 est une faute de frappe (audit de sécurité 2, S2-10). Une option peut l'être.
+    if (x === null || x === 0) return { ok: false, erreur: "Prix invalide : un montant en francs plus grand que zéro, par exemple 18 ou 4.50." };
     p.prix_centimes = x;
   }
   if ("prix_valide" in c) {

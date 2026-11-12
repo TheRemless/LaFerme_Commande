@@ -20,4 +20,6 @@ insert into personnel (email, nom, role) values
 insert into personnel (email, nom, role) values
   ('livraison@laferme.test', 'Test livraison', 'service'),
   ('marco@laferme.test', 'Marco', 'livreur'),
-  ('ines@laferme.test', 'Inès', 'livreur');
+  ('ines@laferme.test', 'Inès', 'livreur'),
+  -- Annuler une livraison partie : gérant seulement (audit de sécurité 2, S2-01), tests/e2e/livreurs.spec.ts.
+  ('gerant-livraison@laferme.test', 'Gérant livraison', 'gerant');

@@ -17,7 +17,7 @@ Aucun constat bloquant. La vague a été construite avec le même modèle de sé
 
 Trois constats importants demandent une décision de Jérémy (S2-01, S2-02) ou un travail moyen avant d'ouvrir TWINT (S2-03). Les autres, petits et sûrs, sont corrigés dans la même PR que ce rapport.
 
-## Décisions attendues de Jérémy
+## Décisions de Jérémy (12.11.2026 : les cinq recommandations validées, mises en place par la PR suivant cet audit)
 
 | Constat | Question | Recommandation |
 |---|---|---|
@@ -31,8 +31,8 @@ Trois constats importants demandent une décision de Jérémy (S2-01, S2-02) ou 
 
 | Constat | État | Ce qui a changé |
 |---|---|---|
-| S2-01 | décision de Jérémy | |
-| S2-02 | décision de Jérémy | |
+| S2-01 | corrigé | Décision de Jérémy du 12.11.2026. Annuler une livraison partie : gérant seulement, sur la tablette (bouton masqué, route refusée) et en base (`annuler_commande_partie` exige un gérant). Migration `20261122090000_securite_2_decisions.sql`. |
+| S2-02 | corrigé | Décision de Jérémy. Un plat validé dont le prix repasse « à valider » sort de la vente (déclencheur sur `plats`, toutes voies) et y revient seul à la validation ; remis en vente à la main sans validation : refusé. La case « Prix validé » se décoche quand le prix change. Avant le lancement, les plats jamais validés restent en vente et le build les bloque, comme avant. L'import du tableau valide toujours prix et validation en une fois. |
 | S2-03 | non corrigé | Effort moyen : lire l'état du remboursement chez Stripe et traiter `charge.refund.updated`. À faire avant d'activer TWINT en production. |
 | S2-04 | corrigé | Réponse ambiguë de Stripe : `503` au lieu de `409`, la fiche garde sa clé et un nouvel essai reprend le même remboursement. |
 | S2-05 | corrigé | Migration `20261121090000_securite_2.sql` : « Compris » seulement sur une livraison du livreur. |
@@ -40,12 +40,12 @@ Trois constats importants demandent une décision de Jérémy (S2-01, S2-02) ou 
 | S2-07 | corrigé | Même migration : le gérant est revérifié après le verrou de `modifier_personnel`. |
 | S2-08 | corrigé | Même migration : écriture retirée à `anon` et `authenticated` sur les quatre vues publiques. |
 | S2-09 | procédure | Ligne ajoutée à la phase 4 de `docs/mise-en-ligne.md` : plats, plats du jour, photos et comptes créés sur les préversions. |
-| S2-10 | décision de Jérémy | |
+| S2-10 | corrigé | Décision de Jérémy. Prix d'un plat (carte, ajouté, plat du jour) à 0 refusé par le back-office et par la base (`plats_prix_positif`). Une option peut rester à 0. |
 | S2-11 | corrigé en partie | `/photos/<id>.jpg?…` répond 404 sans lire la base. Pas fait : purge du cache à un retrait de photo (procédure dans le constat). |
 | S2-12 | corrigé en partie | `psql` en `VERBOSITY=terse` dans la restauration d'essai, `persist-credentials: false` sur les trois `checkout`, copies et clé de sauvegarde dans `.gitignore`. Pas fait : mot de passe hors de la ligne de commande dans `restaurer.sh`, réglages du dépôt (Jérémy). |
-| S2-13 | non corrigé | Petit, mais touche `signaler_manque` (objet partagé) : à faire avec la session du gérant. |
-| S2-14 | décision de Jérémy | |
-| S2-15 | décision de Jérémy pour la durée | Pas fait : vider les gestes en attente à la déconnexion (risque de perdre un « Livrée » non envoyé, à faire avec la session des livreurs). |
+| S2-13 | non corrigé | Pas petit : le prix payé pour chaque option n'est pas gardé avec la commande. Il faut l'enregistrer dans `creer_commande` (objet partagé) et le calcul du panier, puis le relire dans `signaler_manque`. |
+| S2-14 | décision prise | Jérémy garde le lien « Itinéraire ». Exception à écrire dans `CLAUDE.md` par la session principale. Ligne ajoutée à l'ébauche de la déclaration de confidentialité (« Qui y a accès »), à faire relire comme le reste. |
+| S2-15 | corrigé en partie | Décision de Jérémy. Session d'un livreur : 12 heures (cookie et base ; un membre passé livreur perd une session plus ancienne). Pas fait : vider les gestes en attente à la déconnexion (risque de perdre un « Livrée » non envoyé, à faire avec la session des livreurs). |
 | S2-16 | corrigé | E-mail d'un nouveau membre normalisé comme à la connexion. |
 | S2-17 | non corrigé | À retirer avant le lancement (fermée en production de toute façon). |
 

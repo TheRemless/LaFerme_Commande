@@ -37,6 +37,7 @@ export const CONFIDENTIALITE: PageLegale = {
           "Stripe : paiement en ligne. Contractant pour la Suisse Stripe Payments Europe, Limited. Stripe, Inc. (États-Unis) traite aussi des données.",
           "Resend (Plus Five Five, Inc., États-Unis) : envoi des e-mails de commande et des codes de connexion.",
           "geo.admin.ch, service de la Confédération : quand vous tapez une adresse, votre navigateur l'envoie à ce service pour proposer les adresses officielles.",
+          "Apple Plans ou Google Maps (ou l'application de navigation choisie sur Android) : quand le livreur ouvre l'itinéraire sur son téléphone, seule l'adresse de livraison part vers cette application, sans nom, téléphone ni code d'entrée. [Apple et Google la traitent selon leurs propres règles, aussi aux États-Unis. À vérifier par le relecteur.]",
         ],
       ],
     },

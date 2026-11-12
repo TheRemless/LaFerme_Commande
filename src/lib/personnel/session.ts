@@ -17,6 +17,9 @@ export type Personnel = { id: string; email: string; nom: string; role: Role };
 const ROLES_TABLETTE: readonly Role[] = ["service", "gerant"];
 
 const DUREE_S = 60 * 24 * 60 * 60;
+// Livreur : téléphone personnel, souvent dans la poche ou perdu. Une soirée, pas 60 jours (audit de sécurité 2, S2-15).
+// La base borne aussi la session (personnel_de_session).
+export const DUREE_LIVREUR_S = 12 * 60 * 60;
 
 export function nomCookiePersonnel(): string {
   return process.env.CONTEXTE_DEPLOIEMENT === "local" ? "laferme-personnel" : "__Host-laferme-personnel";
