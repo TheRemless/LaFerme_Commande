@@ -15,8 +15,8 @@ export default defineConfig({
   expect: { timeout: process.env.CI ? 10_000 : 5_000 },
   workers: process.env.CI ? 2 : undefined,
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }], ["list"]] : "list",
-  // Avec PORT_E2E, next.config.ts construit dans .next-e2e-<port> : deux instances ne partagent ni build ni cache.
-  // La base embarquée vit dans la mémoire de chaque serveur : rien à séparer.
+  // Rien d'autre à séparer entre deux sessions : chaque worktree a son build (.next) et la base embarquée vit
+  // dans la mémoire de chaque serveur. Deux passages du même worktree en même temps restent à éviter (même .next).
   use: { baseURL: `http://localhost:${PORT}`, channel: process.env.CI ? undefined : "chrome" },
   projects: [
     { name: "bureau", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } },

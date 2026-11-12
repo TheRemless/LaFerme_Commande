@@ -37,7 +37,7 @@ Next.js (App Router, TypeScript) sur Netlify (choisi par Jérémy le 6.11.2026 �
 
 - `npm run dev` : sans `.env.local`, la carte vient d'une base Postgres embarquée (PGlite) qui rejoue `supabase/migrations` et `supabase/seed.sql`.
 - `BASE_LOCALE=1 npm run build` en local : accueil, carte et panier sont mis en cache dès le build et lisent la base embarquée (sans la variable, le build refuse).
-- `npm test` (Vitest, base et sécurité par ligne), `npm run test:e2e` (Playwright sur un build de production local, Chrome du Mac). `PORT_E2E=<ton port réservé>` (liste dans `.claude/vague-2-regles.md`) : serveur, origine des tests, build (`.next-e2e-<port>`) et résultats (`test-results-<port>`) propres au port. Sans la variable : port 3200, à éviter quand d'autres sessions testent.
+- `npm test` (Vitest, base et sécurité par ligne), `npm run test:e2e` (Playwright sur un build de production local, Chrome du Mac). `PORT_E2E=<ton port réservé>` (liste dans `.claude/vague-2-regles.md`) : serveur, origine des tests et résultats (`test-results-<port>`) propres au port ; le build reste celui du worktree, un seul passage à la fois par worktree. Sans la variable : port 3200, à éviter quand d'autres sessions testent.
 - `npm run seed:generer` : régénère `supabase/seed.sql` depuis `docs/carte-proposee.json`. Ne jamais modifier le seed à la main.
 - `prebuild` (lancé par la commande de `netlify.toml`) lance `scripts/verifier-mise-en-ligne.ts` : sur Netlify en production, le build échoue tant que la vue `plats_bloquants` n'est pas vide.
 

@@ -1,9 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Tests e2e sur un port à soi (PORT_E2E) : build et cache à part, pour que deux instances lancées du même
-  // dossier en même temps ne s'écrasent pas. Sans la variable (Netlify, dev), le dossier habituel .next.
-  distDir: process.env.PORT_E2E ? `.next-e2e-${process.env.PORT_E2E}` : ".next",
   // PGlite charge du WebAssembly : il reste hors du bundle serveur.
   serverExternalPackages: ["@electric-sql/pglite", "@resvg/resvg-wasm"],
   outputFileTracingExcludes: { "*": ["maquette/**", "docs/**"] },
