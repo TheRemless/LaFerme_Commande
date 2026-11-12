@@ -37,7 +37,7 @@ Next.js (App Router, TypeScript) sur Netlify (choisi par Jérémy le 6.11.2026 �
 
 - `npm run dev` : sans `.env.local`, la carte vient d'une base Postgres embarquée (PGlite) qui rejoue `supabase/migrations` et `supabase/seed.sql`.
 - `BASE_LOCALE=1 npm run build` en local : accueil, carte et panier sont mis en cache dès le build et lisent la base embarquée (sans la variable, le build refuse).
-- `npm test` (Vitest, base et sécurité par ligne), `npm run test:e2e` (Playwright sur un build de production local, Chrome du Mac). `PORT_E2E=3217` pour lancer les tests e2e de deux worktrees en même temps.
+- `npm test` (Vitest, base et sécurité par ligne), `npm run test:e2e` (Playwright sur un build de production local, Chrome du Mac). `PORT_E2E=<un port libre, propre à chaque worktree>` pour lancer les tests e2e de plusieurs worktrees en même temps.
 - `npm run seed:generer` : régénère `supabase/seed.sql` depuis `docs/carte-proposee.json`. Ne jamais modifier le seed à la main.
 - `prebuild` (lancé par la commande de `netlify.toml`) lance `scripts/verifier-mise-en-ligne.ts` : sur Netlify en production, le build échoue tant que la vue `plats_bloquants` n'est pas vide.
 
