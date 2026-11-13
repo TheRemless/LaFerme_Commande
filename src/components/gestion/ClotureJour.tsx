@@ -154,6 +154,7 @@ export function ClotureJour() {
           <div className="clo-deux">
             <section aria-labelledby="clo-encaisse">
               <h3 id="clo-encaisse">Encaissé</h3>
+              <div className="clo-defile" tabIndex={0} role="region" aria-labelledby="clo-encaisse">
               <table className="clo-table">
                 <tbody>
                   <tr>
@@ -204,6 +205,7 @@ export function ClotureJour() {
                   </tr>
                 </tbody>
               </table>
+              </div>
               <p className="aide">
                 {!moyens
                   ? "Au comptoir : espèces et carte ensemble (clôture enregistrée avant que la tablette note le moyen)."
@@ -251,6 +253,7 @@ export function ClotureJour() {
             {r.a_encaisser.length === 0 ? (
               <p className="aide">Tout est encaissé.</p>
             ) : (
+              <div className="clo-defile" tabIndex={0} role="region" aria-labelledby="clo-a-encaisser">
               <table className="clo-table">
                 <thead>
                   <tr>
@@ -271,6 +274,7 @@ export function ClotureJour() {
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </section>
 
@@ -295,6 +299,7 @@ export function ClotureJour() {
             {r.remboursements.length === 0 ? (
               <p className="aide">Aucun remboursement.</p>
             ) : (
+              <div className="clo-defile" tabIndex={0} role="region" aria-labelledby="clo-remb">
               <table className="clo-table">
                 <thead>
                   <tr>
@@ -324,12 +329,14 @@ export function ClotureJour() {
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </section>
 
           <div className="clo-deux">
             <section aria-labelledby="clo-ventes">
               <h3 id="clo-ventes">Ventes</h3>
+              <div className="clo-defile" tabIndex={0} role="region" aria-labelledby="clo-ventes">
               <table className="clo-table">
                 <tbody>
                   <tr>
@@ -359,9 +366,11 @@ export function ClotureJour() {
                   </tr>
                 </tbody>
               </table>
+              </div>
             </section>
             <section aria-labelledby="clo-tva">
               <h3 id="clo-tva">TVA</h3>
+              <div className="clo-defile" tabIndex={0} role="region" aria-labelledby="clo-tva">
               <table className="clo-table">
                 <thead>
                   <tr>
@@ -388,6 +397,7 @@ export function ClotureJour() {
                   )}
                 </tbody>
               </table>
+              </div>
             </section>
           </div>
         </>
