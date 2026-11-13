@@ -314,6 +314,24 @@ ul {
   padding-top: 20px;
   max-width: 560px;
 }
+/* Filtre « Végétarien » de la carte : un interrupteur, plein quand il est actif. */
+.filtre-vege {
+  min-height: 44px;
+  margin-top: 12px;
+  padding: 0 16px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--blanc);
+  background: transparent;
+  border: 1px solid var(--blanc);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.filtre-vege[aria-pressed="true"] {
+  color: var(--encre);
+  background: var(--blanc);
+}
 .saisie-recherche {
   position: relative;
   display: flex;
