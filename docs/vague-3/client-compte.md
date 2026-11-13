@@ -38,3 +38,7 @@ Le compte montre le nombre de commandes passées avec lui et les 30 dernières. 
 ## Un problème avec la commande
 
 Sur la page de suivi d'une commande acceptée, pendant 14 jours, le client touche « Signaler un problème ». Il choisit ce qui ne va pas (retard, plat manquant, froid, erreur, qualité, livraison, autre) et l'écrit en quelques mots. Le restaurant reçoit une alerte. Le dossier est dans le back-office, rubrique Réclamations. Trois messages au plus par commande. Ensuite, le client doit appeler.
+
+## Adresses enregistrées
+
+Dans son compte, le client corrige les consignes d'une adresse : étage, nom sur la sonnette, code d'entrée et mot pour le livreur. Ce sont les mêmes champs qu'à l'accueil. La sonnette reste obligatoire.
