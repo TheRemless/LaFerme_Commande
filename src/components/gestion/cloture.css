@@ -76,6 +76,10 @@
   text-align: right;
   white-space: nowrap;
 }
+.bo .clo-detail th {
+  padding-left: 24px;
+  color: var(--bo-texte-doux);
+}
 .bo .clo-total th,
 .bo .clo-total td {
   font-weight: 700;
