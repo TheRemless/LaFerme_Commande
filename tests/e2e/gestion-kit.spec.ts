@@ -68,6 +68,19 @@ test("l'export CSV prend toutes les lignes du filtre, au format Excel suisse", a
   expect(texte.trim().split("\r\n")).toHaveLength(238);
 });
 
+test("cocher une ligne ne décale pas les suivantes sous le doigt", async () => {
+  // Contrôle du 13.11.2026 : la barre apparaissait au-dessus du tableau, la liste descendait et le clic
+  // suivant tombait sur « Tout sélectionner ».
+  const avant = await lignes().nth(1).getByRole("checkbox").boundingBox();
+  await lignes().nth(0).getByRole("checkbox").check();
+  await expect(page.getByRole("region", { name: "Actions sur la sélection" })).toContainText("1 sélectionnée");
+  const apres = await lignes().nth(1).getByRole("checkbox").boundingBox();
+  expect(Math.round(apres!.y)).toBe(Math.round(avant!.y));
+  if (process.env.RENDUS === "1") await page.screenshot({ path: `docs/rendus/vague-3/bo-carte/${test.info().project.name === "mobile" ? "m" : "b"}-kit-barre-selection.png` });
+  await page.getByRole("button", { name: "Tout désélectionner" }).click();
+  await expect(page.getByRole("region", { name: "Actions sur la sélection" })).toHaveCount(0);
+});
+
 test("une action en lot se confirme, puis se défait par « Annuler »", async () => {
   const premiere = await lignes().nth(0).locator("td").nth(1).innerText();
   await lignes().nth(0).getByRole("checkbox").check();
