@@ -76,3 +76,13 @@ Migration `supabase/migrations/20261127090000_bo_commandes_liste.sql`, aucun obj
 - **Fiche complète** (`fiche_commande_gestion`, action `fiche_complete`) : tout ce que donnait la fiche, plus heure prévue, retard, zone, livreur en cours, e-mails envoyés (sujet et date), tickets et leur état, notes internes, historique du client (même e-mail : commandes, refusées, dépensé, première et dernière) et une chronologie de tous les événements dans l'ordre (création, paiement, statuts, tickets, livreur, livraison, e-mails, remboursements, notes).
 - **Contenu d'un e-mail** (action `courriel`) : le texte seulement, jamais le HTML, et seulement par sa propre commande. Les codes de connexion ne sont jamais gardés en base.
 - **Note interne** (action `noter`, `ajouter_note_commande`) : 2 à 500 caractères, gérant seulement, jamais montrée au client, journalisée (`note_commande`). Une note ne se modifie pas et ne s'efface pas : elle reste comme trace.
+## Modifier une commande acceptée, lot n°1 sans argent (vague 3, 13.11.2026)
+
+Migration `supabase/migrations/20261127100000_modifier_commande.sql`, aucun objet partagé recréé. Serveur : `src/lib/modifier-commande.ts`, appelé par le back-office (`/api/gestion/commandes`, action `modifier`) et, plus tard, par la tablette avec ses propres gestes. Tests : `tests/unit/modifier-commande-sql.test.ts`, `tests/unit/modifier-commande.test.ts`. Pas encore d'écran.
+
+- **Modifiable** : prénom, nom, téléphone ; pour une livraison, sonnette, étage, code, instructions et l'adresse si elle reste dans la même zone (mêmes frais, même minimum). L'adresse passe par le registre fédéral comme au paiement : c'est l'adresse officielle qui est enregistrée.
+- **Pas ici** (touche au montant, décision de Jérémy) : adresse dans une autre zone, livraison ↔ retrait, article ajouté. Retirer un article passe par « Il manque… » (remboursement calculé par la base).
+- **Qui** : le gérant jusqu'à « prête » ou « partie » ; personne une fois terminée ou annulée. L'équipe (rôle service) tant que la commande est à accepter, acceptée ou en préparation, seulement si le réglage `modification_par_equipe` est vrai : nouveau droit, **désactivé par défaut** en attendant la décision de Jérémy. Revérifié en base.
+- **Traces** : seuls les champs changés, avant et après, au journal du back-office (`commande`) ; un événement « modifiee … » dans l'historique de la commande ; « adresse_modifiee » au journal des livraisons si un livreur l'a déjà.
+- **Client** : un e-mail « Commande n modifiée » ne reprend que les champs changés, avec le lien de suivi. Rien n'est envoyé si rien n'a changé.
+- **Ticket « MODIFIÉE »** : pas encore, à faire avec la session `tablette`.
