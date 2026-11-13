@@ -187,3 +187,11 @@ Une commande acceptée dont le client, le téléphone, les consignes ou l'adress
 - `imprimerModification(commandeId, changements)` (`src/lib/impression/modification.ts`), changements `{ champ, avant, apres }` lisibles (« Téléphone », « Consignes », « Adresse »). Appelée par `modifierCommande` (bo-commandes) après `modifier_commande`, seulement si quelque chose a changé ; un échec n'empêche pas la modification.
 - Ticket (`ticketModification`, `src/lib/impression/ticket.ts`) : « MODIFIÉE », mode et numéro, heure de la modification, puis pour chaque changement l'ancienne valeur et la nouvelle en négatif, puis l'état à jour (client, « Pour : … », adresse et consignes).
 - Rien si les premiers tickets ne sont pas sortis (ils porteront les nouvelles valeurs), ni pour une commande terminée, refusée ou annulée, ni sans vrai changement. Renvoie le nombre de tickets créés. Pas de migration (`creer_taches_impression`, comme une réimpression).
+
+## Page livreur d'une main (vague 3)
+
+Styles propres dans `src/components/livreur/livreur.css`. L'ordre de passage reste celui proposé à l'attribution (`proposerOrdre`) ou rangé à la tablette.
+
+- Avant le départ : tous les arrêts ouverts, pour vérifier les sacs. « Je pars avec les N » d'un geste.
+- En route : l'arrêt en cours (le premier pas encore livré) est seul ouvert ; les suivants tiennent sur une ligne (rang, heure, adresse, état, numéro) et s'ouvrent au toucher. En bas de l'écran, sous le pouce : « Itinéraire » et « Livrée, n° 17 » de l'arrêt en cours. Avant : trois arrêts faisaient six écrans de haut et « Livrée » était au milieu.
+- Captures : `docs/rendus/vague-3/tablette/livreur-375.png`, `livreur-375-entier.png`, `livreur-375-en-route.png`, `livreur-320.png` (`scripts/tablette/livreur.mjs`, après `scripts/tablette/rush.mjs`).
