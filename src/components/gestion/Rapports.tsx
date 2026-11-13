@@ -318,7 +318,8 @@ function VentesParJour({ jours, avant, contre }: { jours: Jour[]; avant: Jour[];
         <span className="rap-legende-trait" /> {contre.charAt(0).toUpperCase() + contre.slice(1)}
       </p>
       <div className="rap-graphe" tabIndex={0} role="region" aria-labelledby="rap-jours" onMouseLeave={() => setSurvol(null)}>
-        <svg viewBox={`0 0 ${L} ${H}`} role="img" aria-label={`Ventes TTC par jour, ${jours.length} jours. Les chiffres sont aussi dans le tableau ci-dessous.`}>
+        {/* Groupe et non image : il contient une barre touchable par jour (axe, nested-interactive). */}
+        <svg viewBox={`0 0 ${L} ${H}`} role="group" aria-label={`Ventes TTC par jour, ${jours.length} jours. Les chiffres sont aussi dans le tableau ci-dessous.`}>
           {graduations.map((g) => (
             <g key={g}>
               <line x1={GAUCHE} x2={L} y1={y(g)} y2={y(g)} className="rap-grille" />
@@ -346,14 +347,20 @@ function VentesParJour({ jours, avant, contre }: { jours: Jour[]; avant: Jour[];
                 <rect x={GAUCHE + i * pas} y={HAUT} width={pas} height={H - HAUT - BAS} className="rap-cible" />
                 {j.ttc_centimes > 0 && <rect x={x} y={y(j.ttc_centimes)} width={largeur} height={y(0) - y(j.ttc_centimes)} rx={2} className="rap-barre" />}
                 {a && <line x1={x - 1} x2={x + largeur + 1} y1={y(a.ttc_centimes)} y2={y(a.ttc_centimes)} className="rap-trait" />}
-                {etiquettes.has(i) && (
-                  <text x={x + largeur / 2} y={H - 6} className="rap-axe" textAnchor="middle">
-                    {court(j.jour)}
-                  </text>
-                )}
               </g>
             );
           })}
+          {/* Dates courtes sous les barres, hors des barres touchables : le nom d'une barre dit déjà son jour, et
+              un texte visible dans la barre devrait y figurer mot pour mot (axe, label-content-name-mismatch). */}
+          <g aria-hidden="true">
+            {jours.map((j, i) =>
+              etiquettes.has(i) ? (
+                <text key={j.jour} x={GAUCHE + i * pas + pas / 2} y={H - 6} className="rap-axe" textAnchor="middle">
+                  {court(j.jour)}
+                </text>
+              ) : null,
+            )}
+          </g>
         </svg>
         {jSurvol && survol !== null && (
           <div className="rap-bulle" role="status" style={{ left: `${((GAUCHE + survol * pas + pas / 2) / L) * 100}%` }}>
