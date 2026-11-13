@@ -10,6 +10,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 // - une erreur garde les dernières données et le dit (`erreur`), sans vider l'écran.
 // const { donnees, erreur, recharger, majLe } = useRelecture(async (signal) => lireListe(filtres, signal), [filtres], { intervalleMs: 15_000 });
 
+/** Erreur dont le message peut s'afficher tel quel (« Session terminée. »). Toute autre erreur, par exemple
+ *  « Failed to fetch » du navigateur, est remplacée par `messageErreur`. */
+export class ErreurLisible extends Error {}
+
 export type Relecture<T> = {
   donnees: T | null;
   erreur: string | null;
@@ -52,7 +56,7 @@ export function useRelecture<T>(
         setMajLe(new Date().toISOString());
       } catch (e) {
         if (n !== sequence.current || controleur.signal.aborted) return;
-        setErreur(e instanceof Error && e.message ? e.message : messageErreur);
+        setErreur(e instanceof ErreurLisible ? e.message : messageErreur);
       } finally {
         if (n === sequence.current) {
           setChargement(false);

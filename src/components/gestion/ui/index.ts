@@ -16,4 +16,4 @@ export { Touches, useRaccourci } from "@/components/gestion/ui/Raccourcis";
 export { SelecteurPeriode } from "@/components/gestion/ui/SelecteurPeriode";
 export { TableauDonnees, type Colonne, type Tri } from "@/components/gestion/ui/TableauDonnees";
 export { useDiffere } from "@/components/gestion/ui/useDiffere";
-export { useRelecture, type Relecture } from "@/components/gestion/ui/useRelecture";
+export { ErreurLisible, useRelecture, type Relecture } from "@/components/gestion/ui/useRelecture";
