@@ -129,6 +129,35 @@ ul {
   font-weight: 600;
 }
 
+/* Messages du gérant aux clients (fermeture, retard, nouveauté) : une dalle du gris des photos, texte blanc
+   (contraste 7 pour 1). Ni jaune (réservé à la préversion) ni cadre d'alerte : c'est une information. */
+.messages-clients {
+  background: var(--beton-sombre);
+  color: var(--blanc);
+}
+.messages-clients p {
+  margin: 0;
+  padding: 10px max(16px, env(safe-area-inset-left));
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.messages-clients p + p {
+  border-top: 1px solid rgb(255 255 255 / 0.25);
+}
+/* Le texte part de la même ligne que le logo de l'en-tête. */
+@media (min-width: 900px) {
+  .messages-clients p {
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+}
+@media (max-width: 359px) {
+  .messages-clients p {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}
+
 /* Carte */
 .page-carte {
   background: var(--beton);

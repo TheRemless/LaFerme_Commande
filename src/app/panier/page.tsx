@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { EnTete } from "@/components/EnTete";
+import { MessagesClients } from "@/components/MessagesClients";
 import { PiedDePage } from "@/components/PiedDePage";
 import { ResumeChoix } from "@/components/ResumeChoix";
 import { PagePanier } from "@/components/panier/PagePanier";
 import { chargerCarte } from "@/lib/carte";
 import { chargerCatalogue } from "@/lib/catalogue";
+import { chargerConfigService } from "@/lib/config-service";
 import { chargerPopulaires } from "@/lib/populaires";
 import { chargerOptionsCommande } from "@/lib/options-commande";
 import { PRIVE } from "@/lib/site";
@@ -15,12 +17,19 @@ export const metadata: Metadata = { title: "Votre panier, La Ferme", robots: PRI
 
 // Le panier en pleine page, pour le téléphone (sur ordinateur, il est à droite de la carte).
 export default async function Panier() {
-  const [{ categories }, catalogue, populaires, options] = await Promise.all([chargerCarte(), chargerCatalogue(), chargerPopulaires(), chargerOptionsCommande()]);
+  const [{ categories }, catalogue, populaires, options, config] = await Promise.all([
+    chargerCarte(),
+    chargerCatalogue(),
+    chargerPopulaires(),
+    chargerOptionsCommande(),
+    chargerConfigService().catch(() => null),
+  ]);
   return (
     <>
       <EnTete>
         <ResumeChoix />
       </EnTete>
+      <MessagesClients messages={config?.messages} page="panier" rendu={Date.now()} />
       <main id="contenu" className="page-panier">
         <PagePanier
           catalogue={catalogue}

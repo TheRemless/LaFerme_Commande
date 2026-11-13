@@ -38,6 +38,10 @@ Quand le gérant ferme une zone jusqu'à une heure (neige, livreur malade), le c
 
 Un client connecté voit en haut de l'accueil « Votre dernière commande, vendredi 13 novembre » et « Reprendre cette commande ». Un tap remet les plats dans le panier (un plat épuisé est nommé, pas repris), garde le mode et, pour une livraison, la dernière adresse. Le bouton devient « Voir le panier ». Un panier en cours n'est jamais remplacé sans accord.
 
+## Messages du gérant aux clients (bannière)
+
+Un message programmé au back-office (rubrique Messages aux clients, `docs/messages-clients.md`) s'affiche sous l'en-tête, sur une bande gris béton en texte blanc. Un message « accueil » ne paraît que sur l'accueil ; un message « partout », aussi sur la carte, le panier et le paiement. Il apparaît à son début et part à sa fin à la minute près, même sur une page restée ouverte. Retiré au back-office, il quitte aussitôt l'accueil, la carte et le panier. Le texte du gérant est affiché tel quel, jamais interprété comme du HTML. Composant `src/components/MessagesClients.tsx`, test `tests/e2e/messages-bandeau.spec.ts`, captures `messages-*.png`.
+
 ## Construit mais éteint, en attente d'une décision de Jérémy
 
 Chaque point s'allume par un réglage en base (`reglages`), sans redéploiement. Éteint, le client ne voit rien et le serveur ignore ce que le navigateur enverrait.
