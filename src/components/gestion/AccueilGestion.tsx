@@ -30,11 +30,10 @@ export function AccueilGestion() {
     [],
     { intervalleMs: RELECTURE_MS, messageErreur: "Les chiffres du jour n'ont pas pu être chargés." },
   );
-  const charger = recharger;
 
   return (
     <div className="bo-accueil">
-      {erreur && !d && <EtatErreur texte={erreur} reessayer={charger} />}
+      {erreur && !d && <EtatErreur texte={erreur} reessayer={recharger} />}
       {!d && !erreur && <Chargement lignes={4} libelle="Chargement de la journée…" />}
       {d && (
         <>
@@ -91,9 +90,9 @@ export function AccueilGestion() {
                   comparaison={{ valeur: d.ventes.periode.panier_moyen_centimes, reference: d.ventes.comparaison.panier_moyen_centimes, contre: contre(d) }}
                 />
                 <CarteChiffre
-                  libelle="Livraisons et retraits"
-                  valeur={`${nombre(d.ventes.periode.livraison.commandes)} et ${nombre(d.ventes.periode.retrait.commandes)}`}
-                  aide={`${nombre(d.ventes.periode.refusees.commandes)} refusée${d.ventes.periode.refusees.commandes > 1 ? "s" : ""}.`}
+                  libelle="Livraisons"
+                  valeur={nombre(d.ventes.periode.livraison.commandes)}
+                  aide={`${nombre(d.ventes.periode.retrait.commandes)} à emporter, ${nombre(d.ventes.periode.refusees.commandes)} refusée${d.ventes.periode.refusees.commandes > 1 ? "s" : ""}.`}
                 />
               </div>
             ) : (

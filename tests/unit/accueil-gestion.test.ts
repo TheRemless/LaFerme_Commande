@@ -96,7 +96,7 @@ describe("alertes", () => {
     expect(a[0].titre).toBe("Commande 40 pas encore acceptée");
     expect(a.find((x) => x.cle === "tickets")!.titre).toBe("2 tickets pas imprimés");
     expect(a.find((x) => x.cle === "courriels")!.titre).toBe("E-mails : 410 sur 500 envoyés aujourd'hui");
-    expect(a.find((x) => x.cle === "comptoir-hier")!.titre).toBe("3 commandes au comptoir d'hier pas notées encaissées");
+    expect(a.find((x) => x.cle === "comptoir-hier")!.titre).toBe("3 commandes au comptoir des derniers jours pas notées encaissées");
   });
 
   it("une tablette muette hors service et une imprimante éteinte la nuit ne bloquent rien", () => {

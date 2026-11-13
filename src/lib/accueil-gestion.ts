@@ -8,6 +8,7 @@ import { chargerConfigService } from "@/lib/config-service";
 import { etatQuotaCourriels, type EtatQuota } from "@/lib/courriel/quota";
 import { lirePublic } from "@/lib/db/lecture";
 import { fonctionSql } from "@/lib/db/serveur";
+import { heureDe } from "@/lib/heures";
 import { etatImpression, type EtatImpression } from "@/lib/impression/service";
 import { jourDeService, serviceDe, type Service, type TableauVentes } from "@/lib/pilotage";
 import { ajouterJours, etatService, serviceEnCours, zoneFermeeJusqua, type ConfigService, type EtatService } from "@/lib/service";
@@ -47,7 +48,7 @@ export type DonneesAccueil = {
   commandes: ResumeCommandes | null;
   restaurant: EtatRestaurant | null;
   ventes: TableauVentes | null;
-  /** Commandes au comptoir d'hier pas notées encaissées. */
+  /** Commandes au comptoir des sept jours d'avant pas notées encaissées (jours fermés compris). */
   hier_a_encaisser: number | null;
   impression: Pick<EtatImpression, "imprimantes"> & { echecs: number } | null;
   tablette_muette: boolean | null;
@@ -121,7 +122,7 @@ export function alertesDe(d: DonneesAccueil): Alerte[] {
     a.push({ cle: "tablette", niveau: "bloquant", titre: "La tablette ne répond plus", detail: "Sans elle, les commandes en ligne se mettent en pause seules.", geste: { href: "/tablette", texte: "Ouvrir la tablette" } });
   const pause = d.restaurant?.livraison.etat === "pause" ? d.restaurant.livraison : null;
   if (pause && pause.etat === "pause")
-    a.push({ cle: "pause", niveau: "bloquant", titre: "Commandes en ligne en pause", detail: pause.jusqua ? `Jusqu'à ${heureCourte(pause.jusqua)}.` : "Sans heure de fin.", geste: { href: "/tablette", texte: "Reprendre sur la tablette" } });
+    a.push({ cle: "pause", niveau: "bloquant", titre: "Commandes en ligne en pause", detail: pause.jusqua ? `Jusqu'à ${heureDe(pause.jusqua)}.` : "Sans heure de fin.", geste: { href: "/tablette", texte: "Reprendre sur la tablette" } });
   for (const i of d.impression?.imprimantes ?? []) {
     if (i.actif && !i.en_ligne)
       a.push({ cle: `imprimante-${i.id}`, niveau: d.restaurant?.en_service ? "bloquant" : "attention", titre: `Imprimante ${i.nom} hors ligne`, depuis: i.vue_le ?? undefined, geste: { href: "/gestion/imprimantes", texte: "Voir les imprimantes" } });
@@ -132,7 +133,7 @@ export function alertesDe(d: DonneesAccueil): Alerte[] {
     a.push({ cle: "retard", niveau: "attention", titre: `${NB(c.en_retard.length, "commande", "commandes")} après l'heure promise`, detail: `N° ${c.en_retard.map((x) => x.numero).join(", ")}.`, depuis: c.en_retard[0].heure, geste: { href: "/tablette", texte: "Voir sur la tablette" } });
   const r = d.ventes?.periode.remboursements;
   if (r && r.echecs_ouverts > 0)
-    a.push({ cle: "remboursements", niveau: "attention", titre: `${NB(r.echecs_ouverts, "remboursement a échoué", "remboursements ont échoué")}`, detail: "Le client n'a pas été remboursé.", geste: { href: "/gestion/commandes", texte: "Voir les commandes" } });
+    a.push({ cle: "remboursements", niveau: "attention", titre: `${NB(r.echecs_ouverts, "remboursement a échoué", "remboursements ont échoué")} ${d.service === "midi" ? "ce midi" : "ce soir"}`, detail: "Le client n'a pas été remboursé.", geste: { href: "/gestion/commandes", texte: "Voir les commandes" } });
   if (r && r.en_cours > 0)
     a.push({ cle: "remboursements-en-cours", niveau: "attention", titre: `${NB(r.en_cours, "remboursement en cours", "remboursements en cours")} chez Stripe`, geste: { href: "/gestion/commandes", texte: "Voir les commandes" } });
   if (d.quota?.alerte)
@@ -143,12 +144,8 @@ export function alertesDe(d: DonneesAccueil): Alerte[] {
       detail: d.quota.restants === 0 ? "Plus d'e-mail possible aujourd'hui : seuls les plus importants passent quand la limite se libère." : "Au-delà, seuls les e-mails les plus importants partent.",
     });
   if (d.hier_a_encaisser && d.hier_a_encaisser > 0)
-    a.push({ cle: "comptoir-hier", niveau: "attention", titre: `${NB(d.hier_a_encaisser, "commande", "commandes")} au comptoir d'hier pas notée${d.hier_a_encaisser > 1 ? "s" : ""} encaissée${d.hier_a_encaisser > 1 ? "s" : ""}`, detail: d.hier_a_encaisser > 1 ? "Elles manquent dans l'export comptable." : "Elle manque dans l'export comptable.", geste: { href: "/gestion/commandes", texte: "Voir les commandes" } });
+    a.push({ cle: "comptoir-hier", niveau: "attention", titre: `${NB(d.hier_a_encaisser, "commande", "commandes")} au comptoir des derniers jours pas notée${d.hier_a_encaisser > 1 ? "s" : ""} encaissée${d.hier_a_encaisser > 1 ? "s" : ""}`, detail: d.hier_a_encaisser > 1 ? "Elles manquent dans l'export comptable." : "Elle manque dans l'export comptable.", geste: { href: "/gestion/commandes", texte: "Voir les commandes" } });
   return a.sort((x, y) => (x.niveau === y.niveau ? 0 : x.niveau === "bloquant" ? -1 : 1));
-}
-
-function heureCourte(iso: string): string {
-  return new Intl.DateTimeFormat("fr-CH", { timeZone: "Europe/Zurich", hour: "2-digit", minute: "2-digit" }).format(new Date(iso)).replace(":", "h");
 }
 
 async function alerteMinutes(): Promise<number> {
@@ -156,6 +153,20 @@ async function alerteMinutes(): Promise<number> {
   const v = Number(r.find((x) => x.cle === "alerte_acceptation_minutes")?.valeur);
   if (!Number.isInteger(v) || v < 1) throw new Error("Réglage alerte_acceptation_minutes absent");
   return v;
+}
+
+// Les sept jours d'avant ne bougent presque plus : lus au plus une fois toutes les cinq minutes par instance,
+// au lieu de toutes les 20 secondes par écran ouvert. Après un dimanche et un lundi fermés, le samedi compte encore.
+let precedents: { jour: string; le: number; valeur: Promise<TableauVentes | null> } | null = null;
+function joursPrecedents(jour: string): Promise<TableauVentes | null> {
+  if (precedents && precedents.jour === jour && Date.now() - precedents.le < 5 * 60_000) return precedents.valeur;
+  const valeur = sur(fonctionSql<TableauVentes>("pilotage_ventes", { p_debut: ajouterJours(jour, -7), p_fin: ajouterJours(jour, -1), p_comp_debut: null, p_comp_fin: null, p_service: null }));
+  precedents = { jour, le: Date.now(), valeur };
+  // Une lecture ratée ne reste pas en cache.
+  valeur.then((v) => {
+    if (v === null && precedents?.valeur === valeur) precedents = null;
+  });
+  return valeur;
 }
 
 export async function chargerAccueil(maintenant = new Date()): Promise<DonneesAccueil & { alertes: Alerte[] }> {
@@ -167,7 +178,7 @@ export async function chargerAccueil(maintenant = new Date()): Promise<DonneesAc
     sur(etatImpression()),
     sur(etatQuotaCourriels()),
     sur(fonctionSql<TableauVentes>("pilotage_ventes", { p_debut: jour, p_fin: jour, p_comp_debut: null, p_comp_fin: null, p_service: service })),
-    sur(fonctionSql<TableauVentes>("pilotage_ventes", { p_debut: ajouterJours(jour, -1), p_fin: ajouterJours(jour, -1), p_comp_debut: null, p_comp_fin: null, p_service: null })),
+    joursPrecedents(jour),
     sur(chargerCatalogue()),
     sur(fonctionSql<boolean>("tablette_muette", { p_secondes: TABLETTE_MUETTE_S })),
     sur(alerteMinutes()),
