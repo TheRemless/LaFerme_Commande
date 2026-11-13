@@ -13,6 +13,7 @@ import {
   slugDe,
 } from "@/lib/gestion";
 import { champsDisponibilite, dateRupture } from "@/lib/gestion-dispo";
+import { champsGroupe, nomOption, nomsOptions } from "@/lib/gestion-options";
 import { exigerGerant } from "@/lib/personnel/session";
 import { instantGeneve } from "@/lib/service";
 import { rafraichirCaches } from "@/lib/tablette";
@@ -38,6 +39,12 @@ const ERREURS: Record<string, string> = {
   mode_invalide: "Mode inconnu.",
   plat_du_jour: "Le plat du jour a déjà sa date et son service.",
   date_rupture: "Date de retour : d'aujourd'hui à 60 jours.",
+  groupe_existe: "Un groupe porte déjà ce nom.",
+  bornes_invalides: "Minimum de 0 à 10, maximum de 1 à 20, le minimum ne dépasse pas le maximum.",
+  choix_impossible: "Pas assez d'options proposées pour ce minimum : un plat en vente ne pourrait plus être commandé.",
+  trop_de_defauts: "Plus d'options cochées d'avance que le maximum du groupe.",
+  option_inconnue: "Option inconnue ou pas proposée.",
+  plat_inconnu: "Plat inconnu.",
   "Réservé au gérant": "Réservé au gérant.",
 };
 
@@ -147,6 +154,39 @@ async function agir(c: Record<string, unknown>, qui: string): Promise<Reponse | 
       const date = dateRupture(c.jusqu_au, instantGeneve(new Date()).date);
       if (!date.ok) return refus(date.erreur);
       return { ok: await fonctionSql<boolean>("regler_rupture_groupee", { p_cible: c.cible, p_jusqu_au: date.valeur, p_personnel: qui }) };
+    }
+    case "nouveau_groupe": {
+      const champs = champsGroupe(c.champs, true);
+      if (!champs.ok) return refus(champs.erreur);
+      const s = await fonctionSql<string>("ajouter_groupe", { p_slug: slugDe(champs.valeur.nom!, 40), p: champs.valeur, p_personnel: qui });
+      return { ok: true, donnees: { slug: s } };
+    }
+    case "groupe": {
+      if (!slug(c.groupe)) return refus("Groupe inconnu.", 404);
+      const champs = champsGroupe(c.champs, false);
+      if (!champs.ok) return refus(champs.erreur);
+      return { ok: await fonctionSql<boolean>("modifier_groupe", { p_slug: c.groupe, p: champs.valeur, p_personnel: qui }) };
+    }
+    case "defauts": {
+      const noms = nomsOptions(c.noms);
+      if (!slug(c.groupe) || !noms) return refus("Liste d'options invalide.");
+      return { ok: await fonctionSql<boolean>("regler_defauts", { p_groupe: c.groupe, p_noms: noms, p_personnel: qui }) };
+    }
+    case "ordre_options": {
+      const noms = nomsOptions(c.noms);
+      if (!slug(c.groupe) || !noms) return refus("Ordre invalide.");
+      return { ok: await fonctionSql<boolean>("ordonner_options", { p_groupe: c.groupe, p_noms: noms, p_personnel: qui }) };
+    }
+    case "renommer_option": {
+      const nouveau = nomOption(c.nouveau);
+      if (!slug(c.groupe) || typeof c.nom !== "string" || c.nom.length > 80) return refus("Option inconnue.", 404);
+      if (!nouveau) return refus("Indiquez le nom de l'option (60 caractères au plus).");
+      return { ok: await fonctionSql<boolean>("renommer_option", { p_groupe: c.groupe, p_ancien: c.nom, p_nouveau: nouveau, p_personnel: qui }) };
+    }
+    case "plats_du_groupe": {
+      const liste = listeSlugs(c.slugs, 300);
+      if (!slug(c.groupe) || !liste) return refus("Liste de plats invalide.");
+      return { ok: await fonctionSql<boolean>("lier_groupe", { p_groupe: c.groupe, p_slugs: liste, p_personnel: qui }) };
     }
     default:
       return refus("Type inconnu.");

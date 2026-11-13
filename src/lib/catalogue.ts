@@ -18,6 +18,8 @@ type LigneOption = {
   ordre: number;
   // Rupture du jour (audit du gérant, G07). Absente tant que la base n'est pas migrée.
   rupture?: boolean;
+  // Cochée d'avance sur la fiche (migration 20261128100000). Absente avant la migration.
+  par_defaut?: boolean;
 };
 type LigneRetrait = { plat_slug: string; nom: string; a_valider: boolean; ordre: number };
 type LigneReglage = { cle: string; valeur: unknown };
@@ -60,7 +62,7 @@ function construireCatalogue({ plats, liens, options, retraits, reglages }: Donn
   const groupes: Record<string, GroupeCatalogue> = {};
   for (const o of [...options].sort((a, b) => a.ordre - b.ordre)) {
     groupes[o.groupe_slug] ??= { slug: o.groupe_slug, nom: o.groupe_nom, choix_min: o.choix_min, choix_max: o.choix_max, options: [] };
-    groupes[o.groupe_slug].options.push({ nom: o.nom, prix_centimes: o.prix_centimes, prix_a_valider: o.prix_a_valider, rupture: o.rupture === true });
+    groupes[o.groupe_slug].options.push({ nom: o.nom, prix_centimes: o.prix_centimes, prix_a_valider: o.prix_a_valider, rupture: o.rupture === true, par_defaut: o.par_defaut === true });
   }
   const catalogue: Catalogue = { plats: {}, groupes, tauxTvaPourcent: taux };
   for (const p of plats) {
