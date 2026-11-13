@@ -33,3 +33,8 @@ insert into personnel (email, nom, role) values
   ('cdf-mobile@laferme.test', 'Coup de feu mobile', 'gerant'),
   ('cdf-service-bureau@laferme.test', 'Service bureau', 'service'),
   ('cdf-service-mobile@laferme.test', 'Service mobile', 'service');
+
+-- Planning des livreurs (tests/e2e/planning-livreurs.spec.ts, vague 3) : un gérant et un livreur à part.
+insert into personnel (email, nom, role) values
+  ('planning-bureau@laferme.test', 'Planning bureau', 'gerant'),
+  ('planning-livreur@laferme.test', 'Livreur planning', 'livreur');
