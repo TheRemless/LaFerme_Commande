@@ -80,6 +80,19 @@ const LIBELLE_ECART: Record<Ecart["type"], string> = {
 };
 export const libelleEcart = (e: Ecart) => LIBELLE_ECART[e.type];
 
+// À l'écran et à l'impression : l'argent à suivre ligne par ligne, les commandes pas terminées en une seule ligne
+// (en plein service, elles sont des dizaines et noieraient le reste). L'export CSV garde le détail.
+export type PasTerminees = { commandes: number; centimes: number; parStatut: [string, number][]; liste: Extract<Ecart, { type: "pas_terminee" }>[] };
+export function regrouperEcarts(ecarts: Ecart[]): { aSuivre: Ecart[]; pasTerminees: PasTerminees } {
+  const liste = ecarts.filter((e): e is Extract<Ecart, { type: "pas_terminee" }> => e.type === "pas_terminee");
+  const parStatut = new Map<string, number>();
+  for (const e of liste) parStatut.set(e.statut, (parStatut.get(e.statut) ?? 0) + 1);
+  return {
+    aSuivre: ecarts.filter((e) => e.type !== "pas_terminee"),
+    pasTerminees: { commandes: liste.length, centimes: liste.reduce((t, e) => t + e.centimes, 0), parStatut: [...parStatut], liste },
+  };
+}
+
 const LIBELLE_MOYEN = { stripe: "en ligne", especes: "espèces", deduction: "déduit au comptoir" } as const;
 const LIBELLE_STATUT = { fait: "fait", en_cours: "en cours", echec: "échec" } as const;
 

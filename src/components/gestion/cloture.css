@@ -118,6 +118,17 @@
 .bo .clo-liste li + li {
   margin-top: 4px;
 }
+.bo .clo-liste + .clo-pas-terminees {
+  margin-top: 12px;
+}
+.bo .clo-pas-terminees > summary {
+  cursor: pointer;
+  padding: 12px 0;
+  font-weight: 600;
+}
+.bo .clo-pas-terminees > .aide {
+  margin: 0 0 8px;
+}
 
 .bo .clo-imprime {
   display: none;
@@ -134,7 +145,8 @@
   .bo .clo-tete,
   .bo .clo-form,
   .bo .clo-sans-impression,
-  .bo .clo-attention + * .clo-form {
+  .bo .clo-attention + * .clo-form,
+  .bo .clo-pas-terminees > :not(summary) {
     display: none !important;
   }
   body:has(.clo) .bo {

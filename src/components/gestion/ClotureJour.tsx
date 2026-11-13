@@ -5,7 +5,7 @@
 // du rapport et journalise (cloture_jour, cloturer_jour : docs/pilotage.md). Rien n'est recalculé ici.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Champ, Chargement, EtatErreur, montant, nombre, useConfirmer, useNotifier, decalerJour } from "@/components/gestion/ui";
-import { libelleEcart, montantCompte, type ClotureJour as Donnees } from "@/lib/cloture";
+import { libelleEcart, montantCompte, regrouperEcarts, type ClotureJour as Donnees } from "@/lib/cloture";
 import { heureDe, jourGeneveDe } from "@/lib/heures";
 import { jourDeService } from "@/lib/pilotage";
 import { poster } from "@/lib/requete-client";
@@ -20,6 +20,8 @@ const STATUTS: Record<string, string> = {
   partie: "partie",
   terminee: "terminée",
 };
+const STATUTS_PLURIEL: Record<string, string> = { acceptee: "acceptées", prete: "prêtes", partie: "parties" };
+const statutCompte = (st: string, n: number) => `${n} ${(n > 1 ? STATUTS_PLURIEL[st] : undefined) ?? STATUTS[st] ?? st}`;
 const MOYENS = { stripe: "en ligne", especes: "espèces", deduction: "déduit au comptoir" } as const;
 const ETATS = { fait: "fait", en_cours: "pas encore confirmé", echec: "échec" } as const;
 
@@ -280,18 +282,39 @@ export function ClotureJour() {
 
           <section aria-labelledby="clo-verifier">
             <h3 id="clo-verifier">À vérifier</h3>
-            {r.ecarts.length === 0 ? (
-              <p className="aide">Rien à vérifier.</p>
-            ) : (
-              <ul className="clo-liste">
-                {r.ecarts.map((e, i) => (
-                  <li key={`${e.type}-${e.numero}-${i}`}>
-                    <strong>{libelleEcart(e)}</strong> : commande {e.numero}, CHF {montant(e.centimes)}
-                    {e.type === "pas_terminee" ? ` (${STATUTS[e.statut] ?? e.statut})` : ""}
-                  </li>
-                ))}
-              </ul>
-            )}
+            {(() => {
+              const { aSuivre, pasTerminees: p } = regrouperEcarts(r.ecarts);
+              if (aSuivre.length === 0 && p.commandes === 0) return <p className="aide">Rien à vérifier.</p>;
+              return (
+                <>
+                  {aSuivre.length > 0 && (
+                    <ul className="clo-liste">
+                      {aSuivre.map((e, i) => (
+                        <li key={`${e.type}-${e.numero}-${i}`}>
+                          <strong>{libelleEcart(e)}</strong> : commande {e.numero}, CHF {montant(e.centimes)}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {p.commandes > 0 && (
+                    <details className="clo-pas-terminees">
+                      <summary>
+                        {nombre(p.commandes)} {p.commandes > 1 ? "commandes pas terminées" : "commande pas terminée"}, CHF {montant(p.centimes)} (
+                        {p.parStatut.map(([st, n]) => statutCompte(st, n)).join(", ")})
+                      </summary>
+                      <p className="aide">Normal pendant le service. Clôturez une fois les commandes terminées, sinon reclôturez plus tard.</p>
+                      <ul className="clo-liste">
+                        {p.liste.map((e) => (
+                          <li key={e.numero}>
+                            Commande {e.numero}, CHF {montant(e.centimes)} ({STATUTS[e.statut] ?? e.statut})
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
+                </>
+              );
+            })()}
           </section>
 
           <section aria-labelledby="clo-remb">
