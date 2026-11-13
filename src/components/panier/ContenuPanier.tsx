@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { calculerPanier, platDe, type Catalogue, type LignePanier } from "@/lib/panier";
-import type { ReponsePanier, SuiviPanier } from "@/lib/panier-local";
+import type { CalculPanier, ReponsePanier, SuiviPanier } from "@/lib/panier-local";
 import type { Choix } from "@/lib/choix";
 import { prixChf, prixCourt } from "@/lib/prix";
 import { nomAffiche } from "@/components/Plat";
@@ -18,6 +18,7 @@ export function ContenuPanier({
   reponse,
   sansBouton = false,
   suivi,
+  calcul,
 }: {
   lignes: LignePanier[];
   quantite: (i: number, delta: number) => void;
@@ -27,6 +28,7 @@ export function ContenuPanier({
   preversion?: boolean;
   sansBouton?: boolean;
   suivi?: SuiviPanier;
+  calcul?: CalculPanier;
 }) {
   const local = calculerPanier(catalogue, lignes, choix?.mode === "livraison" && choix.zone ? choix.zone : null);
   const t = reponse && !reponse.erreur ? reponse : local;
@@ -144,6 +146,7 @@ export function ContenuPanier({
         </p>
       )}
 
+      {!sansBouton && calcul && <EtatCalcul calcul={calcul} />}
       {!sansBouton &&
         (reponse?.valide ? (
           <Link className="bouton-principal" href="/commande">
@@ -156,6 +159,31 @@ export function ContenuPanier({
         ))}
     </>
   );
+}
+
+// Pourquoi le bouton est gris quand le total n'est pas encore là : calcul lent ou réseau coupé.
+export function EtatCalcul({ calcul }: { calcul: CalculPanier }) {
+  if (calcul.reponse) return null;
+  if (calcul.echec) {
+    return (
+      <p className="panier-alerte" role="alert">
+        Le total n&apos;a pas pu être calculé. Vérifiez la connexion.
+        {/* À la ligne : la cible de 44 px du bouton n'écarte pas les lignes du message. */}
+        <br />
+        <button type="button" className="lien" onClick={calcul.relancer}>
+          Réessayer
+        </button>
+      </p>
+    );
+  }
+  if (calcul.lent) {
+    return (
+      <p className="aide" role="status">
+        Calcul du total en cours…
+      </p>
+    );
+  }
+  return null;
 }
 
 // Panier expiré (CM-15) et ligne retirée par « − » avec « Annuler » (CM-23).

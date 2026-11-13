@@ -7,7 +7,7 @@ import type { Categorie, LignePlat } from "@/lib/carte";
 import { lireChoix, type Choix } from "@/lib/choix";
 import { PHOTOS_SERREES, urlPhoto } from "@/lib/photos";
 import { calculerPanier, type Catalogue } from "@/lib/panier";
-import { usePanier, usePrixServeur } from "@/lib/panier-local";
+import { usePanier, useCalculPanier } from "@/lib/panier-local";
 import { LIBELLE_SERVICE, momentDuChoix, motifPlatDuJour } from "@/lib/plat-du-jour";
 import { instantGeneve } from "@/lib/service";
 import { prixChf, prixCourt } from "@/lib/prix";
@@ -19,7 +19,8 @@ import { ContenuPanier } from "@/components/panier/ContenuPanier";
 export function CarteCommande({ categories, catalogue, preversion }: { categories: Categorie[]; catalogue: Catalogue; preversion: boolean }) {
   const panier = usePanier();
   const { lignes, charge, ajouter, quantite } = panier;
-  const reponse = usePrixServeur(lignes, charge);
+  const calcul = useCalculPanier(lignes, charge);
+  const { reponse } = calcul;
   const [choix, setChoix] = useState<Choix | null>(null);
   const [ouvert, setOuvert] = useState<LignePlat | null>(null);
   const fermer = useCallback(() => setOuvert(null), []);
@@ -171,7 +172,7 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
         </div>
         <aside className="panier-col" aria-label="Votre commande">
           <h2 className="panier-titre">Votre commande</h2>
-          <ContenuPanier lignes={lignes} quantite={quantite} catalogue={catalogue} choix={choix} reponse={reponse} preversion={preversion} suivi={panier} />
+          <ContenuPanier lignes={lignes} quantite={quantite} catalogue={catalogue} choix={choix} reponse={reponse} preversion={preversion} suivi={panier} calcul={calcul} />
         </aside>
       </div>
       {nbArticles > 0 && (

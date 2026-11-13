@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { chargerCatalogue } from "@/lib/catalogue";
 import { chargerConfigService } from "@/lib/config-service";
+import { fonctionSql } from "@/lib/db/serveur";
 import { calculerPanier } from "@/lib/panier";
 import { erreurPlatsDuJour, momentDe } from "@/lib/plat-du-jour";
 import { lignesValides, quandValide } from "@/lib/validation";
-import { depuisHeureGeneve, enMinutes, heureTexte, instantGeneve, jourIso, quandPossible, type Zone, messagePause, messageSansCreneau, pauseEnCours } from "@/lib/service";
+import { depuisHeureGeneve, enMinutes, heureTexte, instantGeneve, jourIso, quandPossible, type CreneauPlein, type Zone, messagePause, messageSansCreneau, pauseEnCours } from "@/lib/service";
 import { zoneServeur } from "@/lib/zone-serveur";
 
 // Prix du panier calculé par le serveur à partir de la base : options, frais de zone, minimum, TVA,
@@ -63,6 +64,15 @@ export async function POST(requete: Request) {
     }
   }
 
+  // Créneau rempli par d'autres clients depuis le choix de l'heure : annoncé dès le panier, avec le même
+  // texte que le refus au paiement (creer_commande le revérifie sous verrou). Base muette : on laisse passer.
+  let creneauComplet = false;
+  if (messageQuand === null && lignes.length > 0 && quand.type === "creneau") {
+    const pleins = await fonctionSql<CreneauPlein[]>("creneaux_pleins", { p_debut: quand.date, p_fin: quand.date }).catch(() => [] as CreneauPlein[]);
+    creneauComplet = pleins.some((p) => p.mode === mode && p.minutes === quand.minutes);
+    if (creneauComplet) messageQuand = "Ce créneau est complet. Choisissez une autre heure ou appelez-nous au 022\u00a0792\u00a016\u00a089.";
+  }
+
   if (messageQuand === null && lignes.length > 0) {
     const jourRefuse = erreurPlatsDuJour(catalogue, lignes, momentDe(config, maintenant, mode, zone, totaux.pizzas_seulement, quand));
     if (jourRefuse) messageQuand = `${jourRefuse} Retirez-le ou choisissez une autre heure.`;
@@ -72,6 +82,7 @@ export async function POST(requete: Request) {
     ...totaux,
     valide: totaux.valide && messageQuand === null,
     message_quand: messageQuand,
+    creneau_complet: creneauComplet,
     plafond_comptoir_centimes: config.plafondComptoirCentimes,
   });
 }

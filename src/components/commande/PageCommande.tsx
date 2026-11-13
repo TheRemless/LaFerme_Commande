@@ -5,11 +5,11 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 import { lireChoix, type Choix } from "@/lib/choix";
 import { platDe, type Catalogue } from "@/lib/panier";
-import { usePanier, usePrixServeur } from "@/lib/panier-local";
+import { useCalculPanier, usePanier, type ReponsePanier } from "@/lib/panier-local";
 import { comptoirPermis } from "@/lib/plafond-comptoir";
 import { prixChf, prixCourt, prixPhrase } from "@/lib/prix";
 import { heureTexte, jourTexte } from "@/lib/service";
-import { ContenuPanier } from "@/components/panier/ContenuPanier";
+import { ContenuPanier, EtatCalcul } from "@/components/panier/ContenuPanier";
 import { nomAffiche } from "@/components/Plat";
 import { champClientInvalide, MESSAGE_CHAMP, type ChampClient } from "@/lib/validation";
 
@@ -31,7 +31,7 @@ function cleCommande(contenu: string): string {
 // Pourquoi le bouton de paiement reste gris : la même raison que dans le récapitulatif, répétée juste
 // au-dessus du bouton, car sur téléphone le récapitulatif est bien plus bas (rapport client mystère, CM-02).
 function raisonBlocage(
-  reponse: ReturnType<typeof usePrixServeur>,
+  reponse: ReponsePanier | null,
   catalogue: Catalogue,
   choix: Choix | null,
 ): { texte: string; lien: string; action: string } | null {
@@ -67,7 +67,8 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
   // Commande refusée par le serveur (plat épuisé, créneau complet entre-temps) : le récapitulatif et le
   // bouton se recalculent tout de suite, sans recharger la page.
   const [relance, setRelance] = useState(0);
-  const reponse = usePrixServeur(lignes, charge, relance);
+  const calcul = useCalculPanier(lignes, charge, relance);
+  const { reponse } = calcul;
   const [choix, setChoix] = useState<Choix | null>(null);
   const [client, setClient] = useState({
     prenom: compte?.prenom ?? "",
@@ -341,6 +342,7 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
               )}
             </p>
           )}
+          {!erreur && <EtatCalcul calcul={calcul} />}
           {raison && (
             <p className="panier-alerte" role="status">
               {raison.texte} <Link href={raison.lien}>{raison.action}</Link>
