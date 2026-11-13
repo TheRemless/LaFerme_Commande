@@ -49,11 +49,14 @@ export function plafondJour(): number {
   return Number.isInteger(n) && n > 0 ? n : PLAFOND_PAR_DEFAUT;
 }
 
-// Variante « moins d'e-mails » (préparée, désactivée tant que Jérémy n'a pas tranché) : COURRIELS_REDUITS=1
-// garde « reçue » et « acceptée », et laisse « prête » et « en route » à la seule page de suivi.
-// 300 commandes : environ 600 e-mails par jour au lieu de 900.
+// Un seul e-mail à la commande (Jérémy, 13.11.2026 : « juste un e-mail avec un lien pour voir le suivi ») :
+// la confirmation porte le récapitulatif, le reçu et le lien de suivi, puis tout se lit sur la page de suivi.
+// Partent encore les e-mails qui changent quelque chose pour le client : refus, nouvelle heure, remboursement,
+// plat manquant, commande modifiée, non remise. « Acceptée », « prête » et « en route » restent au suivi.
+// COURRIELS_ETAPES=1 rétablit ces trois e-mails (environ 900 e-mails pour 300 commandes au lieu de 300).
+const ETAPES: readonly TypeCourriel[] = ["acceptation", "prete", "en_route"];
 export function courrielSupprime(type: TypeCourriel | undefined): boolean {
-  return process.env.COURRIELS_REDUITS === "1" && (type === "prete" || type === "en_route");
+  return process.env.COURRIELS_ETAPES !== "1" && type !== undefined && ETAPES.includes(type);
 }
 
 export class QuotaAtteint extends Error {
