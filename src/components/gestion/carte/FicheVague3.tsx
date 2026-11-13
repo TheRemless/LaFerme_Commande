@@ -11,7 +11,9 @@ import { jourTexte } from "@/lib/service";
 
 const JOURS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
 
-export function DispoRupture({ plat, aujourdhui, recharger }: { plat: PlatGestion; aujourdhui: string; recharger: () => Promise<void> }) {
+// epuise : appelé après « Épuiser » (null après « Remettre en vente »), pour montrer les commandes en cours qui contiennent le plat (la fiche est
+// recréée au rechargement, la liste vit donc dans le panneau).
+export function DispoRupture({ plat, aujourdhui, recharger, epuise }: { plat: PlatGestion; aujourdhui: string; recharger: () => Promise<void>; epuise?: (jusqu: string | null) => void }) {
   const notifier = useNotifier();
   const duJour = plat.origine === "jour";
   const [service, setService] = useState(plat.dispo?.service ?? "");
@@ -38,7 +40,9 @@ export function DispoRupture({ plat, aujourdhui, recharger }: { plat: PlatGestio
         ? { texte: erreur, ton: "erreur" }
         : { texte: jusqu ? `Épuisé jusqu'au ${jourTexte(jusqu)}, de retour le lendemain.` : "De nouveau en vente.", ton: "succes" },
     );
-    if (!erreur) await recharger();
+    if (erreur) return;
+    epuise?.(jusqu);
+    await recharger();
   }
 
   return (

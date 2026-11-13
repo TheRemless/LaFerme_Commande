@@ -6,7 +6,7 @@ import type {
   GroupeGestion,
 } from "@/components/gestion/GestionCarte";
 import { enregistrer } from "@/components/gestion/enregistrer";
-import { jourCourtFr } from "@/components/gestion/carte/ListeCarte";
+import { jourCourtFr } from "@/components/gestion/carte/dates";
 import { useConfirmer, useNotifier } from "@/components/gestion/ui";
 import { poster } from "@/lib/requete-client";
 import "./carte.css";

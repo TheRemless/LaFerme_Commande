@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { jourCourtFr } from "@/components/gestion/carte/ListeCarte";
+import { jourCourtFr } from "@/components/gestion/carte/dates";
 import { EtatErreur, PanneauLateral, TableauDonnees, montant, nombre, useConfirmer, useNotifier, type Colonne } from "@/components/gestion/ui";
 import { poster } from "@/lib/requete-client";
 import "./carte.css";

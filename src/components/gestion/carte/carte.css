@@ -201,3 +201,90 @@
   align-items: center;
   cursor: pointer;
 }
+
+/* Four en panne : postes et catégories épuisés en cours, en tête de la carte. Cadre d'encre épais, comme
+   l'interrupteur des promotions : l'état se voit sans couleur. */
+.bo-ruptures-groupees {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.bo-ruptures-groupees li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 10px 14px;
+  background: var(--bo-surface);
+  border: 2px solid var(--bo-texte);
+  border-radius: var(--bo-rayon);
+}
+.bo-ruptures-groupees p {
+  margin: 0;
+}
+.bo-choix-colonne {
+  flex-direction: column;
+}
+
+/* Commandes en cours qui contiennent un plat épuisé. */
+.bo-touchees {
+  width: 100%;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--bo-trait);
+}
+.bo-touchees h3 {
+  margin: 0 0 8px;
+  font-size: 17px;
+}
+.bo-touchees ul {
+  display: flex;
+  flex-direction: column;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.bo-touchees li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--bo-trait);
+}
+.bo-touchee-lien {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--bo-cible);
+  font-weight: 700;
+  color: var(--bo-texte);
+}
+.bo-touchees .bo-champ-aide {
+  margin: 0;
+}
+
+/* Au téléphone : le nom, l'état et ce qui manque dans la première colonne, le prix à côté ; le reste se
+   lit dans la fiche (ou se remet par « Colonnes » sur un écran plus large). */
+.bo-carte-sous {
+  display: none;
+}
+@media (max-width: 767px) {
+  .bo-carte-sous {
+    display: block;
+    margin-top: 2px;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--bo-texte-doux);
+  }
+  /* Le kit garde une ligne par plat au téléphone (nowrap) : ici le nom et sa sous-ligne passent à la ligne,
+     le prix reste dans l'écran. */
+  .bo-carte .bo-tableau td[data-col="nom"] {
+    white-space: normal;
+  }
+  .bo-carte .bo-tableau :is(th, td):is([data-col="carte"], [data-col="etat"], [data-col="manques"], [data-col="dispo"], [data-col="etiquettes"], [data-col="poste"]) {
+    display: none;
+  }
+}

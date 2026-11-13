@@ -6,6 +6,8 @@ import { FichePlat, NouveauPlat, type DonneesCarte, type PlatGestion } from "@/c
 import { PhotosEnLot } from "@/components/gestion/carte/PhotosEnLot";
 import { PrixEnLot } from "@/components/gestion/carte/PrixEnLot";
 import { DispoRupture, CopierPlat, Etiquettes, ETIQUETTES } from "@/components/gestion/carte/FicheVague3";
+import { CommandesTouchees, EpuiserPoste, RupturesGroupees } from "@/components/gestion/carte/FourEnPanne";
+import { jourCourtFr } from "@/components/gestion/carte/dates";
 import { enregistrer } from "@/components/gestion/enregistrer";
 import { PanneauLateral, TableauDonnees, montant, useConfirmer, useNotifier, useOuverture, type Colonne, type Tri } from "@/components/gestion/ui";
 
@@ -32,8 +34,6 @@ const FILTRES: { cle: FiltreEtat; titre: string; garde: (p: LignePlatListe) => b
 ];
 
 const JOURS_COURTS = ["lun.", "mar.", "mer.", "jeu.", "ven.", "sam.", "dim."];
-const JOUR = new Intl.DateTimeFormat("fr-CH", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
-export const jourCourtFr = (iso: string) => JOUR.format(new Date(`${iso.slice(0, 10)}T12:00:00Z`));
 
 export function etatPlat(p: PlatGestion): string {
   if (p.archive) return "Archivé";
@@ -142,6 +142,9 @@ export function ListeCarte({ donnees, recharger, version }: { donnees: DonneesCa
   const [epuiser, setEpuiser] = useState<string[] | null>(null);
   const [nouveau, setNouveau] = useState(false);
   const [photos, setPhotos] = useState(false);
+  const [four, setFour] = useState(false);
+  // Plat épuisé depuis sa fiche : les commandes en cours qui le contiennent, sous la fiche.
+  const [touchees, setTouchees] = useState<{ slug: string; jusqu_au: string; fois: number } | null>(null);
   // Après des prix changés en lot, la sélection se vide : un second appui ne rejoue pas la hausse.
   const viderLot = useRef<(() => void) | null>(null);
 
@@ -163,7 +166,23 @@ export function ListeCarte({ donnees, recharger, version }: { donnees: DonneesCa
   const nomDe = (s: string) => toutes.find((p) => p.slug === s)?.nom ?? s;
 
   const colonnes: Colonne<LignePlatListe>[] = [
-    { cle: "nom", titre: "Plat", valeur: (p) => p.nom, triable: true, fixe: true },
+    {
+      cle: "nom",
+      titre: "Plat",
+      valeur: (p) => p.nom,
+      // Au téléphone, l'état et ce qui manque passent sous le nom (colonnes masquées, carte.css).
+      rendu: (p) => (
+        <>
+          {p.nom}
+          <span className="bo-carte-sous">
+            {etatPlat(p)}
+            {manquesCourts(p) ? `, à compléter : ${manquesCourts(p)}` : ""}
+          </span>
+        </>
+      ),
+      triable: true,
+      fixe: true,
+    },
     { cle: "carte", titre: "Catégorie", valeur: (p) => p.categorie_nom, triable: true },
     { cle: "prix", titre: "Prix CHF", valeur: (p) => montant(p.prix_centimes), rendu: (p) => <PrixEnLigne key={`${p.slug}-${p.prix_centimes}-${version}`} plat={p} recharger={recharger} />, triable: true, nombre: true },
     { cle: "etat", titre: "État", valeur: etatPlat, triable: true },
@@ -251,6 +270,9 @@ export function ListeCarte({ donnees, recharger, version }: { donnees: DonneesCa
           ))}
         </div>
         <span className="bo-ligne-champs">
+          <button type="button" className="bo-bouton bo-bouton-second" onClick={() => setFour(true)}>
+            Four en panne…
+          </button>
           <button type="button" className="bo-bouton bo-bouton-second" onClick={() => setPhotos(true)}>
             Envoyer des photos
           </button>
@@ -259,6 +281,7 @@ export function ListeCarte({ donnees, recharger, version }: { donnees: DonneesCa
           </button>
         </span>
       </div>
+      <RupturesGroupees donnees={donnees} recharger={recharger} />
       {donnees.bloquants > 0 && (
         <p className="bo-champ-aide">
           {donnees.bloquants} plat{donnees.bloquants > 1 ? "s" : ""} en vente bloque{donnees.bloquants > 1 ? "nt" : ""} la mise en ligne (prix, allergènes, provenance ou supplément à valider).
@@ -351,9 +374,28 @@ export function ListeCarte({ donnees, recharger, version }: { donnees: DonneesCa
         }}
       />
       {plat && (
-        <PanneauLateral titre={plat.nom} sousTitre={`${plat.categorie_nom}, ${etatPlat(plat).toLowerCase()}`} onFermer={() => setOuvert(null)} large>
+        <PanneauLateral
+          titre={plat.nom}
+          sousTitre={`${plat.categorie_nom}, ${etatPlat(plat).toLowerCase()}`}
+          onFermer={() => {
+            setOuvert(null);
+            setTouchees(null);
+          }}
+          large
+        >
           <FichePlat key={`${plat.slug}-${version}`} plat={plat} donnees={donnees} recharger={recharger} />
-          {!plat.archive && <DispoRupture key={`d-${plat.slug}-${version}`} plat={plat} aujourdhui={donnees.aujourdhui} recharger={recharger} />}
+          {!plat.archive && (
+            <DispoRupture
+              key={`d-${plat.slug}-${version}`}
+              plat={plat}
+              aujourdhui={donnees.aujourdhui}
+              recharger={recharger}
+              epuise={(jusqu_au) => setTouchees((t) => (jusqu_au ? { slug: plat.slug, jusqu_au, fois: (t?.fois ?? 0) + 1 } : null))}
+            />
+          )}
+          {touchees?.slug === plat.slug && (
+            <CommandesTouchees key={touchees.fois} requete={{ slugs: [plat.slug], jusqu_au: touchees.jusqu_au }} aujourdhui={donnees.aujourdhui} />
+          )}
           {!plat.archive && <Etiquettes key={`e-${plat.slug}-${version}-${(plat.etiquettes ?? []).join()}`} plat={plat} recharger={recharger} />}
           {plat.origine !== "jour" && (
             <CopierPlat
@@ -364,6 +406,11 @@ export function ListeCarte({ donnees, recharger, version }: { donnees: DonneesCa
               }}
             />
           )}
+        </PanneauLateral>
+      )}
+      {four && (
+        <PanneauLateral titre="Four en panne" sousTitre="Épuiser tout un poste ou une catégorie jusqu'à une date" onFermer={() => setFour(false)}>
+          <EpuiserPoste donnees={donnees} recharger={recharger} />
         </PanneauLateral>
       )}
       {photos && (
@@ -410,7 +457,6 @@ export function ListeCarte({ donnees, recharger, version }: { donnees: DonneesCa
             nomDe={nomDe}
             aujourdhui={donnees.aujourdhui}
             fini={async (texte, ton) => {
-              setEpuiser(null);
               await recharger();
               notifier({ texte, ton });
             }}
@@ -424,16 +470,31 @@ export function ListeCarte({ donnees, recharger, version }: { donnees: DonneesCa
 function EpuiserLot({ slugs, nomDe, aujourdhui, fini }: { slugs: string[]; nomDe: (s: string) => string; aujourdhui: string; fini: (texte: string, ton: "succes" | "erreur") => Promise<void> }) {
   const [date, setDate] = useState(aujourdhui.slice(0, 10));
   const [envoi, setEnvoi] = useState(false);
+  const [fait, setFait] = useState<{ date: string; slugs: string[] } | null>(null);
   async function envoyer(e: React.FormEvent) {
     e.preventDefault();
     setEnvoi(true);
     const erreurs: string[] = [];
+    const reussis: string[] = [];
     for (const s of slugs) {
       const r = await enregistrer("/api/gestion/carte", { type: "rupture", slug: s, jusqu_au: date });
       if (r) erreurs.push(`${nomDe(s)} : ${r}`);
+      else reussis.push(s);
     }
     setEnvoi(false);
+    // Les commandes touchées : seulement pour les plats vraiment épuisés.
+    if (reussis.length) setFait({ date, slugs: reussis });
     await fini(erreurs.length ? erreurs.join(" ") : `${slugs.length} plat${slugs.length > 1 ? "s" : ""} épuisé${slugs.length > 1 ? "s" : ""} jusqu'au ${jourCourtFr(date)}, de retour le lendemain.`, erreurs.length ? "erreur" : "succes");
+  }
+  if (fait) {
+    return (
+      <div className="bo-formulaire">
+        <p>
+          Épuisé{fait.slugs.length > 1 ? "s" : ""} jusqu&apos;au {jourCourtFr(fait.date)} compris : {fait.slugs.map(nomDe).join(", ")}.
+        </p>
+        <CommandesTouchees requete={{ slugs: fait.slugs, jusqu_au: fait.date }} aujourdhui={aujourdhui} />
+      </div>
+    );
   }
   return (
     <form onSubmit={envoyer} className="bo-formulaire">
