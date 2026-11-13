@@ -23,3 +23,10 @@ insert into personnel (email, nom, role) values
   ('ines@laferme.test', 'Inès', 'livreur'),
   -- Annuler une livraison partie : gérant seulement (audit de sécurité 2, S2-01), tests/e2e/livreurs.spec.ts.
   ('gerant-livraison@laferme.test', 'Gérant livraison', 'gerant');
+
+-- Coup de feu (tests/e2e/coup-de-feu.spec.ts, vague 3) : un compte par projet Playwright.
+insert into personnel (email, nom, role) values
+  ('cdf-bureau@laferme.test', 'Coup de feu bureau', 'gerant'),
+  ('cdf-mobile@laferme.test', 'Coup de feu mobile', 'gerant'),
+  ('cdf-service-bureau@laferme.test', 'Service bureau', 'service'),
+  ('cdf-service-mobile@laferme.test', 'Service mobile', 'service');
