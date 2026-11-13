@@ -374,3 +374,15 @@
   color: var(--blanc);
   border-color: var(--blanc);
 }
+
+/* Commande reçue un autre jour : sa date sous le numéro (les numéros recommencent chaque jour). */
+.tab-num-jour {
+  display: block;
+  margin-top: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  font-stretch: 100%;
+  line-height: 1.2;
+  letter-spacing: 0;
+  white-space: nowrap;
+}

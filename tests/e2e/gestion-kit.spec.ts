@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { adresseDuCompte } from "./site";
+import { adresseDuCompte, codeDuPersonnel } from "./site";
 
 // Kit du back-office (vague 3) sur sa page de démonstration /gestion/kit (base embarquée seulement) :
 // tableau (tri, recherche, pages, colonnes, sélection, lot, CSV), confirmation, notification « Annuler »,
@@ -18,10 +18,7 @@ test.beforeAll(async ({ browser }, info) => {
   await adresseDuCompte(page, email);
   await page.goto("/gestion/kit");
   await page.getByLabel("E-mail", { exact: true }).fill(email);
-  await page.getByRole("button", { name: "Recevoir un code" }).click();
-  const code = page.locator(".note-preversion strong");
-  await expect(code).toHaveText(/^\d{8}$/);
-  await page.getByLabel("Code à 8 chiffres").fill(await code.innerText());
+  await page.getByLabel("Code à 8 chiffres").fill(await codeDuPersonnel(page));
   await page.getByRole("button", { name: "Me connecter" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Kit du back-office" })).toBeVisible();
 });

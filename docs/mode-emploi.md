@@ -213,6 +213,10 @@ Qui livre les sept prochains jours, absence et renfort en un geste, semaine type
 
 Coup de feu (en tête de la rubrique) et zones livrées le soir seulement ou fermées pour quelques heures : `docs/coup-de-feu.md` et `docs/zones-services.md`, « Écran du back-office ».
 
+### Réglages généraux
+
+E-mail des alertes, longueur d'un créneau, commande à l'avance, annulation par le client, codes de connexion par jour : `docs/reglages-generaux.md`, « Mode d'emploi ».
+
 ### Calendrier
 
 Le mois vu par les clients, fériés à confirmer, fermer un jour ou un service : `docs/calendrier.md`, « Mode d'emploi ».
@@ -227,6 +231,10 @@ Le mois vu par les clients, fériés à confirmer, fermer un jour ou un service 
 
 - Codes promo, désactivés tant que l'offre n'est pas décidée par Jérémy : créer un code par support (flyer, autocollant), l'activer, voir ce qu'il a rapporté. Détail : [codes-promo.md](codes-promo.md#écran-promotions-back-office).
 
+### Menus et formules
+
+- Préparer des menus à prix fixe (une pizza, un dessert, une boisson) : rubrique « Menus et formules ». Ils ne sont proposés aux clients qu'avec l'accord de Jérémy. Détail : [menus.md](menus.md#écran).
+
 ### Importer le tableau
 
 - Remplir seulement les cases jaunes de `validation-carte.xlsx`. Prix en chiffres (18 ou 18.50, sans « .- » ni « CHF »). Commandable « oui » ou « non ».
@@ -238,6 +246,7 @@ Le mois vu par les clients, fériés à confirmer, fermer un jour ou un service 
 - Choisir « Du » et « Au » puis toucher « Télécharger le fichier CSV ». Le fichier s'ouvre dans Excel.
 - Une ligne par vente encaissée, puis les remboursements de la période en négatif, puis le total net par taux de TVA.
 - Une commande payée au comptoir n'y est que si quelqu'un a touché « Encaissée » ou « Retirée et payée » sur la tablette.
+- Rapports (rubrique à côté) : choisir la période et le service, les ventes, les commandes et le panier moyen s'affichent avec l'écart contre la période d'avant. Détail : [docs/rapports-gestion.md](rapports-gestion.md).
 
 ### Journal
 

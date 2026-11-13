@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { codeDuPersonnel } from "./site";
 
 // Groupes d'options au back-office (vague 3) : créer un groupe facultatif d'essai, lui ajouter une option,
 // la cocher d'avance, l'épuiser jusqu'à demain, poser le groupe sur un plat puis l'en retirer (la carte des
@@ -14,10 +15,7 @@ test.beforeAll(async ({ browser }, info) => {
   gestion = await browser.newPage({ baseURL: info.project.use.baseURL });
   await gestion.goto("/gestion");
   await gestion.getByLabel("E-mail", { exact: true }).fill(`groupes-${info.project.name}@laferme.test`);
-  await gestion.getByRole("button", { name: "Recevoir un code" }).click();
-  const code = gestion.locator(".note-preversion strong");
-  await expect(code).toHaveText(/^\d{8}$/);
-  await gestion.getByLabel("Code à 8 chiffres").fill(await code.innerText());
+  await gestion.getByLabel("Code à 8 chiffres").fill(await codeDuPersonnel(gestion));
   await gestion.getByRole("button", { name: "Me connecter" }).click();
   await expect(gestion.getByRole("heading", { level: 1, name: "Accueil" })).toBeVisible();
 });
