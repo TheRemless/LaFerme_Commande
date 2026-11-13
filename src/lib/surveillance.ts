@@ -2,7 +2,7 @@ import "server-only";
 import { chargerConfigService } from "@/lib/config-service";
 import { finCoupDeFeuEchue } from "@/lib/coup-de-feu";
 import { courrielConfigure, envoyerParSmtp } from "@/lib/courriel/envoi";
-import type { TypeCourriel } from "@/lib/courriel/quota";
+import { QuotaAtteint, type TypeCourriel } from "@/lib/courriel/quota";
 import { enregistrerCourriel, fonctionSql } from "@/lib/db/serveur";
 import { imprimerCommandesDues } from "@/lib/impression/service";
 import { etatService, type ConfigService } from "@/lib/service";
@@ -24,8 +24,16 @@ export async function alerter(sujet: string, lignes: string[], type: TypeCourrie
   const texte = [...lignes, "", "Site de commande La Ferme"].join("\n");
   const html = `<pre>${texte.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!)}</pre>`;
   const destinataire = process.env.ALERTE_EMAIL;
-  if (courrielConfigure() && destinataire) {
-    await envoyerParSmtp(destinataire, sujet, texte, html, { type });
+  let fournisseur = courrielConfigure() && destinataire ? "smtp" : "doublure";
+  if (fournisseur === "smtp") {
+    try {
+      await envoyerParSmtp(destinataire!, sujet, texte, html, { type });
+    } catch (e) {
+      // Limite du jour : l'alerte ne part pas par e-mail, mais sa copie reste pour le back-office.
+      if (!(e instanceof QuotaAtteint)) throw e;
+      console.error(`Alerte non envoyée (limite d'e-mails du jour) : ${sujet}`);
+      fournisseur = "quota";
+    }
   } else {
     console.error(`Alerte (aucun courriel configuré) : ${sujet}`);
   }
@@ -35,7 +43,7 @@ export async function alerter(sujet: string, lignes: string[], type: TypeCourrie
     sujet,
     texte,
     html,
-    fournisseur: courrielConfigure() && destinataire ? "smtp" : "doublure",
+    fournisseur,
   });
 }
 

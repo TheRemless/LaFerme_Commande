@@ -142,6 +142,17 @@ describe("quota d'envoi", () => {
     expect(alertes[0].to).toMatchObject({ address: "alertes@exemple.test" });
   });
 
+  it("une alerte refusée par la limite garde sa copie pour le back-office", async () => {
+    const { alerter } = await import("@/lib/surveillance");
+    const plafond = await plafondAvecLibres(0);
+    expect(plafond).toBeGreaterThan(0);
+    await alerter("Alerte d'essai du quota", ["ligne"]);
+    const db = await baseLocale();
+    const r = (await db.query<{ fournisseur: string }>("select fournisseur from courriels where sujet = $1", ["Alerte d'essai du quota"])).rows;
+    expect(r).toEqual([{ fournisseur: "quota" }]);
+    expect(smtp.messages.some((m) => m.subject === "Alerte d'essai du quota")).toBe(false);
+  });
+
   it("un refus du serveur SMTP rend la place", async () => {
     const { envoyerCourriel } = await envoi();
     const { etatQuotaCourriels } = await quota();
