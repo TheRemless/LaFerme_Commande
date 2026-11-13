@@ -183,6 +183,9 @@ test("supplément épuisé : refusé à la commande, puis revient", async ({ req
   const ligne = tablette.locator(".tab-plats li").filter({ hasText: new RegExp(`^${supplement}\\s*Supplément`) });
   await ligne.getByRole("button", { name: "Disponible" }).click();
   await expect(ligne.getByRole("button", { name: "Épuisé" })).toBeVisible();
+  // Coup de feu : construit désactivé pour l'équipe de service (coup_de_feu_par_equipe faux), bloc caché.
+  expect(((await (await tablette.request.get("/api/tablette/coup-de-feu")).json()) as { autorise: boolean }).autorise).toBe(false);
+  await expect(tablette.getByRole("heading", { name: "Coup de feu" })).toHaveCount(0);
   const rep = await request.post("/api/commandes", {
     headers: ORIGINE,
     data: {

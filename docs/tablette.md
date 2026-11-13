@@ -117,3 +117,12 @@ Détail : `docs/audits/gerant.md`, « Suivi des corrections ».
 ## Livreurs (vague 2)
 
 Onglet « Livraisons » : donner une livraison acceptée à un livreur, ordre de passage proposé ou à la main, réattribuer, reprendre, problème signalé par le livreur (bandeau jaune). Une livraison partie peut désormais être annulée depuis « En cours ». Détail : `docs/livreurs.md`.
+
+## Coup de feu sur la tablette (vague 3)
+
+Bloc en tête de « Pause, délai, ruptures ». Mêmes fonctions que le back-office (`src/lib/coup-de-feu.ts`, bo-operations, `docs/coup-de-feu.md`), route `/api/tablette/coup-de-feu`.
+
+- Deux gestes : choisir la durée (30 min, 1 h, 2 h ou la durée proposée), puis « Lancer jusqu'à 21h10 ». Retard et commandes par créneau suivent les valeurs proposées (`coup_de_feu_defaut`, réglées au back-office). « Fin du coup de feu » en un geste. Tout revient seul à l'heure de fin.
+- Qui : le gérant toujours. L'équipe de service seulement si le réglage `coup_de_feu_par_equipe` est vrai. **Construit désactivé** (migration `20261203100000_tablette_coup_de_feu.sql`, décision de Jérémy). Le réglage est relu à chaque requête : le couper agit tout de suite. Pour l'ouvrir : `update reglages set valeur = 'true', proposition = false where cle = 'coup_de_feu_par_equipe';`
+- Réglage faux : l'équipe de service ne voit pas le bloc, sauf pour lire qu'un coup de feu lancé par le gérant est en cours (sans bouton). Le rôle « responsable » n'y a pas accès (la base le refuse, `equipe_nom`).
+- Captures : `docs/rendus/vague-3/tablette/coup-de-feu-*.png` (`scripts/tablette/coup-de-feu.mjs`, compte gérant de test). Tests : `tests/unit/tablette-coup-de-feu.test.ts`.
