@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { SITE, adresseDuCompte } from "./site";
+import { SITE, adresseDuCompte, codeDuPersonnel, passage } from "./site";
 import { expect, test, type Page } from "@playwright/test";
 
 // Rubrique Imprimantes, parties de la vague 3 (bo-operations) : ce que chaque imprimante a fait, et la conduite
@@ -8,17 +8,14 @@ test.describe.configure({ mode: "serial", timeout: 90_000 });
 
 const ORIGINE = { Origin: SITE };
 const CAPTURES = "docs/rendus/vague-3/bo-operations";
-const NOM = "Essai écran imprimantes";
+// Unique par passage : un réessai de la CI sur le même serveur ne retrouve pas l'imprimante du passage d'avant.
+const NOM = `Essai écran imprimantes ${passage()}`;
 
 async function connecter(page: Page, email: string) {
   await adresseDuCompte(page, email);
   await page.goto("/gestion/imprimantes");
   await page.getByLabel("E-mail", { exact: true }).fill(email);
-  await page.getByRole("button", { name: "Recevoir un code" }).click();
-  const code = page.locator(".note-preversion strong");
-  // Premier appel après le démarrage du serveur : la page compile, d'où un délai plus large.
-  await expect(code).toHaveText(/^\d{8}$/, { timeout: 20_000 });
-  await page.getByLabel("Code à 8 chiffres").fill(await code.innerText());
+  await page.getByLabel("Code à 8 chiffres").fill(await codeDuPersonnel(page));
   await page.getByRole("button", { name: "Me connecter" }).click();
   await expect(page.getByLabel("Code à 8 chiffres")).toHaveCount(0);
 }
