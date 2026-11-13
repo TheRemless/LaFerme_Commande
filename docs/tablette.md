@@ -179,3 +179,11 @@ Migration `20261212110000_tablette_nouveautes_client.sql` (après les colonnes d
 | Prénom par ligne (`pour`) | « pour Hugo » sous le plat | Sous le plat | « pour Hugo » sous le plat | Rien |
 
 Couverts et prénoms restent éteints côté client (réglages `couverts_actifs` et `prenom_par_ligne_actif`, décisions C8 et C5) : la tablette les montre dès qu'ils arrivent. Captures : `docs/rendus/vague-3/tablette/nouveautes-*.png` (`scripts/tablette/nouveautes-client.mjs`, après `scripts/tablette/rush.mjs`).
+
+## Ticket « MODIFIÉE » (vague 3, contrat avec bo-commandes, #65)
+
+Une commande acceptée dont le client, le téléphone, les consignes ou l'adresse changent après la sortie de ses tickets : un ticket « MODIFIÉE » au poste qui fait le sac (cuisine s'il y a des lignes cuisine, sinon pizza). Les plats ne changent jamais par ce chemin.
+
+- `imprimerModification(commandeId, changements)` (`src/lib/impression/modification.ts`), changements `{ champ, avant, apres }` lisibles (« Téléphone », « Consignes », « Adresse »). Appelée par `modifierCommande` (bo-commandes) après `modifier_commande`, seulement si quelque chose a changé ; un échec n'empêche pas la modification.
+- Ticket (`ticketModification`, `src/lib/impression/ticket.ts`) : « MODIFIÉE », mode et numéro, heure de la modification, puis pour chaque changement l'ancienne valeur et la nouvelle en négatif, puis l'état à jour (client, « Pour : … », adresse et consignes).
+- Rien si les premiers tickets ne sont pas sortis (ils porteront les nouvelles valeurs), ni pour une commande terminée, refusée ou annulée, ni sans vrai changement. Renvoie le nombre de tickets créés. Pas de migration (`creer_taches_impression`, comme une réimpression).
