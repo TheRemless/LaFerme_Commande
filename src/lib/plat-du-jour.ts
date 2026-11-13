@@ -1,5 +1,6 @@
 // Plat du jour : vendu seulement le jour dit et pour son service (midi, soir ou les deux).
 // Fonctions pures, les mêmes dans le navigateur (carte) et sur le serveur (panier, commande).
+import { motifDisponibilite } from "@/lib/disponibilite";
 import type { ServiceJour } from "@/lib/gestion";
 import type { Catalogue } from "@/lib/panier";
 import { enMinutes, etatService, instantGeneve, jourIso, type ConfigService, type Mode, type Quand, type Zone } from "@/lib/service";
@@ -7,7 +8,8 @@ import { enMinutes, etatService, instantGeneve, jourIso, type ConfigService, typ
 export type { ServiceJour };
 export type JourPlat = { date: string; service: ServiceJour };
 // service : celui des horaires quand on le connaît (serveur), sinon déduit de l'heure (navigateur).
-export type Moment = { date: string; minutes: number; service?: "midi" | "soir" };
+// mode : livraison ou retrait, pour les plats réservés à l'un des deux.
+export type Moment = { date: string; minutes: number; service?: "midi" | "soir"; mode?: Mode };
 
 // Repli quand les horaires ne sont pas là (carte dans le navigateur) : une remise avant 15h appartient au
 // service de midi, après au service du soir. Les horaires proposés finissent à 13h45 et commencent à 18h45.
@@ -47,16 +49,37 @@ export function momentDe(config: ConfigService, maintenant: Date, mode: Mode, zo
   }
   if (!m) return null;
   const service = serviceHoraire(config, m.date, m.minutes);
-  return service ? { ...m, service } : m;
+  return service ? { ...m, service, mode } : { ...m, mode };
 }
 
-// Premier plat du jour du panier qui ne va pas avec le moment demandé : « Osso buco : seulement à midi. »
-export function erreurPlatsDuJour(catalogue: Catalogue, lignes: { slug: string }[], moment: Moment | null): string | null {
-  if (!moment) return null;
+// Pourquoi ce plat ne peut pas être pris pour ce moment, ou null : plat du jour d'un autre jour ou service,
+// plat réservé à un service, un mode ou certains jours, rupture planifiée (src/lib/disponibilite.ts),
+// choix obligatoire dont toutes les options sont épuisées. Texte prêt pour le client : la carte
+// l'affiche, le panier et le paiement refusent avec le même.
+export function motifPlat(catalogue: Catalogue, slug: string, moment: Moment | null, aujourdhui: string): string | null {
+  const p = Object.hasOwn(catalogue.plats, slug) ? catalogue.plats[slug] : undefined;
+  if (!p) return null;
+  const jour = p.jour && moment ? motifPlatDuJour(p.jour, moment) : null;
+  if (jour) return jour;
+  const dispo = motifDisponibilite(p, moment, aujourdhui);
+  if (dispo) return dispo;
+  for (const s of p.groupes ?? []) {
+    const g = Object.hasOwn(catalogue.groupes, s) ? catalogue.groupes[s] : undefined;
+    if (g && g.choix_min > 0 && g.options.filter((o) => !o.rupture).length < g.choix_min) return "Épuisé pour aujourd'hui.";
+  }
+  return null;
+}
+
+// Premier plat du panier qui ne peut pas être pris : « Osso buco : seulement à midi. » Panier et paiement.
+export function erreurPlatsDuJour(
+  catalogue: Catalogue,
+  lignes: { slug: string }[],
+  moment: Moment | null,
+  aujourdhui: string = instantGeneve(new Date()).date,
+): string | null {
   for (const l of lignes) {
-    const p = Object.hasOwn(catalogue.plats, l.slug) ? catalogue.plats[l.slug] : undefined;
-    const motif = p?.jour ? motifPlatDuJour(p.jour, moment) : null;
-    if (motif) return `${p!.nom} : ${motif.charAt(0).toLowerCase()}${motif.slice(1)}`;
+    const motif = motifPlat(catalogue, l.slug, moment, aujourdhui);
+    if (motif) return `${catalogue.plats[l.slug].nom} : ${motif.charAt(0).toLowerCase()}${motif.slice(1)}`;
   }
   return null;
 }
