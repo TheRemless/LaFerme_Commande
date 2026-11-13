@@ -17,6 +17,8 @@ export type DemandeCode = {
   mode: "livraison" | "retrait";
   sous_total_centimes: number;
   frais_centimes: number;
+  // Panier : client pas encore connu, « une fois par client » et « première commande » attendent le paiement.
+  provisoire?: boolean;
 };
 
 // Forme d'un code tapé (même règle que la table : 3 à 20 lettres, chiffres ou tirets), en majuscules.
@@ -37,6 +39,7 @@ export async function evaluerCode(d: DemandeCode): Promise<ResultatCode> {
         mode: d.mode,
         sous_total_centimes: d.sous_total_centimes,
         frais_centimes: d.frais_centimes,
+        provisoire: d.provisoire === true,
       },
     });
   } catch {

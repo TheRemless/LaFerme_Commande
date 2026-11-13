@@ -75,6 +75,9 @@ describe("codes promo côté client", () => {
     await regler(true);
     const c = await commandeDe(await commander("essai-dix"));
     expect(c.remise).toBe(Math.round(c.sous_total_centimes / 10));
+    const db = await baseLocale();
+    const gardes = (await db.query<{ code_promo: string; remise_centimes: number }>("select code_promo, remise_centimes from commandes where id = $1", [c.id])).rows[0];
+    expect(gardes).toEqual({ code_promo: "ESSAI-DIX", remise_centimes: c.remise });
     expect(c.total_centimes).toBe(c.sous_total_centimes - c.remise!);
     expect(c.tva_centimes).toBe(Math.round((c.total_centimes * 2.6) / 102.6));
   });

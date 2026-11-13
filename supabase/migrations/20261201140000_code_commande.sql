@@ -1,7 +1,9 @@
 -- Vague 3, client-commande : un code promo s'applique à la commande dans UNE transaction, sous verrou
 -- (revue de sécurité : sans cela, des commandes envoyées en même temps utilisaient plusieurs fois un code
 -- « une fois par client » ou dépassaient son plafond). Fonction neuve, aucun objet recréé : elle appelle
--- creer_commande(p) telle qu'elle est dans la base, quelle que soit sa version.
+-- creer_commande(p) telle qu'elle est dans la base, quelle que soit sa version. Elle remplit aussi
+-- commandes.code_promo et commandes.remise_centimes, ajoutées par 20261210180000_codes_promo_commande.sql :
+-- à lancer après celle-ci (numéro à donner par le chef).
 --
 -- Ordre : verrou sur la clé de la commande ; nouvel essai avec la même clé (retour de Stripe) → la commande
 -- enregistrée, sans réévaluer le code ; sinon verrou sur le code, evaluer_code, total et TVA recalculés,
@@ -51,6 +53,8 @@ begin
   if remise > 0 then
     insert into utilisations_codes (code_id, commande_id, remise_centimes)
     select id, r.id, remise from codes_promo where code = code_net;
+    -- Code et remise gardés avec la commande (colonnes de 20261210180000, bo-carte : reçu, e-mail, export).
+    update commandes set code_promo = code_net, remise_centimes = remise where id = r.id;
   end if;
   return jsonb_build_object('id', r.id, 'numero', r.numero, 'jeton_suivi', r.jeton_suivi, 'deja', r.deja,
     'total_centimes', (p ->> 'total_centimes')::integer, 'remise_centimes', remise);

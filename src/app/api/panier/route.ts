@@ -93,10 +93,11 @@ export async function POST(requete: Request) {
   if (code && lignes.length > 0) {
     const ev = await evaluerCode({
       code,
-      // Identité neutre, qui ne correspond à aucun client : seules les conditions du code comptent.
-      email: "apercu@panier.invalid",
+      // Mode provisoire de evaluer_code (bo-carte, #113) : sans client, seules les conditions du code comptent.
+      email: null,
       telephone: null,
       adresse: null,
+      provisoire: true,
       mode,
       sous_total_centimes: totaux.sous_total_centimes,
       frais_centimes: totaux.frais_centimes,
