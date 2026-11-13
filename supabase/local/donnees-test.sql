@@ -118,5 +118,14 @@ insert into personnel (email, nom, role) values
   ('rapports-bureau@laferme.test', 'Rapports bureau', 'gerant'),
   ('rapports-mobile@laferme.test', 'Rapports mobile', 'gerant');
 
--- Écran Calendrier du back-office (tests/e2e/gestion-calendrier.spec.ts, vague 3).
-insert into personnel (email, nom, role) values ('ecran-calendrier@laferme.test', 'Écran calendrier', 'gerant');
+-- Clôture du jour (bo-pilotage, tests/e2e/gestion-cloture.spec.ts, vague 3) : un compte par projet Playwright.
+insert into personnel (email, nom, role) values
+  ('cloture-bureau@laferme.test', 'Clôture bureau', 'gerant'),
+  ('cloture-mobile@laferme.test', 'Clôture mobile', 'gerant');
+
+-- bo-operations, écrans de la vague 3 : un compte par écran (gestion-calendrier, gestion-imprimantes et
+-- gestion-messages.spec.ts). Bloc identique dans chacune de mes PR : elles fusionnent sans conflit entre elles.
+insert into personnel (email, nom, role) values
+  ('ecran-calendrier@laferme.test', 'Écran calendrier', 'gerant'),
+  ('ecran-imprimantes@laferme.test', 'Écran imprimantes', 'gerant'),
+  ('ecran-messages@laferme.test', 'Écran messages', 'gerant');

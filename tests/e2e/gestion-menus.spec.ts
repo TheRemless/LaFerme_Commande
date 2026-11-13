@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { adresseDuCompte, codeDuPersonnel, passage } from "./site";
 
 // Menus et formules au back-office (vague 3), construits désactivés : un menu d'essai se crée inactif, reçoit
 // une étape, s'active, puis s'archive. L'interrupteur général n'est jamais touché (il reste faux).
@@ -10,14 +11,13 @@ let nom: string;
 const RENDUS = process.env.RENDUS === "1" ? "docs/rendus/vague-3/bo-carte" : null;
 
 test.beforeAll(async ({ browser }, info) => {
-  nom = `Formule essai ${info.project.name}`;
+  // Suffixe de passage : un réessai de la CI dans la même base crée un menu neuf.
+  nom = `Formule essai ${info.project.name} ${passage()}`;
   gestion = await browser.newPage({ baseURL: info.project.use.baseURL });
+  await adresseDuCompte(gestion, `menus-${info.project.name}@laferme.test`);
   await gestion.goto("/gestion");
   await gestion.getByLabel("E-mail", { exact: true }).fill(`menus-${info.project.name}@laferme.test`);
-  await gestion.getByRole("button", { name: "Recevoir un code" }).click();
-  const c = gestion.locator(".note-preversion strong");
-  await expect(c).toHaveText(/^\d{8}$/);
-  await gestion.getByLabel("Code à 8 chiffres").fill(await c.innerText());
+  await gestion.getByLabel("Code à 8 chiffres").fill(await codeDuPersonnel(gestion));
   await gestion.getByRole("button", { name: "Me connecter" }).click();
   await expect(gestion.getByRole("heading", { level: 1, name: "Accueil" })).toBeVisible();
 });

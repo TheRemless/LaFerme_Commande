@@ -31,7 +31,13 @@ export function formatDe(o: Uint8Array): Format | null {
   return null;
 }
 
-export async function preparerPhoto(octets: Uint8Array): Promise<ResultatPhoto> {
+// Cadrage du recadrage en 4:3 : on garde le haut, le centre ou le bas d'une photo plus haute que large
+// (ou la gauche, le centre, la droite d'une photo très large).
+export type Cadrage = "haut" | "centre" | "bas";
+const POSITION: Record<Cadrage, string> = { haut: "top", centre: "centre", bas: "bottom" };
+export const estCadrage = (v: unknown): v is Cadrage => v === "haut" || v === "centre" || v === "bas";
+
+export async function preparerPhoto(octets: Uint8Array, cadrage: Cadrage = "centre"): Promise<ResultatPhoto> {
   if (octets.length === 0) return { ok: false, erreur: "Fichier vide." };
   if (octets.length > POIDS_MAX) return { ok: false, erreur: "Photo trop lourde : 5 Mo au plus." };
   const format = formatDe(octets);
@@ -56,7 +62,7 @@ export async function preparerPhoto(octets: Uint8Array): Promise<ResultatPhoto> 
     const hauteur = Math.round((largeur * 3) / 4);
     const donnees = await image
       .rotate()
-      .resize(largeur, hauteur, { fit: "cover", position: "centre" })
+      .resize(largeur, hauteur, { fit: "cover", position: POSITION[cadrage] })
       // Fond d'une photo transparente (PNG détouré) : même gris clair que le jeton --papier de globals.css.
       .flatten({ background: "#f4f4f2" })
       .jpeg({ quality: 80, mozjpeg: true })

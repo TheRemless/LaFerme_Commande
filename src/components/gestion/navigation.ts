@@ -52,7 +52,7 @@ export const GROUPES: Groupe[] = [
       { href: "/gestion/export", titre: "Export comptable", icone: "exporter", resume: "Les ventes d'une période en fichier CSV, pour la comptabilité." },
       // bo-pilotage
       { href: "/gestion/rapports", titre: "Rapports", icone: "rapports", resume: "Les ventes par jour et par service, comparées à la période d'avant." },
-      { href: "/gestion/cloture", titre: "Clôture du jour", icone: "cloture", resume: "Le jour fermé : ventes, encaissements et remboursements.", aVenir: true },
+      { href: "/gestion/cloture", titre: "Clôture du jour", icone: "cloture", resume: "Le jour fermé : ventes, encaissements et remboursements." },
       { href: "/gestion/journal", titre: "Journal", icone: "journal", resume: "Qui a changé quoi, quand, et le retour à l'ancienne valeur." },
     ],
   },

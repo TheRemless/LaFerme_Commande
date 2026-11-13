@@ -12,6 +12,9 @@ export type ReglagesGeneraux = {
   avance_jours: number | null;
   alerte_email: string | null;
   annulation_client_active: boolean;
+  // Interrupteurs de client-commande (décision C7), absents avant la migration 20261130170000.
+  plats_populaires_actifs?: boolean;
+  suggestion_panier_active?: boolean;
 };
 export type CleGenerale = keyof ReglagesGeneraux;
 
@@ -35,8 +38,8 @@ export async function destinataireAlertes(): Promise<string | undefined> {
 }
 
 export function validerReglage(cle: unknown, valeur: unknown): { ok: true; cle: CleGenerale; valeur: number | string | boolean | null } | { ok: false; erreur: string } {
-  if (cle === "annulation_client_active") {
-    return typeof valeur === "boolean" ? { ok: true, cle, valeur } : { ok: false, erreur: "Annulation par le client : oui ou non." };
+  if (cle === "annulation_client_active" || cle === "plats_populaires_actifs" || cle === "suggestion_panier_active") {
+    return typeof valeur === "boolean" ? { ok: true, cle, valeur } : { ok: false, erreur: "Oui ou non." };
   }
   if (cle === "alerte_email") {
     if (valeur === null || valeur === "") return { ok: true, cle, valeur: null };
@@ -62,6 +65,7 @@ export async function reglerReglageGeneral(p: Personnel, cle: unknown, valeur: u
   if (!v.ok) return v;
   await fonctionSql("regler_reglage_general", { p_cle: v.cle, p_valeur: v.valeur === null ? null : String(v.valeur), p_personnel: p.id });
   // Créneau, jours à l'avance, annulation par le client : lus dans la config du service (en cache).
-  if (v.cle !== "plafond_codes_clients_jour" && v.cle !== "alerte_email") rafraichirCaches("config-service");
+  if (v.cle === "plats_populaires_actifs" || v.cle === "suggestion_panier_active") rafraichirCaches("catalogue");
+  else if (v.cle !== "plafond_codes_clients_jour" && v.cle !== "alerte_email") rafraichirCaches("config-service");
   return { ok: true };
 }

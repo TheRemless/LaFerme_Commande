@@ -13,6 +13,13 @@ import { estPhotoEnvoyee, urlPhoto } from "@/lib/photos";
 const COTE_MAX = 3200;
 const POIDS_MAX = 5 * 1024 * 1024;
 
+export type Cadrage = "haut" | "centre" | "bas";
+export const CADRAGES: [Cadrage, string][] = [
+  ["centre", "Centre"],
+  ["haut", "Haut"],
+  ["bas", "Bas"],
+];
+
 async function reduire(fichier: File): Promise<Blob> {
   try {
     const image = await createImageBitmap(fichier, { imageOrientation: "from-image" });
@@ -30,34 +37,38 @@ async function reduire(fichier: File): Promise<Blob> {
   }
 }
 
+// Envoie une photo pour un plat : réduite dans le navigateur, recadrée en 4:3 par le serveur selon le
+// cadrage, posée sur le plat. Rend null si tout va bien, sinon le message à montrer.
+export async function envoyerPhoto(slug: string, fichier: File, cadrage: Cadrage = "centre"): Promise<string | null> {
+  const blob = await reduire(fichier);
+  if (blob.size > POIDS_MAX) return "Photo trop lourde : 5 Mo au plus.";
+  const f = new FormData();
+  f.set("slug", slug);
+  f.set("cadrage", cadrage);
+  f.set("fichier", blob, "photo.jpg");
+  try {
+    const rep = await fetch("/api/gestion/photo", { method: "POST", body: f });
+    const r = (await rep.json().catch(() => ({}))) as { erreur?: string };
+    return rep.ok ? null : (r.erreur ?? "Envoi impossible. Réessayez.");
+  } catch {
+    return "Pas de connexion. Vérifiez le réseau et réessayez.";
+  }
+}
+
 export function PhotoPlat({ plat, recharger }: { plat: PlatGestion; recharger: () => Promise<void> }) {
   const ids = useId();
   const champ = useRef<HTMLInputElement>(null);
   const [etat, setEtat] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState(false);
   const [confirmer, setConfirmer] = useState(false);
+  const [cadrage, setCadrage] = useState<Cadrage>("centre");
 
   async function envoyer(fichier: File) {
     setEnvoi(true);
-    setEtat("Préparation de la photo…");
-    const blob = await reduire(fichier);
-    if (blob.size > POIDS_MAX) {
-      setEnvoi(false);
-      setEtat("Photo trop lourde : 5 Mo au plus.");
-      return;
-    }
     setEtat("Envoi…");
-    const f = new FormData();
-    f.set("slug", plat.slug);
-    f.set("fichier", blob, "photo.jpg");
-    try {
-      const rep = await fetch("/api/gestion/photo", { method: "POST", body: f });
-      const r = (await rep.json().catch(() => ({}))) as { erreur?: string };
-      setEtat(rep.ok ? "Photo en ligne." : (r.erreur ?? "Envoi impossible. Réessayez."));
-      if (rep.ok) await recharger();
-    } catch {
-      setEtat("Pas de connexion. Vérifiez le réseau et réessayez.");
-    }
+    const erreur = await envoyerPhoto(plat.slug, fichier, cadrage);
+    setEtat(erreur ?? "Photo en ligne.");
+    if (!erreur) await recharger();
     setEnvoi(false);
     if (champ.current) champ.current.value = "";
   }
@@ -81,6 +92,14 @@ export function PhotoPlat({ plat, recharger }: { plat: PlatGestion; recharger: (
         )}
       </div>
       <div className="ges-photo-actions">
+        <label htmlFor={`${ids}-cadrage`}>Cadrage</label>
+        <select id={`${ids}-cadrage`} value={cadrage} onChange={(e) => setCadrage(e.target.value as Cadrage)} disabled={envoi}>
+          {CADRAGES.map(([v, t]) => (
+            <option key={v} value={v}>
+              {t}
+            </option>
+          ))}
+        </select>
         <label htmlFor={`${ids}-fichier`}>{plat.photo ? "Remplacer la photo" : "Envoyer une photo"}</label>
         <input
           ref={champ}
@@ -93,7 +112,7 @@ export function PhotoPlat({ plat, recharger }: { plat: PlatGestion; recharger: (
             if (fichier) envoyer(fichier);
           }}
         />
-        <p className="aide">JPEG, PNG, WebP ou AVIF, 1200 × 900 pixels au moins. Recadrée en 4:3 comme les photos du shooting.</p>
+        <p className="aide">JPEG, PNG, WebP ou AVIF, 1200 × 900 pixels au moins. Recadrée en 4:3 comme les photos du shooting ; le cadrage dit quelle partie garder.</p>
         {plat.photo &&
           (confirmer ? (
             <span className="boutons-ligne">
