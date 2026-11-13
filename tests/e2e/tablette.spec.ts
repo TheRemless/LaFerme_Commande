@@ -135,7 +135,8 @@ test("refus d'une commande payée en ligne : remboursée, le client est prévenu
   await bouton.click();
   await expect(tablette.locator(".tab-message")).toHaveText("Commande refusée et remboursée.");
   const page = await (await request.get(suivi)).text();
-  expect(page).toContain("Commande refusée");
+  // Le client lit « annulée » partout (vague 3, client-compte) ; la tablette garde « refusée ».
+  expect(page).toContain("Commande annulée par le restaurant");
   expect(page).toContain("Remboursée");
 });
 

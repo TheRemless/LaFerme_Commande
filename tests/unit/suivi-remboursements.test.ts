@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { baseLocale } from "@/lib/db/locale";
 import { creerCommande } from "@/lib/db/serveur";
-import { enRetard, libellePaiement, phraseRemboursement, remboursementsSuivi, resteComptoir, type RemboursementSuivi } from "@/lib/suivi";
+import { attenteConfirmation, enRetard, libellePaiement, phraseRemboursement, remboursementsSuivi, resteComptoir, type RemboursementSuivi } from "@/lib/suivi";
 
 // Vague 3, client-compte : la page de suivi dit ce qui est rendu au client et dans quel état (S2-03),
 // et signale un retard. Paiements de la doublure (pi_doublure_…) : aucun appel réseau. Montants d'essai.
@@ -83,6 +83,9 @@ const ligne = (p: Partial<RemboursementSuivi>): RemboursementSuivi => ({
 describe("phrases du suivi", () => {
   it("dit l'état réel du remboursement Stripe", () => {
     expect(phraseRemboursement(ligne({}))).toMatchObject({ etat: "fait", texte: expect.stringMatching(/^CHF 15\.00 remboursés le 13 novembre\./) });
+    // Délais sourcés (documentation Stripe lue le 13.11.2026), pas « selon votre banque » seul.
+    expect(phraseRemboursement(ligne({})).texte).toContain("Avec TWINT, l'argent arrive en général en quelques minutes.");
+    expect(phraseRemboursement(ligne({})).texte).toContain("de 5 à 10 jours ouvrables");
     expect(phraseRemboursement(ligne({ statut: "en_cours", fait_le: null })).texte).toBe("CHF 15.00 en cours de remboursement. La banque ne l'a pas encore confirmé.");
     expect(phraseRemboursement(ligne({ statut: "echec", fait_le: null })).texte).toContain("n'a pas abouti");
     expect(phraseRemboursement(ligne({ statut: "echec", fait_le: null })).texte).toContain("022 792 16 89");
@@ -121,5 +124,20 @@ describe("retard", () => {
     expect(enRetard({ statut: "nouvelle", mode: "livraison", heure_confirmee: null }, apres(60))).toBe(false);
     expect(enRetard({ statut: "prete", mode: "retrait", heure_confirmee: heure }, apres(60))).toBe(false);
     expect(enRetard({ statut: "en_preparation", mode: "retrait", heure_confirmee: heure }, apres(11))).toBe(true);
+  });
+});
+
+describe("commande pas encore acceptée", () => {
+  const paye = "2026-11-13T18:00:00Z";
+  const a = (min: number) => new Date(new Date(paye).getTime() + min * 60_000);
+  const c = { statut: "nouvelle", quand_type: "asap" as const, paye_le: paye, cree_le: paye };
+  it("dès que possible, service ouvert, 10 minutes après le paiement : message", () => {
+    expect(attenteConfirmation(c, true, a(10))).toBe(true);
+    expect(attenteConfirmation(c, true, a(9))).toBe(false);
+  });
+  it("acceptée, service fermé ou commande à l'avance : pas de message", () => {
+    expect(attenteConfirmation({ ...c, statut: "acceptee" }, true, a(30))).toBe(false);
+    expect(attenteConfirmation(c, false, a(30))).toBe(false);
+    expect(attenteConfirmation({ ...c, quand_type: "creneau" as const }, true, a(30))).toBe(false);
   });
 });

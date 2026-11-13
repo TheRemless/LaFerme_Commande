@@ -1,22 +1,26 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EnTete } from "@/components/EnTete";
 import { Icone } from "@/components/Icone";
 import { PiedDePage } from "@/components/PiedDePage";
 import { Actualiser } from "@/components/suivi/Actualiser";
+import { AnnulerCommande } from "@/components/suivi/AnnulerCommande";
 import { CreerCompte } from "@/components/suivi/CreerCompte";
 import { chargerCatalogue } from "@/lib/catalogue";
 import { chargerConfigService } from "@/lib/config-service";
 import { estimationAsap } from "@/lib/estimation";
-import { heureTexte } from "@/lib/service";
+import { etatService, heureTexte } from "@/lib/service";
 import { reconcilier } from "@/lib/commandes";
 import { detailsLigne, quandTexte } from "@/lib/courriel/modeles";
 import { commandeParJeton } from "@/lib/db/serveur";
 import { nomClient } from "@/lib/nom-plat";
 import { prixChf, prixCourt } from "@/lib/prix";
 import { PRIVE } from "@/lib/site";
-import { enRetard, libellePaiement, PHRASE_RETARD, phraseRemboursement, remboursementsSuivi, resteComptoir } from "@/lib/suivi";
+import { recuDisponible } from "@/lib/recu";
+import { attenteConfirmation, enRetard, libellePaiement, PHRASE_ATTENTE, PHRASE_RETARD, phraseRemboursement, remboursementsSuivi, resteComptoir } from "@/lib/suivi";
 import { MOTIF_CLIENT_ABSENT } from "@/lib/livraisons-textes";
+import { MOTIF_DEMANDE_CLIENT } from "@/lib/motifs";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Suivi de commande, La Ferme", robots: PRIVE };
@@ -45,7 +49,16 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
   if (!c) notFound();
   c = await reconcilier(c);
   const cat = await chargerCatalogue().catch(() => null);
-  const estimation = c.heure_confirmee ? null : await chargerConfigService().then((config) => estimationAsap(config, c!)).catch(() => null);
+  const config = await chargerConfigService().catch(() => null);
+  const estimation = c.heure_confirmee || !config ? null : (() => {
+    try {
+      return estimationAsap(config, c!);
+    } catch {
+      return null;
+    }
+  })();
+  // Service ouvert pour ce mode : sert au message « pas encore confirmée » (sans configuration : pas de message).
+  const serviceOuvert = config ? etatService(config, new Date(), c.mode).etat === "ouvert" : false;
 
   // Livraison close, client absent : pas « Livrée » (décision de Jérémy du 12.11.2026).
   const nonRemise = c.statut === "terminee" && c.motif === MOTIF_CLIENT_ABSENT;
@@ -56,6 +69,10 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
   const paiement = libellePaiement(c, remboursements);
   const reste = resteComptoir(c, remboursements);
   const retard = enRetard(c);
+  const nonConfirmee = attenteConfirmation(c, serviceOuvert);
+  // Arbitrage C1 (Jérémy) : désactivé par défaut. La route revérifie le réglage et le statut.
+  const annulable = c.statut === "nouvelle" && config?.reglages.annulation_client_active === true;
+  const parClient = Boolean(c.annulee_par_client_le) || c.motif === MOTIF_DEMANDE_CLIENT;
   // Un remboursement attendu chez Stripe garde la page à jour, même commande terminée.
   const attente = remboursements.some((r) => r.moyen === "stripe" && r.statut === "en_cours");
 
@@ -82,9 +99,11 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
           )}
           {c.statut === "refusee" && (
             <>
-              <h1>Commande refusée</h1>
+              {/* Un seul mot pour le client, comme dans l'e-mail : « annulée ». Par le client lui-même (bouton du
+                  suivi ou appel au restaurant) ou par le restaurant. */}
+              <h1>{parClient ? "Commande annulée" : "Commande annulée par le restaurant"}</h1>
               <p className="suivi-change">
-                {c.motif ?? "Le restaurant ne peut pas préparer cette commande."}
+                {parClient ? "Vous avez annulé la commande." : (c.motif ?? "Le restaurant ne peut pas préparer cette commande.")}
                 {paiement === "Remboursée" ? " Le montant vous est remboursé." : ""}
               </p>
             </>
@@ -106,6 +125,11 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
                   "Commande reçue"
                 )}
               </h1>
+              {nonConfirmee && (
+                <p className="suivi-retard" role="status">
+                  {PHRASE_ATTENTE}
+                </p>
+              )}
               {!c.heure_confirmee && (
                 <p className="suivi-change">
                   {c.quand_type === "asap"
@@ -147,6 +171,7 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
               </ul>
             </section>
           )}
+          {annulable && <AnnulerCommande jeton={c.jeton_suivi} numero={c.numero} payeeEnLigne={c.statut_paiement === "paye"} />}
           {c.compte_demande && enregistree && !c.detachee_du_compte && <CreerCompte jeton={c.jeton_suivi} rattachee={Boolean(c.compte_id)} />}
           <section className="suivi-detail">
             <h2>{c.mode === "livraison" && c.adresse ? `Livraison à ${c.adresse.localite}` : "À emporter, Route de Chancy 132, Onex"}</h2>
@@ -190,6 +215,13 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
             <p>
               Une question ? <a href="tel:+41227921689">022 792 16 89</a>
             </p>
+            {recuDisponible(c) && (
+              <p>
+                <Link className="lien" href={`/suivi/${c.jeton_suivi}/recu`}>
+                  Reçu avec TVA
+                </Link>
+              </p>
+            )}
           </section>
           {process.env.CONTEXTE_DEPLOIEMENT !== "production" && (
             <p className="suivi-info">
