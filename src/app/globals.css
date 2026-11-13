@@ -3665,3 +3665,30 @@ body.fiche-ouverte {
 .espace-plus {
   margin-top: 16px;
 }
+
+/* Réclamation depuis le suivi (vague 3, client-compte). */
+.suivi-reclamation {
+  margin-top: 24px;
+  padding: 20px 16px;
+  color: var(--encre);
+  background: var(--papier);
+  border-radius: 4px;
+}
+.suivi-reclamation h2 {
+  font-size: 28px;
+}
+.choix-reclamation {
+  display: grid;
+  gap: 4px;
+  margin: 12px 0;
+  padding: 0;
+  border: 0;
+}
+.choix-reclamation legend {
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+.suivi-reclamation textarea {
+  width: 100%;
+  font: inherit;
+}

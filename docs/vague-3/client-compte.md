@@ -34,3 +34,7 @@ Chaque e-mail part en deux versions, texte seul et mise en page. La mise en page
 ## Historique du compte
 
 Le compte montre le nombre de commandes passées avec lui et les 30 dernières. « Voir les commandes plus anciennes » charge les 30 suivantes.
+
+## Un problème avec la commande
+
+Sur la page de suivi d'une commande acceptée, pendant 14 jours, le client touche « Signaler un problème ». Il choisit ce qui ne va pas (retard, plat manquant, froid, erreur, qualité, livraison, autre) et l'écrit en quelques mots. Le restaurant reçoit une alerte. Le dossier est dans le back-office, rubrique Réclamations. Trois messages au plus par commande. Ensuite, le client doit appeler.
