@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { LigneTicket } from "@/lib/impression/ticket";
+import "./ticket-secours.css";
 
 // Ticket affiché en grand sur la tablette quand l'imprimante ne répond pas (ou qu'il n'y en a pas).
 export function TicketSecours({ tickets, fermer }: { tickets: { station: string; contenu: LigneTicket[] }[]; fermer: () => void }) {
@@ -32,7 +33,7 @@ export function TicketSecours({ tickets, fermer }: { tickets: { station: string;
                   <span>{l.droite}</span>
                 </p>
               ) : (
-                <p key={j} className={`ticket-l t${l.taille ?? 1} ${l.gras ? "g" : ""} ${l.retrait ? "r" : ""}`}>
+                <p key={j} className={`ticket-l t${l.taille ?? 1} ${l.gras ? "g" : ""} ${l.retrait ? "r" : ""} ${l.inverse ? "i" : ""}`}>
                   {l.texte}
                 </p>
               ),

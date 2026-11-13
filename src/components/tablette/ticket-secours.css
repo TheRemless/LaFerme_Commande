@@ -1,0 +1,6 @@
+/* Ticket de secours : une ligne en négatif (allergie, note du client), comme sur le ticket imprimé. */
+.ticket-l.i {
+  padding: 2px 8px;
+  color: var(--blanc);
+  background: var(--encre);
+}

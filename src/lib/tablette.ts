@@ -199,7 +199,8 @@ export async function agir(commandeId: string, a: Action, p: Personnel): Promise
     }
     case "statut":
       ok = await changerStatut(commandeId, a.vers, par, { de: a.de });
-      if (ok && (a.vers === "prete" || a.vers === "partie")) await prevenir(avant, courrielPrete(avant));
+      // Livraison : « en route » seulement au départ, pas quand elle attend le livreur au comptoir. Retrait : à « prête ».
+      if (ok && a.vers === (avant.mode === "livraison" ? "partie" : "prete")) await prevenir(avant, courrielPrete(avant));
       break;
     case "heure":
       ok = await fonctionSql<boolean>("changer_heure", { p_commande: commandeId, p_heure: a.heure, p_par: par });
