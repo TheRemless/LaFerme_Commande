@@ -40,6 +40,8 @@ export const GROUPES: Groupe[] = [
       { href: "/gestion/plat-du-jour", titre: "Plat du jour", icone: "jour", resume: "Le plat du jour, pour un midi, un soir ou les deux." },
       { href: "/gestion/supplements", titre: "Suppléments et pâtes", icone: "supplements", resume: "Prix et disponibilité des suppléments et des choix." },
       { href: "/gestion/import", titre: "Importer le tableau", icone: "importer", resume: "Le tableau de validation rempli, vérifié avant d'être appliqué." },
+      // bo-carte : codes promo, construits désactivés (l'offre est une décision de Jérémy).
+      { href: "/gestion/promotions", titre: "Promotions", icone: "promotions", resume: "Codes promo par support, désactivés tant que l'offre n'est pas décidée." },
     ],
   },
   {
