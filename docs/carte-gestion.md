@@ -48,6 +48,7 @@ Rubrique `/gestion/carte`, onglet « Liste » (par défaut). Code : `src/compone
 - **Fiche d'un plat.** Toucher son nom : la fiche s'ouvre sur le côté (plein écran sur téléphone). En plus de la fiche habituelle : disponibilités (midi, soir, livraison, à emporter, jours), rupture jusqu'à une date avec « Remettre en vente », et « Copier ce plat ».
 - **Étiquettes** (végétarien, végane, épicé) : sur la fiche, à cocher seulement si le restaurant l'a vérifié ; colonne « Étiquettes » dans « Colonnes ».
 - **Ajouter un plat** : bouton en haut à droite ; la fiche du plat créé s'ouvre aussitôt.
+- **Envoyer des photos** (plusieurs d'un coup, 40 au plus) : l'écran propose le plat d'après le nom du fichier (`pizza-tonno.jpg`, « Pizza Tonno.png »), on corrige si besoin, on choisit le cadrage (haut, centre, bas) puis « Envoyer ». Chaque photo passe par le même contrôle qu'un envoi seul. Le cadrage existe aussi sur la fiche d'un plat.
 - La liste lit la carte déjà chargée par le back-office (une centaine de plats au plus) : filtres et tri se font dans le navigateur, 50 lignes par page. L'export CSV donne les colonnes affichées.
 
 ## Écran : les groupes d'options (vague 3)
