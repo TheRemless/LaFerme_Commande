@@ -26,8 +26,10 @@ test("coup de feu, services d'une zone, zone fermée", async ({ page }, info) =>
   const cdf = page.locator(".bo-cdf");
   const zone3 = page.locator(".ges-zone").filter({ hasText: "Zone 3" });
   try {
-    // Retard sur les commandes en cours : aperçu seulement. Le geste décalerait les commandes des autres fichiers
-    // de tests (base commune) ; il est vérifié en base (decaler-commandes-sql) et côté serveur (decalage.test).
+    // Onglet « Ce soir » par défaut. Retard sur les commandes en cours : aperçu seulement. Le geste décalerait les
+    // commandes des autres fichiers de tests (base commune) ; il est vérifié en base (decaler-commandes-sql) et
+    // côté serveur (decalage.test).
+    await expect(page.getByRole("tab", { name: "Ce soir" })).toHaveAttribute("aria-selected", "true");
     const decaler = page.locator(".bo-decaler");
     await expect(decaler.getByRole("heading", { name: "Retard sur les commandes en cours" })).toBeVisible();
     await expect(decaler.getByRole("status")).toHaveText(/^(Aucune commande en cours à décaler\.|\d+ commandes? en cours, \d+ clients? prévenus? par e-mail\.)$/);
@@ -36,6 +38,26 @@ test("coup de feu, services d'une zone, zone fermée", async ({ page }, info) =>
     await decaler.scrollIntoViewIfNeeded();
     await page.screenshot({ path: `${CAPTURES}/horaires-decaler-1024.png` });
 
+    // Coup de feu : une minute de retard seulement, capacités inchangées.
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect(cdf.getByRole("button", { name: "Lancer le coup de feu" })).toBeVisible();
+    await page.screenshot({ path: `${CAPTURES}/horaires-coup-de-feu-formulaire-1024.png` });
+    await cdf.getByLabel("Retard en tout (min)").fill("1");
+    await cdf.getByLabel("Livraisons par créneau, au plus").fill("");
+    await cdf.getByLabel("Retraits par créneau, au plus").fill("");
+    await cdf.getByLabel("Pendant").selectOption("30");
+    await cdf.getByRole("button", { name: "Lancer le coup de feu" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Lancer le coup de feu" }).click();
+    await expect(cdf.getByText(/En cours jusqu'à/)).toBeVisible();
+    await expect(cdf.getByText(/retard en tout/)).toBeVisible();
+    const axe = await new AxeBuilder({ page }).include(".bo-contenu").analyze();
+    expect(axe.violations.map((v) => `${v.id} : ${v.nodes.length}`)).toEqual([]);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({ path: `${CAPTURES}/horaires-coup-de-feu-1024.png` });
+
+    // Onglet « Zones », gardé dans l'adresse.
+    await page.getByRole("tab", { name: "Zones" }).click();
+    await expect(page).toHaveURL(/\/gestion\/horaires#zones$/);
     // Tester une adresse : Onex (zone 1) puis hors zone. Montants lus en base, jamais écrits ici.
     const testeur = page.locator(".bo-test-adresse");
     await testeur.getByLabel("NPA").fill("1213");
@@ -51,18 +73,6 @@ test("coup de feu, services d'une zone, zone fermée", async ({ page }, info) =>
     await testeur.getByLabel("Localité").fill("Lausanne");
     await testeur.getByRole("button", { name: "Tester" }).click();
     await expect(testeur.getByText("Hors zone")).toBeVisible();
-
-    // Coup de feu : une minute de retard seulement, capacités inchangées.
-    await expect(cdf.getByRole("button", { name: "Lancer le coup de feu" })).toBeVisible();
-    await page.screenshot({ path: `${CAPTURES}/horaires-coup-de-feu-formulaire-1024.png` });
-    await cdf.getByLabel("Retard en tout (min)").fill("1");
-    await cdf.getByLabel("Livraisons par créneau, au plus").fill("");
-    await cdf.getByLabel("Retraits par créneau, au plus").fill("");
-    await cdf.getByLabel("Pendant").selectOption("30");
-    await cdf.getByRole("button", { name: "Lancer le coup de feu" }).click();
-    await page.getByRole("dialog").getByRole("button", { name: "Lancer le coup de feu" }).click();
-    await expect(cdf.getByText(/En cours jusqu'à/)).toBeVisible();
-    await expect(cdf.getByText(/retard en tout/)).toBeVisible();
 
     // Zone 3 : le soir seulement, puis fermée jusqu'à demain midi.
     await zone3.getByRole("button", { name: "Midi" }).click();
@@ -80,15 +90,16 @@ test("coup de feu, services d'une zone, zone fermée", async ({ page }, info) =>
     await zone3.getByRole("button", { name: "Fermer jusqu'à cette heure" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Fermer Zone 3" }).click();
     await expect(zone3.getByText(/Fermée jusqu'à 12h00/)).toBeVisible();
-
-    const axe = await new AxeBuilder({ page }).include(".bo-contenu").analyze();
-    expect(axe.violations.map((v) => `${v.id} : ${v.nodes.length}`)).toEqual([]);
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await page.screenshot({ path: `${CAPTURES}/horaires-coup-de-feu-1024.png` });
+    const axeZones = await new AxeBuilder({ page }).include(".bo-contenu").analyze();
+    expect(axeZones.violations.map((v) => `${v.id} : ${v.nodes.length}`)).toEqual([]);
     await zone3.locator(".bo-zone-ops").evaluate((el) => el.scrollIntoView({ block: "center" }));
     await page.screenshot({ path: `${CAPTURES}/horaires-zone-fermee-1024.png` });
-    await page.setViewportSize({ width: 375, height: 812 });
+
+    // Rechargée sur #zones : l'onglet est retrouvé. Puis téléphone, onglet « Ce soir ».
     await page.reload();
+    await expect(page.getByRole("tab", { name: "Zones" })).toHaveAttribute("aria-selected", "true");
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto("/gestion/horaires#soir");
     await expect(cdf.getByText(/En cours jusqu'à/)).toBeVisible();
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.screenshot({ path: `${CAPTURES}/horaires-coup-de-feu-375.png` });
@@ -98,6 +109,7 @@ test("coup de feu, services d'une zone, zone fermée", async ({ page }, info) =>
     await cdf.getByRole("button", { name: "Finir le coup de feu" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Finir le coup de feu" }).click();
     await expect(cdf.getByRole("button", { name: "Lancer le coup de feu" })).toBeVisible();
+    await page.getByRole("tab", { name: "Zones" }).click();
     await zone3.getByRole("button", { name: "Rouvrir maintenant" }).click();
     await expect(zone3.getByText("Fermer cette zone pour quelques heures")).toBeVisible();
     await zone3.getByRole("button", { name: "Midi" }).click();
