@@ -11,6 +11,7 @@ const ERREURS: Record<string, string> = {
   adresse_invalide: "Adresse e-mail invalide.",
   nom_invalide: "Indiquez un prénom ou un nom (60 caractères au plus).",
   role_invalide: "Rôle inconnu.",
+  role_desactive: "Le rôle « Responsable de service » n'est pas encore activé.",
   deja_membre: "Cette adresse fait déjà partie de l'équipe.",
   dernier_gerant: "Il faut toujours au moins un gérant. Nommez-en un autre d'abord.",
   "Réservé au gérant": "Réservé au gérant.",
@@ -23,13 +24,17 @@ function erreurConnue(e: unknown): string | null {
 }
 
 const UUID = /^[0-9a-f-]{36}$/;
-const ROLE = (v: unknown) => (v === "service" || v === "gerant" || v === "livreur" ? v : null);
+const ROLE = (v: unknown) => (v === "service" || v === "gerant" || v === "livreur" || v === "responsable" ? v : null);
 
 export async function GET(requete: Request) {
   const g = await exigerGerant(requete, { lecture: true });
   if ("reponse" in g) return g.reponse;
-  const liste = await fonctionSql("liste_personnel", { p_personnel: g.personnel.id });
-  return NextResponse.json({ moi: g.personnel.id, liste }, { headers: { "Cache-Control": "no-store" } });
+  const [liste, responsable] = await Promise.all([
+    fonctionSql("liste_personnel", { p_personnel: g.personnel.id }),
+    // Base pas encore migrée : la fonction manque, le rôle reste caché.
+    fonctionSql<boolean>("role_responsable_actif", {}).catch(() => false),
+  ]);
+  return NextResponse.json({ moi: g.personnel.id, liste, responsable_actif: responsable }, { headers: { "Cache-Control": "no-store" } });
 }
 
 // { action: "ajouter", email, nom, role } | { action: "modifier", id, nom?, role?, actif? } | { action: "couper", id }

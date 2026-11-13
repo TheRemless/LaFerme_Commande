@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { TableauVentes } from "@/lib/pilotage";
+import type { Analyses, TableauVentes } from "@/lib/pilotage";
 
 // Route du tableau des ventes : le gérant passe, les autres non, la période est contrôlée, la base répond
 // avec ou sans bornes de comparaison (null transmis tel quel à pilotage_ventes).
@@ -13,6 +13,7 @@ vi.mock("@/lib/personnel/session", () => ({
 }));
 
 const { GET } = await import("@/app/api/gestion/pilotage/ventes/route");
+const analysesRoute = await import("@/app/api/gestion/pilotage/analyses/route");
 const appel = (q: string) => GET(new Request(`http://localhost:3000/api/gestion/pilotage/ventes?${q}`));
 
 beforeEach(() => {
@@ -45,5 +46,14 @@ describe("GET /api/gestion/pilotage/ventes", () => {
     const soir = (await (await appel("periode=jour&jour=2026-12-04&service=soir")).json()) as TableauVentes;
     expect(soir.service).toBe("soir");
     expect((await appel("periode=jour&service=nuit")).status).toBe(422);
+  });
+
+  it("analyses : même contrôle d'accès et de période, un seul service possible", async () => {
+    const lire = (q: string) => analysesRoute.GET(new Request(`http://localhost:3000/api/gestion/pilotage/analyses?${q}`));
+    const a = (await (await lire("periode=semaine&jour=2026-12-04&service=midi")).json()) as Analyses;
+    expect(a).toMatchObject({ debut: "2026-11-30", fin: "2026-12-06", service: "midi", plats: [], clients: { clients: 0 } });
+    expect((await lire("periode=choisie&debut=2026-12-10&fin=2026-12-01")).status).toBe(422);
+    acces.gerant = false;
+    expect((await lire("periode=jour")).status).toBe(403);
   });
 });

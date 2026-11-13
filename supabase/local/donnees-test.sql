@@ -30,7 +30,10 @@ insert into personnel (email, nom, role) values
   ('accueil-bureau@laferme.test', 'Accueil bureau', 'gerant'),
   ('accueil-mobile@laferme.test', 'Accueil mobile', 'gerant'),
   ('accueil-service-bureau@laferme.test', 'Accueil service bureau', 'service'),
-  ('accueil-service-mobile@laferme.test', 'Accueil service mobile', 'service');
+  ('accueil-service-mobile@laferme.test', 'Accueil service mobile', 'service'),
+  -- Recherche globale du back-office (tests/e2e/gestion-recherche.spec.ts).
+  ('recherche-bureau@laferme.test', 'Recherche bureau', 'gerant'),
+  ('recherche-mobile@laferme.test', 'Recherche mobile', 'gerant');
 
 -- Livreurs des essais (tests/e2e/livreurs.spec.ts) et la tablette qui leur donne les commandes.
 insert into personnel (email, nom, role) values
@@ -70,3 +73,8 @@ insert into personnel (email, nom, role) values
   ('ecran-livreurs@laferme.test', 'Écran livreurs', 'gerant'),
   ('sami@laferme.test', 'Sami', 'livreur'),
   ('nora@laferme.test', 'Nora', 'livreur');
+
+-- Commandes et clients du back-office (vague 3, bo-commandes, tests/e2e/gestion-commandes.spec.ts).
+insert into personnel (email, nom, role) values
+  ('commandes-bureau@laferme.test', 'Commandes bureau', 'gerant'),
+  ('commandes-mobile@laferme.test', 'Commandes mobile', 'gerant');

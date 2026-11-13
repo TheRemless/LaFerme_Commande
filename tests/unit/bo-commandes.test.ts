@@ -122,6 +122,17 @@ describe("route /api/gestion/commandes, nouvelles actions", () => {
     expect((await appel({ action: "courriel", id: commande, courriel: "00000000-0000-0000-0000-000000000000" })).status).toBe(404);
   });
 
+  it("une relance de plus de 23 heures est refusée (Stripe a oublié sa clé)", async () => {
+    const db = await baseLocale();
+    await db.query(
+      "insert into remboursements (commande_id, cle, montant_centimes, motif, moyen, statut, personnel_nom, cree_le) values ($1, 'cle-vieille-0001', 500, 'Retard.', 'stripe', 'en_cours', 'Gérant', now() - interval '25 hours')",
+      [commande],
+    );
+    const r = await appel({ action: "rembourser", id: commande, montant: "5", motif: "Retard.", cle: "cle-vieille-0001" });
+    expect(r.status).toBe(409);
+    expect(String(r.corps.erreur)).toContain("plus de 23 heures");
+  });
+
   it("un membre du service n'y a pas accès", async () => {
     const avant = session.personnel;
     session.personnel = { id: "x", nom: "Service", role: "service" };
