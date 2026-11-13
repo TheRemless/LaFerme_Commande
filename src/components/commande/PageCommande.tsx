@@ -9,6 +9,7 @@ import { noterPlaceEnvoyee, useCalculPanier, usePanier, type ReponsePanier } fro
 import { comptoirPermis } from "@/lib/plafond-comptoir";
 import { prixChf, prixCourt, prixPhrase } from "@/lib/prix";
 import { heureTexte, jourTexte } from "@/lib/service";
+import { plageTexte } from "@/lib/plage-heure";
 import { ContenuPanier, EtatCalcul } from "@/components/panier/ContenuPanier";
 import { nomAffiche } from "@/components/Plat";
 import { champClientInvalide, MESSAGE_CHAMP, type ChampClient } from "@/lib/validation";
@@ -114,7 +115,7 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
     choix?.quand.type === "creneau"
       ? `Pour le ${jourTexte(choix.quand.date)} à ${heureTexte(choix.quand.minutes)}`
       : choix?.quand.type === "asap"
-        ? `Dès que possible${choix.estimation !== undefined ? `, vers ${heureTexte(choix.estimation)}` : ""}`
+        ? `Dès que possible${choix.fourchette ? `, ${plageTexte(choix.fourchette)}` : choix.estimation !== undefined ? `, vers ${heureTexte(choix.estimation)}` : ""}`
         : "Heure à choisir";
   const total = reponse && !reponse.erreur ? reponse.total_centimes : null;
   const pret = Boolean(reponse?.valide) && !envoi;
