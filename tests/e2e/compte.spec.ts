@@ -107,6 +107,27 @@ test("commande en invité avec « créer mon compte », code sur le suivi, puis 
   expect(panier.lignes).toEqual([{ slug: "pizza-margherita", qte: 2, choix: {}, retraits: [], note: "" }]);
 });
 
+// Vague 3 : le client qui a commandé en invité, sans cocher la case, retrouve sa commande en se connectant.
+test("commande en invité sans la case, puis connexion : la commande est dans le compte", async ({ page }) => {
+  const email = await identite(page, "range");
+  await preparerRetrait(page);
+  await page.goto("/commande");
+  await page.getByLabel("Prénom").fill("Noé");
+  await page.getByLabel("Nom", { exact: true }).fill("Essai");
+  await page.getByLabel("Téléphone").fill("079 000 00 01");
+  await page.getByLabel("E-mail", { exact: true }).fill(email);
+  await page.getByText("Au comptoir").click();
+  await page.getByRole("button", { name: "Commander, je paie au comptoir" }).click();
+  await expect(page).toHaveURL(/\/suivi\//);
+  const numero = (await page.locator(".suivi-num").innerText()).match(/Commande (\d+)/)![1];
+
+  await seConnecter(page, email);
+  await expect(page.locator(".ancienne-num")).toHaveText(numero);
+  await expect(page.getByRole("button", { name: "Recommander la même chose" })).toBeVisible();
+  // Rien n'est recopié de la commande : une adresse e-mail mal tapée ne livre pas le téléphone d'un inconnu.
+  await expect(page.getByLabel("Téléphone")).toHaveValue("");
+});
+
 test("connecté, la commande va dans le compte et les coordonnées sont déjà remplies", async ({ page }) => {
   const email = await identite(page, "connecte");
   await seConnecter(page, email);
