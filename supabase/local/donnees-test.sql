@@ -43,3 +43,6 @@ insert into personnel (email, nom, role) values
 insert into personnel (email, nom, role) values
   ('zones-bureau@laferme.test', 'Zones bureau', 'gerant'),
   ('zones-mobile@laferme.test', 'Zones mobile', 'gerant');
+
+-- Calendrier du back-office (tests/e2e/calendrier.spec.ts, vague 3).
+insert into personnel (email, nom, role) values ('calendrier-bureau@laferme.test', 'Calendrier bureau', 'gerant');
