@@ -5,14 +5,14 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 import { lireChoix, type Choix } from "@/lib/choix";
 import { platDe, type Catalogue } from "@/lib/panier";
-import { lireAllergie, noterAllergie, noterPlaceEnvoyee, useCalculPanier, usePanier, type ReponsePanier } from "@/lib/panier-local";
+import { CLE_DESTINATAIRE, lireAllergie, noterAllergie, noterPlaceEnvoyee, useCalculPanier, usePanier, type ReponsePanier } from "@/lib/panier-local";
 import { comptoirPermis } from "@/lib/plafond-comptoir";
 import { prixChf, prixCourt, prixPhrase } from "@/lib/prix";
 import { heureTexte, jourTexte } from "@/lib/service";
 import { plageTexte } from "@/lib/plage-heure";
 import { ContenuPanier, EtatCalcul } from "@/components/panier/ContenuPanier";
 import { nomAffiche } from "@/components/Plat";
-import { champClientInvalide, LIMITE_ALLERGIE, MESSAGE_CHAMP, type ChampClient } from "@/lib/validation";
+import { champClientInvalide, destinataireValide, LIMITE_ALLERGIE, MESSAGE_CHAMP, type ChampClient } from "@/lib/validation";
 
 type Moyen = "en_ligne" | "comptoir";
 
@@ -60,7 +60,18 @@ const CLE_COORDONNEES = "laferme.coordonnees";
 
 type CompteConnu = { email: string; prenom: string; nom: string; telephone: string } | null;
 
-export function PageCommande({ catalogue, preversion, compte }: { catalogue: Catalogue; preversion: boolean; compte: CompteConnu }) {
+export function PageCommande({
+  catalogue,
+  preversion,
+  compte,
+  couvertsActifs = false,
+}: {
+  catalogue: Catalogue;
+  preversion: boolean;
+  compte: CompteConnu;
+  // Case « couverts et serviettes », décochée par défaut, montrée seulement si le restaurant l'active (C8).
+  couvertsActifs?: boolean;
+}) {
   const ids = useId();
   const annule = useSearchParams().get("annule") === "1";
   const panier = usePanier();
@@ -86,6 +97,11 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
   const [creerCompte, setCreerCompte] = useState(false);
   // Allergie ou intolérance pour toute la commande, transmise à la cuisine (vague 3, P0).
   const [allergie, setAllergie] = useState("");
+  const [couverts, setCouverts] = useState(false);
+  // Commande pour quelqu'un d'autre : la personne qui reçoit ou vient chercher (vague 3).
+  const [pourAutrui, setPourAutrui] = useState(false);
+  const [destinataire, setDestinataire] = useState({ nom: "", telephone: "" });
+  const [destinataireFaux, setDestinataireFaux] = useState<"nom" | "telephone" | null>(null);
   const [moyen, setMoyen] = useState<Moyen>("en_ligne");
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -95,6 +111,27 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
 
   useEffect(() => setChoix(lireChoix()), []);
   useEffect(() => setAllergie(lireAllergie()), []);
+  useEffect(() => {
+    try {
+      const memo = JSON.parse(sessionStorage.getItem(CLE_DESTINATAIRE) ?? "null") as { nom?: unknown; telephone?: unknown } | null;
+      if (memo && typeof memo.nom === "string" && typeof memo.telephone === "string") {
+        setPourAutrui(true);
+        setDestinataire({ nom: memo.nom, telephone: memo.telephone });
+      }
+    } catch {
+      // Stockage bloqué : rien à reprendre.
+    }
+  }, []);
+  function changerDestinataire(suivant: { nom: string; telephone: string } | null) {
+    if (suivant) setDestinataire(suivant);
+    setDestinataireFaux(null);
+    try {
+      if (suivant) sessionStorage.setItem(CLE_DESTINATAIRE, JSON.stringify(suivant));
+      else sessionStorage.removeItem(CLE_DESTINATAIRE);
+    } catch {
+      // Stockage bloqué : les champs restent remplis à l'écran.
+    }
+  }
 
   // Coordonnées gardées dans l'onglet : un paiement refusé ou un rechargement ne les efface plus (CM-04).
   // sessionStorage seulement, elles disparaissent avec l'onglet. Un client connecté a déjà les siennes.
@@ -143,6 +180,12 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
       document.getElementById(`${ids}-${faux}`)?.focus();
       return;
     }
+    const pour = pourAutrui ? destinataireValide(destinataire) : null;
+    if (pour === "nom" || pour === "telephone") {
+      setDestinataireFaux(pour);
+      document.getElementById(`${ids}-destinataire-${pour}`)?.focus();
+      return;
+    }
     setEnvoi(true);
     noterPlaceEnvoyee(choix.mode, choix.quand);
     setErreur(null);
@@ -153,7 +196,7 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           // L'allergie fait partie du contenu : la corriger après un refus donne une nouvelle commande.
-          cle: cleCommande(JSON.stringify([lignes, choix, auComptoir, client, allergie.trim()])),
+          cle: cleCommande(JSON.stringify([lignes, choix, auComptoir, client, allergie.trim(), pour, couvertsActifs && couverts])),
           lignes,
           mode: choix.mode,
           adresse: choix.adresse,
@@ -162,6 +205,8 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
           heure: choix.heureSimulee,
           client,
           allergie,
+          destinataire: pour,
+          couverts: couvertsActifs && couverts,
           moyen: auComptoir ? "comptoir" : "en_ligne",
           creerCompte: !compte && creerCompte,
         }),
@@ -278,6 +323,67 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
                 <p className="aide">Pour la confirmation et le suivi de la commande.</p>
               </div>
             </div>
+            <label className="option case-compte">
+              <input
+                type="checkbox"
+                checked={pourAutrui}
+                onChange={(e) => {
+                  setPourAutrui(e.target.checked);
+                  changerDestinataire(e.target.checked ? destinataire : null);
+                }}
+              />
+              <span>
+                <strong>Je commande pour quelqu&apos;un d&apos;autre</strong>
+                <br />
+                {choix?.mode === "livraison" ? "La personne qui reçoit la livraison." : "La personne qui vient chercher la commande."} Le
+                paiement et les e-mails restent à votre nom.
+              </span>
+            </label>
+            {pourAutrui && (
+              <div className="details deux">
+                <div className="champ">
+                  <label htmlFor={`${ids}-destinataire-nom`}>Son nom</label>
+                  <input
+                    id={`${ids}-destinataire-nom`}
+                    value={destinataire.nom}
+                    maxLength={80}
+                    autoComplete="off"
+                    required
+                    aria-invalid={destinataireFaux === "nom" ? true : undefined}
+                    aria-describedby={destinataireFaux === "nom" ? `${ids}-destinataire-nom-erreur` : undefined}
+                    onChange={(e) => changerDestinataire({ ...destinataire, nom: e.target.value })}
+                  />
+                  {destinataireFaux === "nom" && (
+                    <p className="aide aide-erreur" role="alert" id={`${ids}-destinataire-nom-erreur`}>
+                      Indiquez le nom de la personne.
+                    </p>
+                  )}
+                </div>
+                <div className="champ">
+                  <label htmlFor={`${ids}-destinataire-telephone`}>Son téléphone</label>
+                  <input
+                    id={`${ids}-destinataire-telephone`}
+                    type="tel"
+                    value={destinataire.telephone}
+                    maxLength={20}
+                    autoComplete="off"
+                    required
+                    aria-invalid={destinataireFaux === "telephone" ? true : undefined}
+                    aria-describedby={`${ids}-destinataire-telephone-aide`}
+                    onChange={(e) => changerDestinataire({ ...destinataire, telephone: e.target.value })}
+                  />
+                  {destinataireFaux === "telephone" ? (
+                    <p className="aide aide-erreur" role="alert" id={`${ids}-destinataire-telephone-aide`}>
+                      {MESSAGE_CHAMP.telephone}
+                    </p>
+                  ) : (
+                    <p className="aide" id={`${ids}-destinataire-telephone-aide`}>
+                      Pour la joindre au sujet de la commande.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
             <div className="champ">
               <label htmlFor={`${ids}-allergie`}>
                 Allergie ou intolérance <span className="facultatif">facultatif</span>
@@ -301,6 +407,14 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
                 .
               </p>
             </div>
+            {couvertsActifs && (
+              <label className="option case-compte">
+                <input type="checkbox" checked={couverts} onChange={(e) => setCouverts(e.target.checked)} />
+                <span>
+                  <strong>Couverts et serviettes</strong>
+                </span>
+              </label>
+            )}
             {compte ? (
               <p className="aide">
                 Connecté avec {compte.email}. La commande sera rangée dans votre compte.

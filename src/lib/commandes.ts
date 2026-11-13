@@ -19,10 +19,15 @@ async function envoyerConfirmation(c: Commande): Promise<void> {
   // La commande devient visible sur la tablette : on la prévient tout de suite.
   await signalerTablette();
   const cat = await chargerCatalogue().catch(() => null);
-  const estimation = await chargerConfigService()
-    .then((config) => estimationAsap(config, c))
-    .catch(() => null);
-  const m = courrielConfirmation(c, cat, estimation);
+  const config = await chargerConfigService().catch(() => null);
+  let estimation: number | null = null;
+  try {
+    estimation = config ? estimationAsap(config, c) : null;
+  } catch {
+    estimation = null;
+  }
+  // Heure en fourchette comme à l'accueil (vague 3, client-compte).
+  const m = courrielConfirmation(c, cat, estimation, config);
   await envoyerCourriel({ commandeId: c.id, destinataire: c.client_email, ...m }).catch((e) => {
     // Le paiement est acquis : un courriel qui échoue ne doit pas le défaire. La tablette montre la commande.
     console.error(`Courriel de confirmation non envoyé pour la commande ${c.numero} : ${e instanceof Error ? e.message : e}`);

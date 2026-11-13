@@ -7,11 +7,14 @@ import { filtresListe, texteNote, UUID } from "@/lib/gestion-commandes";
 import { actionGestion, type ActionGestion } from "@/lib/actions-gestion";
 import { modifierCommande } from "@/lib/modifier-commande";
 import { exigerGerant } from "@/lib/personnel/session";
+import { recreerCommande } from "@/lib/recreer-commande";
+import { quandValide } from "@/lib/validation";
 
 // Commandes passées et remboursement après coup (audit du gérant, G02 et G04). Tout passe en POST :
 // un nom ou un téléphone cherché ne doit jamais apparaître dans une adresse (journaux, historique).
 // { action: "liste", debut?, fin?, recherche? } | { action: "jours", debut, fin } | { action: "fiche", id }
 // | { action: "rembourser", id, montant, motif, cle }
+// | { action: "recreer", id, quand, cle } (vague 3, désactivé par défaut : commande_telephone_active)
 // Vague 3 (bo-commandes) : { action: "liste_page", ...filtres (src/lib/gestion-commandes.ts) }
 // | { action: "fiche_complete", id } | { action: "courriel", id, courriel } | { action: "noter", id, texte }
 // | { action: "modifier", id, de?, prenom?, nom?, telephone?, details?, adresse? } (vague 3, sans toucher au montant)
@@ -82,6 +85,13 @@ export async function POST(requete: Request) {
   if (c.action === "modifier") {
     const de = typeof c.de === "string" ? c.de : undefined;
     const r = await modifierCommande(c.id, { prenom: c.prenom, nom: c.nom, telephone: c.telephone, details: c.details, adresse: c.adresse }, g.personnel, { de, depuis: "gestion" });
+    return NextResponse.json(r, { status: r.ok ? 200 : 409, ...sansCache });
+  }
+
+  if (c.action === "recreer") {
+    // Clé envoyée par l'écran : un double appui ne crée pas deux commandes.
+    if (typeof c.cle !== "string" || !/^[A-Za-z0-9-]{16,64}$/.test(c.cle)) return refus("Rechargez la fiche de la commande.");
+    const r = await recreerCommande(c.id, quandValide(c.quand), c.cle, g.personnel);
     return NextResponse.json(r, { status: r.ok ? 200 : 409, ...sansCache });
   }
 
