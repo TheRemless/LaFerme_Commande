@@ -28,6 +28,16 @@ insert into personnel (email, nom, role) values ('prenom@exemple.ch', 'Prénom',
 - Mise à jour : relecture toutes les 15 secondes pendant le service, toutes les 60 secondes hors service (toutes les 5 secondes si le signal ne passe pas). Le signal Supabase Realtime (message vide sur le canal `tablette`, aucune donnée) déclenche une relecture immédiate. Perte de connexion : bandeau avec l'heure du dernier contact.
 - Chaque changement de statut est tracé dans `evenements_commande` avec son auteur (`tablette:Prénom`).
 
+## Rush (vague 3, 13.11.2026)
+
+Mesures avant et après : `docs/rendus/vague-3/tablette/` (`avant-mesures.json`, `apres-mesures.json`), avec `scripts/tablette/rush.mjs` puis `scripts/tablette/mesurer.mjs` sur la base embarquée.
+
+- Les onglets restent collés en haut de l'écran avec l'état du service, la recherche et les réglages.
+- Recherche « N°, nom ou tél. » : numéro exact, cinq chiffres ou plus du téléphone (espaces et +41 admis), ou chaque mot dans le prénom ou le nom, sans accents ni majuscules, dans toute la file (terminées comprises). Les commandes encore à faire passent devant.
+- Les bandeaux tiennent sur une ligne fine. Les imprimantes hors service sont réunies sur une seule.
+- Le retour d'un geste s'affiche en bas de l'écran pendant 8 secondes, même au fond d'une longue liste.
+- Commande acceptée ou en préparation : temps restant sous l'heure promise (« dans 12 min »), puis « En retard de N min », heure en négatif et cadre épais une fois l'heure passée. Prête ou partie, la marque disparaît : la cuisine a fini.
+
 ## Correctifs du 13.11.2026 (audit « samedi soir »)
 
 Détail : `docs/audits/samedi-soir.md`, « Suivi des corrections ».

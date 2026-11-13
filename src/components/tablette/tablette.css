@@ -1,0 +1,146 @@
+/* Tablette en plein service (vague 3) : la file reste à l'écran, la commande en retard se voit de loin,
+   le retour d'une action s'affiche sous le doigt. Couleurs : jetons du site seulement. */
+
+/* Barre collée en haut : état, recherche et réglages, puis les onglets sur une seconde ligne. */
+.tablette .tab-barre {
+  padding: 8px 0 0;
+  row-gap: 4px;
+}
+/* L'état du service se replie sur deux lignes plutôt que de pousser « Déconnexion » à la ligne. */
+.tablette .tab-etat {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+.tablette .tab-onglets {
+  flex-basis: 100%;
+  margin: 0;
+}
+.tab-recherche input {
+  width: 190px;
+  min-height: 48px;
+  padding: 0 12px;
+  font: inherit;
+  color: var(--encre);
+  background: var(--blanc);
+  border: 2px solid var(--encre);
+  border-radius: 4px;
+}
+/* « Effacer la recherche » suffit : pas de petite croix du navigateur, trop petite au doigt. */
+.tab-recherche input::-webkit-search-cancel-button {
+  display: none;
+}
+.tab-recherche input:focus-visible {
+  outline: 3px solid var(--encre);
+  outline-offset: 2px;
+}
+@media (max-width: 599px) {
+  .tab-recherche {
+    flex-basis: 100%;
+  }
+  .tab-recherche input {
+    width: 100%;
+  }
+}
+.tab-recherche-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin: 12px 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* Bandeaux sur une ligne fine : ils informent sans pousser la file hors de l'écran. */
+.tablette .tab-alerte,
+.tablette .tab-attente {
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  font-size: 16px;
+  line-height: 1.3;
+}
+.tablette .tab-liste {
+  margin-top: 12px;
+}
+
+/* Retour de la dernière action, en bas de l'écran. Il laisse passer les appuis autour de lui. */
+/* Sélecteur plus fort que « .tablette » de globals.css : ne dépend pas de l'ordre des feuilles. */
+.page-tablette .tablette {
+  padding-bottom: 96px;
+}
+.tab-retour {
+  position: fixed;
+  right: 0;
+  bottom: 16px;
+  left: 0;
+  z-index: 40;
+  display: flex;
+  justify-content: center;
+  padding: 0 16px;
+  pointer-events: none;
+}
+.tab-retour-boite {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: 720px;
+  padding: 8px 8px 8px 18px;
+  color: var(--blanc);
+  background: var(--encre);
+  border-radius: 4px;
+  pointer-events: auto;
+}
+/* Un échec se distingue par un cadre épais, sans couleur vive, et reste jusqu'à « OK ». */
+.tab-retour-echec {
+  outline: 4px solid var(--blanc);
+  outline-offset: -8px;
+  padding: 14px 14px 14px 24px;
+}
+.tab-retour .tab-message {
+  margin: 0;
+  padding: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: inherit;
+  background: none;
+  border: 0;
+}
+.tab-retour .bouton-second {
+  flex: none;
+  min-height: 44px;
+  color: var(--encre);
+  background: var(--blanc);
+  border-color: var(--blanc);
+}
+
+/* Heure promise dépassée : cadre épais et heure en négatif, lisible à un mètre sans couleur vive. */
+.tablette .tab-en-retard {
+  border: 3px solid var(--encre);
+}
+.tab-en-retard .tab-promise {
+  padding: 6px 10px;
+  color: var(--blanc);
+  background: var(--encre);
+  border-radius: 4px;
+}
+.tab-en-retard .tab-promise span {
+  color: var(--blanc);
+}
+.tab-retard,
+.tab-reste {
+  margin-top: 4px;
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 700;
+  font-stretch: 100%;
+}
+.tab-reste {
+  color: var(--encre-douce);
+}
+
+/* Le numéro du client s'appelle d'un appui : cible de 44 px. */
+.tab-client a[href^="tel:"] {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
