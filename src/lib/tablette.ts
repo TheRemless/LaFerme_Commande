@@ -135,7 +135,11 @@ async function encaisser(commandeId: string, par: string, moyen?: MoyenComptoir)
   try {
     return await fonctionSql<boolean>("marquer_encaisse", { p_commande: commandeId, p_par: par, p_moyen: moyen });
   } catch (e) {
-    console.error(`Moyen d'encaissement non noté (base pas encore migrée ?) : ${e instanceof Error ? e.message : e}`);
+    // Seulement si la fonction à trois paramètres n'existe pas encore : une autre erreur (réseau après un
+    // encaissement réussi) ne doit pas relancer l'appel, qui répondrait « déjà encaissée ».
+    const m = e instanceof Error ? e.message : String(e);
+    if (!/Could not find the function|does not exist|p_moyen/i.test(m)) throw e;
+    console.error(`Moyen d'encaissement non noté, base pas encore migrée : ${m}`);
     return fonctionSql<boolean>("marquer_encaisse", { p_commande: commandeId, p_par: par });
   }
 }
