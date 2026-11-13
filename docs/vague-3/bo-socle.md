@@ -41,6 +41,6 @@ Dans Équipe, chaque membre connecté a un bouton « Appareils (n) ». Il ouvre 
 
 - Rien de personnel n'est gardé : ni adresse IP, ni empreinte du navigateur. Seulement un libellé court, calculé à la connexion, le même que pour les appareils du compte client (`src/lib/comptes/appareil.ts`).
 - La dernière activité est notée au plus une fois toutes les cinq minutes par appareil.
-- Migration `…_appareils_equipe.sql` : colonnes `appareil` et `vue_le` de `sessions_personnel`, fonctions `noter_appareil_personnel`, `voir_session_personnel`, `appareils_personnel` et `couper_appareil_personnel`. Ces deux dernières sont réservées au gérant et la coupure va au journal. Le code marche avant la migration : la connexion ignore l'échec de `noter_appareil_personnel`.
+- Migration `20261210250000_appareils_equipe.sql` : colonnes `appareil` et `vue_le` de `sessions_personnel`, fonctions `noter_appareil_personnel`, `voir_session_personnel`, `appareils_personnel` et `couper_appareil_personnel`. Ces deux dernières sont réservées au gérant et la coupure va au journal. Le code marche avant la migration : la connexion ignore l'échec de `noter_appareil_personnel`.
 - Le jour où D1 est activé, couper un appareil passe au droit `deconnecter_appareil` (responsable de service).
 - Tests : `tests/unit/appareils-equipe.test.ts`, `tests/e2e/gestion-appareils.spec.ts`.
