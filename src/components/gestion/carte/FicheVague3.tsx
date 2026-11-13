@@ -110,6 +110,44 @@ export function DispoRupture({ plat, aujourdhui, recharger }: { plat: PlatGestio
   );
 }
 
+// Étiquettes : posées par le gérant seulement, jamais déduites de la description ou des allergènes.
+export const ETIQUETTES: [string, string][] = [
+  ["vegetarien", "Végétarien"],
+  ["vegane", "Végane"],
+  ["epice", "Épicé"],
+];
+
+export function Etiquettes({ plat, recharger }: { plat: PlatGestion; recharger: () => Promise<void> }) {
+  const notifier = useNotifier();
+  const [choisies, setChoisies] = useState<string[]>(plat.etiquettes ?? []);
+  const [envoi, setEnvoi] = useState(false);
+  async function sauver() {
+    setEnvoi(true);
+    const erreur = await enregistrer("/api/gestion/carte", { type: "etiquettes", slug: plat.slug, etiquettes: choisies });
+    setEnvoi(false);
+    notifier(erreur ? { texte: erreur, ton: "erreur" } : { texte: "Étiquettes enregistrées.", ton: "succes" });
+    if (!erreur) await recharger();
+  }
+  return (
+    <section className="bo-fiche-partie" aria-labelledby={`etiquettes-${plat.slug}`}>
+      <h3 id={`etiquettes-${plat.slug}`}>Étiquettes</h3>
+      <p className="bo-champ-aide">Montrées au client et utilisées par le filtre de la carte. À cocher seulement si le restaurant l&apos;a vérifié. Végane coche aussi végétarien.</p>
+      <fieldset className="bo-choix">
+        <legend className="sr-only">Étiquettes du plat</legend>
+        {ETIQUETTES.map(([v, t]) => (
+          <label key={v} className="bo-case">
+            <input type="checkbox" checked={choisies.includes(v)} onChange={(e) => setChoisies((c) => (e.target.checked ? [...c, v] : c.filter((x) => x !== v)))} />
+            <span>{t}</span>
+          </label>
+        ))}
+      </fieldset>
+      <button type="button" className="bo-bouton bo-bouton-second" disabled={envoi} onClick={sauver}>
+        Enregistrer les étiquettes
+      </button>
+    </section>
+  );
+}
+
 export function CopierPlat({ plat, copie }: { plat: PlatGestion; copie: (slug: string) => Promise<void> }) {
   const notifier = useNotifier();
   const [nom, setNom] = useState(`${plat.nom} (copie)`);

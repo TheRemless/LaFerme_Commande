@@ -91,3 +91,19 @@ test("la recherche globale ouvre la fiche d'un plat en arrivant sur la carte", a
   await expect(gestion.getByRole("dialog", { name: "Pizza Tonno" }).getByLabel("Nom affiché")).toHaveValue("Pizza Tonno");
   await gestion.keyboard.press("Escape");
 });
+
+test("les étiquettes se posent sur la fiche ; végane coche aussi végétarien", async () => {
+  await gestion.goto("/gestion/carte");
+  await gestion.getByRole("table").getByRole("button", { name: "Pizza Tonno" }).click();
+  const panneau = gestion.getByRole("dialog", { name: "Pizza Tonno" });
+  await panneau.getByRole("checkbox", { name: "Végane" }).check();
+  await panneau.getByRole("button", { name: "Enregistrer les étiquettes" }).click();
+  await expect(panneau.getByRole("checkbox", { name: "Végétarien" })).toBeChecked();
+  // Rangées de nouveau, pour ne rien laisser dans la carte des autres tests.
+  await panneau.getByRole("checkbox", { name: "Végane" }).uncheck();
+  await panneau.getByRole("checkbox", { name: "Végétarien" }).uncheck();
+  await panneau.getByRole("button", { name: "Enregistrer les étiquettes" }).click();
+  await expect(gestion.getByText("Étiquettes enregistrées.").last()).toBeVisible();
+  await expect(panneau.getByRole("checkbox", { name: "Végétarien" })).not.toBeChecked();
+  await gestion.keyboard.press("Escape");
+});

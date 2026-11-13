@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import "./carte.css";
 import { FichePlat, NouveauPlat, type DonneesCarte, type PlatGestion } from "@/components/gestion/GestionCarte";
 import { PrixEnLot } from "@/components/gestion/carte/PrixEnLot";
-import { DispoRupture, CopierPlat } from "@/components/gestion/carte/FicheVague3";
+import { DispoRupture, CopierPlat, Etiquettes, ETIQUETTES } from "@/components/gestion/carte/FicheVague3";
 import { enregistrer } from "@/components/gestion/enregistrer";
 import { PanneauLateral, TableauDonnees, montant, useConfirmer, useNotifier, useOuverture, type Colonne, type Tri } from "@/components/gestion/ui";
 
@@ -165,6 +165,12 @@ export function ListeCarte({ donnees, recharger, version }: { donnees: DonneesCa
     { cle: "etat", titre: "État", valeur: etatPlat, triable: true },
     { cle: "manques", titre: "À compléter", valeur: (p) => manquesCourts(p) || "Rien" },
     { cle: "dispo", titre: "Disponible", valeur: dispoTexte },
+    {
+      cle: "etiquettes",
+      titre: "Étiquettes",
+      valeur: (p) => (p.etiquettes ?? []).map((e) => ETIQUETTES.find(([v]) => v === e)?.[1] ?? e).join(", "),
+      cacheeParDefaut: true,
+    },
     { cle: "poste", titre: "Poste", valeur: (p) => (p.station === "pizza" ? "Pizza" : "Cuisine"), cacheeParDefaut: true },
   ];
 
@@ -297,6 +303,7 @@ export function ListeCarte({ donnees, recharger, version }: { donnees: DonneesCa
         <PanneauLateral titre={plat.nom} sousTitre={`${plat.categorie_nom}, ${etatPlat(plat).toLowerCase()}`} onFermer={() => setOuvert(null)} large>
           <FichePlat key={`${plat.slug}-${version}`} plat={plat} donnees={donnees} recharger={recharger} />
           {!plat.archive && <DispoRupture key={`d-${plat.slug}-${version}`} plat={plat} aujourdhui={donnees.aujourdhui} recharger={recharger} />}
+          {!plat.archive && <Etiquettes key={`e-${plat.slug}-${version}-${(plat.etiquettes ?? []).join()}`} plat={plat} recharger={recharger} />}
           {plat.origine !== "jour" && (
             <CopierPlat
               plat={plat}
