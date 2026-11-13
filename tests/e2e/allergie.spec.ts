@@ -32,7 +32,9 @@ test("l'allergie part avec la commande, survit au rechargement puis s'efface", a
   await page.getByRole("button", { name: /^Commander, je paie au comptoir/ }).click();
   expect(JSON.parse((await envoi).postData() ?? "{}").allergie).toBe("Arachides (enfant de 6 ans)");
   await expect(page).toHaveURL(/\/suivi\//);
-  expect(await page.evaluate(() => sessionStorage.getItem("laferme.allergie"))).toBeNull();
+  // L'effacement se fait sur la page de suivi, une fois qu'elle répond (viderPanier dans Actualiser) :
+  // l'adresse change avant. Sur téléphone, au premier passage, la lecture tombait entre les deux.
+  await expect.poll(() => page.evaluate(() => sessionStorage.getItem("laferme.allergie"))).toBeNull();
   expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toContain("Arachides");
 });
 
