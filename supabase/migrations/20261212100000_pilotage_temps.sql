@@ -14,8 +14,13 @@
 -- - Une commande est « en retard » si l'heure réelle dépasse l'heure confirmée ; « plus de 10 min » à part.
 -- - Heure : heure confirmée à Genève (la tranche où la cuisine était attendue).
 
+-- enable_nestloop à off, pour cette fonction seulement : le filtre par service (une fonction) fait croire au
+-- planificateur que la liste des commandes tient en une ligne, et il choisit des boucles imbriquées sur des milliers
+-- de lignes. En jointures par hachage : 30 jours du jeu de rush en moins de 0,1 s au lieu de 1,2 s.
 create function pilotage_temps(p_debut date, p_fin date, p_service text default null) returns jsonb
-language plpgsql stable as $$
+language plpgsql stable
+set enable_nestloop = off
+as $$
 begin
   if p_debut is null or p_fin is null or p_fin < p_debut or p_fin - p_debut + 1 > 366 then
     raise exception 'Période invalide (un an au plus)';
@@ -24,7 +29,9 @@ begin
     raise exception 'Service invalide (midi ou soir)';
   end if;
   return (
-    with cmd as (
+    -- Calculée une fois : sans « materialized », la liste (et le service de chaque commande) serait refaite à
+    -- chaque endroit où elle sert (1,2 s au lieu de 0,1 s sur 30 jours du jeu de rush).
+    with cmd as materialized (
       select o.id, o.mode, o.heure_confirmee, o.accepte_le, o.termine_le, o.statut,
         coalesce(o.paye_le, o.cree_le) as passee_le
       from commandes o
@@ -34,14 +41,21 @@ begin
     ),
     postes as (
       select p.commande_id, p.station::text as station, p.pret_par,
-        extract(epoch from (p.pret_le - p.a_faire_le)) / 60 as minutes, p.pret_le
+        extract(epoch from (p.pret_le - p.a_faire_le)) / 60 as minutes, p.pret_le,
+        extract(hour from c.heure_confirmee at time zone 'Europe/Zurich')::int as heure
       from commande_postes p join cmd c on c.id = p.commande_id
       where p.pret_le is not null and p.pret_le >= p.a_faire_le
     ),
-    prete as (
+    -- Médiane par poste et par heure promise, en un seul regroupement (pas une recherche par heure).
+    postes_heure as (
+      select station, heure, round((percentile_cont(0.5) within group (order by minutes))::numeric, 1) as mediane
+      from postes where heure is not null group by station, heure
+    ),
+    -- Figées elles aussi : le planificateur, qui croit « cmd » réduite à une ligne, les referait pour chaque commande.
+    prete as materialized (
       select commande_id, max(pret_le) as prete_le from postes group by commande_id
     ),
-    depart as (
+    depart as materialized (
       select e.commande_id, min(e.le) as part_le
       from evenements_commande e join cmd c on c.id = e.commande_id
       where e.vers = 'partie'
@@ -98,10 +112,8 @@ begin
       'heures', coalesce((
         select jsonb_agg(jsonb_build_object(
           'heure', h.heure, 'commandes', h.n, 'en_retard', h.retard,
-          'pizza_mediane_min', (select round((percentile_cont(0.5) within group (order by p.minutes))::numeric, 1) from postes p join cmd c on c.id = p.commande_id
-            where p.station = 'pizza' and extract(hour from c.heure_confirmee at time zone 'Europe/Zurich') = h.heure),
-          'cuisine_mediane_min', (select round((percentile_cont(0.5) within group (order by p.minutes))::numeric, 1) from postes p join cmd c on c.id = p.commande_id
-            where p.station = 'cuisine' and extract(hour from c.heure_confirmee at time zone 'Europe/Zurich') = h.heure),
+          'pizza_mediane_min', pz.mediane,
+          'cuisine_mediane_min', cu.mediane,
           'route_mediane_min', h.route
         ) order by h.heure)
         from (
@@ -110,6 +122,8 @@ begin
             round((percentile_cont(0.5) within group (order by route_min) filter (where route_min is not null))::numeric, 1) as route
           from ecarts group by 1
         ) h
+        left join postes_heure pz on pz.station = 'pizza' and pz.heure = h.heure
+        left join postes_heure cu on cu.station = 'cuisine' and cu.heure = h.heure
       ), '[]'::jsonb)
     )
   );
