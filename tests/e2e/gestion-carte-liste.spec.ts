@@ -35,6 +35,9 @@ test("la carte en liste : filtres de qualité, recherche, catégorie", async ({}
   await capture("carte-liste", info);
   await gestion.getByRole("button", { name: /^Sans allergènes/ }).click();
   await expect(gestion.getByRole("button", { name: /^Sans allergènes/ })).toHaveAttribute("aria-pressed", "true");
+  await gestion.getByRole("button", { name: /^Bloquent la mise en ligne/ }).click();
+  await expect(gestion.getByRole("button", { name: /^Bloquent la mise en ligne/ })).toHaveAttribute("aria-pressed", "true");
+  await expect(tableau.getByRole("button", { name: "Pizza Margherita" })).toBeVisible();
   await gestion.getByRole("button", { name: /^Tous/ }).click();
   await gestion.getByRole("combobox", { name: "Catégorie" }).selectOption({ label: "Desserts" });
   await expect(tableau.getByRole("button", { name: "Pizza Margherita" })).toHaveCount(0);
@@ -104,4 +107,18 @@ test("les étiquettes se posent sur la fiche ; végane coche aussi végétarien"
   await expect(gestion.getByText("Étiquettes enregistrées.").last()).toBeVisible();
   await expect(panneau.getByRole("checkbox", { name: "Végétarien" })).not.toBeChecked();
   await gestion.keyboard.press("Escape");
+});
+
+test("en lot : retirer de la vente puis remettre en vente", async () => {
+  await gestion.goto("/gestion/carte");
+  const tableau = gestion.getByRole("table");
+  const ligne = tableau.getByRole("row", { name: /Pizza Tonno/ }).first();
+  await tableau.getByRole("checkbox", { name: "Sélectionner Pizza Tonno" }).check();
+  await gestion.getByRole("button", { name: "Retirer de la vente" }).click();
+  await expect(gestion.getByText("1 plat retiré de la vente.")).toBeVisible();
+  await expect(ligne).toContainText("Hors vente");
+  await tableau.getByRole("checkbox", { name: "Sélectionner Pizza Tonno" }).check();
+  await gestion.getByRole("button", { name: "Mettre en vente" }).click();
+  await expect(gestion.getByText("1 plat en vente.")).toBeVisible();
+  await expect(ligne).toContainText("En vente");
 });
