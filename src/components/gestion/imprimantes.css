@@ -17,3 +17,9 @@
   margin: 0;
   padding-left: 22px;
 }
+/* Renvoyer ses tickets sur une autre : choix de l'imprimante, cible tactile pleine. */
+.ges-confirmer select {
+  min-height: var(--bo-cible);
+  padding: 0 8px;
+  font: inherit;
+}
