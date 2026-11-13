@@ -539,7 +539,19 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
         </p>
       ))}
 
-      {reglagesOuverts && donnees && <Reglages reglages={donnees.reglages} onChange={charger} />}
+      {reglagesOuverts && donnees && (
+        <Reglages
+          reglages={donnees.reglages}
+          onChange={charger}
+          ouvrirCommande={(c) => {
+            // Ouverte depuis « Commandes en cours qui les contiennent » : réglages fermés, numéro cherché, détail de
+            // cette commande-là ouvert (par son id : le numéro repart à 1 chaque jour).
+            setReglagesOuverts(false);
+            setRecherche(String(c.numero));
+            setOuverte(c.id);
+          }}
+        />
+      )}
 
       {resultats && (
         <p className="tab-recherche-info">

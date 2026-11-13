@@ -189,6 +189,17 @@ Le retard du soir ne touche que les commandes à venir ; les commandes déjà ac
 - Avant la #186 dans main : « Pas encore disponible : réglez le retard ce soir à la place. »
 - Captures : `docs/rendus/vague-3/tablette/decaler-*.png` (`scripts/tablette/decaler.mjs`, n'appuie pas sur « +N min »).
 
+## « Four en panne… » et ruptures « jusqu'au » (vague 3, base de bo-carte #55, P0 et P1 de produit-gestion)
+
+Dans « Pause, délai, ruptures ». Même fonction et mêmes mots que le back-office de bo-carte (arbitrage du chef). Aucune migration : `20261210090000_disponibilites.sql`. Routes `/api/tablette/pannes` et `/api/tablette/touchees`, logique pure dans `src/components/tablette/ruptures.ts`.
+
+- **« Four en panne… »** : « Four en panne », « Cuisine en panne » ou « Une catégorie… », puis « Jusqu'à ce soir » ou « Jusqu'à demain soir » (deux gestes, `regler_rupture_groupee`). Cadre « Tout le poste pizza épuisé jusqu'à ce soir. » et « Remettre en vente » d'un geste ; les ruptures plat par plat restent telles quelles. Le client voit ces plats épuisés.
+- **Commandes en cours qui les contiennent** : après une panne ou « Épuisé » sur un plat, la liste des commandes à accepter, acceptées ou en préparation jusqu'à la date, avec leurs lignes concernées. Chaque « N° » ferme les réglages, cherche le numéro et ouvre la commande. Base : `commandes_touchees` de bo-carte (PR à venir) ; repli calculé sur la file de la tablette tant qu'elle n'est pas dans main.
+- **Motif sous le plat** : « Four en panne », « Cuisine en panne », « Toute la catégorie épuisée » ou « Épuisé jusqu'au 15 nov. ». Un plat épuisé avec son poste ne se remet pas seul (bouton grisé). Le résumé « Épuisés aujourd'hui » ne liste pas les plats d'un poste en panne.
+- **Confirmation sur la ligne** avant de remettre une rupture posée au back-office pour plusieurs jours, et avant d'épuiser le dernier choix disponible d'un groupe obligatoire.
+- Suppléments et choix regroupés par groupe, « choix obligatoire » noté à côté du nom.
+- Captures : `docs/rendus/vague-3/tablette/panne-*.png` (`scripts/tablette/pannes.mjs`, après `scripts/tablette/rush.mjs`).
+
 ## Ticket « MODIFIÉE » (vague 3, contrat avec bo-commandes, #65)
 
 Une commande acceptée dont le client, le téléphone, les consignes ou l'adresse changent après la sortie de ses tickets : un ticket « MODIFIÉE » au poste qui fait le sac (cuisine s'il y a des lignes cuisine, sinon pizza). Les plats ne changent jamais par ce chemin.
