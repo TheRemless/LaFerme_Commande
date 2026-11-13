@@ -411,3 +411,33 @@
 .tab-couverts {
   font-weight: 700;
 }
+
+/* Ruptures (vague 3, base de bo-carte #55) : motif d'une rupture planifiée ou d'une panne, confirmation sur la ligne. */
+.tab-rupture-motif {
+  display: block;
+  font-weight: 700;
+}
+.tab-plats li:has(.tab-confirmation) {
+  flex-wrap: wrap;
+}
+.tab-confirmation {
+  flex-basis: 100%;
+  padding: 10px 12px;
+  border: 2px solid var(--encre);
+  background: var(--blanc);
+}
+.tab-confirmation p {
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+.tab-groupe-options h4 {
+  margin: 12px 0 4px;
+}
+.tab-panne-active {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.tab-pannes .bouton-second + .bouton-second {
+  margin-left: 8px;
+}

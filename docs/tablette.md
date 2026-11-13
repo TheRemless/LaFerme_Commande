@@ -179,3 +179,13 @@ Migration `20261212110000_tablette_nouveautes_client.sql` (après les colonnes d
 | Prénom par ligne (`pour`) | « pour Hugo » sous le plat | Sous le plat | « pour Hugo » sous le plat | Rien |
 
 Couverts et prénoms restent éteints côté client (réglages `couverts_actifs` et `prenom_par_ligne_actif`, décisions C8 et C5) : la tablette les montre dès qu'ils arrivent. Captures : `docs/rendus/vague-3/tablette/nouveautes-*.png` (`scripts/tablette/nouveautes-client.mjs`, après `scripts/tablette/rush.mjs`).
+
+## Pannes et ruptures « jusqu'au » (vague 3, base de bo-carte #55)
+
+Dans « Pause, délai, ruptures ». Aucune migration : la base vient de `20261210090000_disponibilites.sql` (bo-carte). Route `/api/tablette/pannes`, logique pure dans `src/components/tablette/ruptures.ts`.
+
+- **Four en panne, cuisine en panne** : en deux gestes (le bouton, puis « Épuiser toutes les pizzas » ou « Épuiser toute la cuisine »), tout le poste est épuisé jusqu'à ce soir (`regler_rupture_groupee('poste:pizza', aujourd'hui)`). Le client voit ces plats épuisés. « Le four remarche » lève la panne ; les ruptures plat par plat restent telles quelles. Sinon le poste revient seul demain.
+- **Motif sous le plat** : « Four en panne », « Cuisine en panne », « Toute la catégorie épuisée » ou « Épuisé jusqu'au 15 nov. » (rupture posée au back-office). Un plat épuisé avec tout son poste ne se remet pas seul (bouton grisé). Le résumé « Épuisés aujourd'hui » ne liste pas les plats d'un poste en panne.
+- **Confirmation sur la ligne** avant de remettre une rupture posée au back-office pour plusieurs jours, et avant d'épuiser le dernier choix disponible d'un groupe obligatoire (« Dernier choix disponible dans « Pâtes » : les plats qui l'exigent ne pourront plus être commandés. »).
+- Suppléments et choix regroupés par groupe, « choix obligatoire » noté à côté du nom du groupe.
+- Captures : `docs/rendus/vague-3/tablette/panne-*.png` (`scripts/tablette/pannes.mjs`).

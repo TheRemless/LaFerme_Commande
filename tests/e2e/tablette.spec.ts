@@ -178,7 +178,8 @@ test("supplément épuisé : refusé à la commande, puis revient", async ({ req
   const { supplement } = rupturesDuProjet();
   await tablette.getByLabel("Chercher un plat ou un supplément").fill(supplement);
   // Le supplément seul, pas les plats dont le nom le contient.
-  const ligne = tablette.locator(".tab-plats li").filter({ hasText: new RegExp(`^${supplement}\\s*Supplément`) });
+  // Options groupées par groupe (vague 3) : la ligne du supplément seul, dans le groupe « Supplément ».
+  const ligne = tablette.locator(".tab-groupe-options", { has: tablette.locator("h4", { hasText: /^Supplément/ }) }).locator(".tab-plats li").filter({ hasText: new RegExp(`^${supplement}(Disponible|Épuisé)$`) });
   await ligne.getByRole("button", { name: "Disponible" }).click();
   await expect(ligne.getByRole("button", { name: "Épuisé" })).toBeVisible();
   // Coup de feu : construit désactivé pour l'équipe de service (coup_de_feu_par_equipe faux), bloc caché.
@@ -195,6 +196,18 @@ test("supplément épuisé : refusé à la commande, puis revient", async ({ req
   expect((await rep.json()).erreur).toContain(`${supplement} : épuisé pour aujourd'hui.`);
   await ligne.getByRole("button", { name: "Épuisé" }).click();
   await expect(ligne.getByRole("button", { name: "Disponible" })).toBeVisible();
+  await tablette.getByRole("button", { name: "Fermer les réglages" }).click();
+});
+
+test("four en panne : deux gestes, la confirmation s'annule sans rien changer", async () => {
+  // Pas de vraie panne ici : elle épuiserait les pizzas des autres tests qui tournent en même temps.
+  await tablette.getByRole("button", { name: "Pause, délai, ruptures" }).click();
+  const bloc = tablette.locator(".tab-pannes");
+  await bloc.getByRole("button", { name: "Four en panne" }).click();
+  await expect(bloc.getByRole("button", { name: "Épuiser toutes les pizzas" })).toBeVisible();
+  await bloc.getByRole("button", { name: "Annuler" }).click();
+  await expect(bloc.getByRole("button", { name: "Four en panne" })).toBeVisible();
+  await expect(bloc).not.toContainText("épuisées jusqu'à ce soir");
   await tablette.getByRole("button", { name: "Fermer les réglages" }).click();
 });
 

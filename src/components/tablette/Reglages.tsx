@@ -1,18 +1,22 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { heureDe } from "@/lib/heures";
+import { heureDe, jourGeneveDe } from "@/lib/heures";
 import { poster } from "@/lib/requete-client";
 import { CoupDeFeu } from "./CoupDeFeu";
+import { Pannes } from "./Pannes";
+import { derniereOptionObligatoire, parGroupe, rupturePlanifiee, texteRupture, type OptionRupture, type PlatRupture } from "./ruptures";
 
 type Props = {
   reglages: { pause: { active: boolean; jusqua: string | null; livraisonFermee: boolean } | null; preparation_minutes: number; retard_minutes?: number };
   onChange: () => Promise<void>;
 };
 
-type Plat = { slug: string; nom: string; categorie: string; rupture: boolean };
-// Supplément (audit du gérant, G07) : épuisé pour la journée comme un plat.
-type Option = { groupe: string; groupe_nom: string; nom: string; rupture: boolean };
+type Plat = PlatRupture;
+// Supplément ou choix (audit du gérant, G07) : épuisé pour la journée comme un plat.
+type Option = OptionRupture;
+// Geste qui demande une confirmation sur sa ligne (rupture planifiée, dernière option d'un choix obligatoire).
+type Confirmation = { cle: string; message: string; bouton: string; faire: () => Promise<void> };
 
 
 // Pause des commandes en ligne, livraison, délai de préparation et ruptures du jour.
@@ -23,6 +27,8 @@ export function Reglages({ reglages, onChange }: Props) {
   const [envoi, setEnvoi] = useState(false);
 
   const [options, setOptions] = useState<Option[] | null>(null);
+  const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
+  const aujourdHui = jourGeneveDe(new Date());
   async function chargerPlats() {
     const [rep, repOptions] = await Promise.all([
       fetch("/api/tablette/plats", { cache: "no-store" }).catch(() => null),
@@ -44,7 +50,31 @@ export function Reglages({ reglages, onChange }: Props) {
     setEnvoi(false);
   }
 
+  function demanderOption(o: Option) {
+    if (options && derniereOptionObligatoire(options, o)) {
+      setConfirmation({
+        cle: `o:${o.groupe}/${o.nom}`,
+        message: `Dernier choix disponible dans « ${o.groupe_nom} » : les plats qui l'exigent ne pourront plus être commandés.`,
+        bouton: "Épuiser quand même",
+        faire: () => ruptureOption(o),
+      });
+    } else if (rupturePlanifiee(o, aujourdHui)) {
+      setConfirmation({ cle: `o:${o.groupe}/${o.nom}`, message: `${texteRupture(o, aujourdHui)}, posé au back-office.`, bouton: "Remettre dès maintenant", faire: () => ruptureOption(o) });
+    } else {
+      void ruptureOption(o);
+    }
+  }
+
+  function demanderPlat(p: Plat) {
+    if (rupturePlanifiee(p, aujourdHui)) {
+      setConfirmation({ cle: `p:${p.slug}`, message: `${texteRupture(p, aujourdHui)}, posé au back-office.`, bouton: "Remettre dès maintenant", faire: () => rupture(p) });
+    } else {
+      void rupture(p);
+    }
+  }
+
   async function ruptureOption(o: Option) {
+    setConfirmation(null);
     setEnvoi(true);
     setErreur(null);
     const r = await poster("/api/tablette/options", { groupe: o.groupe, nom: o.nom, rupture: !o.rupture });
@@ -54,6 +84,7 @@ export function Reglages({ reglages, onChange }: Props) {
   }
 
   async function rupture(p: Plat) {
+    setConfirmation(null);
     setEnvoi(true);
     setErreur(null);
     const r = await poster("/api/tablette/plats", { slug: p.slug, rupture: !p.rupture });
@@ -69,7 +100,8 @@ export function Reglages({ reglages, onChange }: Props) {
     const q = recherche.trim().toLowerCase();
     return (plats ?? []).filter((x) => !q || x.nom.toLowerCase().includes(q));
   }, [plats, recherche]);
-  const enRupture = (plats ?? []).filter((x) => x.rupture);
+  // Panne d'un poste : dite dans son bloc, pas plat par plat ici.
+  const enRupture = (plats ?? []).filter((x) => x.rupture && !x.rupture_groupee);
   const optionsEpuisees = (options ?? []).filter((x) => x.rupture);
   const optionsFiltrees = (options ?? []).filter((x) => !recherche.trim() || x.nom.toLowerCase().includes(recherche.trim().toLowerCase()));
 
@@ -81,6 +113,12 @@ export function Reglages({ reglages, onChange }: Props) {
         </p>
       )}
       <CoupDeFeu onChange={onChange} />
+      <Pannes
+        onChange={async () => {
+          await chargerPlats();
+          await onChange();
+        }}
+      />
 
       <div className="tab-bloc">
         <h2>Commandes en ligne</h2>
@@ -151,38 +189,80 @@ export function Reglages({ reglages, onChange }: Props) {
           <p className="aide">Chargement…</p>
         ) : (
           <ul className="tab-plats">
-            {filtres.map((x) => (
-              <li key={x.slug}>
-                <span>
-                  {x.nom} <small>{x.categorie}</small>
-                </span>
-                <button type="button" className={x.rupture ? "bouton-principal" : "bouton-second"} disabled={envoi} aria-pressed={x.rupture} onClick={() => rupture(x)}>
-                  {x.rupture ? "Épuisé" : "Disponible"}
-                </button>
-              </li>
-            ))}
+            {filtres.map((x) => {
+              const motif = texteRupture(x, aujourdHui);
+              const groupee = !!x.rupture_groupee;
+              return (
+                <li key={x.slug}>
+                  <span>
+                    {x.nom} <small>{x.categorie}</small>
+                    {motif && motif !== "Épuisé aujourd'hui" && <small className="tab-rupture-motif">{motif}</small>}
+                  </span>
+                  <button
+                    type="button"
+                    className={x.rupture || groupee ? "bouton-principal" : "bouton-second"}
+                    disabled={envoi || groupee}
+                    aria-pressed={x.rupture || groupee}
+                    onClick={() => demanderPlat(x)}
+                  >
+                    {x.rupture || groupee ? "Épuisé" : "Disponible"}
+                  </button>
+                  {confirmation?.cle === `p:${x.slug}` && <LigneConfirmation c={confirmation} envoi={envoi} annuler={() => setConfirmation(null)} />}
+                </li>
+              );
+            })}
           </ul>
         )}
-        {options !== null && options.length > 0 && (
+        {options !== null && optionsFiltrees.length > 0 && (
           <>
-            <h3>Suppléments</h3>
+            <h3>Suppléments et choix</h3>
             {optionsEpuisees.length > 0 && <p>{optionsEpuisees.map((x) => x.nom).join(", ")}</p>}
-            <ul className="tab-plats">
-              {optionsFiltrees.map((x) => (
-                <li key={`${x.groupe}/${x.nom}`}>
-                  <span>
-                    {x.nom} <small>{x.groupe_nom}</small>
-                  </span>
-                  <button type="button" className={x.rupture ? "bouton-principal" : "bouton-second"} disabled={envoi} aria-pressed={x.rupture} onClick={() => ruptureOption(x)}>
-                    {x.rupture ? "Épuisé" : "Disponible"}
-                  </button>
-                </li>
-              ))}
-            </ul>
+            {parGroupe(optionsFiltrees).map((g) => (
+              <div key={g.groupe} className="tab-groupe-options">
+                <h4>
+                  {g.nom}
+                  {g.obligatoire && <small> choix obligatoire</small>}
+                </h4>
+                <ul className="tab-plats">
+                  {g.options.map((x) => {
+                    const motif = texteRupture(x, aujourdHui);
+                    return (
+                      <li key={`${x.groupe}/${x.nom}`}>
+                        <span>
+                          {x.nom}
+                          {motif && motif !== "Épuisé aujourd'hui" && <small className="tab-rupture-motif">{motif}</small>}
+                        </span>
+                        <button type="button" className={x.rupture ? "bouton-principal" : "bouton-second"} disabled={envoi} aria-pressed={x.rupture} onClick={() => demanderOption(x)}>
+                          {x.rupture ? "Épuisé" : "Disponible"}
+                        </button>
+                        {confirmation?.cle === `o:${x.groupe}/${x.nom}` && <LigneConfirmation c={confirmation} envoi={envoi} annuler={() => setConfirmation(null)} />}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
           </>
         )}
         <p className="aide">Un plat ou un supplément épuisé redevient disponible tout seul le lendemain.</p>
       </div>
     </section>
+  );
+}
+
+// Confirmation sur la ligne du plat ou de l'option, sans fenêtre par-dessus la liste.
+function LigneConfirmation({ c, envoi, annuler }: { c: Confirmation; envoi: boolean; annuler: () => void }) {
+  return (
+    <div className="tab-confirmation" role="alert">
+      <p>{c.message}</p>
+      <div className="boutons-ligne">
+        <button type="button" className="bouton-principal" disabled={envoi} onClick={() => void c.faire()}>
+          {c.bouton}
+        </button>
+        <button type="button" className="bouton-second" disabled={envoi} onClick={annuler}>
+          Annuler
+        </button>
+      </div>
+    </div>
   );
 }
