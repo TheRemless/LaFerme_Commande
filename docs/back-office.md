@@ -63,6 +63,10 @@ Migration `supabase/migrations/20261210090000_disponibilites.sql`. Tests : `test
 - **Choix obligatoire épuisé.** Quand un groupe obligatoire n'a plus assez d'options disponibles (plus de penne ni de spaghetti), le plat est épuisé pour le client (« Épuisé pour aujourd'hui. ») et refusé au panier et au paiement. `motifPlat` (`src/lib/plat-du-jour.ts`) donne ce motif comme tous les autres, la carte affiche le même texte que le refus du serveur. La tablette liste aussi les options des choix obligatoires (`options_tablette`, champ `obligatoire`).
 - **Journal.** Objets `disponibilite`, `rupture`, `rupture_option` et `rupture_groupee` (un gérant ; un membre du service est noté dans `journal_personnel`), avec la valeur d'avant et d'après. Ils ne s'annulent pas depuis le journal : on règle de nouveau la disponibilité ou on remet le plat.
 
+## Codes promo
+
+Construits désactivés, sans montant : voir [codes-promo.md](codes-promo.md).
+
 ## Pas encore fait
 
 - Créer un nouveau groupe d'options (autre que les suppléments de pizza et le choix des pâtes).
