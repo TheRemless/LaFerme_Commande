@@ -41,7 +41,8 @@ async function appel(nom: string, url: string, init: RequestInit = {}): Promise<
     const corps = await r.arrayBuffer();
     const m = { ms: performance.now() - t, octets: corps.byteLength, statut: r.status };
     mesures.set(nom, [...(mesures.get(nom) ?? []), m]);
-    return new Response(corps, { status: r.status, headers: r.headers });
+    // 204 (file inchangée) : une réponse de ce statut ne peut pas porter de corps, même vide.
+    return new Response(r.status === 204 || r.status === 304 ? null : corps, { status: r.status, headers: r.headers });
   } catch {
     mesures.set(nom, [...(mesures.get(nom) ?? []), { ms: performance.now() - t, octets: 0, statut: 0 }]);
     return null;
