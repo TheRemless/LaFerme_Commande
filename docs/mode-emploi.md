@@ -203,6 +203,7 @@ Client absent à la livraison : la commande est close sans remboursement, avec l
 4. « Stripe a refusé le remboursement ». Rien n'a été rendu. Réessayer plus tard. « Encore en cours chez Stripe » : attendre une minute, rouvrir la commande puis toucher « Relancer » sur la ligne du remboursement. Il ne part jamais deux fois. Si ça dure, appeler le numéro ci-dessus.
 5. Une commande au comptoir manque dans l'export. Elle n'a pas été notée comme encaissée. Sur la tablette, onglet « Terminées » le jour même, toucher « Encaissée ».
 6. Un e-mail « Connexion bloquée 24 heures » arrive. Quelqu'un a tapé 15 codes faux avec cette adresse. Les appareils déjà connectés continuent de marcher. Pour se connecter ailleurs, attendre l'heure donnée dans l'e-mail ou passer par un appareil déjà connecté.
+7. Un e-mail « E-mails : 80 % de la limite du jour atteints » arrive. La boîte du restaurant approche de sa limite d'envoi sur 24 heures. Le site garde la place pour les codes de connexion et les confirmations. Les e-mails « prête » et « en route » s'arrêtent d'abord, la page de suivi reste à jour. Un e-mail qui n'est pas parti est noté dans l'historique de la commande. Prévenir Jérémy : la limite se relève chez Infomaniak.
 
 ---
 

@@ -7,6 +7,7 @@ import { heureTexte, jourTexte } from "@/lib/service";
 import { MOTIF_DEMANDE_CLIENT } from "@/lib/motifs";
 import { nomClient } from "@/lib/nom-plat";
 import { ADRESSE_SITE } from "@/lib/site";
+import type { TypeCourriel } from "@/lib/courriel/quota";
 
 // Textes des courriels, passés par redaction-fr (voix de Giuseppe : direct, factuel).
 // Rien d'autre que des faits du registre (adresse, téléphone) et le contenu de la commande.
@@ -118,7 +119,7 @@ export function courrielConfirmation(c: Commande, cat: Catalogue | null, estimat
 <p>${echapper(paiement)}</p>
 ${bouton(lienSuivi(c), "Suivre la commande")}
 <p>Une question ? ${TELEPHONE}</p>`, c.origine);
-  return { sujet, texte, html };
+  return { sujet, texte, html, type: "confirmation" as TypeCourriel };
 }
 
 // Commande payée en ligne refusée, remboursement pas encore passé (prestataire en panne) : le client
@@ -141,7 +142,7 @@ export function courrielRefusRemboursementEnCours(c: Commande, motif: string) {
 <p>${phraseAnnulation(c, motif).html}</p>
 <p>${remboursement}</p>
 <p>Une question ? Appelez-nous au ${TELEPHONE}.</p>`, c.origine);
-  return { sujet, texte, html };
+  return { sujet, texte, html, type: "refus" as TypeCourriel };
 }
 
 export function courrielRemboursement(c: Commande, motif: string) {
@@ -161,7 +162,7 @@ export function courrielRemboursement(c: Commande, motif: string) {
 <p>${phraseAnnulation(c, motif).html}</p>
 <p>Nous vous remboursons ${prixChf(c.total_centimes)} sur le moyen de paiement utilisé. Le délai dépend de votre banque.</p>
 <p>Une question ? ${TELEPHONE}</p>`, c.origine);
-  return { sujet, texte, html };
+  return { sujet, texte, html, type: "refus" as TypeCourriel };
 }
 
 // Code de connexion au compte. Le code est dans le sujet pour se lire dans la notification.
@@ -186,7 +187,7 @@ export function courrielCode(code: string) {
 <p>Il est valable 10 minutes et ne sert qu'une fois.</p>
 <p>Si vous n'avez rien demandé, ne faites rien. Sans ce code, personne n'entre dans votre compte.</p>
 <p>Une question ? ${TELEPHONE}</p>`, ADRESSE_SITE);
-  return { sujet, texte, html };
+  return { sujet, texte, html, type: "code" as TypeCourriel };
 }
 
 // Au membre de l'équipe dont l'adresse est bloquée par des codes faux (audit de sécurité, S4).
@@ -213,13 +214,13 @@ export function courrielBlocagePersonnel(quand: string) {
       .join("\n"),
     ADRESSE_SITE,
   );
-  return { sujet, texte, html };
+  return { sujet, texte, html, type: "blocage" as TypeCourriel };
 }
 
 // ---------- Courriels envoyés depuis la tablette (lot 7a) ----------
 
 
-function courrielCourt(c: Commande, sujet: string, phrases: string[], avecSuivi = true) {
+function courrielType(c: Commande, type: TypeCourriel, sujet: string, phrases: string[], avecSuivi = true) {
   const texte = [
     `Bonjour ${c.client_prenom},`,
     "",
@@ -235,7 +236,12 @@ function courrielCourt(c: Commande, sujet: string, phrases: string[], avecSuivi 
 ${phrases.map((p) => `<p>${echapper(p)}</p>`).join("\n")}
 ${avecSuivi ? bouton(lienSuivi(c), "Suivre la commande") : ""}
 <p>Une question ? ${TELEPHONE}</p>`, c.origine);
-  return { sujet, texte, html };
+  return { sujet, texte, html, type };
+}
+
+// Forme d'avant le quota, gardée pour les appels qui ne donnent pas de type : priorité « suivi ».
+export function courrielCourt(c: Commande, sujet: string, phrases: string[], avecSuivi = true) {
+  return courrielType(c, "suivi", sujet, phrases, avecSuivi);
 }
 
 function heurePhrase(c: Commande, iso: string): string {
@@ -243,18 +249,18 @@ function heurePhrase(c: Commande, iso: string): string {
 }
 
 export function courrielAcceptation(c: Commande, heureIso: string) {
-  return courrielCourt(c, `Commande ${c.numero} acceptée, La Ferme`, [`Votre commande n° ${c.numero} est acceptée.`, heurePhrase(c, heureIso)]);
+  return courrielType(c, "acceptation", `Commande ${c.numero} acceptée, La Ferme`, [`Votre commande n° ${c.numero} est acceptée.`, heurePhrase(c, heureIso)]);
 }
 
 export function courrielNouvelleHeure(c: Commande, heureIso: string) {
-  return courrielCourt(c, `Commande ${c.numero}, nouvelle heure`, [`L'heure de votre commande n° ${c.numero} change.`, heurePhrase(c, heureIso)]);
+  return courrielType(c, "nouvelle_heure", `Commande ${c.numero}, nouvelle heure`, [`L'heure de votre commande n° ${c.numero} change.`, heurePhrase(c, heureIso)]);
 }
 
 export function courrielPrete(c: Commande) {
   if (c.mode === "livraison") {
-    return courrielCourt(c, `Commande ${c.numero} en route, La Ferme`, [`Votre commande n° ${c.numero} est partie. Le livreur est en route.`]);
+    return courrielType(c, "en_route", `Commande ${c.numero} en route, La Ferme`, [`Votre commande n° ${c.numero} est partie. Le livreur est en route.`]);
   }
-  return courrielCourt(c, `Commande ${c.numero} prête, La Ferme`, [
+  return courrielType(c, "prete", `Commande ${c.numero} prête, La Ferme`, [
     `Votre commande n° ${c.numero} est prête. Vous pouvez venir la chercher, Route de Chancy 132 à Onex.`,
     ...(c.statut_paiement === "a_encaisser_retrait" ? [`Le paiement de ${prixChf(c.total_centimes)} se fait au comptoir.`] : []),
   ]);
@@ -263,8 +269,9 @@ export function courrielPrete(c: Commande) {
 // Livraison close, client absent (décision de Jérémy du 12.11.2026) : factuel, sans promesse. Le gérant
 // décide ensuite d'un éventuel remboursement depuis le back-office. Pas de lien de suivi (rien à suivre).
 export function courrielClientAbsent(c: Commande, passageIso: string) {
-  return courrielCourt(
+  return courrielType(
     c,
+    "client_absent",
     `Commande ${c.numero} non remise, La Ferme`,
     [`Notre livreur est passé chez vous vers ${heureDe(passageIso)} avec votre commande n° ${c.numero}.`, "Personne n'a répondu et il est reparti avec la commande."],
     false,
@@ -273,7 +280,7 @@ export function courrielClientAbsent(c: Commande, passageIso: string) {
 
 // Refus d'une commande qui n'a pas été payée en ligne (paiement au comptoir) : rien à rembourser.
 export function courrielRefus(c: Commande, motif: string) {
-  return courrielCourt(c, `Commande ${c.numero} annulée, La Ferme`, [phraseAnnulation(c, motif).texte, "Rien n'a été débité."], false);
+  return courrielType(c, "refus", `Commande ${c.numero} annulée, La Ferme`, [phraseAnnulation(c, motif).texte, "Rien n'a été débité."], false);
 }
 
 // Remboursement décidé par le gérant après la remise (audit du gérant, G02), en entier ou en partie.
@@ -284,7 +291,7 @@ export function courrielRemboursementGeste(c: Commande, montantCentimes: number,
     montantCentimes >= c.total_centimes
       ? `Nous vous remboursons ${montant}, le montant de votre commande n° ${c.numero}.`
       : `Nous vous remboursons ${montant} sur votre commande n° ${c.numero}.`;
-  return courrielCourt(c, `Remboursement de ${montant}, commande ${c.numero}, La Ferme`, [
+  return courrielType(c, "remboursement", `Remboursement de ${montant}, commande ${c.numero}, La Ferme`, [
     phrase,
     motif,
     "La somme revient sur le moyen de paiement utilisé. Le délai dépend de votre banque.",
@@ -302,7 +309,7 @@ export function courrielManque(c: Commande, description: string, montantCentimes
       : moyen === "deduction"
         ? [`Vous payez ${prixChf(resteCentimes)} au comptoir au lieu de ${prixChf(c.total_centimes)}.`]
         : [`Nous vous rendons ${montant} au comptoir.`];
-  return courrielCourt(c, `Il manque une partie de votre commande ${c.numero}, La Ferme`, [
+  return courrielType(c, "manque", `Il manque une partie de votre commande ${c.numero}, La Ferme`, [
     `Nous ne pouvons pas préparer toute votre commande n° ${c.numero}. Il manque ${description}.`,
     ...argent,
     "Le reste de la commande est préparé comme prévu.",
