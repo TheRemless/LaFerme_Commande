@@ -168,7 +168,8 @@ export async function agir(commandeId: string, a: Action, p: Personnel): Promise
         } else {
           message = `Acceptée. Tickets prévus ${momentTexte(imprimerA, maintenant)}.`;
         }
-        await prevenir(avant, courrielAcceptation(avant, a.heure));
+        // Fourchette d'heure (« entre 19h35 et 19h50 »), comme l'accueil et le suivi (client-compte, #143).
+        await prevenir(avant, courrielAcceptation(avant, a.heure, config));
       }
       break;
     case "refuser": {
@@ -225,7 +226,7 @@ export async function agir(commandeId: string, a: Action, p: Personnel): Promise
       break;
     case "heure":
       ok = await fonctionSql<boolean>("changer_heure", { p_commande: commandeId, p_heure: a.heure, p_par: par });
-      if (ok) await prevenir(avant, courrielNouvelleHeure(avant, a.heure));
+      if (ok) await prevenir(avant, courrielNouvelleHeure(avant, a.heure, await chargerConfigService().catch(() => null)));
       break;
     case "encaisser":
       ok = await encaisser(commandeId, par, a.moyen);
