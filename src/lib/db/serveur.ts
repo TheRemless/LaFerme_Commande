@@ -152,6 +152,7 @@ export type Commande = {
   quand_minutes: number | null;
   heure_confirmee: string | null;
   accepte_le?: string | null;
+  paye_le?: string | null;
   // Premiers tickets créés (null : pas encore imprimée, commande à l'avance). Absent avant la migration.
   tickets_le?: string | null;
   zone_numero: number | null;

@@ -8,14 +8,14 @@ import { CreerCompte } from "@/components/suivi/CreerCompte";
 import { chargerCatalogue } from "@/lib/catalogue";
 import { chargerConfigService } from "@/lib/config-service";
 import { estimationAsap } from "@/lib/estimation";
-import { heureTexte } from "@/lib/service";
+import { etatService, heureTexte } from "@/lib/service";
 import { reconcilier } from "@/lib/commandes";
 import { detailsLigne, quandTexte } from "@/lib/courriel/modeles";
 import { commandeParJeton } from "@/lib/db/serveur";
 import { nomClient } from "@/lib/nom-plat";
 import { prixChf, prixCourt } from "@/lib/prix";
 import { PRIVE } from "@/lib/site";
-import { enRetard, libellePaiement, PHRASE_RETARD, phraseRemboursement, remboursementsSuivi, resteComptoir } from "@/lib/suivi";
+import { attenteConfirmation, enRetard, libellePaiement, PHRASE_ATTENTE, PHRASE_RETARD, phraseRemboursement, remboursementsSuivi, resteComptoir } from "@/lib/suivi";
 import { MOTIF_CLIENT_ABSENT } from "@/lib/livraisons-textes";
 import { MOTIF_DEMANDE_CLIENT } from "@/lib/motifs";
 
@@ -46,7 +46,16 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
   if (!c) notFound();
   c = await reconcilier(c);
   const cat = await chargerCatalogue().catch(() => null);
-  const estimation = c.heure_confirmee ? null : await chargerConfigService().then((config) => estimationAsap(config, c!)).catch(() => null);
+  const config = await chargerConfigService().catch(() => null);
+  const estimation = c.heure_confirmee || !config ? null : (() => {
+    try {
+      return estimationAsap(config, c!);
+    } catch {
+      return null;
+    }
+  })();
+  // Service ouvert pour ce mode : sert au message « pas encore confirmée » (sans configuration : pas de message).
+  const serviceOuvert = config ? etatService(config, new Date(), c.mode).etat === "ouvert" : false;
 
   // Livraison close, client absent : pas « Livrée » (décision de Jérémy du 12.11.2026).
   const nonRemise = c.statut === "terminee" && c.motif === MOTIF_CLIENT_ABSENT;
@@ -57,6 +66,7 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
   const paiement = libellePaiement(c, remboursements);
   const reste = resteComptoir(c, remboursements);
   const retard = enRetard(c);
+  const nonConfirmee = attenteConfirmation(c, serviceOuvert);
   const parClient = Boolean(c.annulee_par_client_le) || c.motif === MOTIF_DEMANDE_CLIENT;
   // Un remboursement attendu chez Stripe garde la page à jour, même commande terminée.
   const attente = remboursements.some((r) => r.moyen === "stripe" && r.statut === "en_cours");
@@ -110,6 +120,11 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
                   "Commande reçue"
                 )}
               </h1>
+              {nonConfirmee && (
+                <p className="suivi-retard" role="status">
+                  {PHRASE_ATTENTE}
+                </p>
+              )}
               {!c.heure_confirmee && (
                 <p className="suivi-change">
                   {c.quand_type === "asap"
