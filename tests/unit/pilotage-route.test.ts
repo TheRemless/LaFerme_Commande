@@ -14,6 +14,7 @@ vi.mock("@/lib/personnel/session", () => ({
 
 const { GET } = await import("@/app/api/gestion/pilotage/ventes/route");
 const analysesRoute = await import("@/app/api/gestion/pilotage/analyses/route");
+const tempsRoute = await import("@/app/api/gestion/pilotage/temps/route");
 const exportRoute = await import("@/app/api/gestion/export/route");
 const remboursementsRoute = await import("@/app/api/gestion/pilotage/remboursements/route");
 const appel = (q: string) => GET(new Request(`http://localhost:3000/api/gestion/pilotage/ventes?${q}`));
@@ -69,5 +70,13 @@ describe("GET /api/gestion/pilotage/ventes", () => {
     expect(Array.isArray(await liste.json())).toBe(true);
     acces.gerant = false;
     expect((await remboursementsRoute.GET(new Request("http://localhost:3000/api/gestion/pilotage/remboursements"))).status).toBe(403);
+  });
+
+  it("temps : même contrôle d'accès et de période", async () => {
+    const lire = (q: string) => tempsRoute.GET(new Request(`http://localhost:3000/api/gestion/pilotage/temps?${q}`));
+    expect(await (await lire("periode=semaine&jour=2026-12-04&service=soir")).json()).toMatchObject({ debut: "2026-11-30", service: "soir", postes: [] });
+    expect((await lire("periode=choisie&debut=2026-12-10&fin=2026-12-01")).status).toBe(422);
+    acces.gerant = false;
+    expect((await lire("periode=jour")).status).toBe(403);
   });
 });

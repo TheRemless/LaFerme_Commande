@@ -25,3 +25,14 @@ Rubrique `/gestion/rapports` (groupe Chiffres). Écran `src/components/gestion/R
 - Zones et clients : clients, nouveaux et fidèles (comptés, jamais nommés), livraisons par zone avec frais et panier moyen.
 - Livreurs : livraisons, livrées, client absent, problèmes, temps moyen et retard moyen par livreur, sur la journée entière (le choix du service ne s'applique pas ici).
 - Onglet Ventes : la carte « Refusées » dit aussi combien de commandes ont été annulées par le client, comptées à part.
+
+## Onglet Temps (temps réels contre temps promis)
+
+Écran `src/components/gestion/TempsRapports.tsx`, route `GET /api/gestion/pilotage/temps`, fonction `pilotage_temps` (migration `supabase/migrations/20261212100000_pilotage_temps.sql`, tests `tests/unit/pilotage-temps-sql.test.ts`). Sources : `commandes`, `commande_postes` de tablette (#172) et le départ du livreur dans `evenements_commande`.
+
+- Acceptation : médiane et 9 sur 10, de la commande payée à « Acceptée ».
+- Préparation par poste (four à pizza, cuisine) : des premiers tickets à « Prête » sur le poste. La part des heures déduites du statut de la commande (le poste n'a pas touché « Prête ») est affichée : plus elle est grande, moins la mesure est fine. Après « Rouvrir », c'est la dernière heure « Prête » qui compte.
+- Ponctualité : livraisons livrées et retraits prêts à l'heure promise, en retard, de plus de 10 min, retard médian ; route médiane du départ à la livraison.
+- Heure par heure (heure promise à Genève) : commandes, en retard, médianes four, cuisine et route. La phrase d'en-tête nomme le créneau le plus en retard (au moins trois commandes).
+- Mesure sur le jeu de rush : 30 jours en 38 ms. Le jeu ne remplit pas encore `commande_postes` (demandé à qualite) : les temps par poste y sont vides, la ponctualité et la route sont calculées.
+

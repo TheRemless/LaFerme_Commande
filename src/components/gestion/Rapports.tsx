@@ -24,6 +24,7 @@ import { jourGeneveDe } from "@/lib/heures";
 import type { Service, Synthese, TableauVentes } from "@/lib/pilotage";
 import { jourTexte } from "@/lib/service";
 import { AnalysesRapports, type PartieAnalyses } from "./AnalysesRapports";
+import { TempsRapports } from "./TempsRapports";
 import "./rapports.css";
 
 const ONGLETS = [
@@ -32,6 +33,7 @@ const ONGLETS = [
   { cle: "heures", titre: "Heures" },
   { cle: "zones", titre: "Zones et clients" },
   { cle: "livreurs", titre: "Livreurs" },
+  { cle: "temps", titre: "Temps" },
 ];
 
 type Jour = TableauVentes["jours"][number];
@@ -128,7 +130,9 @@ export function Rapports() {
       </p>
 
       <Onglets onglets={ONGLETS} actif={onglet} onChange={setOnglet} libelle="Parties des rapports">
-      {onglet !== "ventes" ? (
+      {onglet === "temps" ? (
+        <TempsRapports periode={periode} service={service} />
+      ) : onglet !== "ventes" ? (
         <AnalysesRapports periode={periode} service={service} partie={onglet as PartieAnalyses} />
       ) : erreur ? (
         <EtatErreur texte={erreur} reessayer={charger} />
