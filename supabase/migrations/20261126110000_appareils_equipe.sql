@@ -65,3 +65,22 @@ revoke all on function noter_appareil_personnel(text, text), voir_session_person
   from public, anon, authenticated;
 grant execute on function noter_appareil_personnel(text, text), voir_session_personnel(text), appareils_personnel(uuid, uuid, text), couper_appareil_personnel(uuid, uuid)
   to service_role;
+
+-- liste_personnel (reprise de 20261114090000_correctifs_gerant.sql, sa seule définition) : le nombre de
+-- sessions suit la même règle que personnel_de_session et appareils_personnel (livreur : 12 heures), sinon
+-- « Appareils (1) » ouvrait une liste vide le lendemain d'une tournée.
+create or replace function liste_personnel(p_personnel uuid) returns jsonb
+language plpgsql stable as $$
+begin
+  perform gerant_nom(p_personnel);
+  return coalesce((
+    select jsonb_agg(jsonb_build_object(
+      'id', p.id, 'email', p.email, 'nom', p.nom, 'role', p.role, 'actif', p.actif,
+      'sessions', (select count(*) from sessions_personnel s where s.personnel_id = p.id and s.revoquee_le is null and s.expire_le > now()
+                     and (p.role <> 'livreur' or s.cree_le > now() - interval '12 hours')),
+      'derniere_connexion', (select max(s.cree_le) from sessions_personnel s where s.personnel_id = p.id)
+    ) order by p.actif desc, p.role desc, p.nom)
+    from personnel p
+  ), '[]'::jsonb);
+end;
+$$;
