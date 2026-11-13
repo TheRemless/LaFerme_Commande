@@ -33,6 +33,8 @@ export type Synthese = {
   en_ligne: Part;
   comptoir: Part;
   refusees: Part & { motifs: (Part & { motif: string })[] };
+  // Annulées par le client avant l'acceptation (pas des refus du restaurant).
+  annulees_client: Part;
   remboursements: {
     faits: number;
     faits_centimes: number;
