@@ -3,7 +3,7 @@
 -- « une fois par client » ou dépassaient son plafond). Fonction neuve, aucun objet recréé : elle appelle
 -- creer_commande(p) telle qu'elle est dans la base, quelle que soit sa version. Elle remplit aussi
 -- commandes.code_promo et commandes.remise_centimes, ajoutées par 20261210180000_codes_promo_commande.sql :
--- à lancer après celle-ci (numéro à donner par le chef).
+-- à lancer après celle-ci.
 --
 -- Ordre : verrou sur la clé de la commande ; nouvel essai avec la même clé (retour de Stripe) → la commande
 -- enregistrée, sans réévaluer le code ; sinon verrou sur le code, evaluer_code, total et TVA recalculés,
