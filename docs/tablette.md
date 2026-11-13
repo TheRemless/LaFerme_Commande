@@ -230,3 +230,7 @@ Module `src/components/tablette/sons.ts`. Le navigateur n'autorise le son qu'apr
 Au chargement de la page, rien ne sonne pour ce qui était déjà là.
 
 **Acceptation en série** : dans « À accepter », à partir de deux commandes, « Accepter les N à l'heure proposée… » puis « Accepter les N ». Chacune est acceptée à son heure proposée, comme le bouton de sa carte. Une commande avec une allergie ou un avertissement (adresse, créneau) n'entre pas dans la série : elle se lit et s'accepte seule. Le retour dit combien sont passées et combien restent à lire. L'acceptation automatique, côté serveur, reste une décision de Jérémy (non construite ici). Capture : `docs/rendus/vague-3/tablette/serie-confirmer-1180.png` (`scripts/tablette/serie.mjs`).
+
+## Raison de l'heure réaliste (vague 3, base et texte de bo-operations)
+
+Sous « Préparation N min », en gras, la raison qui allonge les heures annoncées en ce moment : « Four : 22 pizzas en file, 42 min. Heures annoncées +25 min. » (`raisonCharge`, `chargeDuMoment`, calculés dans la route de la file, jamais dans une page publique). Rien quand rien n'allonge les heures, ce qui est le cas tant que les réglages de l'heure réaliste (`allongement_max_minutes`, débits du four et de la cuisine) restent à zéro.

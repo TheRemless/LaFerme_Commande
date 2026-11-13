@@ -32,6 +32,8 @@ type Donnees = {
     pause: { active: boolean; jusqua: string | null; livraisonFermee: boolean; auto?: boolean } | null;
     preparation_minutes: number;
     retard_minutes?: number;
+    // « Four : 22 pizzas en file, 42 min. Heures annoncées +25 min. », ou null quand rien n'allonge les heures.
+    raison_charge?: string | null;
     // Les tickets d'une commande acceptée sortent ce temps avant l'heure promise, par mode (SS-11).
     impression_avance?: DelaisImpression;
   };
@@ -469,6 +471,7 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
             {/* Une imprimante en panne a son bandeau : l'état ne s'écrit qu'une fois. */}
             {imprimantes.length === 0 ? "Pas d'imprimante." : imprimantesKo.length === 0 ? "Imprimantes en ligne." : ""}
           </span>
+          {donnees?.reglages.raison_charge && <span className="tab-raison">{donnees.reglages.raison_charge}</span>}
         </div>
         <div className="tab-recherche" role="search">
           <label htmlFor="tab-recherche" className="sr-only">

@@ -538,3 +538,9 @@
   min-height: 48px;
   padding: 0 20px;
 }
+
+/* Raison de l'heure réaliste (vague 3, bo-operations) : sous l'état, en gras, une ligne. */
+.tab-raison {
+  display: block;
+  font-weight: 700;
+}
