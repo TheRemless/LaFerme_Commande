@@ -2,6 +2,8 @@
 
 Trois pages à imprimer. La première se colle en cuisine près de la tablette, la deuxième reste avec le gérant, la troisième se donne à chaque livreur. Elles décrivent le site tel qu'il est au 16.11.2026. Le numéro à appeler reste à remplir.
 
+Ce que voit le client qui commande, pour répondre au téléphone : `docs/vague-3/client-commande.md`.
+
 ---
 
 ## Page 1. La tablette (à afficher en cuisine)
@@ -26,6 +28,8 @@ Ne pas toucher « Continuer sans son ». Sans son, personne n'entend les command
 - Pour refuser, toucher « Refuser », choisir un motif puis confirmer. Le client reçoit le motif par e-mail. Une commande payée en ligne est remboursée en entier.
 
 ### Pendant la préparation (onglet « En cours »)
+
+Depuis le 13.11.2026, « En cours » est un tableau trié par urgence : mode d'emploi à jour dans [tablette.md](tablette.md), « Mode d'emploi en service ».
 
 - Toucher « Prête au comptoir ». Le client reçoit un e-mail.
 - À emporter payé au comptoir : quand le client paie et part, toucher « Retirée et payée ».

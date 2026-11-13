@@ -79,7 +79,7 @@ function erreurLigne(cat: Catalogue, l: LignePanier): string | undefined {
     if (choisis.some((n) => !g.options.some((o) => o.nom === n))) return "Option inconnue pour ce plat.";
     const epuise = choisis.find((n) => g.options.find((o) => o.nom === n)?.rupture);
     if (epuise) return `${epuise} : épuisé pour aujourd'hui.`;
-    if (choisis.length < g.choix_min) return `Choisissez vos ${g.nom.toLowerCase()}.`;
+    if (choisis.length < g.choix_min) return `Choisissez dans « ${g.nom} ».`;
     if (choisis.length > g.choix_max) return "Trop d'options choisies.";
   }
   if (new Set(l.retraits).size !== l.retraits.length) return "Ingrédient retiré deux fois.";

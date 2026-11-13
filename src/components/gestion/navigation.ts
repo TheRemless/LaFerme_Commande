@@ -69,7 +69,12 @@ export const RUBRIQUES: Rubrique[] = GROUPES.flatMap((g) => g.rubriques);
 export const GROUPES_VISIBLES: Groupe[] = GROUPES.map((g) => ({ ...g, rubriques: g.rubriques.filter((r) => !r.aVenir) })).filter((g) => g.rubriques.length > 0);
 
 /** La rubrique d'une adresse : la plus longue qui la préfixe (une fiche /gestion/commandes/37 reste dans Commandes). */
+// Pages hors menu (démonstration du kit, en local) : titre seulement, rattachées à l'accueil.
+const HORS_MENU: Rubrique[] = [{ href: "/gestion/kit", titre: "Kit du back-office", icone: "accueil", resume: "Démonstration des composants." }];
+
 export function rubriqueDe(chemin: string): { rubrique: Rubrique; groupe: Groupe } {
+  const hors = HORS_MENU.find((r) => chemin === r.href);
+  if (hors) return { rubrique: hors, groupe: GROUPES[0] };
   const propre = chemin.replace(/\/+$/, "") || "/gestion";
   let meilleure: { rubrique: Rubrique; groupe: Groupe } = { rubrique: ACCUEIL, groupe: GROUPES[0] };
   for (const groupe of GROUPES) {

@@ -3,6 +3,7 @@ import type { Commande } from "@/lib/db/serveur";
 import { fonctionSql } from "@/lib/db/serveur";
 import { prixChf } from "@/lib/prix";
 import { TELEPHONE_RESTAURANT } from "@/lib/livraisons-textes";
+import { DELAI_REMBOURSEMENT } from "@/lib/courriel/modeles";
 
 // Ce que la page de suivi dit des remboursements et du retard. Textes passés par redaction-fr (voix de La Ferme).
 
@@ -43,7 +44,7 @@ export function phraseRemboursement(r: RemboursementSuivi): PhraseRemboursement 
       : { etat: r.statut, texte: `${montant} à vous rendre au comptoir.` };
   }
   if (r.statut === "fait") {
-    return { etat: "fait", texte: `${montant} remboursés le ${jour(r.fait_le ?? r.cree_le)}. La somme revient sur le moyen de paiement utilisé. Le délai dépend de votre banque.` };
+    return { etat: "fait", texte: `${montant} remboursés le ${jour(r.fait_le ?? r.cree_le)}. La somme revient sur le moyen de paiement utilisé. ${DELAI_REMBOURSEMENT}` };
   }
   if (r.statut === "echec") {
     return { etat: "echec", texte: `Le remboursement de ${montant} n'a pas abouti. Le restaurant est prévenu. Appelez-nous au ${TELEPHONE_RESTAURANT}.` };
@@ -86,3 +87,19 @@ export function enRetard(c: Pick<Commande, "statut" | "mode" | "heure_confirmee"
 }
 
 export const PHRASE_RETARD = `Nous avons du retard sur l'heure prévue. Une question ? Appelez-nous au ${TELEPHONE_RESTAURANT}.`;
+
+// Commande « dès que possible » toujours pas acceptée 10 minutes après le paiement, service ouvert : le client
+// le lit (paliers fixés avec produit-client et tablette ; l'alerte à l'équipe part à 5 minutes). Commande à
+// l'avance : règle de départ à trancher avec produit-gestion (depuis l'ouverture du service), pas de message.
+export const ATTENTE_CONFIRMATION_MINUTES = 10;
+export function attenteConfirmation(
+  c: Pick<Commande, "statut" | "quand_type" | "cree_le"> & { paye_le?: string | null },
+  serviceOuvert: boolean,
+  maintenant = new Date(),
+): boolean {
+  if (c.statut !== "nouvelle" || c.quand_type !== "asap" || !serviceOuvert) return false;
+  const depuis = new Date(c.paye_le ?? c.cree_le).getTime();
+  return maintenant.getTime() >= depuis + ATTENTE_CONFIRMATION_MINUTES * 60_000;
+}
+
+export const PHRASE_ATTENTE = `Le restaurant n'a pas encore confirmé votre commande. Il est prévenu. Une question ? Appelez-nous au ${TELEPHONE_RESTAURANT}.`;

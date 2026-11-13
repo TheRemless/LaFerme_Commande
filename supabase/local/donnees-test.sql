@@ -22,7 +22,10 @@ insert into personnel (email, nom, role) values
   ('coque-bureau@laferme.test', 'Coque bureau', 'gerant'),
   ('coque-mobile@laferme.test', 'Coque mobile', 'gerant'),
   ('coque-service-bureau@laferme.test', 'Coque service bureau', 'service'),
-  ('coque-service-mobile@laferme.test', 'Coque service mobile', 'service');
+  ('coque-service-mobile@laferme.test', 'Coque service mobile', 'service'),
+  -- Kit du back-office (tests/e2e/gestion-kit.spec.ts, page /gestion/kit en local).
+  ('kit-bureau@laferme.test', 'Kit bureau', 'gerant'),
+  ('kit-mobile@laferme.test', 'Kit mobile', 'gerant');
 
 -- Livreurs des essais (tests/e2e/livreurs.spec.ts) et la tablette qui leur donne les commandes.
 insert into personnel (email, nom, role) values
@@ -48,3 +51,11 @@ insert into personnel (email, nom, role) values
 insert into personnel (email, nom, role) values
   ('pilotage-bureau@laferme.test', 'Pilotage bureau', 'gerant'),
   ('pilotage-mobile@laferme.test', 'Pilotage mobile', 'gerant');
+
+-- Planning des livreurs (tests/e2e/planning-livreurs.spec.ts, vague 3) : un gérant et un livreur à part.
+insert into personnel (email, nom, role) values
+  ('planning-bureau@laferme.test', 'Planning bureau', 'gerant'),
+  ('planning-livreur@laferme.test', 'Livreur planning', 'livreur');
+
+-- Réglages généraux (tests/e2e/reglages-generaux.spec.ts, vague 3).
+insert into personnel (email, nom, role) values ('reglages-bureau@laferme.test', 'Réglages bureau', 'gerant');

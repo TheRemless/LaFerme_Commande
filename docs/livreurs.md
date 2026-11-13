@@ -51,3 +51,6 @@ Demandé hors périmètre. Ce que ça impliquerait si Jérémy le veut un jour :
 | Coût | Aucun service payant en version page web. Une appli installée demande un développement à part. |
 
 Sans décision écrite de Jérémy, rien n'est fait.
+
+
+Planning et suivi des livreurs au back-office (vague 3) : `docs/planning-livreurs.md`.

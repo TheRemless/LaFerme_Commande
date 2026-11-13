@@ -5,7 +5,12 @@ import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FournisseurCarte, useCarte } from "@/components/gestion/contexte-carte";
 import { GROUPES_VISIBLES, rubriqueDe, type Rubrique } from "@/components/gestion/navigation";
+import { FournisseurConfirmation } from "@/components/gestion/ui/Confirmation";
+import { BandeauHorsLigne } from "@/components/gestion/ui/Etats";
+import { FournisseurGarde, usePeutPartir } from "@/components/gestion/ui/Garde";
 import { IconeGestion } from "@/components/gestion/ui/icones";
+import { FournisseurNotifications } from "@/components/gestion/ui/Notifications";
+import { FournisseurRaccourcis } from "@/components/gestion/ui/Raccourcis";
 import { poster } from "@/lib/requete-client";
 
 // Coque du back-office (vague 3) : barre latérale groupée, en-tête de la rubrique, contenu.
@@ -17,9 +22,17 @@ const CLE_MENU = "laferme.gestion.menu";
 
 export function BackOffice({ nom, children }: { nom: string; children: React.ReactNode }) {
   return (
-    <FournisseurCarte>
-      <Coque nom={nom}>{children}</Coque>
-    </FournisseurCarte>
+    <FournisseurConfirmation>
+      <FournisseurGarde>
+        <FournisseurNotifications>
+          <FournisseurRaccourcis>
+            <FournisseurCarte>
+              <Coque nom={nom}>{children}</Coque>
+            </FournisseurCarte>
+          </FournisseurRaccourcis>
+        </FournisseurNotifications>
+      </FournisseurGarde>
+    </FournisseurConfirmation>
   );
 }
 
@@ -27,6 +40,7 @@ function Coque({ nom, children }: { nom: string; children: React.ReactNode }) {
   const chemin = usePathname();
   const router = useRouter();
   const { rubrique, groupe } = rubriqueDe(chemin);
+  const peutPartir = usePeutPartir();
   const [menu, setMenu] = useState<Menu>("auto");
   const [tiroir, setTiroir] = useState(false);
   // Ce qu'on voit vraiment : « auto » vaut large dès 1024 px, étroit en dessous (tablette en portrait).
@@ -92,6 +106,7 @@ function Coque({ nom, children }: { nom: string; children: React.ReactNode }) {
   }
 
   async function deconnecter() {
+    if (!(await peutPartir())) return;
     setErreurSortie(null);
     const r = await poster("/api/personnel/deconnexion", {});
     if (!r.ok) return setErreurSortie(String(r.donnees.erreur ?? "Déconnexion impossible. Réessayez."));
@@ -157,6 +172,7 @@ function Coque({ nom, children }: { nom: string; children: React.ReactNode }) {
             </h1>
           </div>
         </header>
+        <BandeauHorsLigne />
         <main id="contenu" className="gestion bo-contenu">
           {children}
         </main>
@@ -167,6 +183,8 @@ function Coque({ nom, children }: { nom: string; children: React.ReactNode }) {
 
 function LienRubrique({ rubrique, courante }: { rubrique: Rubrique; courante: boolean }) {
   const { carte } = useCarte();
+  const router = useRouter();
+  const peutPartir = usePeutPartir();
   // Badges : ce qui attend le gérant dans la rubrique (vague 3 : d'autres viendront, commandes à traiter, alertes).
   const badge = rubrique.href === "/gestion/carte" && carte && carte.bloquants > 0 ? carte.bloquants : null;
   // Le nom du lien reste celui de la rubrique ; le badge est lu comme description.
@@ -179,6 +197,12 @@ function LienRubrique({ rubrique, courante }: { rubrique: Rubrique; courante: bo
         aria-current={courante ? "page" : undefined}
         aria-describedby={badge !== null ? idBadge : undefined}
         title={rubrique.titre}
+        onClick={async (e) => {
+          // Saisies non enregistrées : on demande avant de changer de rubrique (Ctrl/⌘-clic ouvre un onglet, sans risque).
+          if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+          e.preventDefault();
+          if (await peutPartir()) router.push(rubrique.href);
+        }}
       >
         <IconeGestion nom={rubrique.icone} />
         <span className="bo-libelle">{rubrique.titre}</span>

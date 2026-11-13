@@ -25,7 +25,7 @@ const STATUTS: Record<string, string> = {
   prete: "Prête",
   partie: "En route",
   terminee: "Terminée",
-  refusee: "Refusée",
+  refusee: "Annulée",
 };
 
 function dateTexte(iso: string): string {
@@ -218,6 +218,11 @@ export function EspaceCompte({ donnees, preversion }: { donnees: DonneesEspace; 
                       <Link className="lien" href={`/suivi/${c.jeton_suivi}`}>
                         Suivre la commande
                       </Link>
+                      {c.statut !== "refusee" && (
+                        <Link className="lien" href={`/suivi/${c.jeton_suivi}/recu`}>
+                          Reçu
+                        </Link>
+                      )}
                     </div>
                   </div>
                 </li>
@@ -316,7 +321,7 @@ export function EspaceCompte({ donnees, preversion }: { donnees: DonneesEspace; 
             <div className="zone-suppression">
               <h3>Supprimer mon compte</h3>
               <p className="aide">
-                Votre profil, vos adresses et vos connexions sont effacés. Les commandes déjà passées restent dans la comptabilité du restaurant, sans
+                Votre profil, vos adresses, vos connexions et les notes du restaurant à votre sujet sont effacés. Les commandes déjà passées restent dans la comptabilité du restaurant, sans
                 lien avec un compte.
               </p>
               <label className="option">

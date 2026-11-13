@@ -53,6 +53,15 @@ async function commander(request: APIRequestContext, prenom: string, moyen: "com
   return { numero: page.match(/Commande (?:<!-- -->)?(\d+)/)![1], suivi: redirection };
 }
 
+// Tableau (vague 3) : « En cours », « À l'avance », « Terminées » et la recherche affichent une ligne par
+// commande ; toucher la ligne ouvre son détail (la carte complète) à côté. Sans effet si elle est déjà ouverte.
+async function ouvrirCommande(page: Page, numero: string) {
+  const ligne = page.locator(".tab-ligne", { has: page.locator(".tab-ligne-num", { hasText: new RegExp(`^${numero}$`) }) });
+  const corps = ligne.locator(".tab-ligne-corps");
+  await expect(corps).toBeVisible({ timeout: 15_000 });
+  if ((await corps.getAttribute("aria-expanded")) !== "true") await corps.click();
+}
+
 test.beforeAll(async ({ browser }, info) => {
   tablette = await browser.newPage({ baseURL: SITE });
   await adresseDuCompte(tablette, `equipe-${info.project.name}@laferme.test`);
@@ -84,6 +93,7 @@ test("une commande arrive, on l'accepte, puis prête, retirée et payée", async
   await carte.getByRole("button", { name: /^Accepter pour/ }).click();
   // Retrait pour dans plus de 30 minutes : il attend dans « À l'avance », tickets prévus 30 minutes avant (SS-11).
   await tablette.getByRole("button", { name: /^À l'avance/ }).click();
+  await ouvrirCommande(tablette, numero);
   await expect(carte).toContainText("Tickets prévus");
   await carte.getByRole("button", { name: "Imprimer maintenant" }).click();
   await tablette.getByRole("button", { name: /^En cours/ }).click();
@@ -110,14 +120,18 @@ test("recherche au comptoir : par numéro ou par nom, toutes listes confondues",
   await expect(carte).toBeHidden();
   const champ = tablette.getByRole("searchbox", { name: "Chercher une commande par numéro, nom ou téléphone" });
   await champ.fill(numero);
-  await expect(carte).toBeVisible({ timeout: 10_000 });
-  await expect(tablette.locator(".tab-liste > li")).toHaveCount(1);
+  await expect(tablette.locator(".tab-ligne")).toHaveCount(1, { timeout: 10_000 });
+  await ouvrirCommande(tablette, numero);
+  await expect(carte).toBeVisible();
   await champ.fill(tape);
   await expect(carte).toBeVisible();
   await expect(tablette.locator(".tab-recherche-info")).toContainText(`pour « ${tape} »`);
   // Accepter depuis la recherche : la carte reste dans les résultats, avec son nouvel état.
   await carte.getByRole("button", { name: /^Accepter pour/ }).click();
   await expect(carte).toContainText("Acceptée pour");
+  // Sur téléphone, le détail couvre la liste : on le ferme d'abord.
+  await tablette.locator(".tab-detail-tete").getByRole("button", { name: "Fermer" }).click();
+  await expect(carte).toBeHidden();
   await tablette.getByRole("button", { name: "Effacer la recherche" }).click();
   await expect(champ).toHaveValue("");
   await expect(tablette.locator(".tab-recherche-info")).toBeHidden();
@@ -135,7 +149,8 @@ test("refus d'une commande payée en ligne : remboursée, le client est prévenu
   await bouton.click();
   await expect(tablette.locator(".tab-message")).toHaveText("Commande refusée et remboursée.");
   const page = await (await request.get(suivi)).text();
-  expect(page).toContain("Commande refusée");
+  // Le client lit « annulée » partout (vague 3, client-compte) ; la tablette garde « refusée ».
+  expect(page).toContain("Commande annulée par le restaurant");
   expect(page).toContain("Remboursée");
 });
 
@@ -147,6 +162,7 @@ test("il manque un plat : remboursé en partie, le client est prévenu", async (
   await expect(carte).toBeVisible({ timeout: 10_000 });
   await carte.getByRole("button", { name: /^Accepter pour/ }).click();
   await tablette.getByRole("button", { name: /^En cours/ }).click();
+  await ouvrirCommande(tablette, numero);
   await carte.getByRole("button", { name: "Il manque…" }).click();
   await carte.getByRole("button", { name: "1 × Pasta alla carbonara" }).click();
   await carte.getByRole("button", { name: "Calculer le montant" }).click();
