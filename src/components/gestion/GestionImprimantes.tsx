@@ -140,6 +140,22 @@ export function GestionImprimantes() {
                   </span>
                 ) : (
                   <span className="boutons-ligne">
+                    {i.actif && (
+                      <button
+                        type="button"
+                        className="lien"
+                        onClick={() =>
+                          action(
+                            { type: "test", id: i.id },
+                            i.en_ligne
+                              ? `Ticket de test envoyé à ${i.nom}. Il sort dans quelques secondes : vérifiez le papier.`
+                              : `Ticket de test envoyé à ${i.nom}, hors ligne pour le moment : il sortira à sa reconnexion.`,
+                          )
+                        }
+                      >
+                        Imprimer un ticket de test
+                      </button>
+                    )}
                     <button type="button" className="lien" onClick={() => setConfirmer({ id: i.id, geste: "jeton" })}>
                       Nouvelle adresse
                     </button>

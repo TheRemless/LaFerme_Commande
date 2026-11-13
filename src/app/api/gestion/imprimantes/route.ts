@@ -4,6 +4,7 @@ import { empreinte, nouveauJeton } from "@/lib/comptes/securite";
 import { lirePublic } from "@/lib/db/lecture";
 import { fonctionSql } from "@/lib/db/serveur";
 import { etatImpression } from "@/lib/impression/service";
+import { imprimerTicketTest } from "@/lib/impression/test";
 import { origineSure } from "@/lib/origine";
 import { exigerGerant } from "@/lib/personnel/session";
 
@@ -34,6 +35,7 @@ export async function GET(requete: Request) {
 }
 
 // { type: "ajouter", nom, station } | { type: "jeton", id } | { type: "actif", id, actif } | { type: "alerte", minutes }
+// | { type: "test", id } (ticket de test, vague 3)
 export async function POST(requete: Request) {
   const g = await exigerGerant(requete);
   if ("reponse" in g) return g.reponse;
@@ -64,6 +66,12 @@ export async function POST(requete: Request) {
     if (!id || typeof c.actif !== "boolean") return refus("Requête incomplète.");
     const ok = await fonctionSql<boolean>("modifier_imprimante", { p_id: id, p_jeton_hache: null, p_actif: c.actif, p_personnel: qui });
     return ok ? NextResponse.json({ enregistre: true }) : refus("Imprimante inconnue.", 404);
+  }
+  if (c.type === "test") {
+    if (!id) return refus("Imprimante inconnue.", 404);
+    // Base revérifie le gérant et l'imprimante active, et journalise (ticket_de_test, session tablette).
+    const r = await imprimerTicketTest(id, g.personnel);
+    return r.ok ? NextResponse.json({ enregistre: true, tache: r.tache }, { headers: { "Cache-Control": "no-store" } }) : refus(r.erreur);
   }
   if (c.type === "alerte") {
     if (!Number.isInteger(c.minutes) || (c.minutes as number) < 2 || (c.minutes as number) > 60) return refus("Délai entre 2 et 60 minutes.");
