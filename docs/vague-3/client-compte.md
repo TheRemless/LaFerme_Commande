@@ -42,3 +42,7 @@ Sur la page de suivi d'une commande acceptée, pendant 14 jours, le client touch
 ## Adresses enregistrées
 
 Dans son compte, le client corrige les consignes d'une adresse : étage, nom sur la sonnette, code d'entrée et mot pour le livreur. Ce sont les mêmes champs qu'à l'accueil. La sonnette reste obligatoire.
+
+## Appareils connectés
+
+La rubrique « Connexion » du compte liste les appareils connectés, avec un nom court tiré du navigateur (« Safari sur iPhone ») et la date de connexion. Le client peut en déconnecter un seul, par exemple un téléphone perdu, ou tous à la fois.

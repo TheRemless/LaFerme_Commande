@@ -117,13 +117,18 @@ function Recommander({ commandeId }: { commandeId: string }) {
   );
 }
 
+// Une session ouverte du compte (migration 20261202140000).
+export type Appareil = { id: string; appareil: string | null; cree_le: string; courant: boolean };
+
 export function EspaceCompte({
   donnees,
   historique,
+  appareils = null,
   preversion,
 }: {
   donnees: DonneesEspace;
   historique: { suite: boolean; total: number } | null;
+  appareils?: Appareil[] | null;
   preversion: boolean;
 }) {
   const router = useRouter();
@@ -328,9 +333,35 @@ export function EspaceCompte({
 
           <section className="espace-bloc" aria-labelledby={`${ids}-connexion`}>
             <h2 id={`${ids}-connexion`}>Connexion</h2>
-            <p className="aide">
-              Connecté sur {donnees.sessions_actives} appareil{donnees.sessions_actives > 1 ? "s" : ""}.
-            </p>
+            {appareils && appareils.length > 0 ? (
+              <ul className="appareils">
+                {appareils.map((a) => (
+                  <li key={a.id}>
+                    <span>
+                      <strong>{a.appareil ?? "Appareil sans nom"}</strong>
+                      <small>
+                        {a.courant ? "Cet appareil, connecté" : "Connecté"} depuis le {dateTexte(a.cree_le)}
+                      </small>
+                    </span>
+                    {!a.courant && (
+                      <button
+                        type="button"
+                        className="lien"
+                        disabled={envoi}
+                        onClick={() => action("/api/compte/deconnexion", { appareil: a.id }, () => router.refresh())}
+                        aria-label={`Déconnecter ${a.appareil ?? "cet appareil"}`}
+                      >
+                        Déconnecter
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="aide">
+                Connecté sur {donnees.sessions_actives} appareil{donnees.sessions_actives > 1 ? "s" : ""}.
+              </p>
+            )}
             <div className="boutons-ligne">
               <button type="button" className="bouton-second" disabled={envoi} onClick={() => action("/api/compte/deconnexion", {}, () => router.refresh())}>
                 Me déconnecter
