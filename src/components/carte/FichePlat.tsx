@@ -3,6 +3,9 @@
 import Image from "next/image";
 import { useEffect, useId, useRef, useState } from "react";
 import type { LignePlat } from "@/lib/carte";
+import { lireChoix } from "@/lib/choix";
+import { momentDuChoix, motifPlat } from "@/lib/plat-du-jour";
+import { instantGeneve } from "@/lib/service";
 import { LIMITES, prixUnitaire, type Catalogue, type LignePanier } from "@/lib/panier";
 import { urlPhoto } from "@/lib/photos";
 import { prixChf, prixCourt } from "@/lib/prix";
@@ -70,7 +73,16 @@ export function FichePlat({
 
   const ligne: LignePanier = { slug: plat.slug, qte, choix, retraits, note: note.trim() };
   // Plat épuisé depuis l'ajout, rouvert par « Modifier » : la carte le bloque, la fiche aussi.
-  const epuisePlat = plat.rupture_motif;
+  // Rouverte depuis le panier, la fiche applique les mêmes disponibilités que la carte et le serveur
+  // (service, mode, jours, rupture planifiée) pour le moment et le mode choisis.
+  const [motifEdition] = useState(() => {
+    if (!initiale) return null;
+    const choix = lireChoix();
+    const aujourdhui = instantGeneve(new Date()).date;
+    const m = choix ? momentDuChoix(choix.quand, choix.estimation, aujourdhui) : null;
+    return motifPlat(catalogue, plat.slug, m && choix ? { ...m, mode: choix.mode } : null, aujourdhui);
+  });
+  const epuisePlat = plat.rupture_motif ?? motifEdition;
   const manquant = groupes.find((g) => (choix[g.slug]?.length ?? 0) < g.choix_min);
   const total = prixUnitaire(catalogue, ligne) * qte;
 
