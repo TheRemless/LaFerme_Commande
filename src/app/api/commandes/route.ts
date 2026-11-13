@@ -15,7 +15,7 @@ import { depuisHeureGeneve, MESSAGE_CRENEAU_COMPLET, messagePause, messageSansCr
 import { requeteDuSite } from "@/lib/comptes/origine-requete";
 import { compteCourant, jetonSession } from "@/lib/comptes/session";
 import { empreinte, ipDe } from "@/lib/comptes/securite";
-import { champClientInvalide, cleValide, clientValide, MESSAGE_CHAMP, detailsValides, lignesValides, quandValide } from "@/lib/validation";
+import { allergieValide, champClientInvalide, cleValide, LIMITE_ALLERGIE, clientValide, MESSAGE_CHAMP, detailsValides, lignesValides, quandValide } from "@/lib/validation";
 import { messageZoneFermee, SUITE_ZONE_FERMEE } from "@/lib/zone-fermee";
 import { zoneServeur, type AdresseRetenue } from "@/lib/zone-serveur";
 import { nomClient } from "@/lib/nom-plat";
@@ -55,6 +55,8 @@ export async function POST(requete: Request) {
   const moyen = corps.moyen === "comptoir" ? "comptoir" : corps.moyen === "en_ligne" ? "en_ligne" : null;
   if (!cle || !lignes || lignes.length === 0 || !mode || !moyen) return refus("Commande incomplète. Rechargez la page.");
   if (!client) return refus(MESSAGE_CHAMP[champClientInvalide(corps.client) ?? "telephone"]);
+  const allergie = allergieValide(corps.allergie);
+  if (allergie === null) return refus(`Allergie ou intolérance trop longue, ${LIMITE_ALLERGIE} caractères au plus.`);
   // Paiement à la livraison désactivé (décision du prompt) : au comptoir seulement pour un retrait.
   if (moyen === "comptoir" && mode !== "retrait") return refus("Le paiement au comptoir n'est possible qu'à emporter.");
   // Préversion branchée sur la vraie base : aucun paiement, même simulé (audit de sécurité, S2).
@@ -148,6 +150,7 @@ export async function POST(requete: Request) {
       origine,
       compte_id: compte?.id ?? null,
       compte_demande: creerCompte,
+      allergie,
       lignes: totaux.lignes.map((l) => ({
         slug: l.slug,
         nom: l.nom,

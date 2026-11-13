@@ -3661,7 +3661,75 @@ body.fiche-ouverte {
   background: var(--papier);
   border-radius: 4px;
 }
+
+/* Consignes d'une adresse enregistrée, modifiables dans le compte (vague 3, client-compte). */
+.adresses li {
+  flex-wrap: wrap;
+}
+.adresses .adresse-actions {
+  flex-direction: row;
+  gap: 16px;
+}
+.form-adresse {
+  display: grid;
+  flex-basis: 100%;
+  gap: 4px;
+  padding-top: 8px;
+}
 /* Historique du compte au-delà des 30 dernières commandes. */
 .espace-plus {
   margin-top: 16px;
+}
+
+/* Réclamation depuis le suivi (vague 3, client-compte). */
+.suivi-reclamation {
+  margin-top: 24px;
+  padding: 20px 16px;
+  color: var(--encre);
+  background: var(--papier);
+  border-radius: 4px;
+}
+.suivi-reclamation h2 {
+  font-size: 28px;
+}
+.choix-reclamation {
+  display: grid;
+  gap: 4px;
+  margin: 12px 0;
+  padding: 0;
+  border: 0;
+}
+.choix-reclamation legend {
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+.suivi-reclamation textarea {
+  width: 100%;
+  font: inherit;
+}
+
+/* Appareils connectés au compte (vague 3, client-compte). */
+.appareils {
+  display: grid;
+  margin: 8px 0 16px;
+  padding: 0;
+  list-style: none;
+}
+.appareils li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--filet);
+}
+.appareils li:first-child {
+  border-top: 0;
+}
+.appareils span {
+  display: flex;
+  flex-direction: column;
+}
+.appareils small {
+  color: var(--encre-douce);
 }

@@ -101,6 +101,15 @@ export function detailsValides(v: unknown): Details | null {
   return { sonnette, etage, code, instructions };
 }
 
+// Allergie ou intolérance, pour toute la commande (vague 3) : 120 caractères au plus, imprimée en tête des
+// tickets. Caractères de contrôle retirés (une imprimante de tickets les interprète). Absente : chaîne vide.
+export const LIMITE_ALLERGIE = 120;
+export function allergieValide(v: unknown): string | null {
+  if (v === undefined || v === null) return "";
+  if (typeof v !== "string") return null;
+  return texte(v.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, ""), 0, LIMITE_ALLERGIE);
+}
+
 export function cleValide(v: unknown): string | null {
   return typeof v === "string" && /^[A-Za-z0-9-]{16,64}$/.test(v) ? v : null;
 }

@@ -9,7 +9,7 @@ test("sans choix, la carte renvoie à l'accueil", async ({ page }) => {
 test("à emporter pendant le service : dès que possible, puis la carte", async ({ page }) => {
   await page.goto("/?heure=2026-11-10T19:05");
   await page.getByRole("button", { name: /À emporter/ }).click();
-  await expect(page.getByText(/Dès que possible, vers \d+h\d\d/)).toBeVisible();
+  await expect(page.getByText(/Dès que possible, entre \d+h\d\d et \d+h\d\d/)).toBeVisible();
   await page.getByRole("button", { name: "Voir la carte" }).click();
   await expect(page).toHaveURL(/\/carte$/);
   // L'en-tête reprend l'heure annoncée à l'accueil (audit design, D07).

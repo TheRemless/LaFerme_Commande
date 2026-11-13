@@ -75,13 +75,14 @@ test("CM-04 : les coordonnées restent après un paiement refusé", async ({ pag
 test("CM-05 : l'heure « vers » de l'accueil est rappelée au paiement", async ({ page }) => {
   await page.goto("/?heure=2026-11-10T19:05");
   await page.getByRole("button", { name: /À emporter/ }).click();
-  const vers = (await page.getByText(/Dès que possible, vers \d+h\d\d/).innerText()).match(/vers (\d+h\d\d)/)![1];
+  // Vague 3 : l'heure est annoncée en fourchette, « entre 19h35 et 19h45 », rappelée telle quelle au paiement.
+  const vers = (await page.getByText(/Dès que possible, entre \d+h\d\d et \d+h\d\d/).innerText()).match(/(entre \d+h\d\d et \d+h\d\d)/)![1];
   await page.getByRole("button", { name: "Voir la carte" }).click();
   await page.evaluate(() =>
     localStorage.setItem("laferme.panier.v1", JSON.stringify({ le: Date.now(), lignes: [{ slug: "pizza-margherita", qte: 2, choix: {}, retraits: [], note: "" }] })),
   );
   await page.goto("/commande");
-  await expect(page.getByText(`Dès que possible, vers ${vers}`)).toBeVisible();
+  await expect(page.getByText(`Dès que possible, ${vers}`)).toBeVisible();
 });
 
 test("CM-06 : la fermeture annuelle est annoncée la veille, et la réouverture se commande pendant", async ({ page }) => {

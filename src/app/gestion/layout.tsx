@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { BackOffice } from "@/components/gestion/BackOffice";
 import { ConnexionPersonnel } from "@/components/tablette/ConnexionPersonnel";
+import { fonctionSql } from "@/lib/db/serveur";
 import { personnelCourant } from "@/lib/personnel/session";
 import { PRIVE } from "@/lib/site";
 import "./back-office.css";
@@ -17,6 +18,13 @@ export const metadata: Metadata = {
 export default async function LayoutGestion({ children }: { children: React.ReactNode }) {
   const personnel = await personnelCourant();
   if (personnel?.role === "gerant") return <BackOffice nom={personnel.nom}>{children}</BackOffice>;
+  // Responsable de service (D1) : seulement quand le rôle est activé, et seulement ses rubriques (navigation.ts).
+  if (personnel?.role === "responsable" && (await fonctionSql<boolean>("role_responsable_actif", {}).catch(() => false)))
+    return (
+      <BackOffice nom={personnel.nom} role="responsable">
+        {children}
+      </BackOffice>
+    );
   return (
     <main id="contenu" className="page-tablette">
       {!personnel ? (

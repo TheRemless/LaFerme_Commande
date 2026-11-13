@@ -7,6 +7,7 @@ import type { CalculPanier, ReponsePanier, SuiviPanier } from "@/lib/panier-loca
 import type { Choix } from "@/lib/choix";
 import { prixChf, prixCourt } from "@/lib/prix";
 import { nomAffiche } from "@/components/Plat";
+import type { Suggestion } from "@/lib/suggestion";
 
 // Liste du panier et montants. Les montants affichés sont ceux du serveur dès qu'ils arrivent ;
 // avant, le même calcul fait dans le navigateur évite un panier vide pendant 300 ms.
@@ -20,6 +21,8 @@ export function ContenuPanier({
   suivi,
   calcul,
   onModifier,
+  suggestion,
+  onSuggestion,
 }: {
   lignes: LignePanier[];
   quantite: (i: number, delta: number) => void;
@@ -32,6 +35,9 @@ export function ContenuPanier({
   calcul?: CalculPanier;
   // Rouvre la fiche du plat avec les choix de la ligne (absent : pas de bouton « Modifier »).
   onModifier?: (i: number) => void;
+  // Une seule boisson ou un seul dessert proposé, le plus commandé (éteint par défaut).
+  suggestion?: Suggestion | null;
+  onSuggestion?: (slug: string) => void;
 }) {
   const local = calculerPanier(catalogue, lignes, choix?.mode === "livraison" && choix.zone ? choix.zone : null);
   const t = reponse && !reponse.erreur ? reponse : local;
@@ -117,6 +123,17 @@ export function ContenuPanier({
         })}
       </ul>
 
+      {suggestion && onSuggestion && (
+        <p className="panier-vide suggestion" role="note">
+          {suggestion.categorie === "boissons" ? "Une boisson avec ça ? La plus commandée" : "Un dessert ? Le plus commandé"} est{" "}
+          {nomAffiche(suggestion.plat)}, {prixChf(suggestion.plat.prix_centimes)}.
+          {/* À la ligne : la cible de 44 px du bouton n'écarte pas les lignes du message. */}
+          <br />
+          <button type="button" className="lien" onClick={() => onSuggestion(suggestion.plat.slug)}>
+            Ajouter
+          </button>
+        </p>
+      )}
       <dl className="sommes">
         <div>
           <dt>Sous-total</dt>

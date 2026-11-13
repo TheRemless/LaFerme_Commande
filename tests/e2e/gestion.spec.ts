@@ -113,48 +113,51 @@ test("une commande passée se retrouve et se rembourse en partie", async ({}, in
     expect((await gestion.request.post("/api/tablette/action", { headers: ORIGINE, data: { commande: c.id, ...corps } })).ok()).toBe(true);
   }
 
+  // Vague 3 : liste paginée côté serveur, fiche en panneau, onglet « Gestes ».
   await rubrique(gestion, "Commandes");
-  await gestion.getByLabel("Nom, téléphone ou numéro").fill(prenom);
-  await gestion.getByRole("button", { name: "Chercher" }).click();
-  // La liste du jour montre déjà la commande : attendre le résultat de la recherche avant d'ouvrir la fiche.
-  await expect(gestion.getByRole("heading", { name: new RegExp(`^Recherche « ${prenom} »`) })).toBeVisible();
-  await gestion.getByRole("button", { name: new RegExp(`${prenom} Test`) }).click();
-  const fiche = gestion.locator(".ges-fiche-commande");
+  await gestion.getByLabel("Numéro, nom, téléphone ou e-mail").fill(prenom);
+  const ligne = gestion.getByRole("row", { name: new RegExp(`${prenom} Test`) });
+  await expect(ligne).toHaveCount(1);
+  await ligne.getByRole("button").first().click();
+  const fiche = gestion.getByRole("dialog");
+  await fiche.getByRole("tab", { name: "Gestes" }).click();
   await fiche.getByLabel("Montant à rembourser (CHF)").fill("5");
   await fiche.getByLabel("Motif").fill("Geste pour le retard");
-  await fiche.getByRole("button", { name: "Rembourser CHF 5" }).click();
-  await expect(fiche.getByText("CHF 5.00 remboursés. Le client reçoit un e-mail.")).toBeVisible();
+  await fiche.getByRole("button", { name: "Rembourser", exact: true }).click();
+  await gestion.getByRole("button", { name: "Rembourser CHF 5.00" }).click();
+  await expect(gestion.getByText("CHF 5.00 remboursés. Le client reçoit un e-mail.")).toBeVisible();
   await expect(fiche.getByText(/CHF 5\.00 par Stripe, fait/)).toBeVisible();
-  // Plus que ce qui reste : refusé avec un message clair.
+  // Plus que ce qui reste : refusé avant l'envoi, avec le maximum.
   await fiche.getByLabel("Montant à rembourser (CHF)").fill("500");
   await fiche.getByLabel("Motif").fill("Erreur");
-  await fiche.getByRole("button", { name: /^Rembourser/ }).click();
-  await expect(fiche.getByText(/Montant invalide|dépasse ce qui reste/)).toBeVisible();
+  await fiche.getByRole("button", { name: "Rembourser", exact: true }).click();
+  await expect(fiche.getByText(/Un montant en francs, jusqu'à/)).toBeVisible();
+  // La fiche se ferme (Échap) : la fenêtre modale bloquerait le menu des tests suivants. Le formulaire
+  // modifié demande confirmation avant de fermer.
+  await gestion.keyboard.press("Escape");
+  const quitter = gestion.getByRole("button", { name: "Quitter sans enregistrer" });
+  if (await quitter.isVisible().catch(() => false)) await quitter.click();
+  await expect(fiche).toHaveCount(0);
 });
 
 // Test instable signalé le 13.11 : la liste du jour, demandée à l'ouverture des commandes, arrivait après
 // la recherche sur une machine chargée et remplaçait son résultat. Ici elle arrive toujours en retard.
 test("une recherche n'est pas remplacée par la liste du jour arrivée en retard", async ({}, info) => {
   const nom = `Lent${info.project.name}`;
+  const duJour = (corps: { action?: string; recherche?: string }) => corps.action === "liste_page" && !corps.recherche;
   const retarder = async (route: Route) => {
-    const corps = route.request().postDataJSON() as { action?: string; recherche?: string };
-    if (corps.action === "liste" && !corps.recherche) await new Promise((ok) => setTimeout(ok, 2000));
+    if (duJour(route.request().postDataJSON() as { action?: string; recherche?: string })) await new Promise((ok) => setTimeout(ok, 2000));
     await route.continue();
   };
   await gestion.route("**/api/gestion/commandes", retarder);
   await rubrique(gestion, "Carte");
-  const listeDuJour = gestion.waitForResponse((r) => {
-    if (!r.url().endsWith("/api/gestion/commandes")) return false;
-    const corps = r.request().postDataJSON() as { action?: string; recherche?: string };
-    return corps.action === "liste" && !corps.recherche;
-  });
+  const listeDuJour = gestion.waitForResponse((r) => r.url().endsWith("/api/gestion/commandes") && duJour(r.request().postDataJSON() as { action?: string }));
   await rubrique(gestion, "Commandes");
-  await gestion.getByLabel("Nom, téléphone ou numéro").fill(nom);
-  await gestion.getByRole("button", { name: "Chercher" }).click();
-  const titre = gestion.getByRole("heading", { name: new RegExp(`^Recherche « ${nom} »`) });
-  await expect(titre).toBeVisible();
+  await gestion.getByLabel("Numéro, nom, téléphone ou e-mail").fill(nom);
+  const vide = gestion.getByText("Aucune commande ne correspond.");
+  await expect(vide).toBeVisible();
   await listeDuJour;
-  await expect(titre).toBeVisible();
+  await expect(vide).toBeVisible();
   await gestion.unroute("**/api/gestion/commandes", retarder);
 });
 

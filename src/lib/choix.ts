@@ -26,6 +26,8 @@ export type Choix = {
   pizzasSeulement?: boolean;
   // « Dès que possible » : l'heure « vers » montrée à l'accueil, en minutes du jour, rappelée au paiement (CM-05).
   estimation?: number;
+  // Fourchette annoncée autour de l'estimation (minutes du jour), rappelée au paiement.
+  fourchette?: { basse: number; haute: number };
   // Préversion seulement : heure de Genève simulée par ?heure= sur l'accueil, transmise au calcul du panier.
   heureSimulee?: string;
   enregistreLe: number;
