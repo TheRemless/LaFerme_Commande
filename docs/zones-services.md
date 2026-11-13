@@ -37,6 +37,14 @@ La tablette ferme et rouvre une zone par sa propre route, sur `fermerZone` et `r
 
 Avant la migration, les colonnes n'existent pas : `services` est absent, ce qui veut dire les deux services, et `fermee_jusqu_a` vaut null. Rien ne change. Après la migration, chaque zone vaut midi et soir, sans fermeture.
 
+## Écran du back-office
+
+Rubrique « Livraison et horaires », dans chaque fiche de zone (`src/components/gestion/ZoneOperations.tsx`) :
+- **Livrée** : « Midi » et « Soir », un toucher change le service (case noire : livrée). Au moins un service : pour ne plus livrer une zone, décocher « Zone ouverte à la livraison » ;
+- **Fermer cette zone pour quelques heures** : le jour, l'heure de réouverture et un motif lu par les clients, puis une confirmation. La fiche montre ensuite « Fermée jusqu'à… » et « Rouvrir maintenant ».
+
+Captures : `docs/rendus/vague-3/bo-operations/horaires-zone-fermee-1024.png`.
+
 ## Pas encore fait
 
-L'écran du back-office (après la coque de `bo-socle`) et le bouton de la tablette (session `tablette`).
+Le bouton de la tablette (session `tablette`).

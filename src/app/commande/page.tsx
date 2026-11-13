@@ -6,13 +6,14 @@ import { ResumeChoix } from "@/components/ResumeChoix";
 import { PageCommande } from "@/components/commande/PageCommande";
 import { chargerCatalogue } from "@/lib/catalogue";
 import { compteCourant } from "@/lib/comptes/session";
+import { chargerOptionsCommande } from "@/lib/options-commande";
 import { PRIVE } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Finaliser la commande, La Ferme", robots: PRIVE };
 
 export default async function Commande() {
-  const [catalogue, compte] = await Promise.all([chargerCatalogue(), compteCourant()]);
+  const [catalogue, compte, options] = await Promise.all([chargerCatalogue(), compteCourant(), chargerOptionsCommande()]);
   return (
     <>
       <EnTete>
@@ -20,7 +21,7 @@ export default async function Commande() {
       </EnTete>
       <main id="contenu" className="page-commande">
         <Suspense>
-          <PageCommande catalogue={catalogue} preversion={process.env.CONTEXTE_DEPLOIEMENT !== "production"}
+          <PageCommande catalogue={catalogue} preversion={process.env.CONTEXTE_DEPLOIEMENT !== "production"} couvertsActifs={options.couverts_actifs}
             compte={compte && { email: compte.email, prenom: compte.prenom, nom: compte.nom, telephone: compte.telephone }}
           />
         </Suspense>

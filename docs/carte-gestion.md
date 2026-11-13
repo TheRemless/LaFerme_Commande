@@ -37,3 +37,24 @@ Migration `supabase/migrations/20261210150000_etiquettes.sql`. Tests : `tests/un
 - Trois étiquettes : végétarien, végane, épicé. Le gérant les pose plat par plat ; le site n'en déduit aucune (ni de la description, ni des allergènes). Sans saisie, aucune étiquette : le restaurant confirme chaque plat. Végane ajoute végétarien.
 - La carte publique les donne (`carte_publique.etiquettes`) pour le filtre et la fiche, affichés par `client-commande`.
 - Journal : objet `etiquettes`, avant et après.
+
+## Écran : la carte en liste (vague 3)
+
+Rubrique `/gestion/carte`, onglet « Liste » (par défaut). Code : `src/components/gestion/carte/` (liste, prix en lot, parties de la fiche), sur le kit du back-office. Test : `tests/e2e/gestion-carte-liste.spec.ts`. Captures : `docs/rendus/vague-3/bo-carte/`.
+
+- **Voir ce qui manque d'un coup.** Les boutons en haut filtrent et comptent : Tous, En vente, Hors vente, Épuisés, Prix à valider, Sans photo, Sans allergènes, Archivés. La colonne « À compléter » dit en un mot ce qui manque à chaque plat (prix, allergènes, provenance, suppléments, retraits, photo). La recherche lit le nom et la description ; la liste « Catégorie » restreint.
+- **Changer un prix sur place.** Toucher le prix dans la ligne, écrire, puis Entrée (ou toucher ailleurs). Échap rend l'ancien. Un prix changé ainsi repart à valider.
+- **Gestes en lot.** Cocher des plats, puis : « Changer les prix » (en pour cent ou en francs, hausse ou baisse, arrondi, aperçu avant et après, puis « Appliquer »), « Valider les prix », « Épuiser jusqu'au… » (une date), « Remettre en vente ».
+- **Fiche d'un plat.** Toucher son nom : la fiche s'ouvre sur le côté (plein écran sur téléphone). En plus de la fiche habituelle : disponibilités (midi, soir, livraison, à emporter, jours), rupture jusqu'à une date avec « Remettre en vente », et « Copier ce plat ».
+- **Étiquettes** (végétarien, végane, épicé) : sur la fiche, à cocher seulement si le restaurant l'a vérifié ; colonne « Étiquettes » dans « Colonnes ».
+- **Ajouter un plat** : bouton en haut à droite ; la fiche du plat créé s'ouvre aussitôt.
+- La liste lit la carte déjà chargée par le back-office (une centaine de plats au plus) : filtres et tri se font dans le navigateur, 50 lignes par page. L'export CSV donne les colonnes affichées.
+
+## Écran : les groupes d'options (vague 3)
+
+Rubrique `/gestion/supplements`. Code : `src/components/gestion/carte/Groupes.tsx`. Test : `tests/e2e/gestion-groupes.spec.ts`. Capture : `docs/rendus/vague-3/bo-carte/b-groupe-reglage.png`.
+
+- « Nouveau groupe » : nom vu par le client, minimum (0 pour un choix facultatif) et maximum. Le panneau de réglage s'ouvre aussitôt ; les options s'ajoutent sous le groupe, comme les suppléments.
+- « Régler le groupe » : nom et règles, options cochées d'avance, ordre et noms des options, option épuisée jusqu'à une date (avec « Remettre »), plats qui proposent le groupe (cases par catégorie, « tous » pour une catégorie entière). Retirer le groupe de plats demande confirmation.
+- Un groupe obligatoire qui n'a pas assez d'options proposées ne se pose sur aucun plat : l'écran le refuse et dit pourquoi.
+

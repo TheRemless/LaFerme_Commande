@@ -32,3 +32,12 @@ Au retrait, en invité, l'e-mail et le téléphone ne sont pas prouvés : un cli
 - Ligne « Remise » sur le reçu, l'e-mail de confirmation et le suivi ; ticket de cuisine inchangé.
 - Remboursements cohérents avec la remise ; export comptable : la remise réduit la base imposable (à faire confirmer par la fiduciaire).
 - Règles pour ce branchement (revue de sécurité) : passer à `evaluer_code` l'adresse officielle rendue par `zoneServeur` (avec `featureId`), jamais celle du corps de la requête ; prendre `sous_total_centimes`, `frais_centimes` et `mode` du calcul du serveur ; appeler `noter_utilisation_code` avec la `remise_centimes` rendue par `evaluer_code`, dans la même transaction que la commande.
+
+## Écran : Promotions (back-office)
+
+Rubrique `/gestion/promotions` (groupe Carte et offre). Code : `src/components/gestion/carte/Promotions.tsx`. Test : `tests/e2e/gestion-promotions.spec.ts`. Captures : `docs/rendus/vague-3/bo-carte/b-promotions.png`, `m-promotions.png`.
+
+- En tête, l'état de l'interrupteur général (« Codes promo désactivés. ») et son bouton, avec confirmation : l'activer est une décision de Jérémy, l'écran le rappelle.
+- Le tableau des codes : code, support, offre, dates, état, commandes, remise accordée, total encaissé (minimum et plafond dans « Colonnes »).
+- « Nouveau code » : code, support, offre (pourcentage, montant, livraison offerte), minimum, plafond, dates, une fois par client, première commande. Il naît inactif. Sa fiche s'ouvre : « Activer ce code » (confirmation) ou « Rendre inactif ». Après un premier usage, l'offre est figée (créer un autre code).
+

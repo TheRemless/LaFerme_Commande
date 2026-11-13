@@ -48,6 +48,11 @@ test("un plat se trouve et s'ouvre au clavier, la fenêtre passe axe", async () 
   await champ().press("Enter");
   await expect(page.getByRole("heading", { level: 1, name: "Carte" })).toBeVisible();
   await expect(fenetre()).toBeHidden();
+  // La carte ouvre la fiche du plat choisi dans son panneau (bo-carte, useOuverture) ; on la ferme.
+  const fiche = page.getByRole("dialog", { name: "Pizza Tonno" });
+  await expect(fiche).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(fiche).toBeHidden();
 });
 
 test("une rubrique se trouve par son nom ou ce qu'on y fait", async () => {
@@ -82,6 +87,11 @@ test("une commande se trouve par le nom du client, sans que le nom passe dans l'
   await champ().press("ArrowUp");
   await champ().press("Enter");
   await expect(page.getByRole("heading", { level: 1, name: "Commandes" })).toBeVisible();
+  // La fiche de la commande s'ouvre (useOuverture, rubrique Commandes de bo-commandes) ; fermée pour la suite.
+  const fiche = page.getByRole("dialog");
+  await expect(fiche.getByRole("tab", { name: "Historique" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(fiche).toHaveCount(0);
   expect(demandes.some((u) => u.includes(prenom))).toBe(false);
 });
 

@@ -111,6 +111,26 @@ describe("alertes", () => {
     expect(a[0].niveau).toBe("attention");
   });
 
+  it("les remboursements à suivre (tous jours) remplacent le compte du seul service en cours", () => {
+    const ventes = { periode: { remboursements: { echecs_ouverts: 9, en_cours: 9 } } } as unknown as DonneesAccueil["ventes"];
+    const a = alertesDe({
+      ...vide,
+      ventes,
+      remboursements: {
+        echecs: [
+          { numero: 12, cree_le: "2026-11-10T12:00:00Z" },
+          { numero: 12, cree_le: "2026-11-10T12:05:00Z" },
+        ],
+        bloques: [{ numero: 30, cree_le: "2026-11-11T19:00:00Z" }],
+      },
+    });
+    expect(a.find((x) => x.cle === "remboursements")).toMatchObject({ titre: "2 remboursements ont échoué", detail: "Le client n'a pas été remboursé. N° 12.", depuis: "2026-11-10T12:00:00Z" });
+    expect(a.find((x) => x.cle === "remboursements-en-cours")?.titre).toBe("1 remboursement pas confirmé par Stripe depuis plus de 24 heures");
+    // Sans la fonction (base pas encore migrée) : retour aux chiffres du service en cours.
+    const avant = alertesDe({ ...vide, ventes, remboursements: null });
+    expect(avant.find((x) => x.cle === "remboursements")?.titre).toBe("9 remboursements ont échoué ce soir");
+  });
+
   it("le quota épuisé devient bloquant", () => {
     const a = alertesDe({ ...vide, quota: { envoyes: 500, refuses: 4, plafond: 500, restants: 0, libere_a: null, alerte: true } });
     expect(a[0]).toMatchObject({ cle: "courriels", niveau: "bloquant" });

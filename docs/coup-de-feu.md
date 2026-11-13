@@ -58,8 +58,16 @@ Après chaque geste : cache de la config vidé (heures annoncées, créneaux ple
 
 Le code marche avant la migration : la surveillance ignore l'absence de `fin_coup_de_feu_echue`, et aucun écran n'appelle encore la route. Après : rien ne change tant que personne ne lance de coup de feu.
 
+## Écran du back-office
+
+Rubrique « Livraison et horaires », en tête (`src/components/gestion/CoupDeFeu.tsx`).
+- Sans coup de feu : les valeurs proposées, modifiables (retard en tout, livraisons et retraits par créneau, durée, livraison fermée), puis « Lancer le coup de feu ». La confirmation dit l'heure de fin et chaque changement.
+- En cours : jusqu'à quelle heure, qui l'a lancé, ce qui est changé, et « Finir le coup de feu ». L'écran se relit chaque minute, car le coup de feu peut finir seul ou être lancé depuis la tablette.
+
+Captures : `docs/rendus/vague-3/bo-operations/horaires-coup-de-feu-*.png`.
+
 ## Pas encore fait
 
-- Route et écran de la tablette (session `tablette`), écran du back-office (après la coque de `bo-socle`) : bouton, valeurs proposées modifiables, compte à rebours, « Fin du coup de feu ».
+- Route et bouton de la tablette (session `tablette`).
 - Réglage des valeurs proposées au back-office.
 - Délai par poste (pizza, cuisine) : le retard reste commun aux deux postes.
