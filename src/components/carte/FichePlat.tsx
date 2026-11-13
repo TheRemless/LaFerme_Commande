@@ -17,6 +17,7 @@ export function FichePlat({
   catalogue,
   preversion,
   ferme = false,
+  initiale,
   onAjouter,
   onFermer,
 }: {
@@ -25,6 +26,8 @@ export function FichePlat({
   preversion: boolean;
   // Aucun moment de commande possible (fermeture) : la fiche se lit, rien ne s'ajoute (CM-08).
   ferme?: boolean;
+  // Ligne du panier à modifier : la fiche s'ouvre avec ses choix, et le bouton la met à jour.
+  initiale?: LignePanier;
   onAjouter: (l: LignePanier) => void;
   onFermer: () => void;
 }) {
@@ -32,10 +35,10 @@ export function FichePlat({
   const fenetre = useRef<HTMLDivElement>(null);
   const info = catalogue.plats[plat.slug];
   const groupes = (info?.groupes ?? []).map((g) => catalogue.groupes[g]).filter(Boolean);
-  const [qte, setQte] = useState(1);
-  const [choix, setChoix] = useState<Record<string, string[]>>({});
-  const [retraits, setRetraits] = useState<string[]>([]);
-  const [note, setNote] = useState("");
+  const [qte, setQte] = useState(initiale?.qte ?? 1);
+  const [choix, setChoix] = useState<Record<string, string[]>>(initiale?.choix ?? {});
+  const [retraits, setRetraits] = useState<string[]>(initiale?.retraits ?? []);
+  const [note, setNote] = useState(initiale?.note ?? "");
   const [tous, setTous] = useState(false);
 
   useEffect(() => {
@@ -217,7 +220,7 @@ export function FichePlat({
               onFermer();
             }}
           >
-            {ferme ? "Commande en ligne fermée" : manquant ? `Choisissez vos ${manquant.nom.toLowerCase()}` : `Ajouter, ${prixChf(total)}`}
+            {ferme ? "Commande en ligne fermée" : manquant ? `Choisissez vos ${manquant.nom.toLowerCase()}` : `${initiale ? "Valider" : "Ajouter"}, ${prixChf(total)}`}
           </button>
         </div>
       </div>

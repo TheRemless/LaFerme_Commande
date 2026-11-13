@@ -920,6 +920,16 @@ fieldset.details legend {
   border: 2px solid var(--alerte-trait);
   border-radius: 4px;
 }
+/* « Modifier » sous les options, à gauche de la quantité. */
+.ligne-modifier {
+  grid-column: 1;
+  grid-row: 2;
+  align-self: end;
+  justify-self: start;
+}
+.ligne-opts + .ligne-modifier {
+  grid-row: 3;
+}
 .ligne .qte {
   grid-column: 2;
   grid-row: 2;
