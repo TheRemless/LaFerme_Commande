@@ -52,6 +52,8 @@ export type DonneesCarte = {
   aujourdhui: string;
   groupes: GroupeGestion[];
   bloquants: number;
+  // Postes et catégories épuisés jusqu'à une date (four en panne), en cours.
+  ruptures_groupees?: { cible: string; jusqu_au: string }[];
 };
 
 const chf = (c: number) => (c / 100).toFixed(2);

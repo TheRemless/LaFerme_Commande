@@ -220,6 +220,7 @@ export function TableauDonnees<T>(p: Props<T>) {
                     <th
                       key={c.cle}
                       scope="col"
+                      data-col={c.cle}
                       data-nombre={c.nombre || undefined}
                       aria-sort={actif ? (p.tri!.sens === "asc" ? "ascending" : "descending") : undefined}
                     >
@@ -274,7 +275,7 @@ export function TableauDonnees<T>(p: Props<T>) {
                     {visibles.map((c, i) => {
                       const contenu = c.rendu ? c.rendu(l) : (c.valeur?.(l) ?? "");
                       return (
-                        <td key={c.cle} data-nombre={c.nombre || undefined}>
+                        <td key={c.cle} data-col={c.cle} data-nombre={c.nombre || undefined}>
                           {i === 0 && p.onOuvrir ? (
                             <button type="button" className="bo-ouvrir" onClick={() => p.onOuvrir!(l)}>
                               {contenu}
