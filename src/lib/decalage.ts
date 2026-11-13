@@ -28,6 +28,9 @@ export async function apercuDecalage(station: unknown): Promise<{ commandes: num
   return fonctionSql<{ commandes: number; clients: number }>("apercu_decalage", { p_station: poste(station) });
 }
 
+// Assez pour 40 commandes en quelques secondes, sans ouvrir trop de connexions SMTP à la fois.
+export const ENVOIS_SIMULTANES = 8;
+
 export async function decalerCommandes(p: { minutes: unknown; station?: unknown; cle: unknown }, personnel: Personnel): Promise<ResultatDecalage> {
   const minutes = Number(p.minutes);
   if (!Number.isInteger(minutes) || minutes < 5 || minutes > 90) return { ok: false, erreur: "Décalage : de 5 à 90 minutes." };
@@ -44,18 +47,24 @@ export async function decalerCommandes(p: { minutes: unknown; station?: unknown;
   }
   // Même geste déjà fait (double appui, réseau qui renvoie) : aucun e-mail de plus.
   if (r.deja) return { ok: true, deja: true, minutes: r.minutes, commandes: r.commandes.length, prevenus: 0 };
+  // Par lots de ENVOIS_SIMULTANES : chaque e-mail ouvre sa connexion SMTP (une à deux secondes chez
+  // Infomaniak). Un par un, un vendredi soir à 40 commandes dépassait le temps d'une fonction Netlify : les
+  // derniers clients n'étaient pas prévenus et la relance (même clé) ne renvoyait rien (qualite, passe finale).
   let prevenus = 0;
-  for (const d of r.commandes) {
+  const prevenir = async (d: { id: string; apres: string }): Promise<boolean> => {
     const c = await commandeParId(d.id).catch(() => null);
-    if (!c?.client_email) continue;
+    if (!c?.client_email) return false;
     // Un envoi refusé (quota) ou raté ne bloque pas les autres : il est noté dans l'historique de la commande.
-    const ok = await envoyerCourriel({ commandeId: c.id, destinataire: c.client_email, ...courrielNouvelleHeure(c, new Date(d.apres).toISOString()) })
+    return envoyerCourriel({ commandeId: c.id, destinataire: c.client_email, ...courrielNouvelleHeure(c, new Date(d.apres).toISOString()) })
       .then(() => true)
       .catch((e) => {
         console.error(`Courriel « nouvelle heure » non envoyé (commande ${c.numero}) : ${e instanceof Error ? e.message : e}`);
         return false;
       });
-    if (ok) prevenus += 1;
+  };
+  for (let i = 0; i < r.commandes.length; i += ENVOIS_SIMULTANES) {
+    const lot = await Promise.all(r.commandes.slice(i, i + ENVOIS_SIMULTANES).map(prevenir));
+    prevenus += lot.filter(Boolean).length;
   }
   await signalerTablette();
   return { ok: true, deja: false, minutes: r.minutes, commandes: r.commandes.length, prevenus };
