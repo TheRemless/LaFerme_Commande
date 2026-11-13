@@ -130,3 +130,18 @@ Bloc en tête de « Pause, délai, ruptures ». Mêmes fonctions que le back-off
 ## Numéro d'un autre jour (vague 3, relevé par qualite)
 
 Les numéros recommencent chaque jour. Une commande reçue un autre jour (refusée dont le remboursement n'est pas passé, commande à l'avance) porte sa date sous le numéro, « du 4 nov. », dans la liste comme dans le détail : on ne la confond plus avec le 130 du soir. Classe `tab-autre-jour` sur la ligne et la carte (les tests e2e visent `:not(.tab-autre-jour)`). Capture : `docs/rendus/vague-3/tablette/numero-autre-jour-paysage-1024.png` (`scripts/tablette/numero-autre-jour.mjs`, jeu de rush).
+
+## Horodatage par poste : `commande_postes` (vague 3)
+
+Accords de bo-pilotage (temps réels contre promis) et de bo-operations (file réelle de `charge_cuisine()`). Migration `20261203120000_commande_postes.sql`, aucune fonction partagée recréée : deux déclencheurs sur `commandes`.
+
+| Colonne | Rempli quand |
+|---|---|
+| `a_faire_le` | Premiers tickets (`tickets_le`, `premiers_tickets`). Une seule fois : une réimpression ne le change pas. Commande à l'avance : à la sortie de ses tickets (60 ou 30 min avant), pas à l'acceptation. |
+| `lance_le` | Le poste touche « Lancée » sur la vue par poste (facultatif). |
+| `pret_le`, `pret_par` | Le poste touche « Prête » (`tablette:Prénom`), sinon la commande passe prête, partie ou terminée (`statut`, heure déduite). |
+
+- Une ligne par poste présent dans les lignes de la commande. Refusée ou annulée : `pret_le` reste vide.
+- Index partiel `(station) where pret_le is null`. RLS activée, aucun droit pour `anon` ni `authenticated`, `service_role` seulement.
+- `postes_actifs()` : postes des commandes en cuisine ou sorties depuis moins de 30 minutes (pour la tablette). `marquer_poste(commande, station, 'lancer' | 'pret' | 'rouvrir', personnel)` : équipe du restaurant seulement, commande encore en cuisine.
+- Commandes en cuisine au moment de la migration : ajoutées avec leur `tickets_le`.
