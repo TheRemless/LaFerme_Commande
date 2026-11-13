@@ -16,6 +16,8 @@ export type CommandePoste = {
   a_faire_le: string;
   lance_le: string | null;
   lignes: Ligne[];
+  // Allergie de toute la commande (client-commande), vide si rien de signalé.
+  allergie: string;
 };
 export type SortiePoste = { id: string; numero: number; pret_le: string; par_le_poste: boolean; rouvrable: boolean; plats: number };
 export type VuePoste = { en_cours: CommandePoste[]; sorties: SortiePoste[]; reste: { nom: string; qte: number }[] };
@@ -42,6 +44,7 @@ export function vuePoste(commandes: CommandeTablette[], postes: PosteActif[], st
         a_faire_le: p.a_faire_le,
         lance_le: p.lance_le,
         lignes,
+        allergie: c.allergie?.trim() ?? "",
       });
     } else {
       sorties.push({

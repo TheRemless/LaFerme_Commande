@@ -58,6 +58,7 @@ export function LigneCommande({
             <strong>{c.mode === "livraison" ? "Livraison" : "À emporter"}</strong>, {client}
             {c.mode === "livraison" && ["acceptee", "en_preparation", "partie"].includes(c.statut) && <>, {livreur ?? "sans livreur"}</>}
           </span>
+          {c.allergie?.trim() && <span className="tab-ligne-allergie">Allergie : {c.allergie.trim()}</span>}
           <span className="tab-ligne-plats">{resumePlats(c.lignes)}</span>
           {c.statut_paiement === "a_encaisser_retrait" && <span className="tab-ligne-encaisser">À encaisser {prixChf(c.total_centimes - deduit)}</span>}
         </span>

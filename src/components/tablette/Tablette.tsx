@@ -776,6 +776,8 @@ function CarteCommande({
       </div>
 
       {c.avertissement && c.statut === "nouvelle" && <p className="tab-avertissement">{c.avertissement}</p>}
+      {/* Allergie de toute la commande (client-commande) : en négatif, avant les plats, comme sur le ticket. */}
+      {c.allergie?.trim() && <p className="tab-allergie">Allergie : {c.allergie.trim()}</p>}
 
       <div className="tab-corps">
         <ul className="tab-lignes">
@@ -787,6 +789,7 @@ function CarteCommande({
                 </span>
                 <span className="tab-poste">{l.station === "pizza" ? "Pizza" : "Cuisine"}</span>
               </span>
+              {l.pour?.trim() && <span className="tab-pour">pour {l.pour.trim()}</span>}
               {l.details.length > 0 && (
                 <ul className="tab-opts">
                   {l.details.map((d) => (
@@ -805,6 +808,14 @@ function CarteCommande({
             <br />
             <a href={`tel:${c.client_telephone.replace(/[^+\d]/g, "")}`}>{c.client_telephone}</a>
           </p>
+          {c.destinataire?.nom && (
+            <p>
+              Pour : <strong>{c.destinataire.nom}</strong>
+              <br />
+              <a href={`tel:${c.destinataire.telephone.replace(/[^+\d]/g, "")}`}>{c.destinataire.telephone}</a>
+            </p>
+          )}
+          {c.couverts && <p className="tab-couverts">Couverts et serviettes</p>}
           {c.mode === "livraison" && c.adresse && (
             <p>
               {c.adresse.rue} {c.adresse.numero}, {c.adresse.npa} {c.adresse.localite}

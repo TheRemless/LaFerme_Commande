@@ -47,7 +47,12 @@ export type CommandeTablette = {
   annulee_par_client_le?: string | null;
   // Paiement en ligne confirmé, ou création pour le comptoir : point de départ de « Attend depuis ».
   attend_depuis: string;
-  lignes: { nom: string; qte: number; station: "pizza" | "cuisine"; choix: Record<string, string[]>; retraits: string[]; note: string; details: string[] }[];
+  // pour : prénom de la personne à qui va le plat (client-commande, vide si le réglage est éteint).
+  lignes: { nom: string; qte: number; station: "pizza" | "cuisine"; choix: Record<string, string[]>; retraits: string[]; note: string; details: string[]; pour?: string }[];
+  // Vague 3 (client-commande, migration 20261212090000) : facultatifs, absents avant la migration.
+  allergie?: string;
+  destinataire?: { nom: string; telephone: string } | null;
+  couverts?: boolean;
   // Calculée ici : heure demandée par le client, ou au plus tôt pour « dès que possible ».
   heure_proposee: string;
   // Manques signalés (audit du gérant, G07) : montant remboursé ou déduit, et ce qui manquait.
