@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { codeDuPersonnel } from "./site";
+import { adresseDuCompte, codeDuPersonnel, passage } from "./site";
 
 // Groupes d'options au back-office (vague 3) : créer un groupe facultatif d'essai, lui ajouter une option,
 // la cocher d'avance, l'épuiser jusqu'à demain, poser le groupe sur un plat puis l'en retirer (la carte des
@@ -11,8 +11,10 @@ let nom: string;
 const RENDUS = process.env.RENDUS === "1" ? "docs/rendus/vague-3/bo-carte" : null;
 
 test.beforeAll(async ({ browser }, info) => {
-  nom = `Sauce essai ${info.project.name}`;
+  // Suffixe de passage : un réessai de la CI dans la même base crée un groupe neuf.
+  nom = `Sauce essai ${info.project.name} ${passage()}`;
   gestion = await browser.newPage({ baseURL: info.project.use.baseURL });
+  await adresseDuCompte(gestion, `groupes-${info.project.name}@laferme.test`);
   await gestion.goto("/gestion");
   await gestion.getByLabel("E-mail", { exact: true }).fill(`groupes-${info.project.name}@laferme.test`);
   await gestion.getByLabel("Code à 8 chiffres").fill(await codeDuPersonnel(gestion));
