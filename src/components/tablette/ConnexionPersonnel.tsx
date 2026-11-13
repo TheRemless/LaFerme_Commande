@@ -16,6 +16,12 @@ export function ConnexionPersonnel({ titre = "Tablette du restaurant", codeLivre
       <div className="connexion-panneau">
         <p>Réservé à l&apos;équipe. Entrez votre e-mail, on vous envoie un code.</p>
         <FormCode api={{ code: "/api/personnel/code", connexion: "/api/personnel/connexion" }} chiffres={8} onConnecte={() => router.refresh()} />
+        {/* Nouvel employé (mise en situation du 13.11) : le code ne part qu'aux adresses de l'équipe, et l'écran dit
+            « Code envoyé » dans tous les cas (on ne révèle pas qui fait partie de l'équipe). */}
+        <p className="aide">
+          Premier service ? Le gérant vous ajoute d&apos;abord à l&apos;équipe, avec votre e-mail. Pas de code au bout de 2 minutes ? Regardez les courriers
+          indésirables, puis demandez-lui.
+        </p>
       </div>
     </div>
   );

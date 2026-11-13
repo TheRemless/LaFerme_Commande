@@ -262,7 +262,7 @@ Un geste qui change un statut ou écrit un encaissement (« Prête », « Partie
 Avant : un bouton « À <livreur> » pour chaque livreur et chaque commande, et « Donner à <livreur> » sur chaque arrêt (420 boutons à l'écran sur le jeu de rush) ; le planning du service n'était pas lu. Logique pure : `src/components/tablette/livraisons-choix.ts`.
 
 - 4 livreurs actifs au plus : un bouton chacun, comme avant.
-- Au-delà : en boutons, les livreurs **prévus au planning du service** en cours (bo-operations, `livreursDuService` ; midi avant 15h, soir après, heure de Genève) et ceux dont la page est ouverte sur le téléphone depuis moins de 6 heures ; les autres dans un menu « Donner à… » par commande et par arrêt. En tête de colonne : « Prévus ce soir : Marco, Inès. » ou « Personne au planning de ce soir : choisissez dans « Donner à… ». »
+- Au-delà : en boutons, les livreurs **prévus au planning du service** en cours (bo-operations, `livreursDuService` ; midi avant 15h, soir après, heure de Genève) et ceux dont la page est ouverte sur le téléphone depuis moins de 6 heures ; les autres dans un menu « Donner à… » par commande et par arrêt. En tête de colonne, les deux sortes nommées à part (M11 de la mise en situation) : « Prévus ce soir : Marco, Inès. Page ouverte sur leur téléphone : Alba. Les autres sont dans « Donner à… ». », ou « Personne au planning de ce soir. »
 - Tournées affichées : les livreurs prévus et ceux qui ont encore une livraison (sans planning pour ce service : tout le monde).
 - Sur le jeu de rush de qualite (sans planning ce midi) : 25 boutons et 50 menus au lieu de 420 boutons. Capture : `docs/rendus/vague-3/tablette/livraisons-apres-1180.png`.
 
@@ -312,3 +312,20 @@ Liste de bo-socle. Le responsable n'agit qu'avec le réglage `role_responsable_a
 - **Fermer le service du jour** (contrat de bo-operations, `src/lib/fermer-service.ts`) : bloc dans « Pause, délai, ruptures », visible pour le droit « fermer_service ». Quand fermer (ce midi, ce soir, toute la journée), puis le motif, lu par les clients et jamais un nom. Une confirmation dit la suite (« Les clients ne pourront plus commander pour ce soir. »). Après la fermeture : « Fermé pour ce soir. Commandes déjà prises : n° 12, 15. Traitez-les dans « En cours ». ». Seul le gérant rouvre, au back-office. Route `/api/tablette/fermer-service` (GET `{ autorise }`, POST `{ quoi, motif }` derrière `exigerDroit(requete, "fermer_service")`, la date vient de la base).
 - Capture : `docs/rendus/vague-3/tablette/responsable-fermer-service.png` (responsable, jusqu'à la confirmation).
 - Tests : `tests/unit/tablette-responsable-sql.test.ts` (annuler et modifier, équipe refusée, rôle éteint), e2e `tablette.spec.ts` (bloc jusqu'à la confirmation sans fermer, l'équipe sans bloc et refusée en 403).
+
+## Mise en situation du 13.11.2026 (service complet sur le jeu de rush)
+
+Joué en local : tablette 1024 × 768, téléphone de comptoir 375 et 390 px, téléphone d'un livreur, poste pizza. Corrigé ici :
+
+- **Nouvel employé** : sous la connexion, « Premier service ? Le gérant vous ajoute d'abord à l'équipe, avec votre e-mail. Pas de code au bout de 2 minutes ? Regardez les courriers indésirables, puis demandez-lui. » L'écran dit « Code envoyé » même à une adresse hors de l'équipe (on ne révèle pas qui en fait partie).
+- **Son** : après « Continuer sans son », la barre dit « Son coupé. Activer le son ». Avant, il fallait recharger la page.
+- **Écran qui s'éteint** : « Continuer sans son » garde aussi l'écran allumé. Si l'appareil refuse, la barre le dit : « Cet appareil peut éteindre l'écran. Réglez sa mise en veille sur « Jamais ». »
+- **Remboursements pas passés** : « Voir au back-office » seulement pour qui peut l'ouvrir (droit « voir_commandes »). Pour les autres : « Le gérant les reprend au back-office. »
+- **Adresse introuvable** (onglet Livraisons) : le numéro du client cliquable dans le texte du problème. Pour une livraison partie, qui n'a pas le droit de l'annuler lit « demandez au gérant ou au responsable de service d'annuler la commande (elle est remboursée) ».
+- **Imprimante en panne** : le bandeau ajoute « Vérifiez le papier et le câble, puis éteignez et rallumez l'imprimante. »
+- **Livreur, après « Problème »** : « Le restaurant est prévenu. Attendez son appel, ou appelez-le au 022 792 16 89. »
+- **M5, nouvelle livraison** : la page du livreur vibre, sonne et dit « Nouvelle livraison pour vous : n° 17. ». Le bouton « Activer le son et les alertes des nouvelles livraisons » (une fois) débloque le son et demande la permission des notifications : page cachée derrière une autre appli, une notification « Nouvelle livraison, N° 17 » part (iPhone et ordinateur ; Android Chrome demande un service worker, il garde le son et la vibration). Téléphone verrouillé, navigateur fermé : rien, il faudrait des notifications poussées par le serveur.
+- **M2, poste pizza** : une commande dont l'heure de mise en route est à venir n'est plus dans la file ni dans « Reste à sortir ». L'en-tête dit « 12 en cours, 34 plus tard (elles arrivent ici à la sortie de leurs tickets) ». En production, elles n'y arrivent qu'à la sortie des tickets ; le garde vaut pour les données importées.
+- **M11, Livraisons** : les livreurs prévus au planning et ceux dont la page est ouverte sont nommés à part.
+- **M14, Déconnexion à 390 px** : pas reproduit. « Oui, déconnecter » et « Non » s'affichent. Le constat venait sans doute d'un serveur de développement dont le dossier `.next` avait été écrasé par un build e2e (scripts en 404, page jamais chargée).
+- Captures : `docs/rendus/vague-3/tablette/mes-*.png` (connexion, son coupé, Livraisons et poste pizza à 1024 px ; déconnexion et page livreur à 390 px).

@@ -33,12 +33,15 @@ export function OngletLivraisons({
   plusTard,
   donnees,
   agir,
+  annulerPartie = false,
 }: {
   commandes: CommandeTablette[];
   // Livraisons acceptées dont les tickets ne sont pas encore sortis (onglet « À l'avance ») : pas encore à attribuer.
   plusTard?: Set<string>;
   donnees: DonneesLivraisons | null;
   agir: (corps: Record<string, unknown>) => Promise<void>;
+  // Peut annuler une livraison partie (gérant, ou responsable au rôle ouvert) : sinon, le texte dit à qui le demander.
+  annulerPartie?: boolean;
 }) {
   const [envoi, setEnvoi] = useState(false);
   // « Code de connexion » des livreurs : gérant ou responsable, réglage connexion_livreur_par_code ouvert.
@@ -67,7 +70,12 @@ export function OngletLivraisons({
   const { boutons, menu } = choixLivreurs(donnees.livreurs, donnees.prevus);
   const avecLivraison = new Set(donnees.livraisons.map((l) => l.livreur_id));
   const tournees = tourneesAffichees(donnees.livreurs, donnees.prevus, avecLivraison);
-  const prevusNoms = boutons.map((l) => l.nom);
+  // Les boutons réunissent les prévus au planning et ceux dont la page est ouverte : on les nomme à part (M11 de la
+  // mise en situation : « Prévus ce soir » listait des livreurs absents du planning).
+  const auPlanning = new Set(donnees.prevus?.ids ?? []);
+  const prevusNoms = boutons.filter((l) => auPlanning.has(l.id)).map((l) => l.nom);
+  const ouvertsNoms = boutons.filter((l) => !auPlanning.has(l.id)).map((l) => l.nom);
+  const moment = donnees.prevus?.service === "midi" ? "midi" : "soir";
 
   return (
     <div className="liv-tablette">
@@ -78,9 +86,9 @@ export function OngletLivraisons({
         {actifs.length === 0 && <p className="tab-message">Aucun livreur dans l&apos;équipe. Le gérant en ajoute un au back-office, rubrique « Équipe ».</p>}
         {actifs.length > BOUTONS_MAX && (
           <p className="tab-meta">
-            {prevusNoms.length > 0
-              ? `Prévus ce ${donnees.prevus?.service === "midi" ? "midi" : "soir"} : ${prevusNoms.join(", ")}.`
-              : `Personne au planning de ce ${donnees.prevus?.service === "midi" ? "midi" : "soir"} : choisissez dans « Donner à… ».`}
+            {prevusNoms.length > 0 ? `Prévus ce ${moment} : ${prevusNoms.join(", ")}.` : `Personne au planning de ce ${moment}.`}
+            {ouvertsNoms.length > 0 ? ` Page ouverte sur leur téléphone : ${ouvertsNoms.join(", ")}.` : ""}
+            {menu.length > 0 ? " Les autres sont dans « Donner à… »." : ""}
           </p>
         )}
         {aAttribuer.length === 0 ? (
@@ -141,6 +149,7 @@ export function OngletLivraisons({
             envoi={envoi}
             faire={faire}
             codeAutorise={codeAutorise}
+            annulerPartie={annulerPartie}
           />
         ))}
       </div>
@@ -164,6 +173,7 @@ function Tournee({
   envoi,
   faire,
   codeAutorise = false,
+  annulerPartie = false,
 }: {
   livreur: LivreurTablette;
   autres: LivreurTablette[];
@@ -174,6 +184,7 @@ function Tournee({
   envoi: boolean;
   faire: (corps: Record<string, unknown>) => Promise<void>;
   codeAutorise?: boolean;
+  annulerPartie?: boolean;
 }) {
   const [confirmer, setConfirmer] = useState<string | null>(null);
   const actives = livraisons.filter((x) => EN_COURS.includes(x.commande_statut));
@@ -228,10 +239,19 @@ function Tournee({
                   )}
                   {x.probleme && (
                     <p className="liv-souci-texte">
-                      Problème à {x.probleme_le ? heure(x.probleme_le) : "…"} : {problemeTexte(x)}. Appelez le client ou {livreur.nom}, puis touchez « Problème réglé »
+                      Problème à {x.probleme_le ? heure(x.probleme_le) : "…"} : {problemeTexte(x)}. Appelez le client
+                      {c?.client_telephone ? (
+                        <>
+                          {" "}
+                          (<a href={`tel:${c.client_telephone.replace(/[^+\d]/g, "")}`}>{c.client_telephone}</a>)
+                        </>
+                      ) : null}{" "}
+                      ou {livreur.nom}, puis touchez « Problème réglé »
                       {x.probleme === "client_absent" && x.commande_statut === "partie"
                         ? " s'il répond, ou « Client absent : clore » s'il ne répond pas."
-                        : " ou annulez la commande dans « En cours »."}
+                        : annulerPartie || x.commande_statut !== "partie"
+                          ? " ou annulez la commande dans « En cours »."
+                          : " ou demandez au gérant ou au responsable de service d'annuler la commande (elle est remboursée)."}
                     </p>
                   )}
                   {confirmer === x.commande_id && (
