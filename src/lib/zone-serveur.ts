@@ -1,5 +1,5 @@
 import "server-only";
-import { adresseOfficielle, retrouverAdresse } from "@/lib/adresse-serveur";
+import { adresseOfficielle, registreRepond, retrouverAdresse } from "@/lib/adresse-serveur";
 import { chargerOptionsCommande } from "@/lib/options-commande";
 import { zonePour, zonePourNpaSeul, type ConfigService, type Zone } from "@/lib/service";
 import { MESSAGE_REGISTRE_EN_PANNE } from "@/lib/registre-panne";
@@ -15,6 +15,8 @@ export function champ(v: unknown): string | null {
 
 // nonVerifiee : acceptée sur son seul NPA pendant une panne du registre fédéral (C15). Enregistrée avec la
 // commande : la tablette avertit l'équipe, qui contrôle la rue avant d'accepter.
+const INTROUVABLE = { erreur: "Nous ne trouvons pas cette adresse. Vérifiez\u2011la, ou appelez\u2011nous au 022\u00a0792\u00a016\u00a089.", code: 422 } as const;
+
 export type AdresseRetenue = { rue: string; numero: string; npa: string; localite: string; featureId?: string; nonVerifiee?: true };
 
 export type ResultatZoneServeur =
@@ -39,11 +41,9 @@ export async function zoneServeur(config: ConfigService, adresse: unknown, exige
     try {
       featureId = await retrouverAdresse({ rue, numero, npa, localite });
     } catch {
-      return surLeNpaSeul(config, a);
+      return siPanne(config, a);
     }
-    if (!featureId) {
-      return { erreur: "Nous ne trouvons pas cette adresse. Vérifiez\u2011la, ou appelez\u2011nous au 022\u00a0792\u00a016\u00a089.", code: 422 };
-    }
+    if (!featureId) return INTROUVABLE;
   }
   let npa: string | null;
   let localite: string | null;
@@ -54,7 +54,7 @@ export async function zoneServeur(config: ConfigService, adresse: unknown, exige
     try {
       officielle = await adresseOfficielle(featureId);
     } catch {
-      return surLeNpaSeul(config, a);
+      return siPanne(config, a);
     }
     if (!officielle) return { erreur: "Adresse introuvable dans le registre fédéral.", code: 422 };
     if (officielle.canton !== "GE") return { statut: "hors-zone", verifiee: true };
@@ -78,6 +78,12 @@ export async function zoneServeur(config: ConfigService, adresse: unknown, exige
   if (r.statut === "livrable") return { statut: "livrable", zone: r.zone, verifiee, adresse: retenue };
   if (r.statut === "zone-fermee" && r.jusqua) return { statut: "zone-fermee", verifiee, jusqua: r.jusqua };
   return { statut: "hors-zone", verifiee };
+}
+
+// Erreur du registre sur l'adresse du client : panne seulement si une adresse connue ne répond pas non plus.
+// Sinon l'adresse est introuvable, et un client ne peut pas provoquer le repli exprès (relecture de qualite, #222).
+async function siPanne(config: ConfigService, a: Record<string, unknown>): Promise<ResultatZoneServeur> {
+  return (await registreRepond()) ? INTROUVABLE : surLeNpaSeul(config, a);
 }
 
 // Registre fédéral muet (panne, délai dépassé). Réglage npa_seul_en_panne_actif (C15) : l'adresse tapée est

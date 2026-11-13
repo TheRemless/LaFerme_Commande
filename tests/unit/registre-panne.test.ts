@@ -17,6 +17,8 @@ vi.mock("@/lib/adresse-serveur", async (original) => ({
   retrouverAdresse: async () => {
     throw new Error("Registre des bâtiments indisponible (503)");
   },
+  // L'adresse témoin ne répond pas non plus : c'est une vraie panne.
+  registreRepond: async () => false,
 }));
 
 let config: ConfigService;
