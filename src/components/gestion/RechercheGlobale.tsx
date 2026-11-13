@@ -54,10 +54,15 @@ function Fenetre({ fermer }: { fermer: () => void }) {
   const [actif, setActif] = useState(0);
   const sequence = useRef(0);
 
+  // Le focus revient où il était (le bouton « Chercher », ou le champ d'où l'on a tapé ⌘K).
   useEffect(() => {
+    const retour = document.activeElement;
     const d = boite.current!;
     if (!d.open) d.showModal();
     champ.current?.focus();
+    return () => {
+      if (retour instanceof HTMLElement && retour.isConnected) retour.focus();
+    };
   }, []);
 
   // La dernière frappe gagne : une réponse plus ancienne arrivée en retard est jetée.
