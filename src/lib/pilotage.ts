@@ -51,7 +51,10 @@ export type Synthese = {
 
 export type Bornes = { debut: string; fin: string };
 
+export type Service = "midi" | "soir";
+
 export type TableauVentes = {
+  service: Service | null;
   periode: Bornes & Synthese;
   comparaison: Bornes & Synthese;
   jours: { jour: string; commandes: number; ttc_centimes: number; refusees: number }[];
@@ -70,7 +73,7 @@ function finDeMois(jour: string): string {
   return d.toISOString().slice(0, 10);
 }
 
-export type Demande = Bornes & { comparaison?: Bornes };
+export type Demande = Bornes & { comparaison?: Bornes; service?: Service };
 
 // Bornes d'une période autour d'un jour de référence. La semaine va du lundi au dimanche. Le mois se
 // compare au mois civil précédent (la base, sans comparaison donnée, prendrait la même durée juste avant).
@@ -96,8 +99,21 @@ function bornesValides(debut: unknown, fin: unknown): Bornes | null {
 }
 
 // Lecture des paramètres de la route : ?periode=jour|semaine|mois&jour=AAAA-MM-JJ, ou ?debut=…&fin=…
-// (période choisie) avec, si l'on veut, &comp_debut=…&comp_fin=…
+// (période choisie) avec, si l'on veut, &comp_debut=…&comp_fin=…, et &service=midi|soir pour un seul service.
 export function lireDemande(q: URLSearchParams, aujourdhui: string = jourDeService()): Demande | null {
+  const s = q.get("service");
+  if (s !== null && s !== "midi" && s !== "soir") return null;
+  const d = lirePeriode(q, aujourdhui);
+  return d && s ? { ...d, service: s } : d;
+}
+
+// Service en cours ou du dernier service : avant 15h à Genève, midi (même bascule que le plat du jour).
+export function serviceDe(maintenant: Date = new Date()): Service {
+  const h = Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Zurich", hour: "2-digit", hourCycle: "h23" }).format(maintenant));
+  return h >= 5 && h < 15 ? "midi" : "soir";
+}
+
+function lirePeriode(q: URLSearchParams, aujourdhui: string): Demande | null {
   const type = q.get("periode") ?? "jour";
   if (type === "jour" || type === "semaine" || type === "mois") {
     const ref = q.has("jour") ? dateValide(q.get("jour")) : aujourdhui;

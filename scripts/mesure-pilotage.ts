@@ -40,17 +40,19 @@ async function main() {
   const nb = (await db.query<{ n: number }>("select count(*)::int as n from commandes")).rows[0].n;
   console.log(`Base : ${nb} commandes sur ${JOURS} jours, écrites en ${Math.round(performance.now() - t0)} ms`);
 
-  const cas: [string, string, string][] = [
-    ["jour", FIN, FIN],
-    ["semaine", "2026-12-21", "2026-12-27"],
-    ["mois (30 jours)", "2026-12-01", "2026-12-31"],
-    ["année", "2026-01-01", FIN],
+  const cas: [string, string, string, string | null][] = [
+    ["jour", FIN, FIN, null],
+    ["soir seul", FIN, FIN, "soir"],
+    ["mois, soir seul", "2026-12-01", FIN, "soir"],
+    ["semaine", "2026-12-21", "2026-12-27", null],
+    ["mois (30 jours)", "2026-12-01", "2026-12-31", null],
+    ["année", "2026-01-01", FIN, null],
   ];
-  for (const [nom, debut, fin] of cas) {
+  for (const [nom, debut, fin, service] of cas) {
     const temps: number[] = [];
     for (let i = 0; i < 5; i += 1) {
       const t = performance.now();
-      await db.query("select pilotage_ventes($1::date, $2::date)", [debut, fin]);
+      await db.query("select pilotage_ventes($1::date, $2::date, null, null, $3)", [debut, fin, service]);
       temps.push(performance.now() - t);
     }
     temps.sort((a, b) => a - b);

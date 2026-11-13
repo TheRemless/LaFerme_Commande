@@ -15,18 +15,40 @@
 create index remboursements_ouverts_idx on remboursements (cree_le) where statut in ('en_cours', 'echec');
 create index remboursements_echec_idx on remboursements (statut) where statut = 'echec';
 
-create function pilotage_synthese(p_debut date, p_fin date) returns jsonb
+-- Service d'un instant : avant 15h à Genève, midi ; ensuite, soir (même bascule que le plat du jour,
+-- src/lib/plat-du-jour.ts).
+create function pilotage_service_heure(p_le timestamptz) returns text
+language sql immutable as $$
+  select case when extract(hour from p_le at time zone 'Europe/Zurich') < 15 then 'midi' else 'soir' end;
+$$;
+
+-- Service d'une commande : son heure confirmée, sinon le créneau choisi, sinon l'heure où elle a été passée.
+create function pilotage_service_de(o commandes) returns text
+language sql stable as $$
+  select pilotage_service_heure(coalesce(
+    o.heure_confirmee,
+    case when o.quand_type = 'creneau' and o.quand_date is not null and o.quand_minutes is not null
+      then (o.quand_date + make_interval(mins => o.quand_minutes::integer)) at time zone 'Europe/Zurich' end,
+    o.cree_le
+  ));
+$$;
+
+-- p_service : null pour toute la journée, 'midi' ou 'soir' pour un seul service. Les remboursements suivent
+-- alors l'heure où ils ont été faits (ou demandés).
+create function pilotage_synthese(p_debut date, p_fin date, p_service text default null) returns jsonb
 language sql stable as $$
   with prises as (
     select o.mode, o.moyen_paiement, o.statut_paiement, o.total_centimes, o.tva_centimes, o.frais_centimes, o.taux_tva_pourcent
     from commandes o
     where o.jour_service between p_debut and p_fin
       and o.statut not in ('paiement_en_attente', 'annulee', 'refusee')
+      and (p_service is null or pilotage_service_de(o) = p_service)
   ),
   refusees as (
     select o.total_centimes, coalesce(nullif(btrim(o.motif), ''), 'Sans motif') as motif
     from commandes o
     where o.jour_service between p_debut and p_fin and o.statut = 'refusee'
+      and (p_service is null or pilotage_service_de(o) = p_service)
   ),
   faits as (
     select r.montant_centimes, r.moyen, o.taux_tva_pourcent
@@ -35,6 +57,7 @@ language sql stable as $$
       and r.fait_le >= (p_debut::timestamp at time zone 'Europe/Zurich')
       and r.fait_le < ((p_fin + 1)::timestamp at time zone 'Europe/Zurich')
       and o.statut not in ('refusee', 'annulee')
+      and (p_service is null or pilotage_service_heure(r.fait_le) = p_service)
   ),
   ouverts as (
     select r.statut, r.montant_centimes
@@ -42,6 +65,7 @@ language sql stable as $$
     where r.statut in ('en_cours', 'echec')
       and r.cree_le >= (p_debut::timestamp at time zone 'Europe/Zurich')
       and r.cree_le < ((p_fin + 1)::timestamp at time zone 'Europe/Zurich')
+      and (p_service is null or pilotage_service_heure(r.cree_le) = p_service)
   ),
   taux as (
     select t.taux, sum(t.ttc)::bigint as ttc, sum(t.tva)::bigint as tva, sum(t.rembourse)::bigint as rembourse, sum(t.tva_rembourse)::bigint as tva_rembourse
@@ -123,7 +147,7 @@ $$;
 -- commande compris, pour les graphiques). Sans bornes de comparaison : les mêmes jours de la semaine
 -- précédente pour moins de 7 jours (un vendredi se compare au vendredi d'avant), sinon la même durée
 -- juste avant. Un an au plus de chaque côté.
-create function pilotage_ventes(p_debut date, p_fin date, p_comp_debut date default null, p_comp_fin date default null) returns jsonb
+create function pilotage_ventes(p_debut date, p_fin date, p_comp_debut date default null, p_comp_fin date default null, p_service text default null) returns jsonb
 language plpgsql stable as $$
 declare
   n integer := p_fin - p_debut + 1;
@@ -134,9 +158,13 @@ begin
   if p_debut is null or p_fin is null or n < 1 or n > 366 or (p_comp_debut is null) <> (p_comp_fin is null) or cf < cd or cf - cd + 1 > 366 then
     raise exception 'Période invalide (un an au plus)';
   end if;
+  if p_service is not null and p_service not in ('midi', 'soir') then
+    raise exception 'Service invalide (midi ou soir)';
+  end if;
   return jsonb_build_object(
-    'periode', jsonb_build_object('debut', p_debut, 'fin', p_fin) || pilotage_synthese(p_debut, p_fin),
-    'comparaison', jsonb_build_object('debut', cd, 'fin', cf) || pilotage_synthese(cd, cf),
+    'service', p_service,
+    'periode', jsonb_build_object('debut', p_debut, 'fin', p_fin) || pilotage_synthese(p_debut, p_fin, p_service),
+    'comparaison', jsonb_build_object('debut', cd, 'fin', cf) || pilotage_synthese(cd, cf, p_service),
     'jours', (
       select jsonb_agg(jsonb_build_object(
         'jour', d.jour, 'commandes', coalesce(x.commandes, 0), 'ttc_centimes', coalesce(x.ttc, 0), 'refusees', coalesce(x.refusees, 0)
@@ -149,6 +177,7 @@ begin
           count(*) filter (where o.statut = 'refusee') as refusees
         from commandes o
         where o.jour_service between p_debut and p_fin and o.statut not in ('paiement_en_attente', 'annulee')
+          and (p_service is null or pilotage_service_de(o) = p_service)
         group by o.jour_service
       ) x on x.jour_service = d.jour
     )
@@ -156,5 +185,7 @@ begin
 end;
 $$;
 
-revoke execute on function pilotage_synthese(date, date), pilotage_ventes(date, date, date, date) from public, anon, authenticated;
-grant execute on function pilotage_synthese(date, date), pilotage_ventes(date, date, date, date) to service_role;
+revoke execute on function pilotage_service_heure(timestamptz), pilotage_service_de(commandes), pilotage_synthese(date, date, text),
+  pilotage_ventes(date, date, date, date, text) from public, anon, authenticated;
+grant execute on function pilotage_service_heure(timestamptz), pilotage_service_de(commandes), pilotage_synthese(date, date, text),
+  pilotage_ventes(date, date, date, date, text) to service_role;

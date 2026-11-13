@@ -102,8 +102,9 @@ Calculés en base, jamais dans le navigateur. Migration `supabase/migrations/202
 | Remboursements en cours, en échec | Au jour de la demande, refusées comprises |
 | Net TTC | TTC moins remboursements faits. TVA par taux : ventes, remboursements et net |
 | Refus | Nombre, montant et les huit motifs les plus fréquents (majuscules et espaces ignorés) |
+| Service | `&service=midi` ou `&service=soir` : un seul service, comparé au même service. Une commande est du soir si son heure confirmée, sinon son créneau, sinon l'heure où elle a été passée, est à 15h ou plus tard (même bascule que le plat du jour). Un remboursement suit l'heure où il a été fait |
 | Comparaison | Sans choix : les mêmes jours de la semaine précédente pour moins de 7 jours, sinon la même durée juste avant. Le mois se compare au mois civil précédent. La semaine va du lundi au dimanche |
 
 Paramètres de la route : `?periode=jour|semaine|mois&jour=AAAA-MM-JJ`, ou `?periode=choisie&debut=…&fin=…` (et `&comp_debut=…&comp_fin=…`). Un an au plus de chaque côté. Les fonctions SQL ne s'exécutent que pour le serveur (`service_role`) et ne rendent aucune donnée personnelle.
 
-Mesure (`npx tsx --conditions=react-server scripts/mesure-pilotage.ts`, base embarquée, 109 500 commandes sur un an, 13.11.2026) : un jour 3 ms, une semaine 5 ms, un mois 19 ms, une année 138 ms, comparaison comprise. Aucune table de cumuls nécessaire à ce volume.
+Mesure (`npx tsx --conditions=react-server scripts/mesure-pilotage.ts`, base embarquée, 109 500 commandes sur un an, 13.11.2026) : un jour 3 ms, une semaine 5 ms, un mois 19 ms, une année 138 ms, comparaison comprise. Avec un seul service (Mac chargé par les autres sessions, deuxième passage) : un soir 9 ms, un mois de soirs 37 ms ; dans ce même passage, le mois entier 30 ms et l'année 235 ms. Aucune table de cumuls nécessaire à ce volume.

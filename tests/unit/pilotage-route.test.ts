@@ -41,5 +41,9 @@ describe("GET /api/gestion/pilotage/ventes", () => {
     expect(mois.periode).toMatchObject({ debut: "2026-12-01", fin: "2026-12-31" });
     expect(mois.comparaison).toMatchObject({ debut: "2026-11-01", fin: "2026-11-30" });
     expect(mois.jours).toHaveLength(31);
+
+    const soir = (await (await appel("periode=jour&jour=2026-12-04&service=soir")).json()) as TableauVentes;
+    expect(soir.service).toBe("soir");
+    expect((await appel("periode=jour&service=nuit")).status).toBe(422);
   });
 });

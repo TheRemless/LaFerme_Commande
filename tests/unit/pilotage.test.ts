@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bornes, ecart, jourDeService, lireDemande } from "@/lib/pilotage";
+import { bornes, ecart, jourDeService, lireDemande, serviceDe } from "@/lib/pilotage";
 
 const q = (s: string) => new URLSearchParams(s);
 
@@ -41,6 +41,14 @@ describe("périodes du tableau des ventes", () => {
     ]) {
       expect(lireDemande(q(s)), s).toBeNull();
     }
+  });
+
+  it("lit le service et devine le service en cours", () => {
+    expect(lireDemande(q("periode=jour&jour=2026-12-04&service=soir"))).toEqual({ debut: "2026-12-04", fin: "2026-12-04", service: "soir" });
+    expect(lireDemande(q("periode=jour&jour=2026-12-04&service=nuit"))).toBeNull();
+    expect(serviceDe(new Date("2026-12-04T11:00:00Z"))).toBe("midi"); // 12h à Genève
+    expect(serviceDe(new Date("2026-12-04T14:00:00Z"))).toBe("soir"); // 15h
+    expect(serviceDe(new Date("2026-12-05T01:00:00Z"))).toBe("soir"); // 2h : encore le soir de la veille
   });
 
   it("écart en pour cent, sans division par zéro", () => {

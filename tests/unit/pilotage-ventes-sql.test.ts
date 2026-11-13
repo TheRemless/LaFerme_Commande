@@ -24,6 +24,9 @@ type Commande = {
   tva?: number;
   taux?: number;
   motif?: string | null;
+  heure?: string;
+  confirmee?: string | null;
+  creneau?: number | null;
 };
 
 async function commande(c: Commande): Promise<string> {
@@ -31,10 +34,13 @@ async function commande(c: Commande): Promise<string> {
   const total = c.total ?? 5000;
   const r = await db.query<{ id: string }>(
     `insert into commandes (numero, jour, jour_service, jeton_suivi, cle_idempotence, mode, statut, statut_paiement, moyen_paiement,
-       client_prenom, client_nom, client_telephone, client_email, quand_type, pizzas_seulement,
-       sous_total_centimes, frais_centimes, total_centimes, tva_centimes, taux_tva_pourcent, origine, motif, cree_le)
-     values ($1, $2, $2, $3, $3, $4, $5, $6, $7, 'Prénom', 'Nom', '079 000 00 00', 'client@laferme.test', 'asap', false,
-       $8, $9, $10, $11, $12, 'http://localhost:3000', $13, ($2::date + time '19:00') at time zone 'Europe/Zurich')
+       client_prenom, client_nom, client_telephone, client_email, pizzas_seulement,
+       sous_total_centimes, frais_centimes, total_centimes, tva_centimes, taux_tva_pourcent, origine, motif, cree_le,
+       heure_confirmee, quand_type, quand_date, quand_minutes)
+     values ($1, $2, $2, $3, $3, $4, $5, $6, $7, 'Prénom', 'Nom', '079 000 00 00', 'client@laferme.test', false,
+       $8, $9, $10, $11, $12, 'http://localhost:3000', $13, ($2::date + $14::time) at time zone 'Europe/Zurich',
+       ($2::date + $15::time) at time zone 'Europe/Zurich',
+       case when $16::smallint is null then 'asap' else 'creneau' end, case when $16::smallint is not null then $2::date end, $16::smallint)
      returning id`,
     [
       n,
@@ -50,6 +56,9 @@ async function commande(c: Commande): Promise<string> {
       c.tva ?? Math.round((total * 2.6) / 102.6),
       c.taux ?? 2.6,
       c.motif ?? null,
+      c.heure ?? "19:00",
+      c.confirmee ?? null,
+      c.creneau ?? null,
     ],
   );
   return r.rows[0].id;
@@ -219,6 +228,33 @@ describe("comparaison et jours", () => {
     await expect(ventes("2026-12-05", "2026-12-04")).rejects.toThrow(/Période invalide/);
     await expect(ventes("2025-01-01", "2026-12-31")).rejects.toThrow(/Période invalide/);
     await expect(f("pilotage_ventes('2026-12-01', '2026-12-31', '2026-11-01', null)")).rejects.toThrow(/Période invalide/);
+  });
+});
+
+describe("un seul service", () => {
+  it("sépare midi et soir à 15h : heure confirmée, sinon créneau, sinon heure de la commande", async () => {
+    await commande({ jour: "2026-12-04", heure: "11:40", total: 1000 }); // midi
+    await commande({ jour: "2026-12-04", heure: "14:50", confirmee: "15:20", total: 2000 }); // soir par l'heure confirmée
+    await commande({ jour: "2026-12-04", heure: "10:00", creneau: 19 * 60 + 30, total: 4000 }); // créneau du soir
+    await commande({ jour: "2026-12-04", heure: "19:00", total: 8000 }); // soir
+    await commande({ jour: "2026-11-27", heure: "20:00", total: 500 }); // soir de J-7
+    const midi = await f<TableauVentes>("pilotage_ventes('2026-12-04', '2026-12-04', null, null, 'midi')");
+    const soir = await f<TableauVentes>("pilotage_ventes('2026-12-04', '2026-12-04', null, null, 'soir')");
+    expect(midi).toMatchObject({ service: "midi", periode: { commandes: 1, ttc_centimes: 1000 }, comparaison: { commandes: 0 } });
+    expect(soir).toMatchObject({ service: "soir", periode: { commandes: 3, ttc_centimes: 14000 }, comparaison: { debut: "2026-11-27", commandes: 1, ttc_centimes: 500 } });
+    expect(soir.jours).toEqual([{ jour: "2026-12-04", commandes: 3, ttc_centimes: 14000, refusees: 0 }]);
+    expect((await ventes("2026-12-04", "2026-12-04")).service).toBeNull();
+  });
+
+  it("les remboursements suivent l'heure où ils ont été faits, un service inconnu est refusé", async () => {
+    const a = await commande({ jour: "2026-12-04", heure: "19:00" });
+    await remboursement(a, 300, "fait", "2026-12-04T11:00:00Z"); // 12h à Genève
+    await remboursement(a, 700, "fait", "2026-12-04T19:00:00Z"); // 20h
+    const midi = await f<TableauVentes>("pilotage_ventes('2026-12-04', '2026-12-04', null, null, 'midi')");
+    const soir = await f<TableauVentes>("pilotage_ventes('2026-12-04', '2026-12-04', null, null, 'soir')");
+    expect(midi.periode.remboursements.faits_centimes).toBe(300);
+    expect(soir.periode.remboursements.faits_centimes).toBe(700);
+    await expect(f("pilotage_ventes('2026-12-04', '2026-12-04', null, null, 'nuit')")).rejects.toThrow(/Service invalide/);
   });
 });
 
