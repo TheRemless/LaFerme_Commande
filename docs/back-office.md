@@ -98,8 +98,8 @@ Calculés en base, jamais dans le navigateur. Migration `supabase/migrations/202
 | TTC | Total payé par le client, frais de livraison compris. HT = TTC moins la TVA de la commande |
 | Panier moyen | TTC des commandes prises divisé par leur nombre |
 | Encaissé, à encaisser | Payé en ligne ou encaissé au comptoir ; commandes au comptoir pas encore encaissées |
-| Remboursements faits | Au jour du remboursement (heure de Genève), comme l'export, sans ceux d'une commande refusée |
-| Remboursements en cours, en échec | Au jour de la demande, refusées comprises |
+| Remboursements faits | Au jour de service où ils sont faits (de 5h à 5h, heure de Genève), comme les ventes, sans ceux d'une commande refusée. L'export comptable garde le jour civil |
+| Remboursements en cours, en échec | Au jour de service de la demande, refusées comprises |
 | Net TTC | TTC moins remboursements faits. TVA par taux : ventes, remboursements et net |
 | Refus | Nombre, montant et les huit motifs les plus fréquents (majuscules et espaces ignorés) |
 | Service | `&service=midi` ou `&service=soir` : un seul service, comparé au même service. Une commande est du soir si son heure confirmée, sinon son créneau, sinon l'heure où elle a été passée, est à 15h ou plus tard (même bascule que le plat du jour). Un remboursement suit l'heure où il a été fait |

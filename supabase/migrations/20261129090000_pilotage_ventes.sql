@@ -7,19 +7,20 @@
 -- - Commande prise : ni refusée, ni annulée, ni en attente de paiement. Elle compte qu'elle soit encaissée
 --   ou encore à encaisser au comptoir.
 -- - TTC = total payé par le client, frais de livraison compris. HT = TTC moins la TVA de la commande.
--- - Remboursements faits : comptés au jour du remboursement (heure de Genève), comme l'export comptable,
---   sans ceux d'une commande refusée (elle n'a jamais été une vente). En cours et en échec : au jour de la
---   demande, refusées comprises (de l'argent qui n'est pas encore rendu au client).
+-- - Remboursements faits : comptés au jour de service où ils sont faits (de 5h à 5h le lendemain, heure de
+--   Genève, comme les ventes), sans ceux d'une commande refusée (elle n'a jamais été une vente). En cours et
+--   en échec : au jour de service de la demande, refusées comprises (argent pas encore rendu au client).
+--   L'export comptable, lui, garde le jour civil.
 
--- Le remboursement d'un jour se cherche par instant (index remboursements_fait_idx), pas par date calculée.
-create index remboursements_ouverts_idx on remboursements (cree_le) where statut in ('en_cours', 'echec');
+-- Le remboursement d'un jour se cherche par instant (index remboursements_fait_idx et celui-ci), pas par date calculée.
+create index remboursements_cree_idx on remboursements (cree_le);
 create index remboursements_echec_idx on remboursements (statut) where statut = 'echec';
 
--- Service d'un instant : avant 15h à Genève, midi ; ensuite, soir (même bascule que le plat du jour,
--- src/lib/plat-du-jour.ts).
+-- Service d'un instant : de 5h à 15h à Genève, midi ; ensuite, soir jusqu'à 5h le lendemain (même bascule
+-- que le plat du jour, src/lib/plat-du-jour.ts, et que le jour de service).
 create function pilotage_service_heure(p_le timestamptz) returns text
 language sql immutable as $$
-  select case when extract(hour from p_le at time zone 'Europe/Zurich') < 15 then 'midi' else 'soir' end;
+  select case when extract(hour from p_le at time zone 'Europe/Zurich') between 5 and 14 then 'midi' else 'soir' end;
 $$;
 
 -- Service d'une commande : son heure confirmée, sinon le créneau choisi, sinon l'heure où elle a été passée.
@@ -54,8 +55,8 @@ language sql stable as $$
     select r.montant_centimes, r.moyen, o.taux_tva_pourcent
     from remboursements r join commandes o on o.id = r.commande_id
     where r.statut = 'fait'
-      and r.fait_le >= (p_debut::timestamp at time zone 'Europe/Zurich')
-      and r.fait_le < ((p_fin + 1)::timestamp at time zone 'Europe/Zurich')
+      and r.fait_le >= ((p_debut + time '05:00') at time zone 'Europe/Zurich')
+      and r.fait_le < ((p_fin + 1 + time '05:00') at time zone 'Europe/Zurich')
       and o.statut not in ('refusee', 'annulee')
       and (p_service is null or pilotage_service_heure(r.fait_le) = p_service)
   ),
@@ -63,8 +64,8 @@ language sql stable as $$
     select r.statut, r.montant_centimes
     from remboursements r
     where r.statut in ('en_cours', 'echec')
-      and r.cree_le >= (p_debut::timestamp at time zone 'Europe/Zurich')
-      and r.cree_le < ((p_fin + 1)::timestamp at time zone 'Europe/Zurich')
+      and r.cree_le >= ((p_debut + time '05:00') at time zone 'Europe/Zurich')
+      and r.cree_le < ((p_fin + 1 + time '05:00') at time zone 'Europe/Zurich')
       and (p_service is null or pilotage_service_heure(r.cree_le) = p_service)
   ),
   taux as (

@@ -125,16 +125,18 @@ describe("synthèse des ventes d'une période", () => {
     ]);
   });
 
-  it("déduit les remboursements faits au jour du remboursement, heure de Genève, sans ceux d'une commande refusée", async () => {
+  it("déduit les remboursements faits au jour de service (5h à 5h, heure de Genève), sans ceux d'une commande refusée", async () => {
     const a = await commande({ jour: "2026-12-01", total: 6000 });
     const b = await commande({ jour: "2026-12-04", total: 4000, moyen: "comptoir", paiement: "encaisse" });
     const refusee = await commande({ jour: "2026-12-04", total: 3000, statut: "refusee", motif: "Fermé", paiement: "rembourse" });
-    // 4.12 à 00h30 à Genève = 3.12 à 23h30 UTC : compte le 4.12.
-    await remboursement(a, 1000, "fait", "2026-12-03T23:30:00Z");
+    // 4.12 à 6h à Genève : jour de service du 4.12.
+    await remboursement(a, 1000, "fait", "2026-12-04T05:00:00Z");
+    // 4.12 à 0h30 à Genève : encore le jour de service du 3.12.
+    await remboursement(a, 900, "fait", "2026-12-03T23:30:00Z");
     await remboursement(b, 500, "fait", "2026-12-04T19:00:00Z", "especes");
     await remboursement(refusee, 3000, "fait", "2026-12-04T19:05:00Z");
-    // 4.12 à 23h30 UTC = 5.12 à Genève : hors période.
-    await remboursement(a, 200, "fait", "2026-12-04T23:30:00Z");
+    // 5.12 à 5h30 à Genève : jour de service du 5.12, hors période.
+    await remboursement(a, 200, "fait", "2026-12-05T04:30:00Z");
     await remboursement(b, 300, "en_cours", "2026-12-04T20:00:00Z");
     await remboursement(refusee, 700, "echec", "2026-12-04T20:00:00Z");
 
@@ -250,10 +252,11 @@ describe("un seul service", () => {
     const a = await commande({ jour: "2026-12-04", heure: "19:00" });
     await remboursement(a, 300, "fait", "2026-12-04T11:00:00Z"); // 12h à Genève
     await remboursement(a, 700, "fait", "2026-12-04T19:00:00Z"); // 20h
+    await remboursement(a, 50, "fait", "2026-12-04T23:30:00Z"); // 0h30 le 5.12 : encore le soir du 4.12
     const midi = await f<TableauVentes>("pilotage_ventes('2026-12-04', '2026-12-04', null, null, 'midi')");
     const soir = await f<TableauVentes>("pilotage_ventes('2026-12-04', '2026-12-04', null, null, 'soir')");
     expect(midi.periode.remboursements.faits_centimes).toBe(300);
-    expect(soir.periode.remboursements.faits_centimes).toBe(700);
+    expect(soir.periode.remboursements.faits_centimes).toBe(750);
     await expect(f("pilotage_ventes('2026-12-04', '2026-12-04', null, null, 'nuit')")).rejects.toThrow(/Service invalide/);
   });
 });
