@@ -6,6 +6,9 @@ import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "re
 import { adresseTexte, chercherAdresses, numeroTape, type Adresse, type Details } from "@/lib/adresse";
 import { ecrireChoix, lireChoix, type Quand, type ZoneChoisie } from "@/lib/choix";
 import { prixCourt } from "@/lib/prix";
+import { messageZoneFermee } from "@/lib/zone-fermee";
+import { fourchette } from "@/lib/heure-reelle";
+import { plageTexte } from "@/lib/plage-heure";
 import {
   creneaux,
   depuisHeureGeneve,
@@ -24,11 +27,14 @@ import {
   type CreneauPlein,
 } from "@/lib/service";
 import { Icone } from "@/components/Icone";
+import { RepriseCommande, type DerniereCommande } from "@/components/accueil/RepriseCommande";
 
 type Verdict =
   // adresse : l'adresse officielle du registre fédéral quand le serveur l'a retrouvée (saisie à la main).
   | { statut: "livrable"; zone: ZoneChoisie; verifiee: boolean; controleImpossible?: boolean; adresse?: Adresse }
   | { statut: "hors-zone" }
+  // Zone fermée jusqu'à une heure (back-office) : on dit quand la livraison reprend.
+  | { statut: "zone-fermee"; jusqua: string }
   | { statut: "introuvable"; message: string }
   | { statut: "verification" }
   | { statut: "attente" };
@@ -37,7 +43,13 @@ const DETAILS_VIDES: Details = { etage: "", sonnette: "", code: "", instructions
 
 export type AdresseEnregistree = { id: string; adresse: Adresse; details: Partial<Details> };
 
-type ReponseAccueil = { maintenant: number; heureSimulee: string | null; adresses: AdresseEnregistree[]; pleins?: CreneauPlein[] };
+type ReponseAccueil = {
+  maintenant: number;
+  heureSimulee: string | null;
+  adresses: AdresseEnregistree[];
+  derniere?: DerniereCommande | null;
+  pleins?: CreneauPlein[];
+};
 
 export function ChoixCommande({
   config,
@@ -55,6 +67,10 @@ export function ChoixCommande({
   const [suggestions, setSuggestions] = useState<Adresse[]>([]);
   const [rechercheEchouee, setRechercheEchouee] = useState(false);
   const [adresse, setAdresse] = useState<Adresse | null>(null);
+  // Client connecté : sa dernière commande, à reprendre dès l'accueil (vague 3). Une fois reprise, le
+  // bouton mène au panier au lieu de la carte.
+  const [derniere, setDerniere] = useState<DerniereCommande | null>(null);
+  const [reprise, setReprise] = useState(false);
   // Numéro tapé quand la suggestion choisie en porte un autre (CM-07).
   const [numeroDifferent, setNumeroDifferent] = useState<string | null>(null);
   const [manuel, setManuel] = useState(false);
@@ -100,6 +116,7 @@ export function ChoixCommande({
         setMaintenant(new Date(Date.now() + decalage));
         setHeureSimulee(r.heureSimulee ?? undefined);
         setAdressesEnregistrees(r.adresses);
+        setDerniere(r.derniere ?? null);
         setPleins(r.pleins ?? []);
       })
       .catch(() => {
@@ -175,7 +192,12 @@ export function ChoixCommande({
       return;
     }
     const local = zonePour(config, adresseRetenue.npa, adresseRetenue.localite);
-    const verdictLocal: Verdict = local.statut === "livrable" ? { statut: "livrable", zone: local.zone, verifiee: false } : { statut: "hors-zone" };
+    const verdictLocal: Verdict =
+      local.statut === "livrable"
+        ? { statut: "livrable", zone: local.zone, verifiee: false }
+        : local.statut === "zone-fermee" && local.jusqua
+          ? { statut: "zone-fermee", jusqua: local.jusqua }
+          : { statut: "hors-zone" };
     const aLaMain = !adresseRetenue.featureId;
     setVerdict(aLaMain ? { statut: "verification" } : verdictLocal);
     const ctrl = new AbortController();
@@ -187,10 +209,11 @@ export function ChoixCommande({
           body: JSON.stringify(adresseRetenue.featureId ? { featureId: adresseRetenue.featureId } : adresseRetenue),
           signal: ctrl.signal,
         })
-          .then(async (r) => ({ code: r.status, corps: (await r.json()) as { statut?: string; zone?: ZoneChoisie; verifiee?: boolean; adresse?: Adresse; erreur?: string } }))
+          .then(async (r) => ({ code: r.status, corps: (await r.json()) as { statut?: string; zone?: ZoneChoisie; verifiee?: boolean; adresse?: Adresse; erreur?: string; jusqua?: string } }))
           .then(({ code, corps: r }) => {
             if (r.statut === "livrable" && r.zone) setVerdict({ statut: "livrable", zone: r.zone, verifiee: Boolean(r.verifiee), adresse: r.adresse });
             else if (r.statut === "hors-zone") setVerdict({ statut: "hors-zone" });
+            else if (r.statut === "zone-fermee" && r.jusqua) setVerdict({ statut: "zone-fermee", jusqua: r.jusqua });
             else if (code === 422 && r.erreur) setVerdict({ statut: "introuvable", message: r.erreur });
             else setVerdict(verdictLocal.statut === "livrable" ? { ...verdictLocal, controleImpossible: true } : verdictLocal);
           })
@@ -216,6 +239,8 @@ export function ChoixCommande({
   const etatPizzas = useMemo(() => etatService(config, maintenant, mode, zone, true), [config, maintenant, mode, zone]);
   const asapPizzasSeulement = etatCarte.etat !== "ouvert" && etatPizzas.etat === "ouvert";
   const etat = asapPizzasSeulement ? etatPizzas : etatCarte;
+  // Heure annoncée en fourchette autour de l'heure promise (largeur réglée au back-office).
+  const plage = etat.etat === "ouvert" ? fourchette(config, mode, etat.desQuePossible) : null;
   const listeCarte = useMemo(() => creneauxLibres(creneaux(config, maintenant, mode, zone), pleins, mode), [config, maintenant, mode, zone, pleins]);
   const liste = useMemo(() => creneauxLibres(creneaux(config, maintenant, mode, zone, true), pleins, mode), [config, maintenant, mode, zone, pleins]);
   const fermetureAVenir = useMemo(() => fermetureProche(config, maintenant), [config, maintenant]);
@@ -274,8 +299,9 @@ export function ChoixCommande({
         quand.type === "asap" ? asapPizzasSeulement : quand.type === "creneau" ? !pourTous.has(`${quand.date} ${quand.minutes}`) : false,
       heureSimulee,
       estimation: quand.type === "asap" && etat.etat === "ouvert" ? etat.desQuePossible : undefined,
+      fourchette: quand.type === "asap" && plage ? plage : undefined,
     });
-    router.push("/carte");
+    router.push(reprise ? "/panier" : "/carte");
   }
 
   function choisirSuggestion(a: Adresse) {
@@ -292,6 +318,14 @@ export function ChoixCommande({
     choisirSuggestion(a.adresse);
     setNumeroDifferent(null);
     setDetails({ ...DETAILS_VIDES, ...a.details });
+  }
+
+  // Commande reprise : son mode, et pour une livraison l'adresse la plus récente du compte.
+  function apresReprise(m: Mode) {
+    setReprise(true);
+    setMode(m);
+    if (m === "livraison" && !adresse && adressesEnregistrees[0]) choisirEnregistree(adressesEnregistrees[0]);
+    else montrer();
   }
 
   function effacerAdresse() {
@@ -314,6 +348,7 @@ export function ChoixCommande({
       </figure>
       <div className="accueil-panneau">
         <h1>Livraison ou à&nbsp;emporter&nbsp;?</h1>
+        {derniere && <RepriseCommande derniere={derniere} onReprise={apresReprise} />}
 
         <div className="choix-mode" role="group" aria-label="Livraison ou à emporter">
           <button type="button" data-mode="livraison" aria-pressed={mode === "livraison"} onClick={() => setMode("livraison")}>
@@ -526,6 +561,16 @@ export function ChoixCommande({
               </div>
             )}
 
+            {verdict.statut === "zone-fermee" && (
+              <div className="verdict verdict-hors" role="status">
+                <p className="verdict-titre">{messageZoneFermee(verdict.jusqua)}</p>
+                <p>Vous pouvez commander à emporter et passer la prendre au restaurant, Route de Chancy 132 à Onex.</p>
+                <button type="button" className="bouton-second" onClick={() => setMode("retrait")}>
+                  Commander à emporter
+                </button>
+              </div>
+            )}
+
             {verdict.statut === "hors-zone" && adresseRetenue && (
               <div className="verdict verdict-hors" role="status">
                 <p className="verdict-titre">{adresseTexte(adresseRetenue)} est hors de notre zone de livraison.</p>
@@ -556,7 +601,7 @@ export function ChoixCommande({
               <>
                 <label className="option">
                   <input type="radio" name={`${ids}-quand`} checked={!plusTard} onChange={() => setPlusTard(false)} />
-                  <span>Dès que possible, vers {heureTexte(etat.desQuePossible)}</span>
+                  <span>Dès que possible, {plage ? plageTexte(plage) : `vers ${heureTexte(etat.desQuePossible)}`}</span>
                 </label>
                 <label className="option">
                   <input type="radio" name={`${ids}-quand`} checked={plusTard} onChange={() => setPlusTard(true)} />
@@ -620,7 +665,7 @@ export function ChoixCommande({
           ))}
 
         <button type="button" className="bouton-principal" ref={boutonCarte} onClick={continuer} disabled={!peutContinuer}>
-          Voir la carte
+          {reprise ? "Voir le panier" : "Voir la carte"}
         </button>
         {mode === "livraison" && verdict.statut === "livrable" && !pretDetails && (
           <p className="aide">Indiquez le nom sur la sonnette pour continuer.</p>

@@ -14,6 +14,7 @@ import {
 } from "@/lib/gestion";
 import { champsDisponibilite, dateRupture } from "@/lib/gestion-dispo";
 import { champsGroupe, nomOption, nomsOptions } from "@/lib/gestion-options";
+import { champsPrixEnLot } from "@/lib/gestion-lot";
 import { exigerGerant } from "@/lib/personnel/session";
 import { instantGeneve } from "@/lib/service";
 import { rafraichirCaches } from "@/lib/tablette";
@@ -45,6 +46,13 @@ const ERREURS: Record<string, string> = {
   trop_de_defauts: "Plus d'options cochées d'avance que le maximum du groupe.",
   option_inconnue: "Option inconnue ou pas proposée.",
   plat_inconnu: "Plat inconnu.",
+  jour_non_duplicable: "Un plat du jour ne se copie pas : créez-en un nouveau dans « Plat du jour ».",
+  regle_invalide: "Règle inconnue.",
+  arrondi_invalide: "Arrondi : 5, 10, 50 ou 100 centimes.",
+  valeur_invalide: "Valeur illisible.",
+  selection_vide: "Aucun plat choisi (les plats archivés et les plats du jour ne changent pas en lot).",
+  selection_trop_grande: "Trop de plats d'un coup (300 au plus).",
+  etiquette_inconnue: "Étiquette inconnue.",
   "Réservé au gérant": "Réservé au gérant.",
 };
 
@@ -52,6 +60,8 @@ function erreurConnue(e: unknown): string | null {
   const m = e instanceof Error ? e.message : String(e);
   const incomplet = /plat_incomplet: ([^\n"]+)/.exec(m);
   if (incomplet) return `Pas en vente tant qu'il reste : ${incomplet[1].trim()}.`;
+  const borne = /prix_hors_bornes: ([^\n"]+)/.exec(m);
+  if (borne) return `Prix négatif pour ${borne[1].trim()}.`;
   const cle = Object.keys(ERREURS).find((k) => m.includes(k));
   return cle ? ERREURS[cle] : null;
 }
@@ -62,7 +72,8 @@ export async function GET(requete: Request) {
   return NextResponse.json(await fonctionSql("gestion_carte", {}), { headers: { "Cache-Control": "no-store" } });
 }
 
-type Reponse = { ok: boolean; donnees?: Record<string, unknown> };
+// lecture : rien n'a changé (aperçu), le cache de la carte reste.
+type Reponse = { ok: boolean; donnees?: Record<string, unknown>; lecture?: boolean };
 
 // Une action du back-office sur la carte. Chaque fonction SQL revérifie le gérant et journalise.
 async function agir(c: Record<string, unknown>, qui: string): Promise<Reponse | NextResponse> {
@@ -188,6 +199,29 @@ async function agir(c: Record<string, unknown>, qui: string): Promise<Reponse | 
       if (!slug(c.groupe) || !liste) return refus("Liste de plats invalide.");
       return { ok: await fonctionSql<boolean>("lier_groupe", { p_groupe: c.groupe, p_slugs: liste, p_personnel: qui }) };
     }
+    case "prix_en_lot": {
+      // appliquer faux : aperçu (avant, après) sans rien écrire ; vrai : tout ou rien.
+      const lot = champsPrixEnLot(c.lot);
+      if (!lot.ok) return refus(lot.erreur);
+      const appliquer = c.appliquer === true;
+      const lignes = await fonctionSql<unknown[]>("prix_en_lot", { p: lot.valeur, p_appliquer: appliquer, p_personnel: qui });
+      return { ok: true, donnees: { lignes, applique: appliquer }, lecture: !appliquer };
+    }
+    case "dupliquer": {
+      if (!slug(c.slug)) return refus("Plat inconnu.", 404);
+      const nom = typeof c.nom === "string" ? c.nom.replace(/\s+/g, " ").trim() : "";
+      if (!nom || nom.length > 80) return refus("Indiquez le nom de la copie (80 caractères au plus).");
+      const base = slugDe(nom);
+      if (!base) return refus("Nom illisible : utilisez des lettres ou des chiffres.");
+      const r = await fonctionSql<Record<string, unknown> | null>("dupliquer_plat", { p_slug: c.slug, p_base: base, p_nom: nom, p_personnel: qui });
+      return r ? { ok: true, donnees: r } : { ok: false };
+    }
+    case "etiquettes": {
+      // Posées par le gérant seulement, jamais déduites : végétarien, végane, épicé.
+      const ok = Array.isArray(c.etiquettes) && c.etiquettes.length <= 3 && c.etiquettes.every((e) => e === "vegetarien" || e === "vegane" || e === "epice");
+      if (!slug(c.slug) || !ok) return refus("Étiquettes illisibles.");
+      return { ok: await fonctionSql<boolean>("regler_etiquettes", { p_slug: c.slug, p_etiquettes: c.etiquettes, p_personnel: qui }) };
+    }
     default:
       return refus("Type inconnu.");
   }
@@ -209,6 +243,6 @@ export async function POST(requete: Request) {
   if (r instanceof NextResponse) return r;
   if (!r.ok) return refus("Introuvable.", 404);
   // Carte, fiche et panier en cache : vidés aussitôt (docs/performance.md).
-  rafraichirCaches("catalogue");
+  if (!r.lecture) rafraichirCaches("catalogue");
   return NextResponse.json({ enregistre: true, ...r.donnees });
 }

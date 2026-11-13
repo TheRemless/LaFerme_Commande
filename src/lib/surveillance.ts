@@ -5,6 +5,7 @@ import { courrielConfigure, envoyerParSmtp } from "@/lib/courriel/envoi";
 import { QuotaAtteint, type TypeCourriel } from "@/lib/courriel/quota";
 import { enregistrerCourriel, fonctionSql } from "@/lib/db/serveur";
 import { imprimerCommandesDues } from "@/lib/impression/service";
+import { destinataireAlertes } from "@/lib/reglages-generaux";
 import { etatService, type ConfigService } from "@/lib/service";
 import { rafraichirCaches } from "@/lib/tablette";
 
@@ -19,11 +20,12 @@ import { rafraichirCaches } from "@/lib/tablette";
 
 const TABLETTE_MUETTE_S = 180;
 
-// Courriel au restaurant (ALERTE_EMAIL). Sans serveur d'envoi, gardé en base comme les autres courriels de test.
+// Courriel au restaurant (adresse des réglages généraux, sinon ALERTE_EMAIL). Sans serveur d'envoi, gardé en base comme les autres courriels de test.
 export async function alerter(sujet: string, lignes: string[], type: TypeCourriel = "alerte"): Promise<void> {
   const texte = [...lignes, "", "Site de commande La Ferme"].join("\n");
   const html = `<pre>${texte.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!)}</pre>`;
-  const destinataire = process.env.ALERTE_EMAIL;
+  // L'adresse saisie au back-office (réglages généraux), sinon la variable ALERTE_EMAIL.
+  const destinataire = await destinataireAlertes();
   let fournisseur = courrielConfigure() && destinataire ? "smtp" : "doublure";
   if (fournisseur === "smtp") {
     try {

@@ -69,6 +69,15 @@ async function livraison(request: APIRequestContext, adresse: { rue: string; num
   return numero;
 }
 
+// Tableau (vague 3) : « En cours », « À l'avance », « Terminées » et la recherche affichent une ligne par
+// commande ; toucher la ligne ouvre son détail (la carte complète) à côté. Sans effet si elle est déjà ouverte.
+async function ouvrirCommande(page: Page, numero: string) {
+  const ligne = page.locator(".tab-ligne", { has: page.locator(".tab-ligne-num", { hasText: new RegExp(`^${numero}$`) }) });
+  const corps = ligne.locator(".tab-ligne-corps");
+  await expect(corps).toBeVisible({ timeout: 15_000 });
+  if ((await corps.getAttribute("aria-expanded")) !== "true") await corps.click();
+}
+
 // Accessibilité (axe-core, WCAG 2.1 A et AA) des deux écrans avec de vraies livraisons à l'écran.
 async function axe(page: Page, nom: string) {
   const r = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
@@ -171,6 +180,7 @@ test("tournée de deux livraisons, ordre proposé, Je pars, Livrée : plus rien 
   await arret(marco, b).getByRole("button", { name: "Livrée" }).click();
   await expect(arret(marco, b)).toHaveCount(0);
   await tablette.getByRole("button", { name: /^Terminées/ }).click();
+  await ouvrirCommande(tablette, a);
   await expect(tablette.locator(".tab-commande", { has: tablette.locator(".tab-num", { hasText: new RegExp(`^${a}$`) }) })).toContainText(/Livrée/, { timeout: 15_000 });
 });
 
@@ -258,6 +268,7 @@ test("client absent : signalé par le livreur, clos sans remboursement par la ta
   await expect(tablette.locator(".tab-message")).toContainText("Livraison close sans remboursement");
 
   await tablette.getByRole("button", { name: /^Terminées/ }).click();
+  await ouvrirCommande(tablette, c);
   const terminee = tablette.locator(".tab-commande", { has: tablette.locator(".tab-num", { hasText: new RegExp(`^${c}$`) }) });
   await expect(terminee).toContainText("Non remise, client absent");
   await expect(terminee).toContainText("Payée en ligne");
@@ -286,6 +297,7 @@ test("commande annulée pendant la tournée (adresse introuvable) : remboursée,
   await expect(arret(marco, c)).toContainText("En route.");
 
   await tablette.getByRole("button", { name: /^En cours/ }).click();
+  await ouvrirCommande(tablette, c);
   const cours = tablette.locator(".tab-commande", { has: tablette.locator(".tab-num", { hasText: new RegExp(`^${c}$`) }) });
   await expect(cours).toContainText("Livreur : Marco");
   // La tablette envoie l'état qu'elle affiche (SS-06) : attendre qu'elle ait relu « Partie ».
@@ -297,6 +309,7 @@ test("commande annulée pendant la tournée (adresse introuvable) : remboursée,
   await connecter(gerant, "/tablette", "gerant-livraison@laferme.test");
   await gerant.getByRole("button", { name: "Continuer sans son" }).click();
   await gerant.getByRole("button", { name: /^En cours/ }).click();
+  await ouvrirCommande(gerant, c);
   const coursGerant = gerant.locator(".tab-commande", { has: gerant.locator(".tab-num", { hasText: new RegExp(`^${c}$`) }) });
   await expect(coursGerant.locator(".tab-meta")).toContainText("Partie", { timeout: 10_000 });
   await coursGerant.getByRole("button", { name: "Annuler la commande" }).click();

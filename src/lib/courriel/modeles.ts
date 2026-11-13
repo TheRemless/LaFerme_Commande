@@ -34,6 +34,14 @@ export function detailsLigne(cat: Catalogue | null, l: { choix: Record<string, s
 
 export { MOTIF_DEMANDE_CLIENT };
 
+// Délais de remboursement selon le moyen de paiement (le site ne sait pas lequel le client a choisi chez
+// Stripe : on donne les deux). Sources lues le 13.11.2026 :
+// - TWINT : https://docs.stripe.com/payments/twint (« Refunds usually take a few minutes to complete »).
+// - Carte : https://support.stripe.com/questions/how-long-do-refunds-take-to-reach-my-customer (5 à 10 jours
+//   ouvrables ; Stripe donne ailleurs jusqu'à 14 jours, d'où « en général » et « selon votre banque »).
+export const DELAI_REMBOURSEMENT =
+  "Avec TWINT, l'argent arrive en général en quelques minutes. Avec une carte, en général de 5 à 10 jours ouvrables, selon votre banque.";
+
 function phraseAnnulation(c: Commande, motif: string): { texte: string; html: string } {
   if (motif === MOTIF_DEMANDE_CLIENT) {
     return {
@@ -50,15 +58,30 @@ function phraseAnnulation(c: Commande, motif: string): { texte: string; html: st
 // Mise en page commune des courriels (audit design, D17) : logo en tête, encre sur blanc, bouton noir pour le
 // suivi. Arial, parce que les polices du site ne passent pas dans toutes les messageries. La version texte
 // de chaque courriel reste la référence ; le HTML n'ajoute que la mise en forme.
-function enveloppe(corps: string, origine: string): string {
-  return `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#1c1b1a;max-width:560px">
+// Vague 3 : document complet en français, thème clair déclaré et fond blanc explicite (les messageries en mode
+// sombre n'inversent plus le logo bordeaux sur fond noir), largeur du téléphone, et une ligne d'aperçu cachée
+// que la boîte de réception affiche sous le sujet.
+function enveloppe(corps: string, origine: string, apercu = ""): string {
+  return `<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="supported-color-schemes" content="light">
+</head>
+<body style="margin:0;padding:16px;background:#ffffff;color:#1c1b1a">
+<div style="display:none;max-height:0;overflow:hidden;mso-hide:all">${echapper(apercu)}</div>
+<div style="font-family:Arial,sans-serif;font-size:16px;line-height:1.5;color:#1c1b1a;background:#ffffff;max-width:560px">
 <p style="margin:0 0 20px"><img src="${echapper(origine)}/logo-la-ferme.png" width="120" height="40" alt="La Ferme" style="display:block;border:0"></p>
 ${corps}
-<p style="margin-top:24px;padding-top:12px;border-top:1px solid #dcdcd8;color:#55524f;font-size:13px">${RESTAURANT}</p></div>`;
+<p style="margin-top:24px;padding-top:12px;border-top:1px solid #dcdcd8;color:#55524f;font-size:13px">${RESTAURANT}</p></div>
+</body>
+</html>`;
 }
 
 function bouton(url: string, texte: string): string {
-  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:16px 0"><tr><td style="background:#1c1b1a;border-radius:4px"><a href="${echapper(url)}" style="display:inline-block;padding:12px 22px;color:#ffffff;font-weight:700;text-decoration:none">${texte}</a></td></tr></table>`;
+  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:16px 0"><tr><td bgcolor="#1c1b1a" style="background:#1c1b1a;border-radius:4px"><a href="${echapper(url)}" style="display:inline-block;padding:12px 22px;color:#ffffff;font-weight:700;text-decoration:none">${texte}</a></td></tr></table>`;
 }
 
 function lienSuivi(c: Commande): string {
@@ -118,7 +141,7 @@ export function courrielConfirmation(c: Commande, cat: Catalogue | null, estimat
     .join("")}</table>
 <p>${echapper(paiement)}</p>
 ${bouton(lienSuivi(c), "Suivre la commande")}
-<p>Une question ? ${TELEPHONE}</p>`, c.origine);
+<p>Une question ? ${TELEPHONE}</p>`, c.origine, `Nous avons bien reçu votre commande n° ${c.numero}.`);
   return { sujet, texte, html, type: "confirmation" as TypeCourriel };
 }
 
@@ -141,7 +164,7 @@ export function courrielRefusRemboursementEnCours(c: Commande, motif: string) {
 <p>Bonjour ${echapper(c.client_prenom)},</p>
 <p>${phraseAnnulation(c, motif).html}</p>
 <p>${remboursement}</p>
-<p>Une question ? Appelez-nous au ${TELEPHONE}.</p>`, c.origine);
+<p>Une question ? Appelez-nous au ${TELEPHONE}.</p>`, c.origine, phraseAnnulation(c, motif).texte);
   return { sujet, texte, html, type: "refus" as TypeCourriel };
 }
 
@@ -151,7 +174,8 @@ export function courrielRemboursement(c: Commande, motif: string) {
     `Bonjour ${c.client_prenom},`,
     "",
     phraseAnnulation(c, motif).texte,
-    `Nous vous remboursons ${prixChf(c.total_centimes)} sur le moyen de paiement utilisé. Le délai dépend de votre banque.`,
+    `Nous vous remboursons ${prixChf(c.total_centimes)} sur le moyen de paiement utilisé.`,
+    DELAI_REMBOURSEMENT,
     "",
     `Une question ? ${TELEPHONE}`,
     "",
@@ -160,8 +184,9 @@ export function courrielRemboursement(c: Commande, motif: string) {
   const html = enveloppe(`
 <p>Bonjour ${echapper(c.client_prenom)},</p>
 <p>${phraseAnnulation(c, motif).html}</p>
-<p>Nous vous remboursons ${prixChf(c.total_centimes)} sur le moyen de paiement utilisé. Le délai dépend de votre banque.</p>
-<p>Une question ? ${TELEPHONE}</p>`, c.origine);
+<p>Nous vous remboursons ${prixChf(c.total_centimes)} sur le moyen de paiement utilisé.</p>
+<p>${DELAI_REMBOURSEMENT}</p>
+<p>Une question ? ${TELEPHONE}</p>`, c.origine, phraseAnnulation(c, motif).texte);
   return { sujet, texte, html, type: "refus" as TypeCourriel };
 }
 
@@ -186,7 +211,7 @@ export function courrielCode(code: string) {
 <p style="font-size:28px;font-weight:700;letter-spacing:4px;margin:8px 0">${echapper(code)}</p>
 <p>Il est valable 10 minutes et ne sert qu'une fois.</p>
 <p>Si vous n'avez rien demandé, ne faites rien. Sans ce code, personne n'entre dans votre compte.</p>
-<p>Une question ? ${TELEPHONE}</p>`, ADRESSE_SITE);
+<p>Une question ? ${TELEPHONE}</p>`, ADRESSE_SITE, "Votre code est valable 10 minutes.");
   return { sujet, texte, html, type: "code" as TypeCourriel };
 }
 
@@ -213,6 +238,7 @@ export function courrielBlocagePersonnel(quand: string) {
       .map((l) => `<p>${echapper(l)}</p>`)
       .join("\n"),
     ADRESSE_SITE,
+    lignes[2],
   );
   return { sujet, texte, html, type: "blocage" as TypeCourriel };
 }
@@ -235,7 +261,7 @@ function courrielType(c: Commande, type: TypeCourriel, sujet: string, phrases: s
 <p>Bonjour ${echapper(c.client_prenom)},</p>
 ${phrases.map((p) => `<p>${echapper(p)}</p>`).join("\n")}
 ${avecSuivi ? bouton(lienSuivi(c), "Suivre la commande") : ""}
-<p>Une question ? ${TELEPHONE}</p>`, c.origine);
+<p>Une question ? ${TELEPHONE}</p>`, c.origine, phrases[0]);
   return { sujet, texte, html, type };
 }
 
@@ -312,7 +338,8 @@ export function courrielRemboursementGeste(c: Commande, montantCentimes: number,
   return courrielType(c, "remboursement", `Remboursement de ${montant}, commande ${c.numero}, La Ferme`, [
     phrase,
     motif,
-    "La somme revient sur le moyen de paiement utilisé. Le délai dépend de votre banque.",
+    "La somme revient sur le moyen de paiement utilisé.",
+    DELAI_REMBOURSEMENT,
   ], false);
 }
 
@@ -323,7 +350,7 @@ export function courrielManque(c: Commande, description: string, montantCentimes
   const montant = prixChf(montantCentimes);
   const argent =
     moyen === "stripe"
-      ? [`Nous vous remboursons ${montant}.`, "La somme revient sur le moyen de paiement utilisé. Le délai dépend de votre banque."]
+      ? [`Nous vous remboursons ${montant}.`, "La somme revient sur le moyen de paiement utilisé.", DELAI_REMBOURSEMENT]
       : moyen === "deduction"
         ? [`Vous payez ${prixChf(resteCentimes)} au comptoir au lieu de ${prixChf(c.total_centimes)}.`]
         : [`Nous vous rendons ${montant} au comptoir.`];

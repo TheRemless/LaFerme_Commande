@@ -17,7 +17,8 @@ import { nouvelleCle } from "@/lib/cle";
 import type { DonneesLivraisons } from "@/lib/livreur";
 import { MOTIF_CLIENT_ABSENT } from "@/lib/livraisons-textes";
 import { OngletLivraisons, livraisonsEnCours, problemeTexte } from "@/components/tablette/Livraisons";
-import { chercherCommandes, lignesImprimantes, minutesDeRetard, minutesRestantes } from "@/components/tablette/rush";
+import { annuleesParClient, chercherCommandes, etatTemps, lignesImprimantes, minutesDeRetard, minutesRestantes, ordreStable, type Rythme } from "@/components/tablette/rush";
+import { LigneCommande } from "@/components/tablette/LigneCommande";
 import "./tablette.css";
 
 // Tablette posée en cuisine : file des commandes, alerte sonore, accepter, refuser, statuts.
@@ -34,9 +35,13 @@ type Donnees = {
     impression_avance?: DelaisImpression;
   };
   impression: EtatImpression;
+  // Préparation habituelle et trajet de chaque zone : de quoi trier « En cours » par heure de lancement.
+  rythme?: Rythme;
   // Rythme de relecture proposé par le serveur : 15 s pendant le service, 60 s hors service.
   relecture_s: number;
 };
+
+const RYTHME_DEFAUT: Rythme = { preparation: 20, trajets: {} };
 
 // Sans signal Realtime, la tablette ne voit une nouvelle commande qu'en relisant : 5 s, à toute heure.
 const RELECTURE_SANS_SIGNAL_MS = 5000;
@@ -81,6 +86,21 @@ function sonner(ctx: AudioContext) {
   }
 }
 
+// Annulation faite par le client : une note grave et courte, différente de la sonnerie des nouvelles commandes.
+function sonnerAnnulation(ctx: AudioContext) {
+  const t = ctx.currentTime;
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.frequency.value = 330;
+  o.type = "square";
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.35, t + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+  o.connect(g).connect(ctx.destination);
+  o.start(t);
+  o.stop(t + 0.62);
+}
+
 export function Tablette({ nom, gerant = false, supabase }: { nom: string; gerant?: boolean; supabase: { url: string; cle: string } | null }) {
   const router = useRouter();
   const [donnees, setDonnees] = useState<Donnees | null>(null);
@@ -95,6 +115,22 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
   const [message, setMessage] = useState<{ texte: string; echec: boolean } | null>(null);
   // Retrouver une commande au comptoir : numéro exact ou nom du client, toutes listes confondues.
   const [recherche, setRecherche] = useState("");
+  // Annulations faites par le client déjà vues (« Vu ») ou déjà sonnées sur cet appareil.
+  const [annulationsVues, setAnnulationsVues] = useState<Set<string>>(new Set());
+  const annulationsSonnees = useRef<Set<string> | null>(null);
+  // Commande ouverte en détail, à côté du tableau.
+  const [ouverte, setOuverte] = useState<string | null>(null);
+  const dernierAppui = useRef(0);
+  // Hauteur de la barre collée en haut : le détail se place juste dessous.
+  const barre = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = barre.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const o = new ResizeObserver(() => document.documentElement.style.setProperty("--tab-barre-h", `${el.offsetHeight}px`));
+    o.observe(el);
+    return () => o.disconnect();
+  }, []);
+  const ordrePrecedent = useRef<string[]>([]);
   // Livreurs et tournées (onglet « Livraisons ») : relus avec la file, une panne ici ne la bloque pas.
   const [livraisons, setLivraisons] = useState<DonneesLivraisons | null>(null);
   const audio = useRef<AudioContext | null>(null);
@@ -152,6 +188,7 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
 
   const aujourdHui = donnees ? jourGeneve(donnees.maintenant) : "";
   const avance = donnees?.reglages.impression_avance ?? IMPRESSION_AVANCE_DEFAUT;
+  const rythme = donnees?.rythme ?? RYTHME_DEFAUT;
   const listes = useMemo(() => {
     const c = donnees?.commandes ?? [];
     const pourPlusTard = (x: CommandeTablette) => x.quand_type === "creneau" && x.quand_date !== null && x.quand_date > aujourdHui;
@@ -164,14 +201,21 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
       (a.heure_confirmee ?? a.heure_proposee).localeCompare(b.heure_confirmee ?? b.heure_proposee);
     return {
       traiter: c.filter((x) => x.statut === "nouvelle" && !pourPlusTard(x)),
-      cours: c.filter((x) => ACCEPTEES.includes(x.statut) && !programmee(x)).sort(parHeure),
+      // Par urgence (vague 3) : en retard d'abord, puis par heure de lancement ; prêtes et parties à la fin.
+      cours: c
+        .filter((x) => ACCEPTEES.includes(x.statut) && !programmee(x))
+        .map((x) => ({ x, e: etatTemps(x, donnees!.maintenant, rythme) }))
+        .sort((a, b) => a.e.cle - b.e.cle)
+        .map(({ x }) => x),
       // Une livraison programmée n'est pas encore en cuisine : pas à donner à un livreur avant ses tickets.
       livraisons: livraisonsEnCours(c).filter((x) => !programmee(x)),
       avance: c.filter((x) => (x.statut === "nouvelle" && pourPlusTard(x)) || programmee(x)).sort(parHeure),
       plusTard: new Set(c.filter(programmee).map((x) => x.id)),
       terminees: c.filter((x) => x.statut === "terminee" || x.statut === "refusee").reverse(),
     };
-  }, [donnees, aujourdHui, avance]);
+  }, [donnees, aujourdHui, avance, rythme]);
+  // Ce qui presse, pour chaque commande : texte, niveau et clé de tri.
+  const etats = useMemo(() => new Map((donnees?.commandes ?? []).map((x) => [x.id, etatTemps(x, donnees!.maintenant, rythme)])), [donnees, rythme]);
 
   // Son répété toutes les 4 secondes tant qu'une commande du jour attend.
   useEffect(() => {
@@ -217,6 +261,25 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
     return () => document.removeEventListener("visibilitychange", surRetour);
   }, [demarre, charger]);
 
+  useEffect(() => {
+    if (ordre) ordrePrecedent.current = ordre;
+  });
+
+  // Annulation par le client : bandeau jusqu'à « Vu » (20 minutes au plus) et une note grave, une fois par commande.
+  // Au chargement de la page, celles déjà là ne sonnent pas.
+  const annulees = donnees ? annuleesParClient(donnees.commandes, donnees.maintenant).filter((c) => !annulationsVues.has(c.id)) : [];
+  useEffect(() => {
+    if (!donnees) return;
+    const ids = annuleesParClient(donnees.commandes, donnees.maintenant).map((c) => c.id);
+    if (annulationsSonnees.current === null) {
+      annulationsSonnees.current = new Set(ids);
+      return;
+    }
+    const nouvelles = ids.filter((id) => !annulationsSonnees.current!.has(id));
+    nouvelles.forEach((id) => annulationsSonnees.current!.add(id));
+    if (nouvelles.length && son && audio.current) sonnerAnnulation(audio.current);
+  }, [donnees, son]);
+
   // Le retour d'un geste réussi reste 8 secondes en bas de l'écran, sous le doigt, puis s'efface.
   useEffect(() => {
     if (!message || message.echec) return;
@@ -253,7 +316,19 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
   const imprimantesKo = imprimantes.filter((i) => etatImprimante(i) !== "en ligne");
   const enPause = pause?.active && (!pause.jusqua || new Date(pause.jusqua).getTime() > Date.now());
   const resultats = recherche.trim() ? chercherCommandes(donnees?.commandes ?? [], recherche) : null;
-  const liste = resultats ?? listes[onglet];
+  // Tableau (vague 3) : une ligne par commande pour « En cours », « À l'avance », « Terminées » et la recherche.
+  // « À accepter » garde ses cartes : l'heure s'y règle avant d'accepter.
+  const enLignes = resultats !== null || onglet === "cours" || onglet === "avance" || onglet === "terminees";
+  const brute = resultats ?? listes[onglet];
+  // Rien ne saute sous le doigt : 8 secondes après un appui sur le tableau, « En cours » garde son ordre.
+  const ordre = !resultats && onglet === "cours" ? ordreStable(brute.map((c) => c.id), ordrePrecedent.current, Date.now() - dernierAppui.current < 8000) : null;
+  const parId = new Map(brute.map((c) => [c.id, c]));
+  const liste = ordre ? ordre.map((id) => parId.get(id)!) : brute;
+  // Le détail ne s'affiche que si sa commande est dans la liste à l'écran : il revient avec son onglet et ne cache
+  // jamais une recherche.
+  const detail = ouverte ? (liste.find((c) => c.id === ouverte) ?? null) : null;
+  const retards = listes.cours.filter((c) => etats.get(c.id)?.niveau === "retard").length;
+  const aLancer = listes.cours.filter((c) => etats.get(c.id)?.niveau === "maintenant").length;
   // Refus payés dont le remboursement n'est pas passé : visibles jusqu'au remboursement, même le lendemain.
   const aRembourser = (donnees?.commandes ?? []).filter((c) => c.statut === "refusee" && c.statut_paiement === "paye");
   const nomLivreur = new Map((livraisons?.livreurs ?? []).map((l) => [l.id, l.nom]));
@@ -288,13 +363,14 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
         </div>
       )}
 
-      <header className="tab-barre">
+      <header className="tab-barre" ref={barre}>
         <div className="tab-etat">
           <strong>{enPause ? (pause?.jusqua ? `En pause jusqu'à ${heure(pause.jusqua)}` : "En pause") : "Commandes ouvertes"}</strong>
           <span>
             {pause?.livraisonFermee ? "Livraison fermée. " : ""}
             {donnees?.reglages.retard_minutes ? `Retard +${donnees.reglages.retard_minutes} min. ` : ""}Préparation {donnees?.reglages.preparation_minutes ?? "…"} min.{" "}
-            {imprimantes.length === 0 ? "Pas d'imprimante." : imprimantes.map((i) => `${i.nom} : ${etatImprimante(i)}`).join(". ") + "."}
+            {/* Une imprimante en panne a son bandeau : l'état ne s'écrit qu'une fois. */}
+            {imprimantes.length === 0 ? "Pas d'imprimante." : imprimantesKo.length === 0 ? "Imprimantes en ligne." : ""}
           </span>
         </div>
         <div className="tab-recherche" role="search">
@@ -311,7 +387,16 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
             onChange={(e) => setRecherche(e.target.value)}
           />
         </div>
-        <button type="button" className="bouton-second" aria-expanded={reglagesOuverts} onClick={() => setReglagesOuverts((v) => !v)}>
+        <button
+          type="button"
+          className="bouton-second"
+          aria-expanded={reglagesOuverts}
+          onClick={() => {
+            // Sur téléphone, le détail ouvert couvrirait les réglages.
+            if (!reglagesOuverts) setOuverte(null);
+            setReglagesOuverts(!reglagesOuverts);
+          }}
+        >
           {reglagesOuverts ? "Fermer les réglages" : "Pause, délai, ruptures"}
         </button>
         {/* Un appui de trop pendant le service coupe la tablette : on confirme (audit du gérant, G16). */}
@@ -345,6 +430,23 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
             </button>
           ))}
         </nav>
+        {/* Compteur sur une ligne : à accepter, en retard, à lancer. Il remplace le bandeau « N à accepter ». */}
+        {(listes.cours.length > 0 || listes.traiter.length > 0) && (
+          <div className="tab-compteur">
+            {listes.traiter.length > 0 && (
+              <p className="tab-attente" role="status">
+                {listes.traiter.length === 1 ? "1 commande à accepter" : `${listes.traiter.length} commandes à accepter`}
+                {!son ? ". Le son est coupé." : "."}
+              </p>
+            )}
+            {listes.cours.length > 0 && (
+              <p aria-live="polite">
+                {retards > 0 ? <strong className="tab-compteur-retard">{retards} en retard</strong> : <span>Aucune en retard</span>}
+                {aLancer > 0 && <span>{aLancer} à lancer maintenant</span>}
+              </p>
+            )}
+          </div>
+        )}
       </header>
 
       {horsLigne && (
@@ -364,6 +466,14 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
           touchez « Rembourser ».
         </p>
       )}
+      {annulees.length > 0 && (
+        <p className="tab-alerte tab-annulee-client" role="alert">
+          Annulée par le client : {annulees.map((c) => `${c.numero} à ${heure(c.annulee_par_client_le!)}`).join(", ")}. Ne pas préparer, mettre de côté ce qui est lancé.
+          <button type="button" className="bouton-second" onClick={() => setAnnulationsVues(new Set([...annulationsVues, ...annulees.map((c) => c.id)]))}>
+            Vu
+          </button>
+        </p>
+      )}
       {imprimantesKo.length > 0 && (
         // Une seule ligne pour toutes les imprimantes : la file reste visible (vague 3, rush).
         <p className="tab-attente" role="alert">
@@ -375,12 +485,6 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
           Livraison {l.numero} : {problemeTexte(l)} ({nomLivreur.get(l.livreur_id)}). Ouvrez « Livraisons ».
         </p>
       ))}
-      {listes.traiter.length > 0 && (
-        <p className="tab-attente" role="status">
-          {listes.traiter.length === 1 ? "1 commande à accepter" : `${listes.traiter.length} commandes à accepter`}
-          {!son ? ". Le son est coupé." : "."}
-        </p>
-      )}
 
       {reglagesOuverts && donnees && <Reglages reglages={donnees.reglages} onChange={charger} />}
 
@@ -396,6 +500,51 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
         <p className="tab-vide">Chargement…</p>
       ) : !resultats && onglet === "livraisons" ? (
         <OngletLivraisons commandes={donnees.commandes} plusTard={listes.plusTard} donnees={livraisons} agir={agirLivraison} />
+      ) : enLignes ? (
+        <div className={`tab-tableau${detail ? " tab-tableau-detail" : ""}`} onPointerDown={() => (dernierAppui.current = Date.now())}>
+          {liste.length > 0 ? (
+            <ol className="tab-tableau-liste" aria-label="Commandes, les plus pressées en haut">
+              {liste.map((c) => (
+                <LigneCommande
+                  key={c.id}
+                  c={c}
+                  etat={etats.get(c.id) ?? { niveau: "calme", texte: "", cle: 0 }}
+                  aujourdHui={aujourdHui}
+                  livreur={livraisonDe.get(c.id) ? `${livraisonDe.get(c.id)!.nom}, arrêt ${livraisonDe.get(c.id)!.rang}` : undefined}
+                  ouverte={ouverte === c.id}
+                  ouvrir={() => setOuverte(ouverte === c.id ? null : c.id)}
+                  agir={(corps) => agir(c.id, corps)}
+                />
+              ))}
+            </ol>
+          ) : resultats ? null : (
+            <p className="tab-vide">{onglet === "cours" ? "Aucune commande en cours." : onglet === "avance" ? "Aucune commande pour plus tard." : "Rien de terminé aujourd'hui."}</p>
+          )}
+          {detail && (
+            <aside className="tab-detail" aria-label={`Commande ${detail.numero}, détail`}>
+              <div className="tab-detail-tete">
+                <p>Commande {detail.numero}</p>
+                <button type="button" className="bouton-second" onClick={() => setOuverte(null)}>
+                  Fermer
+                </button>
+              </div>
+              <ol className="tab-liste">
+                <CarteCommande
+                  key={detail.id}
+                  c={detail}
+                  aujourdHui={aujourdHui}
+                  maintenant={donnees.maintenant}
+                  avance={avance}
+                  taches={(donnees.impression.taches ?? []).filter((t) => t.commande_id === detail.id)}
+                  livraison={livraisonDe.get(detail.id)}
+                  gerant={gerant}
+                  agir={(corps) => agir(detail.id, corps)}
+                  recharger={charger}
+                />
+              </ol>
+            </aside>
+          )}
+        </div>
       ) : liste.length > 0 ? (
         <ol className="tab-liste">
           {liste.map((c) => (
@@ -413,10 +562,8 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
             />
           ))}
         </ol>
-      ) : resultats ? null : (
-        <p className="tab-vide">
-          {onglet === "traiter" ? "Aucune commande à accepter." : onglet === "cours" ? "Aucune commande en cours." : onglet === "avance" ? "Aucune commande pour plus tard." : "Rien de terminé aujourd'hui."}
-        </p>
+      ) : (
+        <p className="tab-vide">Aucune commande à accepter.</p>
       )}
 
       {/* Retour de la dernière action, en bas de l'écran : visible même au fond d'une longue liste. */}
@@ -514,7 +661,7 @@ function CarteCommande({
       : c.statut_paiement === "a_encaisser_retrait"
         ? `À encaisser au comptoir ${prixChf(c.total_centimes - deduit)}`
         : c.statut_paiement === "encaisse"
-          ? `Encaissée ${prixChf(c.total_centimes)}`
+          ? `Encaissée ${prixChf(c.total_centimes)}${c.moyen_comptoir === "especes" ? " en espèces" : c.moyen_comptoir === "carte" ? " par carte" : ""}`
           : c.statut_paiement === "rembourse"
             ? `Remboursée ${prixChf(c.total_centimes)}`
             : prixChf(c.total_centimes);
@@ -525,7 +672,7 @@ function CarteCommande({
     prete: "Prête au comptoir",
     partie: "Partie",
     terminee: c.motif === MOTIF_CLIENT_ABSENT ? "Non remise, client absent (le gérant décide d'un remboursement)" : c.mode === "livraison" ? "Livrée" : "Retirée",
-    refusee: "Refusée",
+    refusee: c.annulee_par_client_le ? `Annulée par le client à ${heure(c.annulee_par_client_le)}` : "Refusée",
   };
 
   const reglageHeure = (
@@ -701,10 +848,16 @@ function CarteCommande({
             </button>
           )}
           {c.statut === "prete" && c.statut_paiement === "a_encaisser_retrait" ? (
-            // Retrait payé au comptoir : un seul geste, pour ne jamais oublier l'encaissement (audit du gérant, G01).
-            <button type="button" className="bouton-principal" disabled={envoi} onClick={() => faire({ action: "retiree_payee" })}>
-              Retirée et payée
-            </button>
+            // Retrait payé au comptoir : un seul geste, pour ne jamais oublier l'encaissement (audit du gérant, G01),
+            // en disant comment il a payé (vague 3, clôture du jour).
+            <>
+              <button type="button" className="bouton-principal" disabled={envoi} onClick={() => faire({ action: "retiree_payee", moyen: "especes" })}>
+                Retirée, espèces
+              </button>
+              <button type="button" className="bouton-principal" disabled={envoi} onClick={() => faire({ action: "retiree_payee", moyen: "carte" })}>
+                Retirée, carte
+              </button>
+            </>
           ) : (
             (c.statut === "prete" || c.statut === "partie") && (
               <button type="button" className="bouton-principal" disabled={envoi} onClick={() => faire({ action: "statut", vers: "terminee", de: c.statut })}>
@@ -713,9 +866,14 @@ function CarteCommande({
             )
           )}
           {c.statut_paiement === "a_encaisser_retrait" && c.statut !== "prete" && (
-            <button type="button" className="bouton-second" disabled={envoi} onClick={() => faire({ action: "encaisser" })}>
-              Encaissée
-            </button>
+            <>
+              <button type="button" className="bouton-second" disabled={envoi} onClick={() => faire({ action: "encaisser", moyen: "especes" })}>
+                Encaissée en espèces
+              </button>
+              <button type="button" className="bouton-second" disabled={envoi} onClick={() => faire({ action: "encaisser", moyen: "carte" })}>
+                Encaissée par carte
+              </button>
+            </>
           )}
           <button type="button" className="bouton-second" onClick={() => setPanneau("heure")}>
             Changer l&apos;heure
@@ -746,9 +904,14 @@ function CarteCommande({
       {c.statut === "terminee" && c.statut_paiement === "a_encaisser_retrait" && (
         <div className="tab-actions">
           <p className="aide-forte">Pas encore notée comme encaissée.</p>
-          <button type="button" className="bouton-principal" disabled={envoi} onClick={() => faire({ action: "encaisser" })}>
-            Encaissée
-          </button>
+          <div className="boutons-ligne">
+            <button type="button" className="bouton-principal" disabled={envoi} onClick={() => faire({ action: "encaisser", moyen: "especes" })}>
+              Encaissée en espèces
+            </button>
+            <button type="button" className="bouton-principal" disabled={envoi} onClick={() => faire({ action: "encaisser", moyen: "carte" })}>
+              Encaissée par carte
+            </button>
+          </div>
         </div>
       )}
 

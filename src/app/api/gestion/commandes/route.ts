@@ -4,6 +4,7 @@ import { rembourserApresCoup } from "@/lib/commandes";
 import { fonctionSql } from "@/lib/db/serveur";
 import { centimes, dateValide } from "@/lib/gestion";
 import { filtresListe, texteNote, UUID } from "@/lib/gestion-commandes";
+import { actionGestion, type ActionGestion } from "@/lib/actions-gestion";
 import { modifierCommande } from "@/lib/modifier-commande";
 import { exigerGerant } from "@/lib/personnel/session";
 import { recreerCommande } from "@/lib/recreer-commande";
@@ -17,6 +18,10 @@ import { quandValide } from "@/lib/validation";
 // Vague 3 (bo-commandes) : { action: "liste_page", ...filtres (src/lib/gestion-commandes.ts) }
 // | { action: "fiche_complete", id } | { action: "courriel", id, courriel } | { action: "noter", id, texte }
 // | { action: "modifier", id, de?, prenom?, nom?, telephone?, details?, adresse? } (vague 3, sans toucher au montant)
+// | { action: "heure", id, heure } | { action: "annuler", id, motif, de? } | { action: "reimprimer", id, station? }
+// | { action: "renvoyer_courriel", id, courriel } (vague 3, src/lib/actions-gestion.ts)
+
+const RELANCE_MAX_MS = 23 * 3_600_000;
 
 export async function POST(requete: Request) {
   const g = await exigerGerant(requete);
@@ -52,8 +57,12 @@ export async function POST(requete: Request) {
   }
 
   if (c.action === "fiche_complete") {
-    const fiche = await fonctionSql("fiche_commande_gestion", { p_id: c.id });
-    return fiche ? NextResponse.json(fiche, sansCache) : refus("Commande inconnue.", 404);
+    const [fiche, reclamations] = await Promise.all([
+      fonctionSql<Record<string, unknown> | null>("fiche_commande_gestion", { p_id: c.id }),
+      // Réclamations de la commande (vague 3) : absentes tant que la base n'est pas migrée.
+      fonctionSql<{ lignes: unknown[] }>("reclamations_gestion", { p: { commande_id: c.id, par_page: 100 } }).catch(() => null),
+    ]);
+    return fiche ? NextResponse.json({ ...fiche, reclamations: reclamations?.lignes ?? [] }, sansCache) : refus("Commande inconnue.", 404);
   }
 
   if (c.action === "courriel") {
@@ -86,6 +95,11 @@ export async function POST(requete: Request) {
     return NextResponse.json(r, { status: r.ok ? 200 : 409, ...sansCache });
   }
 
+  if (c.action === "heure" || c.action === "annuler" || c.action === "reimprimer" || c.action === "renvoyer_courriel") {
+    const r = await actionGestion(c.id, c as unknown as ActionGestion, g.personnel);
+    return NextResponse.json(r, { status: r.ok ? 200 : 409, ...sansCache });
+  }
+
   if (c.action === "rembourser") {
     // Jusqu'au total de la commande, contrôlé en base ; ici seulement une borne large (grosse commande de groupe).
     const montant = centimes(c.montant, 100_000);
@@ -94,6 +108,13 @@ export async function POST(requete: Request) {
     const m = c.motif.trim().replace(/\s+/g, " ");
     if (m.length < 3 || m.length > 200) return refus("Écrivez un motif (3 à 200 caractères). Le client le reçoit par e-mail.");
     if (typeof c.cle !== "string" || !/^[A-Za-z0-9-]{8,80}$/.test(c.cle)) return refus("Rechargez la fiche de la commande.");
+    // Relance d'un remboursement resté « en cours » : Stripe oublie ses clés d'idempotence après environ
+    // 24 heures. Au-delà de 23 heures, une relance pourrait rembourser une seconde fois : on la refuse.
+    const deja = await fonctionSql<{ remboursements?: { cle: string; cree_le: string }[] } | null>("commande_gestion", { p_id: c.id });
+    const ancien = deja?.remboursements?.find((x) => x.cle === c.cle);
+    if (ancien && Date.now() - Date.parse(ancien.cree_le) > RELANCE_MAX_MS) {
+      return refus("Ce remboursement date de plus de 23 heures. Vérifiez dans Stripe s'il est passé avant de rembourser à nouveau.", 409);
+    }
     const r = await rembourserApresCoup(c.id, montant, /[.!?]$/.test(m) ? m : `${m}.`, c.cle, g.personnel.id);
     // Réponse ambiguë de Stripe : 503, pour que la fiche garde sa clé (un nouvel essai reprend le même
     // remboursement au lieu d'en créer un second ; audit de sécurité 2, S2-04).

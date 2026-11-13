@@ -8,13 +8,18 @@ import { jourTexte } from "@/lib/service";
 // L'équipe (audit du gérant, G03) : qui peut se connecter à la tablette, qui au back-office.
 // Retirer coupe l'accès tout de suite. Il reste toujours au moins un gérant (contrôlé en base).
 
-type Membre = { id: string; email: string; nom: string; role: "service" | "gerant" | "livreur"; actif: boolean; sessions: number; derniere_connexion: string | null };
+type Membre = { id: string; email: string; nom: string; role: "service" | "gerant" | "livreur" | "responsable"; actif: boolean; sessions: number; derniere_connexion: string | null };
 
-const ROLES = { service: "Tablette", gerant: "Tablette et back-office", livreur: "Livreur (ses livraisons sur son téléphone)" } as const;
+const ROLES = {
+  service: "Tablette",
+  responsable: "Responsable de service (tablette, remboursements, commandes passées)",
+  gerant: "Tablette et back-office",
+  livreur: "Livreur (ses livraisons sur son téléphone)",
+} as const;
 
 export function GestionEquipe() {
   const ids = useId();
-  const [d, setD] = useState<{ moi: string; liste: Membre[] } | null>(null);
+  const [d, setD] = useState<{ moi: string; liste: Membre[]; responsable_actif?: boolean } | null>(null);
   const [nouveau, setNouveau] = useState({ email: "", nom: "", role: "service" as Membre["role"] });
   const [message, setMessage] = useState<{ ok: boolean; texte: string } | null>(null);
   const [confirmer, setConfirmer] = useState<string | null>(null);
@@ -73,6 +78,7 @@ export function GestionEquipe() {
                 </label>
                 <select id={`${ids}-role-${m.id}`} value={m.role} disabled={envoi || m.id === d.moi} onChange={(e) => agir({ action: "modifier", id: m.id, role: e.target.value })}>
                   <option value="service">{ROLES.service}</option>
+                  {(d.responsable_actif || m.role === "responsable") && <option value="responsable">{ROLES.responsable}</option>}
                   <option value="gerant">{ROLES.gerant}</option>
                   <option value="livreur">{ROLES.livreur}</option>
                 </select>
@@ -122,6 +128,7 @@ export function GestionEquipe() {
             <label htmlFor={`${ids}-role`}>Accès</label>
             <select id={`${ids}-role`} value={nouveau.role} onChange={(e) => setNouveau({ ...nouveau, role: e.target.value as Membre["role"] })}>
               <option value="service">{ROLES.service}</option>
+              {d.responsable_actif && <option value="responsable">{ROLES.responsable}</option>}
               <option value="gerant">{ROLES.gerant}</option>
               <option value="livreur">{ROLES.livreur}</option>
             </select>
