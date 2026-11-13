@@ -32,6 +32,8 @@ describe("réglages généraux", () => {
         expect.objectContaining({ cle: "annulation_client_active", valeur: false }),
         expect.objectContaining({ cle: "plats_populaires_actifs", valeur: false }),
         expect.objectContaining({ cle: "suggestion_panier_active", valeur: false }),
+        expect.objectContaining({ cle: "couverts_actifs", libelle: "Proposer couverts et serviettes au paiement", valeur: false }),
+        expect.objectContaining({ cle: "prenom_par_ligne_actif", valeur: false }),
       ]),
     });
   });

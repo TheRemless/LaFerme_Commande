@@ -24,7 +24,12 @@ insert into interrupteurs_gestion (cle, libelle, aide, cache, ordre) values
   ('plats_populaires_actifs', '« Les plus commandés » en tête de la carte',
     'Les plats les plus commandés des 28 derniers jours. Décochée au départ, en attente de la décision de Jérémy (C7).', 'catalogue', 20),
   ('suggestion_panier_active', 'Proposer une boisson ou un dessert au panier',
-    'Le plus commandé de sa catégorie. Décochée au départ, en attente de la décision de Jérémy (C7).', 'catalogue', 30)
+    'Le plus commandé de sa catégorie. Décochée au départ, en attente de la décision de Jérémy (C7).', 'catalogue', 30),
+  -- Interrupteurs de client-commande (20261210210000_couverts_prenoms.sql), libellés et caches donnés par elle.
+  ('couverts_actifs', 'Proposer couverts et serviettes au paiement',
+    'C8 : case décochée par défaut ; la cuisine voit + COUVERTS.', 'aucun', 40),
+  ('prenom_par_ligne_actif', 'Proposer un prénom par plat (« pour Léa »)',
+    'C5 : pour une famille sur un seul téléphone ; le prénom est imprimé sous le plat.', 'catalogue', 50)
   on conflict (cle) do nothing;
 
 create or replace function regler_reglage_general(p_cle text, p_valeur text, p_personnel uuid) returns jsonb
