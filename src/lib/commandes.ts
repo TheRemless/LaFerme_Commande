@@ -243,7 +243,10 @@ async function rembourserChezStripe(
   }
   try {
     const pi = c.stripe_payment_intent ?? "";
-    const s = remboursementSimule(pi, cle) ?? (await passerelle().rembourser(pi, { montantCentimes, cle }));
+    // Relance : la première demande a pu aboutir chez Stripe sans que sa réponse arrive (délai, réseau). On
+    // reprend ce remboursement au lieu d'en créer un second, que Stripe accepterait après 24 heures.
+    const repris = !remboursementSimule(pi, cle) && r.deja ? ((await passerelle().retrouverRemboursement?.(pi, r.id)) ?? null) : null;
+    const s = remboursementSimule(pi, cle) ?? repris ?? (await passerelle().rembourser(pi, { montantCentimes, cle, remboursementId: r.id }));
     if (s.statut === "failed" || s.statut === "canceled") {
       await fonctionSql("terminer_remboursement", { p_id: r.id, p_ok: false, p_refund_id: s.id, p_erreur: `Stripe : ${s.statut}` });
       return { refus: { ok: false, message: "Stripe a refusé le remboursement. Rien n'a été rendu. Réessayez plus tard ou vérifiez dans Stripe." } };
@@ -272,7 +275,17 @@ async function rembourserChezStripe(
 // « succeeded » rend la ligne « faite » (elle entre alors dans l'export) ; « failed » ou « canceled » la passe
 // en échec et alerte le restaurant, une seule fois. Les états intermédiaires et les remboursements inconnus
 // (faits dans le tableau de bord Stripe) ne changent rien (audit de sécurité 2, S2-03).
-export async function appliquerEtatRemboursement(refundId: string, etat: EtatRemboursement, raison: string | null): Promise<boolean> {
+export async function appliquerEtatRemboursement(
+  refundId: string,
+  etat: EtatRemboursement,
+  raison: string | null,
+  remboursementId?: string | null,
+): Promise<boolean> {
+  // Réponse de Stripe perdue à la création : la ligne n'a pas l'identifiant du remboursement. On la retrouve
+  // par l'identifiant gardé dans les metadata, une seule fois (seulement une ligne en cours, sans identifiant).
+  if (remboursementId && /^[0-9a-f-]{36}$/.test(remboursementId)) {
+    await fonctionSql("noter_remboursement_stripe", { p_id: remboursementId, p_refund_id: refundId });
+  }
   if (etat !== "succeeded" && etat !== "failed" && etat !== "canceled") return false;
   const ok = etat === "succeeded";
   const r = await fonctionSql<(LigneRemboursement & { numero: number }) | null>("maj_remboursement_stripe", {
