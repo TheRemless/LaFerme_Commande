@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { AdresseEnregistree } from "@/components/accueil/ChoixCommande";
+import type { DerniereCommande } from "@/components/accueil/RepriseCommande";
 import { compteCourant } from "@/lib/comptes/session";
 import { fonctionSql } from "@/lib/db/serveur";
 import { ajouterJours, depuisHeureGeneve, instantGeneve, type CreneauPlein } from "@/lib/service";
@@ -14,14 +15,15 @@ export async function GET(requete: Request) {
   const simulee = process.env.CONTEXTE_DEPLOIEMENT !== "production" && heure ? depuisHeureGeneve(heure) : null;
   // Créneaux pleins des 8 prochains jours : le sélecteur d'heure ne les propose plus (SS-02, audit du gérant).
   const jour = instantGeneve(simulee ?? new Date()).date;
-  const [adresses, pleins] = await Promise.all([
-    compteCourant().then((compte) =>
-      compte ? fonctionSql<AdresseEnregistree[]>("adresses_compte_liste", { p_compte: compte.id }).catch(() => []) : ([] as AdresseEnregistree[]),
-    ),
+  // Client connecté : ses adresses et sa dernière commande (« Reprendre cette commande », vague 3).
+  const compte = await compteCourant();
+  const [adresses, derniere, pleins] = await Promise.all([
+    compte ? fonctionSql<AdresseEnregistree[]>("adresses_compte_liste", { p_compte: compte.id }).catch(() => []) : ([] as AdresseEnregistree[]),
+    compte ? fonctionSql<DerniereCommande | null>("derniere_commande_compte", { p_compte: compte.id }).catch(() => null) : null,
     fonctionSql<CreneauPlein[]>("creneaux_pleins", { p_debut: jour, p_fin: ajouterJours(jour, 8) }).catch(() => [] as CreneauPlein[]),
   ]);
   return NextResponse.json(
-    { maintenant: (simulee ?? new Date()).getTime(), heureSimulee: simulee ? heure : null, adresses, pleins },
+    { maintenant: (simulee ?? new Date()).getTime(), heureSimulee: simulee ? heure : null, adresses, derniere, pleins },
     { headers: { "Cache-Control": "private, no-store" } },
   );
 }
