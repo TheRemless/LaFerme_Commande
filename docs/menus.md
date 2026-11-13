@@ -2,7 +2,7 @@
 
 Construits complets mais **désactivés**. Vendre des menus est une décision de Jérémy (question posée par `produit-gestion`, recommandation : pas au lancement). Aucun prix n'est écrit dans le code ni dans la base : le gérant les saisit.
 
-Migration `supabase/migrations/20261210240000_menus.sql`. Tests : `tests/unit/menus-sql.test.ts` (base), `tests/unit/gestion-menus.test.ts` (saisie). Serveur : `/api/gestion/menus` (gérant). Écran : à venir dans la rubrique Carte et offre.
+Migration `supabase/migrations/20261210240000_menus.sql`. Tests : `tests/unit/menus-sql.test.ts` (base), `tests/unit/gestion-menus.test.ts` (saisie). Serveur : `/api/gestion/menus` (gérant). Écran : rubrique « Menus et formules » (`/gestion/menus`, `src/components/gestion/carte/Menus.tsx`, test `tests/e2e/gestion-menus.spec.ts`, captures `docs/rendus/vague-3/bo-carte/b-menus.png` et `m-menus.png`).
 
 ## Ce qui existe
 
@@ -17,3 +17,10 @@ Migration `supabase/migrations/20261210240000_menus.sql`. Tests : `tests/unit/me
 - Afficher les menus en vente sur la carte (`menus_publics()`), choisir les plats de chaque étape.
 - Une ligne « menu » dans le panier et la commande : prix venu de `prix_menu`, revérifié au paiement ; les plats choisis vont chacun au ticket de leur poste (pizza ou cuisine).
 - TVA : celle des plats à emporter, comme le reste de la commande.
+
+## Écran
+
+- En tête, l'état de l'interrupteur (« Menus pas proposés aux clients. ») et son bouton, avec une confirmation qui rappelle que la décision revient à Jérémy.
+- Tableau des menus : nom, prix, étapes, état, ce qui manque. « Nouveau menu » : nom, description, prix, « Prix validé » ; il naît inactif.
+- Fiche d'un menu (panneau) : « Activer ce menu » ou « Rendre inactif », les champs, « Archiver ce menu » (confirmation) ; puis les étapes : nom vu par le client, minimum, maximum, toute une catégorie ou des plats cochés, supplément par plat, « Ajouter une étape », « Enregistrer les étapes ».
+

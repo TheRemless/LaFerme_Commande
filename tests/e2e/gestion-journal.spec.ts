@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { adresseDuCompte } from "./site";
+import { adresseDuCompte, codeDuPersonnel } from "./site";
 
 // Journal du back-office (vague 3, bo-pilotage) : chercher, filtrer, afficher la suite. Gérant de test à part.
 test.describe.configure({ mode: "serial" });
@@ -19,10 +19,7 @@ test.beforeAll(async ({ browser }, info) => {
   await gestion.goto("/gestion/journal");
   await adresseDuCompte(gestion, email);
   await gestion.getByLabel("E-mail", { exact: true }).fill(email);
-  await gestion.getByRole("button", { name: "Recevoir un code" }).click();
-  const code = gestion.locator(".note-preversion strong");
-  await expect(code).toHaveText(/^\d{8}$/);
-  await gestion.getByLabel("Code à 8 chiffres").fill(await code.innerText());
+  await gestion.getByLabel("Code à 8 chiffres").fill(await codeDuPersonnel(gestion));
   await gestion.getByRole("button", { name: "Me connecter" }).click();
   await expect(gestion.getByRole("heading", { level: 1, name: "Journal" })).toBeVisible();
 });

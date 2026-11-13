@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { adresseDuCompte } from "./site";
+import { adresseDuCompte, codeDuPersonnel, passage } from "./site";
 import sharp from "sharp";
 
 // Carte gérée sans développeur (back-office, gérant de test par projet). Les plats créés ici portent le
@@ -14,10 +14,7 @@ async function connecter(page: Page, email: string) {
   await adresseDuCompte(page, email);
   await page.goto("/gestion");
   await page.getByLabel("E-mail", { exact: true }).fill(email);
-  await page.getByRole("button", { name: "Recevoir un code" }).click();
-  const code = page.locator(".note-preversion strong");
-  await expect(code).toHaveText(/^\d{8}$/);
-  await page.getByLabel("Code à 8 chiffres").fill(await code.innerText());
+  await page.getByLabel("Code à 8 chiffres").fill(await codeDuPersonnel(page));
   await page.getByRole("button", { name: "Me connecter" }).click();
 }
 
@@ -30,7 +27,7 @@ async function rubrique(page: Page, titre: string) {
 }
 
 test.beforeAll(async ({ browser }, info) => {
-  nom = `Risotto essai ${info.project.name}`;
+  nom = `Risotto essai ${info.project.name} ${passage()}`;
   gestion = await browser.newPage({ baseURL: info.project.use.baseURL });
   await connecter(gestion, `carte-${info.project.name}@laferme.test`);
   await expect(gestion.getByRole("heading", { level: 1, name: "Accueil" })).toBeVisible();
@@ -131,11 +128,12 @@ test("le plat du jour de demain s'enregistre et se liste à part", async ({}, in
   });
   await form.getByLabel("Jour").fill(demain);
   await form.getByLabel("Service").selectOption("midi");
-  await form.getByLabel("Nom affiché").fill(`Osso buco essai ${info.project.name}`);
+  const osso = `Osso buco essai ${info.project.name} ${passage()}`;
+  await form.getByLabel("Nom affiché").fill(osso);
   await form.getByLabel("Prix (CHF)").fill("25");
   await expect(form.getByLabel("Prix validé")).toHaveCount(0);
   await form.getByLabel("Allergènes").fill("céleri (essai)");
   await form.getByRole("button", { name: "Publier le plat du jour" }).click();
   await expect(form.getByRole("status")).toContainText("il sera en tête de la carte le");
-  await expect(gestion.getByRole("button", { name: new RegExp(`^Osso buco essai ${info.project.name}`) })).toContainText("midi");
+  await expect(gestion.getByRole("button", { name: new RegExp(`^${osso}`) })).toContainText("midi");
 });

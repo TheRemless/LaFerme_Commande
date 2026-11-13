@@ -15,13 +15,15 @@ import { PanneauLateral, TableauDonnees, montant, useConfirmer, useNotifier, use
 
 export type LignePlatListe = PlatGestion & { categorie_slug: string; categorie_nom: string; ordre_categorie: number; ordre: number };
 
-export type FiltreEtat = "tous" | "vente" | "hors" | "epuise" | "a_valider" | "sans_photo" | "sans_allergenes" | "archives";
+export type FiltreEtat = "tous" | "vente" | "hors" | "epuise" | "bloquants" | "a_valider" | "sans_photo" | "sans_allergenes" | "archives";
 
 const FILTRES: { cle: FiltreEtat; titre: string; garde: (p: LignePlatListe) => boolean }[] = [
   { cle: "tous", titre: "Tous", garde: (p) => !p.archive },
   { cle: "vente", titre: "En vente", garde: (p) => !p.archive && p.commandable && !p.rupture_jusqu_au },
   { cle: "hors", titre: "Hors vente", garde: (p) => !p.archive && !p.commandable },
   { cle: "epuise", titre: "Épuisés", garde: (p) => !p.archive && !!p.rupture_jusqu_au },
+  // Plats en vente qui bloquent la mise en ligne (vue plats_bloquants) : à régler avant l'ouverture.
+  { cle: "bloquants", titre: "Bloquent la mise en ligne", garde: (p) => !p.archive && p.bloquants.length > 0 },
   { cle: "a_valider", titre: "Prix à valider", garde: (p) => !p.archive && p.prix_a_valider },
   { cle: "sans_photo", titre: "Sans photo", garde: (p) => !p.archive && !p.photo },
   { cle: "sans_allergenes", titre: "Sans allergènes", garde: (p) => !p.archive && !p.allergenes },
@@ -202,6 +204,31 @@ export function ListeCarte({ donnees, recharger, version }: { donnees: DonneesCa
     notifier(erreurs.length ? { texte: erreurs.join(" "), ton: "erreur" } : { texte: `${epuises.length} plat${epuises.length > 1 ? "s" : ""} de nouveau en vente.`, ton: "succes" });
   }
 
+  // Un même geste sur plusieurs plats (carte d'été préparée hors de la vente, puis mise en vente d'un coup).
+  async function enLot(cles: string[], vider: () => void, corps: (slug: string) => Record<string, unknown>, fait: (n: number) => string) {
+    const erreurs: string[] = [];
+    for (const s of cles) {
+      const e = await enregistrer("/api/gestion/carte", corps(s));
+      if (e) erreurs.push(`${nomDe(s)} : ${e}`);
+    }
+    vider();
+    await recharger();
+    const n = cles.length - erreurs.length;
+    if (n) notifier({ texte: fait(n), ton: "succes" });
+    if (erreurs.length) notifier({ texte: erreurs.join(" "), ton: "erreur" });
+  }
+  const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? "s" : ""}`;
+
+  async function archiver(cles: string[], vider: () => void) {
+    const ok = await confirmer({
+      titre: `Archiver ${pluriel(cles.length, "plat")} ?`,
+      texte: "Ils quittent la carte, la tablette et la liste. Les commandes passées ne changent pas ; « Archivés » permet de les remettre.",
+      oui: `Archiver ${pluriel(cles.length, "plat")}`,
+      danger: true,
+    });
+    if (ok) await enLot(cles, vider, (slug) => ({ type: "archiver", slug, archiver: true }), (n) => `${pluriel(n, "plat")} archivé${n > 1 ? "s" : ""}.`);
+  }
+
   return (
     <div className="bo-carte">
       <div className="bo-carte-tete">
@@ -287,7 +314,24 @@ export function ListeCarte({ donnees, recharger, version }: { donnees: DonneesCa
               Épuiser jusqu&apos;au…
             </button>
             <button type="button" className="bo-bouton bo-bouton-second bo-bouton-petit" onClick={() => remettre(cles, vider)}>
-              Remettre en vente
+              Fin de l&apos;épuisement
+            </button>
+            <button
+              type="button"
+              className="bo-bouton bo-bouton-second bo-bouton-petit"
+              onClick={() => enLot(cles, vider, (slug) => ({ type: "plat", slug, champs: { commandable: true } }), (n) => `${pluriel(n, "plat")} en vente.`)}
+            >
+              Mettre en vente
+            </button>
+            <button
+              type="button"
+              className="bo-bouton bo-bouton-second bo-bouton-petit"
+              onClick={() => enLot(cles, vider, (slug) => ({ type: "plat", slug, champs: { commandable: false } }), (n) => `${pluriel(n, "plat")} retiré${n > 1 ? "s" : ""} de la vente.`)}
+            >
+              Retirer de la vente
+            </button>
+            <button type="button" className="bo-bouton bo-bouton-discret bo-bouton-petit" onClick={() => archiver(cles, vider)}>
+              Archiver
             </button>
           </>
         )}
