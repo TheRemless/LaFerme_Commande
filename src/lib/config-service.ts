@@ -6,7 +6,7 @@ import { lireCharge, lireFourchette } from "@/lib/heure-reelle";
 import { lireMessages } from "@/lib/messages-clients";
 import { IMPRESSION_AVANCE_DEFAUT, type DelaisImpression } from "@/lib/impression/avance";
 import { lirePlafondComptoir } from "@/lib/plafond-comptoir";
-import type { ConfigService, Fermeture, Horaire, Ouverture, Zone, ZoneNpa } from "@/lib/service";
+import { ajouterJours, instantGeneve, type ConfigService, type Fermeture, type Horaire, type Ouverture, type Zone, type ZoneNpa } from "@/lib/service";
 
 type LigneReglage = { cle: string; valeur: unknown };
 
@@ -24,6 +24,21 @@ function impressionAvance(reglages: LigneReglage[]): DelaisImpression {
     return Number.isInteger(v) && v >= 15 && v <= 240 ? v : IMPRESSION_AVANCE_DEFAUT[mode];
   };
   return { livraison: lire("livraison"), retrait: lire("retrait") };
+}
+
+// « Fermer la livraison d'un service sans livreur prévu » (src/lib/sans-livreur.ts) : les services du jour et des
+// jours où l'on peut commander à l'avance où le planning ne prévoit personne. Réglage décoché ou base pas encore
+// migrée : aucun.
+async function servicesSansLivreur(reglages: LigneReglage[]): Promise<{ jour: string; service: "midi" | "soir" }[]> {
+  if (reglages.find((r) => r.cle === "livraison_sans_livreur_fermee")?.valeur !== true) return [];
+  const jour = instantGeneve(new Date()).date;
+  const avance = Math.min(14, Math.max(0, nombre(reglages, "avance_jours")));
+  const brut = await fonctionSql<unknown>("services_sans_livreur", { p_debut: jour, p_fin: ajouterJours(jour, avance) }).catch(() => null);
+  if (!Array.isArray(brut)) return [];
+  return brut
+    .map((x) => (x && typeof x === "object" ? (x as Record<string, unknown>) : {}))
+    .map((x) => ({ jour: typeof x.jour === "string" ? x.jour.slice(0, 10) : x.jour instanceof Date ? x.jour.toISOString().slice(0, 10) : "", service: x.service }))
+    .filter((x): x is { jour: string; service: "midi" | "soir" } => /^\d{4}-\d{2}-\d{2}$/.test(x.jour) && (x.service === "midi" || x.service === "soir"));
 }
 
 // Tout ce qu'il faut pour décider zone, créneaux et état du restaurant, lu en base.
@@ -57,6 +72,8 @@ async function lireConfigService(): Promise<ConfigService & { plafondComptoirCen
   // nombre de pizzas en cuisine minute par minute dirait les ventes du restaurant. Détail : chargeDuMoment().
   // En livraison, le plus long de la file de cuisine et de l'attente d'un livreur ; le retrait ne suit que la
   // cuisine. Même règle de confidentialité : ni livraisons en route ni livreurs présents dans la config.
+  // Services sans livreur prévu (vague 3) : lus seulement si le gérant a coché la règle, désactivée au départ.
+  const livraisonSansLivreur = await servicesSansLivreur(reglages);
   const charge = lireCharge(chargeBrute, livraisonBrute);
   const allongement = charge?.allongement_minutes ?? 0;
   const allongementLivraison = charge?.allongement_livraison_minutes ?? allongement;
@@ -97,6 +114,7 @@ async function lireConfigService(): Promise<ConfigService & { plafondComptoirCen
     },
     // Bannières programmées par le gérant : le navigateur garde celles de l'heure (messagesVisibles).
     messages: lireMessages(messagesBruts),
+    livraisonSansLivreur,
     pause: (() => {
       const jusqua = reglages.find((r) => r.cle === "pause_jusqu_a")?.valeur;
       // valeur : null (pas de pause), "sans-fin", ou une date ISO.
