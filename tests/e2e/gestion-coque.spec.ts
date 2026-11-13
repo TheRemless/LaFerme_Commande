@@ -149,13 +149,13 @@ test("le personnel de service voit « Réservé au gérant » sur toutes les rub
   await page.close();
 });
 
-test("le rôle « Responsable de service » reste caché tant qu'il n'est pas activé (D1)", async () => {
+test("le rôle « Responsable de service » se propose une fois activé (D1, activé dans la base embarquée)", async () => {
   await gestion.goto("/gestion/equipe");
   await expect(gestion.getByRole("heading", { level: 1, name: "Équipe" })).toBeVisible();
   const acces = gestion.getByLabel("Accès", { exact: true });
-  await expect(acces.locator("option")).toHaveText([/^Tablette$/, /^Tablette et back-office$/, /^Livreur/]);
+  await expect(acces.locator("option")).toHaveText([/^Tablette$/, /^Responsable de service$/, /^Tablette et back-office$/, /^Livreur/]);
   const r = await gestion.request.get("/api/gestion/personnel");
-  expect(((await r.json()) as { responsable_actif: boolean }).responsable_actif).toBe(false);
+  expect(((await r.json()) as { responsable_actif: boolean }).responsable_actif).toBe(true);
 });
 
 test("se déconnecter ramène à l'écran de connexion sur la même adresse", async () => {
