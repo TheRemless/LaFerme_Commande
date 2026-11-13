@@ -163,3 +163,11 @@ export function resumeCoupDeFeu(r: { retard?: number; livraisons?: number | null
   if (r.fermee) parts.push("livraison fermée");
   return parts.join(", ");
 }
+
+// Les numéros recommencent chaque jour : une commande reçue un autre jour (refusée non remboursée, à l'avance) porte
+// sa date sous le numéro, « du 4 nov. », pour ne pas la confondre avec le 130 du soir (qualite, vague 3).
+const JOUR_NUMERO = new Intl.DateTimeFormat("fr-CH", { timeZone: "Europe/Zurich", day: "numeric", month: "short" });
+export function jourDuNumero(creeLe: string, aujourdHui: string): string | null {
+  const jour = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Zurich" }).format(new Date(creeLe));
+  return jour === aujourdHui ? null : `du ${JOUR_NUMERO.format(new Date(creeLe))}`;
+}

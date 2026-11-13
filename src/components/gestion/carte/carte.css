@@ -180,3 +180,24 @@
 .bo-promo-interrupteur p {
   margin: 0;
 }
+
+/* Menus : une étape par cadre. */
+.bo-etape {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--bo-trait);
+  border-radius: var(--bo-rayon);
+}
+.bo-etape legend {
+  padding: 0 4px;
+  font-weight: 700;
+}
+.bo-etape summary {
+  min-height: var(--bo-cible);
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}

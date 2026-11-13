@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
-import { adresseDuCompte, SITE } from "./site";
+import { adresseDuCompte, codeDuPersonnel, SITE } from "./site";
 
 // Tablette du restaurant : connexion du personnel, file, accepter, statuts, refus et remboursement, rupture.
 // Un membre d'équipe par projet (supabase/local/donnees-test.sql) : un seul code par e-mail toutes les 30 s.
@@ -56,7 +56,8 @@ async function commander(request: APIRequestContext, prenom: string, moyen: "com
 // Tableau (vague 3) : « En cours », « À l'avance », « Terminées » et la recherche affichent une ligne par
 // commande ; toucher la ligne ouvre son détail (la carte complète) à côté. Sans effet si elle est déjà ouverte.
 async function ouvrirCommande(page: Page, numero: string) {
-  const ligne = page.locator(".tab-ligne", { has: page.locator(".tab-ligne-num", { hasText: new RegExp(`^${numero}$`) }) });
+  // Celle du jour : un même numéro reçu un autre jour porte « tab-autre-jour » (les numéros recommencent chaque jour).
+  const ligne = page.locator(".tab-ligne:not(.tab-autre-jour)", { has: page.locator(".tab-ligne-num", { hasText: new RegExp(`^${numero}$`) }) });
   const corps = ligne.locator(".tab-ligne-corps");
   await expect(corps).toBeVisible({ timeout: 15_000 });
   if ((await corps.getAttribute("aria-expanded")) !== "true") await corps.click();
@@ -67,10 +68,7 @@ test.beforeAll(async ({ browser }, info) => {
   await adresseDuCompte(tablette, `equipe-${info.project.name}@laferme.test`);
   await tablette.goto("/tablette");
   await tablette.getByLabel("E-mail", { exact: true }).fill(`equipe-${info.project.name}@laferme.test`);
-  await tablette.getByRole("button", { name: "Recevoir un code" }).click();
-  const code = tablette.locator(".note-preversion strong");
-  await expect(code).toHaveText(/^\d{8}$/);
-  await tablette.getByLabel("Code à 8 chiffres").fill(await code.innerText());
+  await tablette.getByLabel("Code à 8 chiffres").fill(await codeDuPersonnel(tablette));
   await tablette.getByRole("button", { name: "Me connecter" }).click();
   await tablette.getByRole("button", { name: "Continuer sans son" }).click();
   await expect(tablette.getByRole("button", { name: /^À accepter/ })).toBeVisible();
