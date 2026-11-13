@@ -13,6 +13,7 @@
 
 -- Le remboursement d'un jour se cherche par instant (index remboursements_fait_idx), pas par date calculée.
 create index remboursements_ouverts_idx on remboursements (cree_le) where statut in ('en_cours', 'echec');
+create index remboursements_echec_idx on remboursements (statut) where statut = 'echec';
 
 create function pilotage_synthese(p_debut date, p_fin date) returns jsonb
 language sql stable as $$
@@ -83,7 +84,10 @@ language sql stable as $$
         'en_cours', count(*) filter (where statut = 'en_cours'),
         'en_cours_centimes', coalesce(sum(montant_centimes) filter (where statut = 'en_cours'), 0),
         'echecs', count(*) filter (where statut = 'echec'),
-        'echecs_centimes', coalesce(sum(montant_centimes) filter (where statut = 'echec'), 0)
+        'echecs_centimes', coalesce(sum(montant_centimes) filter (where statut = 'echec'), 0),
+        -- Tous les échecs encore ouverts, quel que soit leur jour : l'argent dû au client ne sort pas du tableau.
+        'echecs_ouverts', (select count(*) from remboursements where statut = 'echec'),
+        'echecs_ouverts_centimes', (select coalesce(sum(montant_centimes), 0) from remboursements where statut = 'echec')
       )
       from ouverts
     ),

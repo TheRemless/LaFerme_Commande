@@ -2,6 +2,7 @@
 // ce module ne fait que choisir les périodes et décrire ce qui revient.
 
 import { dateValide } from "@/lib/gestion";
+import { ajouterJours as decaler } from "@/lib/service";
 
 export type Part = { commandes: number; ttc_centimes: number };
 
@@ -41,6 +42,8 @@ export type Synthese = {
     en_cours_centimes: number;
     echecs: number;
     echecs_centimes: number;
+    echecs_ouverts: number;
+    echecs_ouverts_centimes: number;
   };
   net_ttc_centimes: number;
   tva: TauxTva[];
@@ -59,12 +62,6 @@ export type TypePeriode = "jour" | "semaine" | "mois" | "choisie";
 // Le jour de service change à 5h du matin à Genève (migration 20261114090000) : à 1h, on est encore la veille.
 export function jourDeService(maintenant: Date = new Date()): string {
   return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Zurich" }).format(new Date(maintenant.getTime() - 5 * 3_600_000));
-}
-
-function decaler(jour: string, jours: number): string {
-  const d = new Date(`${jour}T12:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + jours);
-  return d.toISOString().slice(0, 10);
 }
 
 function finDeMois(jour: string): string {

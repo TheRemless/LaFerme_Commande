@@ -139,7 +139,11 @@ describe("synthèse des ventes d'une période", () => {
       en_cours_centimes: 300,
       echecs: 1,
       echecs_centimes: 700,
+      echecs_ouverts: 1,
+      echecs_ouverts_centimes: 700,
     });
+    // Un échec du 4.12 reste visible le lendemain tant qu'il n'est pas réglé.
+    expect((await ventes("2026-12-05", "2026-12-05")).periode.remboursements).toMatchObject({ echecs: 0, echecs_ouverts: 1 });
     // Seule la commande b est du 4.12 (a est du 1.12, la refusée ne compte pas).
     expect(p.ttc_centimes).toBe(4000);
     expect(p.net_ttc_centimes).toBe(2500);
