@@ -10,6 +10,9 @@ export type Rubrique = {
   icone: NomIconeGestion;
   /** Une phrase pour l'accueil et l'aide : ce qu'on y fait. */
   resume: string;
+  /** Place réservée : la rubrique n'apparaît pas tant que sa page n'existe pas. Le propriétaire retire
+   *  ce drapeau dans la PR qui ajoute src/app/gestion/<chemin>/page.tsx (tests/unit/gestion-navigation.test.ts le vérifie). */
+  aVenir?: true;
 };
 
 export type Groupe = { titre: string; rubriques: Rubrique[] };
@@ -20,7 +23,11 @@ export const GROUPES: Groupe[] = [
   { titre: "Service du jour", rubriques: [ACCUEIL] },
   {
     titre: "Commandes et clients",
-    rubriques: [{ href: "/gestion/commandes", titre: "Commandes", icone: "commandes", resume: "Retrouver une commande, voir son historique, rembourser." }],
+    rubriques: [
+      { href: "/gestion/commandes", titre: "Commandes", icone: "commandes", resume: "Retrouver une commande, voir son historique, rembourser." },
+      // bo-commandes
+      { href: "/gestion/clients", titre: "Clients", icone: "clients", resume: "Les clients, leurs commandes et leurs réclamations.", aVenir: true },
+    ],
   },
   {
     titre: "Carte et offre",
@@ -35,13 +42,18 @@ export const GROUPES: Groupe[] = [
     titre: "Chiffres",
     rubriques: [
       { href: "/gestion/export", titre: "Export comptable", icone: "exporter", resume: "Les ventes d'une période en fichier CSV, pour la comptabilité." },
+      // bo-pilotage
+      { href: "/gestion/rapports", titre: "Rapports", icone: "rapports", resume: "Les ventes par jour, par service et par plat.", aVenir: true },
+      { href: "/gestion/cloture", titre: "Clôture du jour", icone: "cloture", resume: "Le jour fermé : ventes, encaissements et remboursements.", aVenir: true },
       { href: "/gestion/journal", titre: "Journal", icone: "journal", resume: "Qui a changé quoi, quand, et le retour à l'ancienne valeur." },
     ],
   },
   {
     titre: "Réglages du restaurant",
     rubriques: [
+      // bo-operations (propriétaire de /gestion/horaires : s'il la renomme, garder une redirection depuis l'ancienne adresse)
       { href: "/gestion/horaires", titre: "Livraison et horaires", icone: "horaires", resume: "Zones, horaires, fermetures, délais et capacité." },
+      { href: "/gestion/livreurs", titre: "Livreurs", icone: "livreurs", resume: "Les livreurs et leurs tournées.", aVenir: true },
       { href: "/gestion/imprimantes", titre: "Imprimantes", icone: "imprimante", resume: "Les deux postes d'impression et leur état." },
     ],
   },
@@ -52,6 +64,9 @@ export const GROUPES: Groupe[] = [
 ];
 
 export const RUBRIQUES: Rubrique[] = GROUPES.flatMap((g) => g.rubriques);
+
+/** Ce que montrent le menu et l'accueil : les rubriques qui ont leur page, et les groupes qui en ont au moins une. */
+export const GROUPES_VISIBLES: Groupe[] = GROUPES.map((g) => ({ ...g, rubriques: g.rubriques.filter((r) => !r.aVenir) })).filter((g) => g.rubriques.length > 0);
 
 /** La rubrique d'une adresse : la plus longue qui la préfixe (une fiche /gestion/commandes/37 reste dans Commandes). */
 export function rubriqueDe(chemin: string): { rubrique: Rubrique; groupe: Groupe } {

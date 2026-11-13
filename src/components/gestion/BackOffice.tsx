@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FournisseurCarte, useCarte } from "@/components/gestion/contexte-carte";
-import { GROUPES, rubriqueDe, type Rubrique } from "@/components/gestion/navigation";
+import { GROUPES_VISIBLES, rubriqueDe, type Rubrique } from "@/components/gestion/navigation";
 import { IconeGestion } from "@/components/gestion/ui/icones";
 import { poster } from "@/lib/requete-client";
 
@@ -109,7 +109,7 @@ function Coque({ nom, children }: { nom: string; children: React.ReactNode }) {
           </button>
         </div>
         <nav className="bo-nav" aria-label="Rubriques">
-          {GROUPES.map((g) => (
+          {GROUPES_VISIBLES.map((g) => (
             <div key={g.titre} className="bo-groupe">
               <p className="bo-groupe-titre">{g.titre}</p>
               <ul>

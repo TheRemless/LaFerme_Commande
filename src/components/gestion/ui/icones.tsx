@@ -74,6 +74,27 @@ const TRACES = {
       <path d="M15.5 5.6a3.2 3.2 0 0 1 0 5.8M17 14.4c1.7.6 2.9 2.1 3.5 4.6" />
     </>
   ),
+  clients: (
+    <>
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M5 20c1.2-3.6 3.8-5.5 7-5.5s5.8 1.9 7 5.5" />
+    </>
+  ),
+  rapports: <path d="M4 20h16M7 16v-5M12 16V6M17 16v-8" />,
+  cloture: (
+    <>
+      <rect x="5" y="10" width="14" height="10" rx="1" />
+      <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+      <path d="m9.5 15 1.8 1.8 3.2-3.3" />
+    </>
+  ),
+  livreurs: (
+    <>
+      <circle cx="6" cy="17" r="2.5" />
+      <circle cx="18" cy="17" r="2.5" />
+      <path d="M8.5 17h6l2-6h-4M14 6h2.5l2 5M6 17l3-6h4" />
+    </>
+  ),
   tablette: (
     <>
       <rect x="5" y="3" width="14" height="18" rx="1.5" />

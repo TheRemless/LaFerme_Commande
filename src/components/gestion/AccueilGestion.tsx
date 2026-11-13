@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCarte } from "@/components/gestion/contexte-carte";
-import { GROUPES } from "@/components/gestion/navigation";
+import { GROUPES_VISIBLES } from "@/components/gestion/navigation";
 import { IconeGestion } from "@/components/gestion/ui/icones";
 
 // Accueil du back-office. Première version (coque, vague 3) : ce qui bloque la mise en ligne et le plan
@@ -20,7 +20,7 @@ export function AccueilGestion() {
       )}
       <p className="aide">Chaque modification est enregistrée dans le journal.</p>
       <div className="bo-plan">
-        {GROUPES.slice(1).map((g, i) => (
+        {GROUPES_VISIBLES.slice(1).map((g, i) => (
           <section key={g.titre} className="bo-plan-groupe" aria-labelledby={`bo-plan-${i}`}>
             <h2 id={`bo-plan-${i}`}>{g.titre}</h2>
             <ul>
