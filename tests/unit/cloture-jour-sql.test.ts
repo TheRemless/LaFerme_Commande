@@ -122,6 +122,8 @@ describe("clôturer", () => {
     const lu = await f<ClotureJour>("cloture_jour('2026-12-04')");
     expect(lu.cloture).toMatchObject({ ecart_centimes: 0 });
     expect(lu.cloture).not.toHaveProperty("personnel_id");
+    expect(lu.cloture).not.toHaveProperty("rapport");
+    expect(lu.change_depuis).toBe(false);
     expect(lu.rapport.jour).toBe("2026-12-04");
 
     const journal = (await db.query<{ objet: string; cle: string; avant: { ecart_centimes: number } | null; apres: Record<string, unknown> }>(
@@ -139,8 +141,9 @@ describe("clôturer", () => {
     expect(cl?.ecart_centimes).toBeNull();
     await db.query("update commandes set statut_paiement = 'encaisse' where id = $1", [c.id]);
     const lu = await f<ClotureJour>("cloture_jour('2026-12-04')");
-    expect(lu.cloture?.rapport.encaissements.comptoir.centimes).toBe(0);
-    expect(lu.rapport.encaissements.comptoir.centimes).toBe(2500);
+    expect(lu.rapport.encaissements.comptoir.centimes).toBe(0);
+    expect(lu.change_depuis).toBe(true);
+    expect((await f<ClotureJour>("cloture_rapport('2026-12-04')") as unknown as RapportCloture).encaissements.comptoir.centimes).toBe(2500);
   });
 
   it("réservé au gérant, refuse un jour à venir ou un montant négatif", async () => {

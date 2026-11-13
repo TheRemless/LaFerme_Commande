@@ -335,10 +335,12 @@ export function csvVentes(ventes: Vente[], remboursements: Remboursement[] = [])
     const tva = x.tva - x.tvaRemb;
     lignes.push([t, String(x.n), chf(x.total), chf(-x.rembourse), chf(net), chf(tva), chf(net - tva)]);
   }
-  // Une cellule qui commence par = + - @ serait lue comme une formule par Excel : on la neutralise.
-  const cellule = (x: string) => {
-    const s = /^[=+\-@]/.test(x) && !/^-?\d/.test(x) ? `'${x}` : x;
-    return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
-  return "\uFEFF" + lignes.map((l) => l.map(cellule).join(";")).join("\r\n") + "\r\n";
+  return "\uFEFF" + lignes.map((l) => l.map(celluleCsv).join(";")).join("\r\n") + "\r\n";
+}
+
+// Cellule de CSV (point-virgule). Une cellule qui commence par = + - @, une tabulation ou un retour serait
+// lue comme une formule par Excel : on la neutralise. Partagée avec la clôture du jour (src/lib/cloture.ts).
+export function celluleCsv(x: string): string {
+  const s = /^[=+\-@\t\r]/.test(x) && !/^-?\d/.test(x) ? `'${x}` : x;
+  return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
