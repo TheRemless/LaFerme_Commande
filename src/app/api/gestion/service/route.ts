@@ -5,6 +5,7 @@ import { fonctionSql } from "@/lib/db/serveur";
 import { centimes, champsHoraire, champsZone, dateValide } from "@/lib/gestion";
 import { exigerGerant } from "@/lib/personnel/session";
 import { lireReglagesGeneraux, reglerReglageGeneral } from "@/lib/reglages-generaux";
+import { simulerAdresse } from "@/lib/simulateur-adresse";
 import { rafraichirCaches } from "@/lib/tablette";
 import { fermerZone, reglerServicesZone, rouvrirZone } from "@/lib/zones-operations";
 
@@ -37,7 +38,7 @@ export async function GET(requete: Request) {
   );
 }
 
-// { type: "zone", numero, champs } | { type: "horaire", id, champs }
+// { type: "zone", numero, champs } | { type: "horaire", id, champs } | { type: "simuler-adresse", adresse }
 // | { type: "fermeture", debut, fin, motif } | { type: "fermeture-suppr", id }
 export async function POST(requete: Request) {
   const g = await exigerGerant(requete);
@@ -46,6 +47,12 @@ export async function POST(requete: Request) {
   if (!c) return refus("Requête illisible.", 400);
   const qui = g.personnel.id;
   const entier = (v: unknown) => (Number.isInteger(v) && (v as number) > 0 && (v as number) < 10_000 ? (v as number) : null);
+  // Tester une adresse (vague 3) : lecture seule, rien n'est enregistré. Adresse dans le corps, jamais dans l'URL.
+  if (c.type === "simuler-adresse") {
+    const r = await simulerAdresse(c.adresse);
+    if ("erreur" in r) return refus(r.erreur, r.code);
+    return NextResponse.json(r, { headers: { "Cache-Control": "no-store, private" } });
+  }
   let ok = true;
   if (c.type === "zone") {
     const n = entier(c.numero);
