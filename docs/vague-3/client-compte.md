@@ -50,3 +50,34 @@ La rubrique « Connexion » du compte liste les appareils connectés, avec un no
 ## Heure et allergie au suivi
 
 Le suivi et les e-mails donnent l'heure confirmée en fourchette, comme l'accueil (« Prête entre 19h35 et 19h45 »), selon les largeurs réglées par le restaurant. À largeur 0, une seule heure (« vers 19h40 »). L'allergie que le client a signalée à la commande est rappelée dans le détail de sa page de suivi. L'e-mail de confirmation dit seulement qu'une allergie est signalée, sans en recopier le texte.
+
+## Envoi d'essai réel des e-mails
+
+Jérémy a accepté le 13.11.2026 de recevoir un essai réel de tous les e-mails à son adresse privée. L'essai part de son Mac, quand le chef le dit. Il n'a pas besoin d'une préversion Netlify et n'écrit rien dans la vraie base. Les plats et les prix viennent de la base embarquée et la commande est fictive (n° 37).
+
+1. Dans le Terminal, aller dans le dossier du projet à jour de `main`, puis lancer `npm ci`.
+2. Taper les réglages de la boîte du restaurant (voir `docs/comptes.md`). Le mot de passe ne s'affiche pas et ne reste pas dans l'historique :
+
+   ```bash
+   read "SMTP_UTILISATEUR?Identifiant SMTP : "; export SMTP_UTILISATEUR
+   read -s "SMTP_MOT_DE_PASSE?Mot de passe SMTP : "; echo; export SMTP_MOT_DE_PASSE
+   read "COURRIEL_EXPEDITEUR?Expéditeur (La Ferme <adresse>) : "; export COURRIEL_EXPEDITEUR
+   ```
+
+3. Essai à blanc, sans envoi. L'adresse publique du site sert au logo :
+
+   ```bash
+   npm run courriels:essai -- <adresse privée> --origine=https://<adresse du site> --etapes
+   ```
+
+4. Même commande avec `--envoyer` à la fin. 15 e-mails partent, un toutes les 2 secondes, chacun avec un sujet qui commence par « [Essai n/15] ». Ils prennent 15 places sur le quota du jour d'Infomaniak. `--etapes` ajoute « acceptée », « prête » et « en route », qui ne partent plus par défaut.
+5. Fermer le Terminal : les réglages tapés disparaissent avec lui.
+
+À regarder dans la boîte de réception :
+
+- les e-mails arrivent dans la boîte principale et pas dans les indésirables (sinon DMARC et DKIM du domaine, toujours à régler) ;
+- le logo, les accents et les montants sont justes ;
+- la lecture tient en mode sombre et sur le téléphone ;
+- le bouton « Suivre la commande » mène à « commande introuvable », comme prévu pour une commande fictive.
+
+Le script refuse de tourner si une variable mène à une vraie base (Supabase, Postgres ou Netlify).
