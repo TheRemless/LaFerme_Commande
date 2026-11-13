@@ -1,6 +1,8 @@
 // Zones de livraison, créneaux et état du restaurant. Fonctions pures : mêmes calculs dans le
 // navigateur (réponse immédiate) et sur le serveur (contrôle). Heures locales de Genève.
 
+import type { MessageClient } from "@/lib/messages-clients";
+
 export type Mode = "livraison" | "retrait";
 
 export type Zone = {
@@ -67,6 +69,8 @@ export type ConfigService = {
   reglages: Reglages;
   // Réglé depuis la tablette : pause des commandes en ligne (jusqu'à une heure, ou sans fin) et livraison fermée.
   pause?: { jusqua: string | null; active: boolean; livraisonFermee: boolean; auto?: boolean };
+  // Messages d'information aux clients, programmés au back-office (vague 3, src/lib/messages-clients.ts).
+  messages?: MessageClient[];
 };
 
 // ---------- Zones ----------
