@@ -171,7 +171,7 @@ test("annulation par le client : absente par défaut, puis activée, la commande
 });
 
 test("réclamation depuis le suivi : le client dit ce qui manque, le restaurant le reçoit", async ({ browser }, info) => {
-  const prenom = `Recl${info.project.name}`;
+  const prenom = `Recl${info.project.name}${passage()}`;
   const { jeton } = await commandeRetireePayee(prenom);
   const client = await browser.newPage({ baseURL: SITE, viewport: { width: 375, height: 812 } });
   await client.goto(`/suivi/${jeton}`);

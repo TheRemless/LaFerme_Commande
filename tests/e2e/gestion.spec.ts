@@ -48,6 +48,11 @@ test("un plat se modifie, ce qui bloque s'affiche, la modification va au journal
   await expect(gestion.getByRole("button", { name: /^Pizza Tonno/ })).not.toContainText("allergènes manquants");
 
   await rubrique(gestion, "Journal");
+  // Filtré d'abord : les tests qui tournent en même temps (codes promo, carte) écrivent aussi au journal et
+  // repoussaient cette ligne hors de la première page (passe finale de qualite).
+  const recherche = gestion.getByRole("search", { name: "Filtrer le journal" });
+  await recherche.getByLabel("Chercher").fill("gluten, lait, poisson (test)");
+  await recherche.getByRole("button", { name: "Filtrer" }).click();
   await expect(gestion.locator(".ges-journal-liste")).toContainText("Plat Pizza Tonno");
   await expect(gestion.locator(".ges-journal-liste")).toContainText("gluten, lait, poisson (test)");
 });

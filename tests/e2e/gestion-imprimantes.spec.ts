@@ -8,8 +8,9 @@ test.describe.configure({ mode: "serial", timeout: 90_000 });
 
 const ORIGINE = { Origin: SITE };
 const CAPTURES = "docs/rendus/vague-3/bo-operations";
-// Unique par passage : un réessai de la CI sur le même serveur ne retrouve pas l'imprimante du passage d'avant.
-const NOM = `Essai écran imprimantes ${passage()}`;
+// Unique par passage, calculé à chaque test : un réessai sur le même serveur (même processus compris) ne
+// retrouve pas l'imprimante du passage d'avant.
+let NOM = "";
 
 async function connecter(page: Page, email: string) {
   await adresseDuCompte(page, email);
@@ -26,6 +27,7 @@ test("imprimantes : dernier ticket, conduite en cas de panne, axe", async ({ pag
   await connecter(page, "ecran-imprimantes@laferme.test");
   let id: number | null = null;
   let id2: number | null = null;
+  NOM = `Essai écran imprimantes ${passage()}`;
   const NOM2 = `${NOM} bis`;
   try {
     // Une imprimante désactivée ne reçoit pas de ticket : on l'ajoute, on lui envoie un ticket de test (jamais
