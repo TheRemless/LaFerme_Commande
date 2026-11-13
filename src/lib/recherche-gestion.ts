@@ -12,12 +12,12 @@ type LigneClient = { email: string; prenom: string | null; nom: string | null; t
 
 const sur = <T>(p: Promise<T>): Promise<T | null> => p.catch(() => null);
 
-export async function rechercher(q: string): Promise<ResultatsRecherche> {
+export async function rechercher(q: string, { plats = true }: { plats?: boolean } = {}): Promise<ResultatsRecherche> {
   const [commandes, clients, catalogue] = await Promise.all([
     sur(fonctionSql<{ lignes: LigneCommande[] }>("liste_commandes_gestion", { p: { recherche: q, tri: "recent", page: 1, par_page: MAX_PAR_GROUPE } })),
     // Les chiffres seuls (numéro de commande) ne cherchent pas de client : un téléphone a au moins six chiffres.
     /^\d{1,5}$/.test(q) ? Promise.resolve({ lignes: [] as LigneClient[] }) : sur(fonctionSql<{ lignes: LigneClient[] }>("clients_gestion", { p: { recherche: q, page: 1, par_page: 10 } })),
-    sur(chargerCatalogue()),
+    plats ? sur(chargerCatalogue()) : Promise.resolve(null),
   ]);
   const n = normaliser(q);
   return {

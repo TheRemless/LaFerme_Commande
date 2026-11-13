@@ -98,7 +98,8 @@ describe("G03 : l'équipe dans le back-office", () => {
 
   it("refuse un membre du service, une adresse illisible, un doublon actif", async () => {
     expect(await erreur("ajouter_personnel('a@b.ch', 'A', 'service', $1)", [service])).toContain("Réservé au gérant");
-    expect(await erreur("liste_personnel($1)", [service])).toContain("Réservé au gérant");
+    // Responsable de service (D1) : liste_personnel passe par auteur_droit, qui refuse avec droit_refuse.
+    expect(await erreur("liste_personnel($1)", [service])).toContain("droit_refuse");
     expect(await erreur("ajouter_personnel('pas-une-adresse', 'A', 'service', $1)", [gerant])).toContain("adresse_invalide");
     expect(await erreur("ajouter_personnel('equipe-bureau@laferme.test', 'A', 'service', $1)", [gerant])).toContain("deja_membre");
     expect(await erreur("ajouter_personnel('x@y.ch', 'A', 'patron', $1)", [gerant])).toContain("role_invalide");
