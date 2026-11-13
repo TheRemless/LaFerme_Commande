@@ -4,7 +4,8 @@ import { dateValide, type Resultat } from "@/lib/gestion";
 export const TYPES_RECLAMATION = ["retard", "manquant", "froid", "erreur", "qualite", "livraison", "autre"] as const;
 export const SOURCES_EQUIPE = ["telephone", "sur_place", "email"] as const;
 export const STATUTS_RECLAMATION = ["ouverte", "en_cours", "close"] as const;
-export const GESTES = ["remboursement", "plat_offert", "aucun"] as const;
+// Ordre proposé au gérant (décision de Jérémy, 13.11.2026) : d'abord un geste pour la prochaine fois, le remboursement en dernier.
+export const GESTES = ["plat_offert", "reduction", "aucun", "remboursement"] as const;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const vide = (v: unknown) => v === undefined || v === null || v === "";
@@ -86,6 +87,16 @@ export function gesteReclamation(c: Record<string, unknown>): Resultat<Record<st
   if (c.geste === "remboursement") {
     if (typeof c.remboursement_id !== "string" || !UUID.test(c.remboursement_id)) return { ok: false, erreur: "Choisissez le remboursement fait." };
     return { ok: true, valeur: { geste: c.geste, remboursement_id: c.remboursement_id } };
+  }
+  if (c.geste === "reduction") {
+    // Montant en centimes ou pourcentage, choisi par le gérant : aucune valeur par défaut.
+    const v = c.valeur;
+    if (c.type === "pourcentage") {
+      if (!Number.isInteger(v) || (v as number) < 1 || (v as number) > 100) return { ok: false, erreur: "Indiquez un pourcentage de 1 à 100." };
+    } else if (c.type === "montant") {
+      if (!Number.isInteger(v) || (v as number) < 1 || (v as number) > 9_999_999) return { ok: false, erreur: "Indiquez le montant de la réduction." };
+    } else return { ok: false, erreur: "Choisissez un montant ou un pourcentage." };
+    return { ok: true, valeur: { geste: c.geste, type: c.type, valeur: v } };
   }
   const d = texteLibre(c.detail, 3, 200);
   if (!d) return { ok: false, erreur: c.geste === "plat_offert" ? "Dites ce qui est offert (3 à 200 caractères)." : "Dites pourquoi (3 à 200 caractères)." };
