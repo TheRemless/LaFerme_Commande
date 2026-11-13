@@ -167,6 +167,9 @@ test("tournée de deux livraisons, ordre proposé, Je pars, Livrée : plus rien 
   await marco.reload();
   await avant(marco.locator(".liv-arret"), "n°", a, b);
 
+  // Position en direct (décision de Jérémy du 13.11.2026) : partagée pendant le trajet vers l'arrêt en cours seulement.
+  await contexteMarco.grantPermissions(["geolocation"], { origin: BASE });
+  await contexteMarco.setGeolocation({ latitude: 46.1843, longitude: 6.0921, accuracy: 15 });
   await marco.getByRole("button", { name: /^Je pars avec les \d+$/ }).click();
   await expect(arret(marco, a)).toContainText("En route.");
   await expect(arret(marco, b)).toContainText("En route.");
@@ -176,8 +179,11 @@ test("tournée de deux livraisons, ordre proposé, Je pars, Livrée : plus rien 
   // D'une main (vague 3) : en route, l'arrêt en cours a « Livrée » sous le pouce, le suivant est replié.
   await expect(marco.locator(".liv-pouce")).toContainText(`Livrée, n° ${a}`);
   await expect(arret(marco, b)).toHaveClass(/liv-arret-replie/);
+  await expect(marco.locator(".liv-position")).toHaveText(`Le client du n° ${a} voit votre position jusqu'à « Livrée ».`, { timeout: 15_000 });
+  await marco.screenshot({ path: "test-results/livreurs/livreur-375-position.png" });
   await arret(marco, a).getByRole("button", { name: "Livrée" }).click();
   await expect(arret(marco, a)).toHaveCount(0);
+  await expect(marco.locator(".liv-position")).toHaveText(`Le client du n° ${b} voit votre position jusqu'à « Livrée ».`, { timeout: 15_000 });
   await arret(marco, b).getByRole("button", { name: "Livrée" }).click();
   await expect(arret(marco, b)).toHaveCount(0);
   await tablette.getByRole("button", { name: /^Terminées/ }).click();

@@ -29,6 +29,12 @@ const nextConfig: NextConfig = {
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
         ],
       },
+      // Page du livreur : sa position, pendant le trajet vers l'arrêt en cours seulement (position en direct au
+      // suivi, décision de Jérémy du 13.11.2026). Déclarée après la règle générale, elle la remplace ici.
+      {
+        source: "/livreur",
+        headers: [{ key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(self), payment=()" }],
+      },
     ];
   },
   env: {

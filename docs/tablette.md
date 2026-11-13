@@ -279,3 +279,17 @@ Mesure sur le jeu de rush de qualite (91 commandes en cours, `scripts/tablette/m
 - Ligne de 46 px au lieu de 68 : bouton de geste à 44 px (taille tactile minimale, aucune cible plus petite), interligne et marges réduits, retard marqué par un contour qui ne prend pas de place, « à encaisser » sur la ligne du client (deux lignes par commande au plus).
 - Bandeau des remboursements pas passés sur une ligne : les numéros du jour, puis le nombre des jours d'avant avec leurs dates, et « Voir au back-office » (`/gestion/commandes?remboursement=echec`). Avant : 18 numéros sans date, en permanence (les numéros recommencent chaque jour).
 - Captures : `docs/rendus/vague-3/tablette/compact-avant-*.png` et `compact-apres-*.png`, mesures `compact-mesures.json`.
+
+## Position du livreur en direct (décision de Jérémy du 13.11.2026)
+
+« Seulement s'il est en train de livrer sa commande. Le 2e client ne doit pas savoir où il livre au 1er client. » Toutes les règles sont en base, quel que soit le téléphone (migration `20261213210000_position_livreur.sql`).
+
+- **Arrêt en cours** (`arret_en_cours`) : la première livraison encore à faire du livreur, dans l'ordre de sa tournée (le même que sur son téléphone), si elle est partie. Avant le départ, ou si le premier arrêt est encore au restaurant, rien n'est gardé.
+- **Téléphone** (`src/components/livreur/partage-position.ts`) : pendant le trajet vers l'arrêt en cours, la page demande la localisation au navigateur et l'envoie toutes les 20 secondes au plus (`/api/livreur/position`, POST `{ lat, lon, precision }`). Sous le pouce : « Le client du n° 17 voit votre position jusqu'à « Livrée ». », ou « Localisation refusée sur ce téléphone. Le client ne voit pas où vous êtes. ». Plus en route ou page fermée : POST `{ fin: true }` efface la position.
+- **Base** (`noter_position_livreur`) : une ligne par livreur (`positions_livreur`), remplacée à chaque envoi, au plus une écriture toutes les 10 secondes, coordonnées arrondies à 4 décimales (une dizaine de mètres), sans historique ni journal. Signal hors de la région de Genève ou précision de plus d'un kilomètre : ignoré.
+- **Suivi** (`position_pour_suivi`, `src/lib/position-livreur.ts`) : la position n'est lue pour une commande que si cette commande est l'arrêt en cours de son livreur, et seulement si elle a moins de 2 minutes. Le 2e client ne voit rien tant que le 1er n'est pas livré.
+- **Effacement** : livrée, client absent clos, annulée, retirée ou donnée à un autre livreur, la position est effacée sur-le-champ (déclencheurs sur `commandes` et `livraisons`). Une position qui n'est plus envoyée est effacée au bout de 15 minutes.
+- **Interrupteur** : réglage `position_livreur_en_direct` (vrai). À faux, plus rien n'est gardé ni lu, et le téléphone arrête d'envoyer.
+- **En-tête** : `Permissions-Policy` ouvre la géolocalisation pour `/livreur` seulement (`next.config.ts`), elle reste fermée partout ailleurs.
+- **Limite connue** : un navigateur de téléphone n'envoie la position que tant que la page est à l'écran. Si le livreur passe sur l'appli de navigation, la position s'arrête et disparaît du suivi au bout de 2 minutes.
+- **Carte** : couche grise de swisstopo (`ch.swisstopo.pixelkarte-grau`, Web Mercator, `wmts.geo.admin.ch`), gratuite sans clé ni inscription, mention « © Data: swisstopo » (conditions générales de la IFDG, section 3.1 ; usage raisonnable admis jusqu'à environ 20 000 utilisateurs par jour, section 2.3). Pas de service américain.
