@@ -23,7 +23,9 @@ test("programmer et retirer un message", async ({ playwright, request }, info) =
     const court = await poster({ type: "ajouter", texte: "Bof", fin: new Date(Date.now() + 3600_000).toISOString() });
     expect(court.status()).toBe(422);
     expect((await court.json()).erreur).toMatch(/5 à 200/);
-    const r = await poster({ type: "ajouter", texte: TEXTE, fin: new Date(Date.now() + 3600_000).toISOString() });
+    // Programmé dans deux heures : le site l'affiche désormais (messages-bandeau.spec.ts), et les autres tests
+    // de l'accueil ne doivent pas le voir passer.
+    const r = await poster({ type: "ajouter", texte: TEXTE, debut: new Date(Date.now() + 2 * 3600_000).toISOString(), fin: new Date(Date.now() + 3 * 3600_000).toISOString() });
     expect(r.status()).toBe(200);
     id = (await r.json()).id;
     const liste = (await (await gerant.get("/api/gestion/messages")).json()).messages as { id: number; texte: string; cree_par: string }[];
