@@ -154,7 +154,7 @@ test("le personnel de service voit « Réservé au gérant » sur toutes les rub
 test("le rôle « Responsable de service » reste caché tant qu'il n'est pas activé (D1)", async () => {
   await gestion.goto("/gestion/equipe");
   await expect(gestion.getByRole("heading", { level: 1, name: "Équipe" })).toBeVisible();
-  const acces = gestion.getByLabel("Accès");
+  const acces = gestion.getByLabel("Accès", { exact: true });
   await expect(acces.locator("option")).toHaveText([/^Tablette$/, /^Tablette et back-office$/, /^Livreur/]);
   const r = await gestion.request.get("/api/gestion/personnel");
   expect(((await r.json()) as { responsable_actif: boolean }).responsable_actif).toBe(false);
