@@ -28,6 +28,7 @@ Build de production local : `BASE_LOCALE=1 BASE_LOCALE_INSTANTANE=$PWD/.pglite/r
 | Paiements | en ligne (Stripe de test, `cs_test_rush_…`) et au comptoir (sous le plafond), échecs et paiements abandonnés, retraits au comptoir jamais encaissés |
 | Refus et remboursements | refus de la tablette remboursés, manques remboursés au prix payé (Stripe, espèces), gestes commerciaux, remboursements en échec ou en cours |
 | Livraisons | cinq livreurs factices, tournées de une à trois commandes par zone, clients absents |
+| Postes | avancement par poste (pizza, cuisine) des commandes des 30 derniers jours : lancé, prêt, marqué à la main (`tablette:Prénom`) ou déduit du statut. Le poste pizza traîne le vendredi et le samedi vers 20h (goulot visible dans les Rapports) |
 | Carte | deux plats et un supplément en rupture aujourd'hui |
 | Back-office | journal (ruptures, retard, horaires, remboursements) des 30 derniers jours |
 
@@ -48,5 +49,6 @@ npm run donnees:rush -- --maintenant=2026-11-13T19:45 --graine=7 --echelle=0.1 -
 - **Refaire le jeu chaque jour** (les ruptures, la file en direct et « aujourd'hui » dépendent de la date) et **après chaque migration** ajoutée ou rebasée : l'instantané contient les migrations du moment où il a été fait.
 - Les montants passent par le vrai calcul du panier (`src/lib/panier.ts`) sur la carte de la base : aucun prix n'est écrit dans le script.
 - Pas encore dans le jeu : courriels envoyés, tâches d'impression et imprimantes, sessions et codes de connexion.
+- Les tables arrivées avec une migration récente (postes, par exemple) ne sont remplies que si la migration est là : le script marche avant comme après.
 - Code : `scripts/donnees-rush.ts` (lanceur et refus), `scripts/rush/` (génération), test `tests/unit/donnees-rush.test.ts`.
 - Charge d'un vendredi soir sur ce jeu : `docs/charge.md` (`npm run charge:vendredi`).

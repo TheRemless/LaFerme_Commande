@@ -305,6 +305,8 @@ export async function genererRush(db: PGlite, o: OptionsRush): Promise<BilanRush
   const evPaiement: Ligne[] = [];
   const remboursements: Ligne[] = [];
   const livraisons: Ligne[] = [];
+  // Avancement par poste (pizza, cuisine), table commande_postes (tablette, migration 20261203120000).
+  const postes: Ligne[] = [];
   const journalLivraisons: Ligne[] = [];
   const journal: Ligne[] = [];
   const parCommande = new Map<unknown, Ligne[]>();
@@ -468,7 +470,11 @@ export async function genererRush(db: PGlite, o: OptionsRush): Promise<BilanRush
     const delai = zone ? h.entier(zone.delai_min, zone.delai_max) : h.entier(20, 30);
     const cible = quandType === "creneau" ? instant(jourService, quandMinutes!) : plus(accepteLe, delai);
     // Étapes toujours dans l'ordre : acceptée, en préparation, prête, (partie), terminée.
-    const heurePrete = new Date(Math.max(plus(accepteLe, 3).getTime(), plus(cible, zone ? -h.entier(10, 20) : -h.entier(0, 5)).getTime()));
+    // Goulot du poste pizza, vendredi et samedi vers 20h : les commandes avec pizza sortent plus tard.
+    const goulotPizza = jourIso(jourService) >= 5 && minutesCible >= 1170 && minutesCible < 1230 && t.lignes.some((l) => cat.plats[l.slug].station === "pizza");
+    const heurePrete = new Date(
+      Math.max(plus(accepteLe, 3).getTime(), plus(cible, (zone ? -h.entier(10, 20) : -h.entier(0, 5)) + (goulotPizza ? h.entier(6, 14) : 0)).getTime()),
+    );
     const enPreparation = plus(accepteLe, Math.min(h.entier(1, 6), (heurePrete.getTime() - accepteLe.getTime()) / 120_000));
     const heurePartie = plus(heurePrete, h.entier(2, 8));
     const terminee = new Date(Math.max(plus(zone ? heurePartie : heurePrete, h.entier(3, 8)).getTime(), plus(cible, h.entier(-6, pointe ? 18 : 10)).getTime()));
@@ -519,6 +525,35 @@ export async function genererRush(db: PGlite, o: OptionsRush): Promise<BilanRush
     if (etat === "direct") compter(`direct_${statut}`);
 
     // Livreur et tournée (détails seulement sur les 30 derniers jours et la file en direct).
+    // Postes : une ligne par poste de la commande dès ses tickets. Le pizzaiolo ou la cuisine touche
+    // « Prête » (tablette:Prénom), sinon l'heure vient du statut de la commande (statut). Le vendredi et le
+    // samedi vers 20h, le poste pizza traîne : c'est le goulot que les Rapports doivent montrer.
+    if (detaille && c.tickets_le) {
+      const goulot = goulotPizza;
+      const stations = [...new Set(t.lignes.map((l) => cat.plats[l.slug].station))];
+      for (const station of stations) {
+        // Commande à l'avance : le poste s'y met une vingtaine de minutes avant l'heure, pas à l'acceptation.
+        const aFaire = new Date(Math.max(new Date(String(c.tickets_le)).getTime(), plus(heurePrete, -25).getTime()));
+        const lance = plus(aFaire, 0.5 + h.nombre() * 2.5);
+        const duree = station === "pizza" ? h.entier(6, 12) + (goulot ? h.entier(6, 14) : 0) : h.entier(8, 16);
+        const parTablette = h.vrai(0.7);
+        let pret: Date | null = parTablette ? plus(lance, duree) : heurePrete;
+        // Prête avant la commande entière, et jamais après « maintenant ».
+        if (pret > heurePrete && ["prete", "partie", "terminee"].includes(statut)) pret = heurePrete;
+        if (pret > maintenant || !["en_preparation", "prete", "partie", "terminee", "acceptee"].includes(statut)) pret = null;
+        if (pret && !["prete", "partie", "terminee"].includes(statut) && !parTablette) pret = null;
+        const lanceLe = pret && pret < lance ? pret : lance;
+        postes.push({
+          commande_id: id,
+          station,
+          a_faire_le: aFaire.toISOString(),
+          lance_le: lanceLe <= maintenant ? lanceLe.toISOString() : null,
+          pret_le: pret ? pret.toISOString() : null,
+          pret_par: pret ? (parTablette ? tablette : "statut") : null,
+        });
+      }
+    }
+
     if (mode === "livraison" && detaille && ["prete", "partie", "terminee"].includes(statut)) {
       aLivrer.push({ c, heurePrete, tablette });
     }
@@ -601,7 +636,8 @@ export async function genererRush(db: PGlite, o: OptionsRush): Promise<BilanRush
     for (const [service, quarts] of [["midi", QUARTS_MIDI], ["soir", QUARTS_SOIR]] as const) {
       let n: number;
       // À l'avance : surtout le lendemain, de moins en moins ensuite.
-      if (futur) n = ((service === "soir" ? 9 : 4) * o.echelle) / ecartJours(aujourdHui, d);
+      // Plancher à petite échelle : l'onglet « À l'avance » de la tablette doit avoir de quoi s'afficher.
+      if (futur) n = ((service === "soir" ? 9 : 4) * Math.max(o.echelle, 0.25)) / ecartJours(aujourdHui, d);
       else if (recent) n = vol[service] * (0.92 + h.nombre() * 0.16) * o.echelle;
       else n = (vol[service] / 7) * (0.8 + h.nombre() * 0.4) * saison(d) * o.echelle;
       const total = arrondiHasard(h, n);
@@ -741,6 +777,11 @@ export async function genererRush(db: PGlite, o: OptionsRush): Promise<BilanRush
     await inserer(db, "livraisons", livraisons);
     await inserer(db, "journal_livraisons", journalLivraisons);
     await inserer(db, "journal_gestion", journal);
+    // Avant la migration 20261203120000, la table n'existe pas : rien à écrire.
+    if ((await db.query<{ t: string | null }>("select to_regclass('public.commande_postes')::text as t")).rows[0]?.t) {
+      await inserer(db, "commande_postes", postes);
+      bilan.postes = postes.length;
+    }
     await inserer(db, "activite_livreurs", [...actifs].map((id) => ({ personnel_id: id, vu_le: plus(maintenant, -h.entier(0, 3)).toISOString() })));
     // Compteurs du jour : la prochaine vraie commande locale prend le numéro suivant.
     await inserer(db, "compteurs_jour", [...compteurs].map(([jour, dernier]) => ({ jour, dernier })), "on conflict (jour) do update set dernier = greatest(compteurs_jour.dernier, excluded.dernier)");
