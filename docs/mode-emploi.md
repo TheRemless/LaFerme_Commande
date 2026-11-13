@@ -122,6 +122,7 @@ Chaque rubrique a sa propre adresse, par exemple `/gestion/carte` ou `/gestion/c
 - Note interne (onglet « Notes ») : lue par l'équipe seulement, jamais montrée au client.
 - Le client appelle pour corriger son nom, son téléphone, l'étage, le code, la sonnette ou l'adresse dans le même quartier : onglet « Gestes », changer le champ, « Enregistrer les changements ». Le montant ne change pas et le client reçoit un e-mail avec ce qui a changé. Une adresse dans une autre zone est refusée : annuler et faire recommander.
 - Onglet « Gestes », selon l'état de la commande : « Changer l'heure » (le client reçoit la nouvelle heure par e-mail), « Réimprimer » (tous les tickets, ou seulement pizza ou cuisine), « Annuler la commande » avec un motif (payée en ligne, elle est remboursée en entier ; les postes qui ont déjà leur ticket reçoivent « ANNULÉE »). Chaque geste demande une confirmation quand il ne se défait pas.
+- « La même que vendredi » : onglet « Gestes », « Recréer cette commande » crée une commande à emporter, payée au comptoir, aux prix du jour, à accepter sur la tablette. Pas encore activé : c'est une décision du restaurant.
 - « Je n'ai rien reçu » : onglet « E-mails », « Renvoyer au client ». L'e-mail repart tel quel, avec « (nouvel envoi) » dans le sujet.
 - « Il manque le tiramisù », « c'est arrivé froid » : onglet « Réclamations », choisir ce qui ne va pas, écrire ce que dit le client, « Noter la réclamation ». Elle reste sur la commande et le client n'en voit rien. Le client peut aussi la signaler lui-même depuis son suivi.
 

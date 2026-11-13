@@ -71,6 +71,10 @@ test("la fiche montre la commande, garde une note et enregistre un changement de
   await fiche.getByLabel("Téléphone").fill("079 765 43 21");
   await fiche.getByRole("button", { name: "Enregistrer les changements" }).click();
   await expect(gestion.getByText(/Commande modifiée/)).toBeVisible();
+  // « La même que vendredi » : construit, mais désactivé tant que le restaurant ne l'a pas décidé.
+  await fiche.getByRole("button", { name: "Recréer cette commande" }).click();
+  await gestion.getByRole("button", { name: "Recréer la commande" }).click();
+  await expect(gestion.getByText("Recréer une commande au téléphone n'est pas encore activé.")).toBeVisible();
 
   // « Il manque le tiramisù » : la réclamation se note depuis la commande.
   await fiche.getByRole("tab", { name: "Réclamations" }).click();
