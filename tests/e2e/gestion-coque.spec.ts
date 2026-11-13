@@ -151,6 +151,15 @@ test("le personnel de service voit « Réservé au gérant » sur toutes les rub
   await page.close();
 });
 
+test("le rôle « Responsable de service » reste caché tant qu'il n'est pas activé (D1)", async () => {
+  await gestion.goto("/gestion/equipe");
+  await expect(gestion.getByRole("heading", { level: 1, name: "Équipe" })).toBeVisible();
+  const acces = gestion.getByLabel("Accès");
+  await expect(acces.locator("option")).toHaveText([/^Tablette$/, /^Tablette et back-office$/, /^Livreur/]);
+  const r = await gestion.request.get("/api/gestion/personnel");
+  expect(((await r.json()) as { responsable_actif: boolean }).responsable_actif).toBe(false);
+});
+
 test("se déconnecter ramène à l'écran de connexion sur la même adresse", async () => {
   await gestion.goto("/gestion/horaires");
   await ouvrirMenuSiTelephone(gestion);
