@@ -14,7 +14,7 @@ Calculés en base, jamais dans le navigateur. Migration `supabase/migrations/202
 | Remboursements faits | Au jour de service où ils sont faits (de 5h à 5h, heure de Genève), comme les ventes, sans ceux d'une commande refusée. L'export comptable garde le jour civil |
 | Remboursements en cours, en échec | Au jour de service de la demande, refusées comprises |
 | Net TTC | TTC moins remboursements faits. TVA par taux : ventes, remboursements et net |
-| Refus | Nombre, montant et les huit motifs les plus fréquents (majuscules et espaces ignorés) |
+| Refus | Refus du restaurant seulement : nombre, montant et les huit motifs les plus fréquents (majuscules et espaces ignorés). Une annulation par le client avant l'acceptation (`annulee_par_client_le`) se compte à part (`annulees_client`), migration `20261210170000_annulation_client_chiffres.sql` |
 | Service | `&service=midi` ou `&service=soir` : un seul service, comparé au même service. Une commande est du soir si son heure confirmée, sinon son créneau, sinon l'heure où elle a été passée, est à 15h ou plus tard (même bascule que le plat du jour). Un remboursement suit l'heure où il a été fait |
 | Comparaison | Sans choix : les mêmes jours de la semaine précédente pour moins de 7 jours, sinon la même durée juste avant. Le mois se compare au mois civil précédent. La semaine va du lundi au dimanche |
 
@@ -44,3 +44,11 @@ Migration `supabase/migrations/20261210200000_pilotage_analyses.sql`, route `GET
 - Zones : commandes livrées, montant, frais et panier moyen par zone.
 - Clients : un client se reconnaît à son e-mail (sans majuscules) à l'intérieur de la base. Nouveau : aucune commande prise avant la période. Fidèle : au moins une. Seuls des nombres sortent.
 - Mesure (base embarquée, 109 500 commandes et 328 500 lignes sur un an) : un mois en 61 ms, une année en environ 1 s. Pas de table de cumuls : une année entière reste une demande rare, l'écran montre un chargement.
+
+## Export pour la fiduciaire et remboursements à suivre
+
+Migration `supabase/migrations/20261129120000_export_compta.sql`, module `src/lib/export-compta.ts`. Tests : `tests/unit/export-compta-sql.test.ts`.
+
+- `GET /api/gestion/export?debut=…&fin=…&format=jours` : une ligne par jour et par taux de TVA (ventes, en ligne, comptoir, dont livraison, TTC, TVA, remboursé en ligne, rendu en espèces, déduit au comptoir, TVA remboursée, net TTC, TVA nette, net HT), puis le total de la période par taux. Mêmes règles que le détail (`export_ventes`, `export_remboursements`) : une vente au jour de la commande, un remboursement au jour civil où il est fait. Les totaux tombent juste avec le détail, au centime (testé).
+- Aucun numéro de compte tant que la fiduciaire n'a pas dit quel logiciel et quel plan de comptes elle utilise (question D9). Le fichier s'ouvre dans un tableur et s'importe dans un logiciel comptable qui lit un CSV à point-virgule.
+- `GET /api/gestion/pilotage/remboursements` : remboursements en échec, ou demandés à Stripe il y a plus de 24 heures sans confirmation, les plus anciens d'abord, avec l'identifiant de la commande pour ouvrir sa fiche.

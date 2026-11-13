@@ -1,6 +1,7 @@
 import "server-only";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
+import { gunzipSync } from "node:zlib";
 import type { PGlite } from "@electric-sql/pglite";
 
 // Base Postgres embarquée pour travailler sans projet Supabase : mêmes migrations, même amorçage.
@@ -13,7 +14,12 @@ export async function creerBaseLocale(): Promise<PGlite> {
   // Tests : copie d'une base déjà migrée, faite une fois par passage de Vitest (tests/unit/instantane-base.ts).
   // Rejouer toutes les migrations dans chaque fichier de test, en parallèle, dépassait le délai des hooks.
   const instantane = process.env.BASE_LOCALE_INSTANTANE;
-  if (instantane) return PGlite.create({ loadDataDir: new Blob([await readFile(instantane)]) });
+  // Jeu de rush (.tar.gz, docs/donnees-rush.md) : décompressé ici. Laissée à PGlite, la décompression gzip
+  // part en « Maximum call stack size exceeded » sous next dev (pas en production).
+  if (instantane) {
+    const fichier = await readFile(instantane);
+    return PGlite.create({ loadDataDir: new Blob([instantane.endsWith(".gz") ? gunzipSync(fichier) : fichier]) });
+  }
   const db = new PGlite();
   await db.exec(await readFile(path.join(SUPABASE, "local", "roles.sql"), "utf8"));
   const migrations = (await readdir(path.join(SUPABASE, "migrations"))).filter((f) => f.endsWith(".sql")).sort();

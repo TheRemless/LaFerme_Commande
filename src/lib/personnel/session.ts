@@ -37,11 +37,23 @@ export async function jetonPersonnel(): Promise<string | null> {
   return v && /^[A-Za-z0-9_-]{43}$/.test(v) ? v : null;
 }
 
+// Dernière écriture de « vue_le » par session, dans cette instance du serveur.
+const vuesRecentes = new Map<string, number>();
+
 export const personnelCourant = cache(async (): Promise<Personnel | null> => {
   const jeton = await jetonPersonnel();
   if (!jeton) return null;
   try {
-    return await fonctionSql<Personnel | null>("personnel_de_session", { p_session_hache: empreinte("session-personnel", jeton) });
+    const hache = empreinte("session-personnel", jeton);
+    const p = await fonctionSql<Personnel | null>("personnel_de_session", { p_session_hache: hache });
+    // Dernière activité de l'appareil (Équipe) : une écriture toutes les cinq minutes au plus, sans attendre.
+    // Le filtre en mémoire évite même la requête quand la tablette relit sa file toutes les 15 secondes.
+    if (p && Date.now() - (vuesRecentes.get(hache) ?? 0) > 5 * 60_000) {
+      vuesRecentes.set(hache, Date.now());
+      if (vuesRecentes.size > 500) vuesRecentes.clear();
+      void fonctionSql("voir_session_personnel", { p_session_hache: hache }).catch(() => undefined);
+    }
+    return p;
   } catch (e) {
     console.error(`Session du personnel illisible : ${e instanceof Error ? e.message : e}`);
     return null;

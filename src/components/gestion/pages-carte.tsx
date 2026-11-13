@@ -1,6 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { GestionCarte, GestionPlatDuJour, GestionSupplements } from "@/components/gestion/GestionCarte";
+import { ListeCarte } from "@/components/gestion/carte/ListeCarte";
+import { Onglets } from "@/components/gestion/ui";
 import { GestionImport } from "@/components/gestion/GestionImport";
 import { useCarte } from "@/components/gestion/contexte-carte";
 
@@ -18,9 +21,28 @@ function Chargement() {
   );
 }
 
+// Carte : la liste dense (par défaut) et la vue par catégorie (ordre des plats, catégories, archives).
 export function PageCarte() {
   const { carte, recharger, version } = useCarte();
-  return carte ? <GestionCarte donnees={carte} recharger={recharger} version={version} /> : <Chargement />;
+  const [vue, setVue] = useState("liste");
+  if (!carte) return <Chargement />;
+  return (
+    <Onglets
+        libelle="Vues de la carte"
+        onglets={[
+          { cle: "liste", titre: "Liste" },
+          { cle: "categories", titre: "Par catégorie et ordre" },
+        ]}
+        actif={vue}
+        onChange={setVue}
+      >
+        {vue === "liste" ? (
+          <ListeCarte donnees={carte} recharger={recharger} version={version} />
+        ) : (
+          <GestionCarte donnees={carte} recharger={recharger} version={version} />
+        )}
+    </Onglets>
+  );
 }
 
 export function PagePlatDuJour() {

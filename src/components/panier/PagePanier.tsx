@@ -15,11 +15,13 @@ export function PagePanier({
   plats,
   preversion,
   populaires,
+  prenomActif = false,
 }: {
   catalogue: Catalogue;
   plats: LignePlat[];
   preversion: boolean;
   populaires?: DonneesPopulaires;
+  prenomActif?: boolean;
 }) {
   const panier = usePanier();
   const { lignes, charge, quantite, remplacer, ajouter } = panier;
@@ -72,6 +74,7 @@ export function PagePanier({
           catalogue={catalogue}
           preversion={preversion}
           ferme={choix?.quand.type === "aucun"}
+          prenomActif={prenomActif}
           initiale={lignes[edition.index]}
           onAjouter={(ligne) => {
             remplacer(edition.index, ligne);

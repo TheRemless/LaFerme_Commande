@@ -81,6 +81,10 @@ Disponibilités, ruptures planifiées, four en panne, groupes d'options, prix en
 
 Construits désactivés, sans montant : voir [codes-promo.md](codes-promo.md).
 
+## Menus et formules
+
+Construits désactivés, sans prix : voir [menus.md](menus.md).
+
 ## Pas encore fait
 
 - Supprimer une catégorie vide (elle reste invisible des clients tant qu'elle n'a aucun plat en vente).

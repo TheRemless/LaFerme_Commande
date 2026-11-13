@@ -54,7 +54,13 @@ export type DonneesAccueil = {
   tablette_muette: boolean | null;
   quota: EtatQuota | null;
   alerte_acceptation_minutes: number;
+  /** Remboursements à suivre, tous jours confondus (remboursements_a_suivre de bo-pilotage) : en échec, ou pas
+   *  confirmés par Stripe depuis plus de 24 heures. null tant que la fonction manque (base pas encore migrée) :
+   *  l'accueil retombe alors sur les chiffres du service en cours. Champ facultatif pour les anciens appels. */
+  remboursements?: { echecs: { numero: number; cree_le: string }[]; bloques: { numero: number; cree_le: string }[] } | null;
 };
+
+type RemboursementASuivre = { numero: number; statut: string; cree_le: string };
 
 export type Alerte = {
   cle: string;
@@ -131,7 +137,28 @@ export function alertesDe(d: DonneesAccueil): Alerte[] {
     a.push({ cle: "tickets", niveau: "bloquant", titre: `${NB(d.impression.echecs, "ticket", "tickets")} pas imprimé${d.impression.echecs > 1 ? "s" : ""}`, geste: { href: "/tablette", texte: "Réimprimer sur la tablette" } });
   if (c && c.en_retard.length)
     a.push({ cle: "retard", niveau: "attention", titre: `${NB(c.en_retard.length, "commande", "commandes")} après l'heure promise`, detail: `N° ${c.en_retard.map((x) => x.numero).join(", ")}.`, depuis: c.en_retard[0].heure, geste: { href: "/tablette", texte: "Voir sur la tablette" } });
-  const r = d.ventes?.periode.remboursements;
+  const rs = d.remboursements;
+  if (rs) {
+    if (rs.echecs.length)
+      a.push({
+        cle: "remboursements",
+        niveau: "attention",
+        titre: NB(rs.echecs.length, "remboursement a échoué", "remboursements ont échoué"),
+        detail: `Le client n'a pas été remboursé. N° ${[...new Set(rs.echecs.map((x) => x.numero))].join(", ")}.`,
+        depuis: rs.echecs[0].cree_le,
+        geste: { href: "/gestion/commandes", texte: "Voir les commandes" },
+      });
+    if (rs.bloques.length)
+      a.push({
+        cle: "remboursements-en-cours",
+        niveau: "attention",
+        titre: `${NB(rs.bloques.length, "remboursement", "remboursements")} pas confirmé${rs.bloques.length > 1 ? "s" : ""} par Stripe depuis plus de 24 heures`,
+        detail: `N° ${[...new Set(rs.bloques.map((x) => x.numero))].join(", ")}.`,
+        depuis: rs.bloques[0].cree_le,
+        geste: { href: "/gestion/commandes", texte: "Voir les commandes" },
+      });
+  }
+  const r = rs ? null : d.ventes?.periode.remboursements;
   if (r && r.echecs_ouverts > 0)
     a.push({ cle: "remboursements", niveau: "attention", titre: `${NB(r.echecs_ouverts, "remboursement a échoué", "remboursements ont échoué")} ${d.service === "midi" ? "ce midi" : "ce soir"}`, detail: "Le client n'a pas été remboursé.", geste: { href: "/gestion/commandes", texte: "Voir les commandes" } });
   if (r && r.en_cours > 0)
@@ -172,7 +199,7 @@ function joursPrecedents(jour: string): Promise<TableauVentes | null> {
 export async function chargerAccueil(maintenant = new Date()): Promise<DonneesAccueil & { alertes: Alerte[] }> {
   const jour = jourDeService(maintenant);
   const service = serviceDe(maintenant);
-  const [file, config, impression, quota, ventes, hier, catalogue, muette, minutes] = await Promise.all([
+  const [file, config, impression, quota, ventes, hier, catalogue, muette, minutes, aSuivre] = await Promise.all([
     sur(fileTablette(maintenant)),
     sur(chargerConfigService()),
     sur(etatImpression()),
@@ -182,6 +209,7 @@ export async function chargerAccueil(maintenant = new Date()): Promise<DonneesAc
     sur(chargerCatalogue()),
     sur(fonctionSql<boolean>("tablette_muette", { p_secondes: TABLETTE_MUETTE_S })),
     sur(alerteMinutes()),
+    sur(fonctionSql<RemboursementASuivre[]>("remboursements_a_suivre", { p_heures: 24 })),
   ]);
   // Réglage illisible : 5 minutes, la valeur posée par la migration 20261111090000 (la même que la surveillance lit).
   const seuil = minutes ?? 5;
@@ -202,6 +230,12 @@ export async function chargerAccueil(maintenant = new Date()): Promise<DonneesAc
     tablette_muette: muette,
     quota,
     alerte_acceptation_minutes: seuil,
+    remboursements: aSuivre
+      ? {
+          echecs: aSuivre.filter((x) => x.statut === "echec").map(({ numero, cree_le }) => ({ numero, cree_le })),
+          bloques: aSuivre.filter((x) => x.statut === "en_cours").map(({ numero, cree_le }) => ({ numero, cree_le })),
+        }
+      : null,
   };
   return { ...donnees, alertes: alertesDe(donnees) };
 }

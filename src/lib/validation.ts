@@ -25,7 +25,10 @@ export function lignesValides(v: unknown): LignePanier[] | null {
     if (retraits.length > 20 || retraits.some((r) => typeof r !== "string" || r.length > 80)) return null;
     const note = typeof l.note === "string" ? l.note : "";
     if (note.length > 500) return null;
-    lignes.push({ slug: l.slug, qte: l.qte, choix, retraits: retraits as string[], note });
+    // Prénom par ligne (C5) : 30 caractères au plus, imprimé sur les tickets.
+    const pour = typeof l.pour === "string" ? sansControle(l.pour).trim().replace(/\s+/g, " ") : "";
+    if (pour.length > 30) return null;
+    lignes.push({ slug: l.slug, qte: l.qte, choix, retraits: retraits as string[], note, ...(pour ? { pour } : {}) });
   }
   return lignes;
 }
