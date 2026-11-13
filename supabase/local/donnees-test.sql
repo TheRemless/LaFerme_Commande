@@ -151,3 +151,8 @@ insert into personnel (email, nom, role) values
   -- Employés dont le responsable coupe l'appareil (gestion-responsable.spec.ts).
   ('responsable-cible-bureau@laferme.test', 'Cible bureau', 'service'),
   ('responsable-cible-mobile@laferme.test', 'Cible mobile', 'service');
+
+-- Mise en route du back-office (bo-socle, tests/e2e/gestion-mise-en-route.spec.ts) : un compte par projet Playwright.
+insert into personnel (email, nom, role) values
+  ('mise-en-route-bureau@laferme.test', 'Mise en route bureau', 'gerant'),
+  ('mise-en-route-mobile@laferme.test', 'Mise en route mobile', 'gerant');

@@ -81,6 +81,15 @@ const TRACES = {
     </>
   ),
   rapports: <path d="M4 20h16M7 16v-5M12 16V6M17 16v-8" />,
+  // Mise en route : une liste dont la première ligne est cochée.
+  "mise-en-route": (
+    <>
+      <path d="M4 7l2 2 3.5-3.5" />
+      <path d="M12 7h8M12 12h8M12 17h8" />
+      <circle cx="6.5" cy="12" r="1.6" />
+      <circle cx="6.5" cy="17" r="1.6" />
+    </>
+  ),
   cloture: (
     <>
       <rect x="5" y="10" width="14" height="10" rx="1" />
