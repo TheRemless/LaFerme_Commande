@@ -14,6 +14,8 @@ export function PagePanier({ catalogue, plats, preversion }: { catalogue: Catalo
   const { lignes, charge, quantite, remplacer } = panier;
   // Ligne rouverte dans sa fiche (« Modifier ») : options, retraits, note et quantité sans repartir de zéro.
   const [edition, setEdition] = useState<{ index: number; plat: LignePlat } | null>(null);
+  // Annoncé aux lecteurs d'écran, la fiche se ferme sans autre signe.
+  const [annonce, setAnnonce] = useState("");
   const fermer = useCallback(() => setEdition(null), []);
   const modifier = useCallback(
     (i: number) => {
@@ -45,6 +47,9 @@ export function PagePanier({ catalogue, plats, preversion }: { catalogue: Catalo
       <Link className="lien-retour" href="/carte">
         Ajouter d&apos;autres plats
       </Link>
+      <p className="sr-only" role="status">
+        {annonce}
+      </p>
       {edition && lignes[edition.index] && (
         <FichePlat
           plat={edition.plat}
@@ -52,7 +57,10 @@ export function PagePanier({ catalogue, plats, preversion }: { catalogue: Catalo
           preversion={preversion}
           ferme={choix?.quand.type === "aucun"}
           initiale={lignes[edition.index]}
-          onAjouter={(ligne) => remplacer(edition.index, ligne)}
+          onAjouter={(ligne) => {
+            remplacer(edition.index, ligne);
+            setAnnonce("Ligne mise à jour dans le panier.");
+          }}
           onFermer={fermer}
         />
       )}

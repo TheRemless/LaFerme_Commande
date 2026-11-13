@@ -60,3 +60,17 @@ test.describe("bureau", () => {
     expect(await panier(page)).toEqual([L("pizza-margherita", { qte: 2, note: "Bien cuite" })]);
   });
 });
+
+test("un plat épuisé depuis l'ajout se rouvre sans pouvoir être validé", async ({ page }) => {
+  await poser(page, [L("pizza-margherita")]);
+  await page.route("**/panier", async (r) => {
+    if (r.request().resourceType() !== "document") return r.continue();
+    const rep = await r.fetch();
+    // Le plat passe en rupture : la carte servie à la page le dit.
+    const html = (await rep.text()).replace(/(\\"slug\\":\\"pizza-margherita\\"[^}]*?\\"rupture_motif\\":)null/g, '$1\\"Épuisé pour aujourd\'hui.\\"');
+    await r.fulfill({ response: rep, body: html });
+  });
+  await page.goto("/panier");
+  await page.getByRole("button", { name: /^Modifier/ }).click();
+  await expect(page.getByRole("dialog").locator(".fiche-pied .bouton-principal")).toBeDisabled();
+});

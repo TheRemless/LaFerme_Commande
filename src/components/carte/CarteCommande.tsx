@@ -214,7 +214,7 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
           onAjouter={(ligne) => {
             if (edition !== null) {
               remplacer(edition, ligne);
-              setAnnonce(`${nomAffiche(ouvert)} mis à jour dans le panier.`);
+              setAnnonce("Ligne mise à jour dans le panier.");
               return;
             }
             ajouter(ligne);

@@ -69,6 +69,8 @@ export function FichePlat({
   }, [onFermer]);
 
   const ligne: LignePanier = { slug: plat.slug, qte, choix, retraits, note: note.trim() };
+  // Plat épuisé depuis l'ajout, rouvert par « Modifier » : la carte le bloque, la fiche aussi.
+  const epuisePlat = plat.rupture_motif;
   const manquant = groupes.find((g) => (choix[g.slug]?.length ?? 0) < g.choix_min);
   const total = prixUnitaire(catalogue, ligne) * qte;
 
@@ -214,13 +216,13 @@ export function FichePlat({
           <button
             type="button"
             className="bouton-principal"
-            disabled={ferme || Boolean(manquant)}
+            disabled={ferme || Boolean(epuisePlat) || Boolean(manquant)}
             onClick={() => {
               onAjouter(ligne);
               onFermer();
             }}
           >
-            {ferme ? "Commande en ligne fermée" : manquant ? `Choisissez vos ${manquant.nom.toLowerCase()}` : `${initiale ? "Valider" : "Ajouter"}, ${prixChf(total)}`}
+            {ferme ? "Commande en ligne fermée" : epuisePlat ? epuisePlat : manquant ? `Choisissez vos ${manquant.nom.toLowerCase()}` : `${initiale ? "Valider" : "Ajouter"}, ${prixChf(total)}`}
           </button>
         </div>
       </div>
