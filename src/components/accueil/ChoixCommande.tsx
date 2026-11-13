@@ -6,6 +6,7 @@ import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "re
 import { adresseTexte, chercherAdresses, numeroTape, type Adresse, type Details } from "@/lib/adresse";
 import { ecrireChoix, lireChoix, type Quand, type ZoneChoisie } from "@/lib/choix";
 import { prixCourt } from "@/lib/prix";
+import { messageZoneFermee } from "@/lib/zone-fermee";
 import {
   creneaux,
   depuisHeureGeneve,
@@ -29,6 +30,8 @@ type Verdict =
   // adresse : l'adresse officielle du registre fédéral quand le serveur l'a retrouvée (saisie à la main).
   | { statut: "livrable"; zone: ZoneChoisie; verifiee: boolean; controleImpossible?: boolean; adresse?: Adresse }
   | { statut: "hors-zone" }
+  // Zone fermée jusqu'à une heure (back-office) : on dit quand la livraison reprend.
+  | { statut: "zone-fermee"; jusqua: string }
   | { statut: "introuvable"; message: string }
   | { statut: "verification" }
   | { statut: "attente" };
@@ -175,7 +178,12 @@ export function ChoixCommande({
       return;
     }
     const local = zonePour(config, adresseRetenue.npa, adresseRetenue.localite);
-    const verdictLocal: Verdict = local.statut === "livrable" ? { statut: "livrable", zone: local.zone, verifiee: false } : { statut: "hors-zone" };
+    const verdictLocal: Verdict =
+      local.statut === "livrable"
+        ? { statut: "livrable", zone: local.zone, verifiee: false }
+        : local.statut === "zone-fermee" && local.jusqua
+          ? { statut: "zone-fermee", jusqua: local.jusqua }
+          : { statut: "hors-zone" };
     const aLaMain = !adresseRetenue.featureId;
     setVerdict(aLaMain ? { statut: "verification" } : verdictLocal);
     const ctrl = new AbortController();
@@ -187,10 +195,11 @@ export function ChoixCommande({
           body: JSON.stringify(adresseRetenue.featureId ? { featureId: adresseRetenue.featureId } : adresseRetenue),
           signal: ctrl.signal,
         })
-          .then(async (r) => ({ code: r.status, corps: (await r.json()) as { statut?: string; zone?: ZoneChoisie; verifiee?: boolean; adresse?: Adresse; erreur?: string } }))
+          .then(async (r) => ({ code: r.status, corps: (await r.json()) as { statut?: string; zone?: ZoneChoisie; verifiee?: boolean; adresse?: Adresse; erreur?: string; jusqua?: string } }))
           .then(({ code, corps: r }) => {
             if (r.statut === "livrable" && r.zone) setVerdict({ statut: "livrable", zone: r.zone, verifiee: Boolean(r.verifiee), adresse: r.adresse });
             else if (r.statut === "hors-zone") setVerdict({ statut: "hors-zone" });
+            else if (r.statut === "zone-fermee" && r.jusqua) setVerdict({ statut: "zone-fermee", jusqua: r.jusqua });
             else if (code === 422 && r.erreur) setVerdict({ statut: "introuvable", message: r.erreur });
             else setVerdict(verdictLocal.statut === "livrable" ? { ...verdictLocal, controleImpossible: true } : verdictLocal);
           })
@@ -520,6 +529,16 @@ export function ChoixCommande({
               <div className="verdict verdict-hors" role="status">
                 <p className="verdict-titre">{verdict.message}</p>
                 <p>Vous pouvez aussi commander à emporter, Route de Chancy 132 à Onex.</p>
+                <button type="button" className="bouton-second" onClick={() => setMode("retrait")}>
+                  Commander à emporter
+                </button>
+              </div>
+            )}
+
+            {verdict.statut === "zone-fermee" && (
+              <div className="verdict verdict-hors" role="status">
+                <p className="verdict-titre">{messageZoneFermee(verdict.jusqua)}</p>
+                <p>Vous pouvez commander à emporter et passer la prendre au restaurant, Route de Chancy 132 à Onex.</p>
                 <button type="button" className="bouton-second" onClick={() => setMode("retrait")}>
                   Commander à emporter
                 </button>
