@@ -6,6 +6,7 @@ import { exigerPersonnel } from "@/lib/personnel/session";
 import { etatService } from "@/lib/service";
 import { surveillanceAuPassage } from "@/lib/surveillance";
 import { fileTablette } from "@/lib/tablette";
+import { allegerFile, versionFile } from "@/lib/tablette-file";
 
 // Signe de vie de la tablette : la surveillance met le site en pause s'il manque 3 minutes pendant le
 // service. Une écriture toutes les 30 secondes au plus par instance de fonction suffit largement.
@@ -35,25 +36,29 @@ export async function GET(requete: Request) {
   const maintenant = new Date();
   const etat = etatService(config, maintenant, "retrait").etat;
   const enService = etat === "ouvert" || etat === "pause" || commandes.some((c) => ACTIVES.has(c.statut));
-  return NextResponse.json(
-    {
-      maintenant: maintenant.toISOString(),
-      commandes,
-      reglages: {
-        pause: config.pause ?? null,
-        preparation_minutes: config.reglages.preparation_minutes,
-        retard_minutes: config.reglages.retard_minutes ?? 0,
-        impression_avance: config.reglages.impression_avance,
-      },
-      impression,
-      // Tableau par urgence (vague 3) : préparation habituelle et trajet de chaque zone (délai de la zone moins la
-      // préparation, le retard du soir et l'allongement s'ajoutant aux deux), pour savoir quand lancer.
-      rythme: {
-        preparation: config.reglages.preparation_base ?? config.reglages.preparation_minutes,
-        trajets: Object.fromEntries(config.zones.map((z) => [z.numero, Math.max(0, z.delai_min - config.reglages.preparation_minutes)])),
-      },
-      relecture_s: enService ? RELECTURE_SERVICE_S : RELECTURE_VEILLE_S,
+  // File allégée (vague 3) : terminées sans leurs lignes, tâches des commandes actives seulement.
+  const legere = allegerFile(commandes, impression);
+  const corps = {
+    commandes: legere.commandes,
+    reglages: {
+      pause: config.pause ?? null,
+      preparation_minutes: config.reglages.preparation_minutes,
+      retard_minutes: config.reglages.retard_minutes ?? 0,
+      impression_avance: config.reglages.impression_avance,
     },
-    { headers: { "Cache-Control": "no-store" } },
-  );
+    impression: legere.impression,
+    // Tableau par urgence (vague 3) : préparation habituelle et trajet de chaque zone (délai de la zone moins la
+    // préparation, le retard du soir et l'allongement s'ajoutant aux deux), pour savoir quand lancer.
+    rythme: {
+      preparation: config.reglages.preparation_base ?? config.reglages.preparation_minutes,
+      trajets: Object.fromEntries(config.zones.map((z) => [z.numero, Math.max(0, z.delai_min - config.reglages.preparation_minutes)])),
+    },
+    relecture_s: enService ? RELECTURE_SERVICE_S : RELECTURE_VEILLE_S,
+  };
+  // Rien de changé depuis la version que la tablette a déjà : 204 sans corps, l'heure du serveur dans un en-tête.
+  // Le signe de vie et la surveillance sont déjà passés plus haut : une tablette calme reste « vivante ».
+  const version = versionFile(corps);
+  const entetes = { "Cache-Control": "no-store", "X-Version-File": version, "X-Maintenant": maintenant.toISOString() };
+  if (new URL(requete.url).searchParams.get("version") === version) return new Response(null, { status: 204, headers: entetes });
+  return NextResponse.json({ maintenant: maintenant.toISOString(), ...corps }, { headers: entetes });
 }

@@ -1021,10 +1021,11 @@
     animation: bo-entre 0.18s ease-out;
   }
 }
+/* Déplacement seul, sans fondu : un texte à moitié transparent ferait échouer les contrôles de contraste
+   (axe) pendant l'entrée, et se lit mal (remarque de bo-pilotage). */
 @keyframes bo-entre {
   from {
-    opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(12px);
   }
 }
 
@@ -1481,4 +1482,27 @@
   .bo-recherche-globale {
     margin-top: 16px;
   }
+}
+
+/* ---------- Équipe : appareils connectés ---------- */
+.ges-appareils {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ges-appareils li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--bo-trait);
+}
+.ges-appareils li > div {
+  display: flex;
+  flex-direction: column;
 }

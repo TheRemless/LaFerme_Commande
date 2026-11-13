@@ -60,7 +60,18 @@ const CLE_COORDONNEES = "laferme.coordonnees";
 
 type CompteConnu = { email: string; prenom: string; nom: string; telephone: string } | null;
 
-export function PageCommande({ catalogue, preversion, compte }: { catalogue: Catalogue; preversion: boolean; compte: CompteConnu }) {
+export function PageCommande({
+  catalogue,
+  preversion,
+  compte,
+  couvertsActifs = false,
+}: {
+  catalogue: Catalogue;
+  preversion: boolean;
+  compte: CompteConnu;
+  // Case « couverts et serviettes », décochée par défaut, montrée seulement si le restaurant l'active (C8).
+  couvertsActifs?: boolean;
+}) {
   const ids = useId();
   const annule = useSearchParams().get("annule") === "1";
   const panier = usePanier();
@@ -86,6 +97,7 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
   const [creerCompte, setCreerCompte] = useState(false);
   // Allergie ou intolérance pour toute la commande, transmise à la cuisine (vague 3, P0).
   const [allergie, setAllergie] = useState("");
+  const [couverts, setCouverts] = useState(false);
   // Commande pour quelqu'un d'autre : la personne qui reçoit ou vient chercher (vague 3).
   const [pourAutrui, setPourAutrui] = useState(false);
   const [destinataire, setDestinataire] = useState({ nom: "", telephone: "" });
@@ -184,7 +196,7 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           // L'allergie fait partie du contenu : la corriger après un refus donne une nouvelle commande.
-          cle: cleCommande(JSON.stringify([lignes, choix, auComptoir, client, allergie.trim(), pour])),
+          cle: cleCommande(JSON.stringify([lignes, choix, auComptoir, client, allergie.trim(), pour, couvertsActifs && couverts])),
           lignes,
           mode: choix.mode,
           adresse: choix.adresse,
@@ -194,6 +206,7 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
           client,
           allergie,
           destinataire: pour,
+          couverts: couvertsActifs && couverts,
           moyen: auComptoir ? "comptoir" : "en_ligne",
           creerCompte: !compte && creerCompte,
         }),
@@ -394,6 +407,14 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
                 .
               </p>
             </div>
+            {couvertsActifs && (
+              <label className="option case-compte">
+                <input type="checkbox" checked={couverts} onChange={(e) => setCouverts(e.target.checked)} />
+                <span>
+                  <strong>Couverts et serviettes</strong>
+                </span>
+              </label>
+            )}
             {compte ? (
               <p className="aide">
                 Connecté avec {compte.email}. La commande sera rangée dans votre compte.

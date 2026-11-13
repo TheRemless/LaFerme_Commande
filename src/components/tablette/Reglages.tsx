@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { heureDe } from "@/lib/heures";
 import { poster } from "@/lib/requete-client";
+import { CoupDeFeu } from "./CoupDeFeu";
 
 type Props = {
   reglages: { pause: { active: boolean; jusqua: string | null; livraisonFermee: boolean } | null; preparation_minutes: number; retard_minutes?: number };
@@ -79,6 +80,8 @@ export function Reglages({ reglages, onChange }: Props) {
           {erreur}
         </p>
       )}
+      <CoupDeFeu onChange={onChange} />
+
       <div className="tab-bloc">
         <h2>Commandes en ligne</h2>
         <p>{enPause ? (p?.jusqua ? `En pause jusqu'à ${heureDe(p.jusqua)}. Elles reprennent seules.` : "En pause jusqu'à ce que vous repreniez.") : "Ouvertes."}</p>

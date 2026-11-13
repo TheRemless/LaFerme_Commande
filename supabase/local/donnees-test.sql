@@ -33,7 +33,12 @@ insert into personnel (email, nom, role) values
   ('accueil-service-mobile@laferme.test', 'Accueil service mobile', 'service'),
   -- Recherche globale du back-office (tests/e2e/gestion-recherche.spec.ts).
   ('recherche-bureau@laferme.test', 'Recherche bureau', 'gerant'),
-  ('recherche-mobile@laferme.test', 'Recherche mobile', 'gerant');
+  ('recherche-mobile@laferme.test', 'Recherche mobile', 'gerant'),
+  -- Appareils de l'équipe (tests/e2e/gestion-appareils.spec.ts).
+  ('appareils-bureau@laferme.test', 'Appareils bureau', 'gerant'),
+  ('appareils-mobile@laferme.test', 'Appareils mobile', 'gerant'),
+  ('appareils-service-bureau@laferme.test', 'Téléphone bureau', 'service'),
+  ('appareils-service-mobile@laferme.test', 'Téléphone mobile', 'service');
 
 -- Livreurs des essais (tests/e2e/livreurs.spec.ts) et la tablette qui leur donne les commandes.
 insert into personnel (email, nom, role) values
@@ -74,10 +79,26 @@ insert into personnel (email, nom, role) values ('messages-bureau@laferme.test',
 -- Réglages généraux (tests/e2e/reglages-generaux.spec.ts, vague 3).
 insert into personnel (email, nom, role) values ('reglages-bureau@laferme.test', 'Réglages bureau', 'gerant');
 
+-- Écran Livreurs du back-office (tests/e2e/gestion-livreurs.spec.ts, vague 3) : un gérant et deux livreurs à part.
+insert into personnel (email, nom, role) values
+  ('ecran-livreurs@laferme.test', 'Écran livreurs', 'gerant'),
+  ('sami@laferme.test', 'Sami', 'livreur'),
+  ('nora@laferme.test', 'Nora', 'livreur');
+
 -- Commandes et clients du back-office (vague 3, bo-commandes, tests/e2e/gestion-commandes.spec.ts).
 insert into personnel (email, nom, role) values
   ('commandes-bureau@laferme.test', 'Commandes bureau', 'gerant'),
   ('commandes-mobile@laferme.test', 'Commandes mobile', 'gerant');
+
+-- Comptes des tests de la carte au back-office (vague 3, bo-carte) : un bloc à part pour ne pas entrer en
+-- conflit avec la liste commune. Un code par 30 secondes et par e-mail : un compte par fichier et par projet.
+insert into personnel (email, nom, role) values
+  ('liste-bureau@laferme.test', 'Liste bureau', 'gerant'),
+  ('liste-mobile@laferme.test', 'Liste mobile', 'gerant'),
+  ('groupes-bureau@laferme.test', 'Groupes bureau', 'gerant'),
+  ('groupes-mobile@laferme.test', 'Groupes mobile', 'gerant'),
+  ('promos-bureau@laferme.test', 'Promos bureau', 'gerant'),
+  ('promos-mobile@laferme.test', 'Promos mobile', 'gerant');
 
 -- Rubrique Clients du back-office (vague 3, bo-commandes, tests/e2e/gestion-clients.spec.ts).
 insert into personnel (email, nom, role) values

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useState } from "react";
+import { Chargement, EtatErreur, EtatVide, PanneauLateral, useConfirmer, useNotifier } from "@/components/gestion/ui";
 import { heureDe, jourGeneveDe } from "@/lib/heures";
 import { poster } from "@/lib/requete-client";
 import { jourTexte } from "@/lib/service";
@@ -24,6 +25,7 @@ export function GestionEquipe() {
   const [message, setMessage] = useState<{ ok: boolean; texte: string } | null>(null);
   const [confirmer, setConfirmer] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState(false);
+  const [appareilsDe, setAppareilsDe] = useState<Membre | null>(null);
 
   const charger = useCallback(async () => {
     const rep = await fetch("/api/gestion/personnel", { cache: "no-store" });
@@ -83,9 +85,14 @@ export function GestionEquipe() {
                   <option value="livreur">{ROLES.livreur}</option>
                 </select>
                 {m.sessions > 0 && (
-                  <button type="button" className="lien" disabled={envoi} onClick={() => agir({ action: "couper", id: m.id })}>
-                    Déconnecter partout
-                  </button>
+                  <>
+                    <button type="button" className="lien" onClick={() => setAppareilsDe(m)}>
+                      Appareils ({m.sessions})
+                    </button>
+                    <button type="button" className="lien" disabled={envoi} onClick={() => agir({ action: "couper", id: m.id })}>
+                      Déconnecter partout
+                    </button>
+                  </>
                 )}
                 {m.id === d.moi ? null : confirmer === m.id ? (
                   <span className="boutons-ligne">
@@ -156,6 +163,84 @@ export function GestionEquipe() {
           </ul>
         </section>
       )}
+      {appareilsDe && (
+        <AppareilsMembre
+          membre={appareilsDe}
+          fermer={() => {
+            setAppareilsDe(null);
+            charger();
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+type Appareil = { id: string; appareil: string | null; cree_le: string; vue_le: string | null; expire_le: string; actuel: boolean };
+
+const quand = (iso: string) => `${jourTexte(jourGeneveDe(iso))} à ${heureDe(iso)}`;
+
+// Les appareils connectés d'un membre : une tablette volée ou le téléphone perdu d'un livreur se coupe seul,
+// sans déconnecter les autres appareils (vague 3).
+function AppareilsMembre({ membre, fermer }: { membre: Membre; fermer: () => void }) {
+  const confirmer = useConfirmer();
+  const notifier = useNotifier();
+  const [liste, setListe] = useState<Appareil[] | null>(null);
+  const [erreur, setErreur] = useState<string | null>(null);
+
+  const charger = useCallback(async () => {
+    const r = await poster("/api/gestion/personnel", { action: "appareils", id: membre.id });
+    if (!r.ok) return setErreur(String(r.donnees.erreur ?? "Liste indisponible."));
+    setErreur(null);
+    setListe((r.donnees as { appareils: Appareil[] }).appareils);
+  }, [membre.id]);
+  useEffect(() => {
+    charger();
+  }, [charger]);
+
+  async function couper(a: Appareil) {
+    const nom = a.appareil ?? "cet appareil";
+    const ok = await confirmer({
+      titre: `Déconnecter ${nom} ?`,
+      texte: a.actuel ? "C'est l'appareil que vous utilisez : vous devrez vous reconnecter avec un code." : `${membre.nom} devra se reconnecter avec un code sur cet appareil. Ses autres appareils restent connectés.`,
+      oui: "Déconnecter",
+      danger: true,
+    });
+    if (!ok) return;
+    const r = await poster("/api/gestion/personnel", { action: "couper_appareil", session: a.id });
+    notifier({ texte: String(r.donnees.message ?? r.donnees.erreur ?? (r.ok ? "Appareil déconnecté." : "Pas déconnecté.")), ton: r.ok ? "succes" : "erreur" });
+    if (r.ok && a.actuel) return window.location.reload();
+    await charger();
+  }
+
+  return (
+    <PanneauLateral titre={`Appareils de ${membre.nom}`} sousTitre={membre.email} onFermer={fermer}>
+      {erreur ? (
+        <EtatErreur texte={erreur} reessayer={charger} />
+      ) : !liste ? (
+        <Chargement lignes={2} />
+      ) : liste.length === 0 ? (
+        <EtatVide titre="Plus aucun appareil connecté." />
+      ) : (
+        <ul className="ges-appareils">
+          {liste.map((a) => (
+            <li key={a.id}>
+              <div>
+                <strong>
+                  {a.appareil ?? "Appareil"}
+                  {a.actuel ? " (celui-ci)" : ""}
+                </strong>
+                <span className="aide">
+                  Connecté le {quand(a.cree_le)}. {a.vue_le ? `Dernière activité le ${quand(a.vue_le)}.` : ""}
+                </span>
+              </div>
+              <button type="button" className="bo-bouton bo-bouton-second bo-bouton-petit" onClick={() => couper(a)}>
+                Déconnecter
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </PanneauLateral>
   );
 }
