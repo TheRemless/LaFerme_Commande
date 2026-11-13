@@ -28,8 +28,9 @@ export const GROUPES: Groupe[] = [
     titre: "Commandes et clients",
     rubriques: [
       { href: "/gestion/commandes", titre: "Commandes", icone: "commandes", resume: "Retrouver une commande, voir son historique, rembourser.", droit: "voir_commandes" },
-      // bo-commandes
-      { href: "/gestion/clients", titre: "Clients", icone: "clients", resume: "Les clients, leurs commandes et leurs réclamations.", droit: "voir_commandes" },
+      // bo-commandes. Gérant seulement : /api/gestion/clients et /api/gestion/reclamations restent en exigerGerant
+      // (notes, marque, gestes). À ouvrir au responsable (droit) avec ces routes le jour où D1 est activé.
+      { href: "/gestion/clients", titre: "Clients", icone: "clients", resume: "Les clients, leurs commandes et leurs réclamations." },
     ],
   },
   {
