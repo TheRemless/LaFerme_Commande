@@ -72,19 +72,5 @@
 .bo-fiche-form { display: grid; gap: 12px; }
 .bo-fiche-form fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 12px; }
 .bo-fiche-form legend { font-weight: 600; margin-bottom: 4px; }
-
-/* Chronologie (provisoire, remplacée par la pièce du kit) */
-.bo-chrono { display: grid; gap: 16px; }
-.bo-chrono-jour { margin: 0 0 8px; font-size: 14px; color: var(--bo-texte-doux); font-weight: 600; }
-.bo-chrono-liste { list-style: none; margin: 0; padding: 0; }
-.bo-chrono-liste > li {
-  display: grid;
-  grid-template-columns: 52px minmax(0, 1fr);
-  gap: 12px;
-  padding: 8px 0;
-  border-left: 2px solid var(--bo-trait-fort);
-  padding-left: 12px;
-}
-.bo-chrono-liste time { font-variant-numeric: tabular-nums; color: var(--bo-texte-doux); }
-.bo-chrono-titre { margin: 0; font-weight: 600; }
-.bo-chrono-detail, .bo-chrono-par { margin: 2px 0 0; font-size: 14px; color: var(--bo-texte-doux); }
+.bo-fiche-deux { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px 16px; }
+.bo-fiche-boutons { display: flex; flex-wrap: wrap; gap: 8px; }

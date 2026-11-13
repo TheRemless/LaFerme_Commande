@@ -75,6 +75,13 @@ test("la fiche montre la commande, garde une note et enregistre un changement de
   await fiche.getByRole("button", { name: "Enregistrer les changements" }).click();
   await expect(gestion.getByText(/Commande modifiée/)).toBeVisible();
 
+  // « Il manque le tiramisù » : la réclamation se note depuis la commande.
+  await fiche.getByRole("tab", { name: "Réclamations" }).click();
+  await fiche.getByLabel("Ce que dit le client").fill("Il manque la boisson.");
+  await fiche.getByRole("button", { name: "Noter la réclamation" }).click();
+  await expect(gestion.getByText("Réclamation notée.")).toBeVisible();
+  await expect(fiche.getByText("Il manque la boisson.")).toBeVisible();
+
   await fiche.getByRole("tab", { name: "Historique" }).click();
   await expect(fiche.getByText("Commande modifiée")).toBeVisible();
   await expect(fiche.getByText("Client rappelé, il passe à 20h.")).toBeVisible();

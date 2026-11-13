@@ -40,6 +40,16 @@ for (const [l, h] of [[1440, 900], [1024, 768], [375, 812]]) {
     await fiche.getByRole("tab", { name: "Gestes" }).click();
     await attendre(300);
     await p.screenshot({ path: `${dossier}/commandes-apres-gestes-${l}.jpg`, quality: 80 });
+    await fiche.locator(".bo-panneau-corps").evaluate((e) => e.scrollTo(0, e.scrollHeight));
+    await attendre(300);
+    await p.screenshot({ path: `${dossier}/commandes-apres-gestes-bas-${l}.jpg`, quality: 80 });
+    // « Il manque le tiramisù » : la réclamation se note depuis la commande.
+    await fiche.getByRole("tab", { name: "Réclamations" }).click();
+    await fiche.getByLabel("Ce que dit le client").fill("Il manque le tiramisù, le client a appelé à 20h40.");
+    await fiche.getByRole("button", { name: "Noter la réclamation" }).click();
+    await p.getByText("Réclamation notée.").waitFor();
+    await attendre(500);
+    await p.screenshot({ path: `${dossier}/commandes-apres-reclamation-${l}.jpg`, quality: 80 });
   }
   await p.context().close();
 }

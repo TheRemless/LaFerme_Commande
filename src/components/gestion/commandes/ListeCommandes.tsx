@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { FicheCommande } from "@/components/gestion/commandes/FicheCommande";
 import {
   heureCourte,
@@ -10,12 +10,14 @@ import {
   STATUT,
 } from "@/components/gestion/commandes/libelles";
 import {
+  ErreurLisible,
   montant,
   PanneauLateral,
   periodeDe,
   SelecteurPeriode,
   TableauDonnees,
   useDiffere,
+  useRelecture,
   type Colonne,
   type Periode,
   type Tri,
@@ -168,7 +170,8 @@ const COLONNES: Colonne<LigneCommande>[] = [
 // Le serveur trie l'heure prévue et le numéro dans l'ordre croissant, le montant dans l'ordre décroissant ;
 // la flèche de l'écran suit donc toujours le sens réel des données.
 function triPermis(t: Tri): Tri {
-  if (t.cle === "heure" || t.cle === "numero") return { cle: t.cle, sens: "asc" };
+  if (t.cle === "heure" || t.cle === "numero")
+    return { cle: t.cle, sens: "asc" };
   if (t.cle === "montant") return { cle: t.cle, sens: "desc" };
   return t;
 }
@@ -209,11 +212,7 @@ export function ListeCommandes() {
   const q = useDiffere(recherche.trim(), 300);
   const [tri, setTri] = useState<Tri>({ cle: "cree_le", sens: "desc" });
   const [page, setPage] = useState(1);
-  const [donnees, setDonnees] = useState<Page | null>(null);
-  const [chargement, setChargement] = useState(false);
-  const [erreur, setErreur] = useState<string | null>(null);
   const [ouverte, setOuverte] = useState<LigneCommande | null>(null);
-  const sequence = useRef(0);
 
   const corps = useCallback(
     (extra: Record<string, unknown> = {}) => ({
@@ -234,38 +233,31 @@ export function ListeCommandes() {
     [q, periode, statuts, filtres, tri, page],
   );
 
-  const charger = useCallback(async () => {
-    const n = ++sequence.current;
-    setChargement(true);
-    const r = await poster("/api/gestion/commandes", corps());
-    if (n !== sequence.current) return; // une demande plus récente est partie : celle-ci ne compte plus
-    setChargement(false);
-    if (r.ok) {
-      setDonnees(r.donnees as unknown as Page);
-      setErreur(null);
-    } else
-      setErreur(
-        String(r.donnees.erreur ?? "La liste n'a pas pu être chargée."),
-      );
-  }, [corps]);
-
-  useEffect(() => {
-    charger();
-  }, [charger]);
-
-  // Relecture du service en cours : seulement si la liste montre aujourd'hui et que l'onglet est visible.
+  // Relecture du kit : la dernière demande gagne (PR #72), le minuteur ne double jamais une requête.
+  // Toutes les 15 s seulement si la liste montre aujourd'hui (service en cours) ; sinon une fois par heure.
   const enDirect =
     !q && periode.debut <= aujourdhui && periode.fin >= aujourdhui;
-  useEffect(() => {
-    if (!enDirect) return;
-    const relire = () => document.visibilityState === "visible" && charger();
-    const t = window.setInterval(relire, RELECTURE_MS);
-    document.addEventListener("visibilitychange", relire);
-    return () => {
-      window.clearInterval(t);
-      document.removeEventListener("visibilitychange", relire);
-    };
-  }, [enDirect, charger]);
+  const corpsCourant = corps();
+  const {
+    donnees,
+    erreur,
+    chargement,
+    recharger: charger,
+  } = useRelecture<Page>(
+    async () => {
+      const r = await poster("/api/gestion/commandes", corpsCourant);
+      if (!r.ok)
+        throw new ErreurLisible(
+          String(r.donnees.erreur ?? "La liste n'a pas pu être chargée."),
+        );
+      return r.donnees as unknown as Page;
+    },
+    [corpsCourant],
+    {
+      intervalleMs: enDirect ? RELECTURE_MS : 3_600_000,
+      messageErreur: "La liste n'a pas pu être chargée. Vérifiez le réseau.",
+    },
+  );
 
   function basculerStatut(s: string) {
     setStatuts((v) => (v.includes(s) ? v.filter((x) => x !== s) : [...v, s]));
