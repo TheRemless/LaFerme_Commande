@@ -137,7 +137,10 @@ describe("notes et marque", () => {
     await commande({ email: "h@exemple.ch", total: 2000 });
     await f("ajouter_note_client('h@exemple.ch', 'Livrer par la porte arrière', $1)", [gerant]);
     expect(await f("donnees_gestion_client('H@exemple.ch')")).toMatchObject({ notes: [{ texte: "Livrer par la porte arrière" }], marque: null });
+    const journal = (await db.query<{ apres: unknown }>("select apres from journal_gestion where objet = 'note_client' and cle = 'h@exemple.ch'")).rows;
+    expect(JSON.stringify(journal)).not.toContain("porte arrière");
     expect(await f("effacer_notes_client('h@exemple.ch')")).toBe(1);
+    expect((await db.query("select 1 from journal_gestion where objet = 'note_client' and cle = 'h@exemple.ch'")).rows).toHaveLength(0);
     expect(await f("donnees_gestion_client('h@exemple.ch')")).toMatchObject({ notes: [] });
   });
 

@@ -187,7 +187,8 @@ begin
     raise exception 'client_inconnu';
   end if;
   insert into notes_client (email, personnel_id, personnel_nom, texte) values (e, p_personnel, nom, t) returning * into r;
-  perform journaliser(p_personnel, 'note_client', e, null, jsonb_build_object('note', r.id, 'texte', t));
+  -- Le texte reste dans notes_client seulement : effacé avec le compte, il ne survit pas au journal (nLPD).
+  perform journaliser(p_personnel, 'note_client', e, null, jsonb_build_object('note', r.id));
   return jsonb_build_object('id', r.id, 'texte', r.texte, 'personnel_nom', r.personnel_nom, 'cree_le', r.cree_le);
 end;
 $$;
@@ -260,6 +261,8 @@ declare
 begin
   delete from notes_client where email = lower(btrim(coalesce(p_email, '')));
   get diagnostics n = row_count;
+  -- Les lignes du journal qui nomment ce client par ses notes partent aussi.
+  delete from journal_gestion where objet = 'note_client' and cle = lower(btrim(coalesce(p_email, '')));
   return n;
 end;
 $$;
