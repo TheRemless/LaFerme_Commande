@@ -5,6 +5,7 @@ import { EnTete } from "@/components/EnTete";
 import { Icone } from "@/components/Icone";
 import { PiedDePage } from "@/components/PiedDePage";
 import { Actualiser } from "@/components/suivi/Actualiser";
+import { AnnulerCommande } from "@/components/suivi/AnnulerCommande";
 import { CreerCompte } from "@/components/suivi/CreerCompte";
 import { chargerCatalogue } from "@/lib/catalogue";
 import { chargerConfigService } from "@/lib/config-service";
@@ -69,6 +70,8 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
   const reste = resteComptoir(c, remboursements);
   const retard = enRetard(c);
   const nonConfirmee = attenteConfirmation(c, serviceOuvert);
+  // Arbitrage C1 (Jérémy) : désactivé par défaut. La route revérifie le réglage et le statut.
+  const annulable = c.statut === "nouvelle" && config?.reglages.annulation_client_active === true;
   const parClient = Boolean(c.annulee_par_client_le) || c.motif === MOTIF_DEMANDE_CLIENT;
   // Un remboursement attendu chez Stripe garde la page à jour, même commande terminée.
   const attente = remboursements.some((r) => r.moyen === "stripe" && r.statut === "en_cours");
@@ -168,6 +171,7 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
               </ul>
             </section>
           )}
+          {annulable && <AnnulerCommande jeton={c.jeton_suivi} numero={c.numero} payeeEnLigne={c.statut_paiement === "paye"} />}
           {c.compte_demande && enregistree && !c.detachee_du_compte && <CreerCompte jeton={c.jeton_suivi} rattachee={Boolean(c.compte_id)} />}
           <section className="suivi-detail">
             <h2>{c.mode === "livraison" && c.adresse ? `Livraison à ${c.adresse.localite}` : "À emporter, Route de Chancy 132, Onex"}</h2>

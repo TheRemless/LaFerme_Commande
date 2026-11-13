@@ -3648,3 +3648,15 @@ body.fiche-ouverte {
     display: none !important;
   }
 }
+
+/* Annulation par le client depuis le suivi (désactivée par défaut). */
+.suivi-annuler {
+  margin-top: 16px;
+}
+.suivi-annuler-confirmer {
+  margin: 16px 0;
+  padding: 12px 14px;
+  color: var(--encre);
+  background: var(--papier);
+  border-radius: 4px;
+}

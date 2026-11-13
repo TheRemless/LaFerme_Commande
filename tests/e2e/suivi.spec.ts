@@ -122,3 +122,31 @@ test("reçu avec TVA : vendeur, numéro de TVA, plats et TVA, sans données du c
   await petit.screenshot({ path: `${RENDUS}/recu-320.png`, fullPage: true });
   await petit.close();
 });
+
+test("annulation par le client : désactivée par défaut, aucun bouton au suivi", async ({ browser }, info) => {
+  const prenom = `Annul${info.project.name}`;
+  const rep = await gestion.request.post("/api/commandes", {
+    headers: ORIGINE,
+    data: {
+      cle: `annul-${prenom}-${Date.now()}`,
+      mode: "retrait",
+      moyen: "en_ligne",
+      quand: { type: "asap" },
+      heure: "2026-11-10T19:05",
+      client: { prenom, nom: "Test", telephone: "079 000 00 00", email: `${prenom.toLowerCase()}@laferme.test` },
+      lignes: [{ slug: "pizza-margherita", qte: 1, choix: {}, retraits: [], note: "" }],
+    },
+  });
+  const id = ((await rep.json()) as { redirection: string }).redirection.match(/paiement-test\/([0-9a-f-]+)/)![1];
+  const paye = await gestion.request.post("/api/paiement-test", { data: { commande: id, issue: "paye" } });
+  const lien = ((await paye.json()) as { redirection: string }).redirection;
+  const client = await browser.newPage({ baseURL: SITE });
+  await client.goto(lien);
+  await expect(client.getByRole("heading", { name: "Commande reçue" })).toBeVisible();
+  await expect(client.getByRole("button", { name: "Annuler ma commande" })).toHaveCount(0);
+  // La route le refuse aussi, avec le numéro du restaurant.
+  const jeton = lien.match(/suivi\/([A-Za-z0-9_-]+)/)![1];
+  const r = await client.request.post("/api/suivi/annuler", { headers: ORIGINE, data: { jeton } });
+  expect(r.status()).toBe(403);
+  await client.close();
+});
