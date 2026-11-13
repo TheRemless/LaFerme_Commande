@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { SITE, adresseDuCompte } from "./site";
+import { SITE, adresseDuCompte, codeDuPersonnel } from "./site";
 import { expect, test, type Page } from "@playwright/test";
 
 // Rubrique Réglages généraux du back-office (vague 3, bo-operations). Seul l'e-mail des alertes est enregistré :
@@ -12,11 +12,7 @@ async function connecter(page: Page, email: string) {
   await adresseDuCompte(page, email);
   await page.goto("/gestion/reglages");
   await page.getByLabel("E-mail", { exact: true }).fill(email);
-  await page.getByRole("button", { name: "Recevoir un code" }).click();
-  const code = page.locator(".note-preversion strong");
-  // Premier appel après le démarrage du serveur : la page compile, d'où un délai plus large.
-  await expect(code).toHaveText(/^\d{8}$/, { timeout: 20_000 });
-  await page.getByLabel("Code à 8 chiffres").fill(await code.innerText());
+  await page.getByLabel("Code à 8 chiffres").fill(await codeDuPersonnel(page));
   await page.getByRole("button", { name: "Me connecter" }).click();
   await expect(page.getByLabel("Code à 8 chiffres")).toHaveCount(0);
 }
@@ -29,6 +25,9 @@ test("réglages généraux : e-mail des alertes, erreur de saisie, accessibilit�
   try {
     await expect(page.getByLabel("Longueur d'un créneau")).toHaveValue("15");
     await expect(page.getByLabel("Le client peut annuler sa commande depuis son suivi")).not.toBeChecked();
+    // Interrupteurs de client-commande : présents et éteints (les allumer changerait la carte des autres tests).
+    await expect(page.getByLabel("« Les plus commandés » en tête de la carte")).not.toBeChecked();
+    await expect(page.getByLabel("Proposer une boisson ou un dessert au panier")).not.toBeChecked();
 
     // Erreur de saisie : le champ est signalé, rien ne part.
     await page.getByLabel("Commande à l'avance, jours au plus").fill("30");
