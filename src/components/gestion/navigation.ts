@@ -42,6 +42,8 @@ export const GROUPES: Groupe[] = [
       { href: "/gestion/import", titre: "Importer le tableau", icone: "importer", resume: "Le tableau de validation rempli, vérifié avant d'être appliqué." },
       // bo-carte : codes promo, construits désactivés (l'offre est une décision de Jérémy).
       { href: "/gestion/promotions", titre: "Promotions", icone: "promotions", resume: "Codes promo par support, désactivés tant que l'offre n'est pas décidée." },
+      // bo-carte : menus et formules, construits désactivés (vendre des menus est une décision de Jérémy).
+      { href: "/gestion/menus", titre: "Menus et formules", icone: "carte", resume: "Menus à prix fixe et leurs étapes, désactivés tant que Jérémy n'a pas décidé." },
     ],
   },
   {
