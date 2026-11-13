@@ -172,7 +172,8 @@ describe("G02 : remboursement après coup", () => {
 
   it("réservé au gérant, après « Prête », « Partie » ou « Terminée » seulement", async () => {
     const c = await payee("terminee");
-    expect(await erreur("demander_remboursement($1, 100, 'Test', 'cle-test-s1', $2)", [c.id, service])).toContain("Réservé au gérant");
+    // Depuis D1 (20261213200000) : auteur_droit(…, 'rembourser'), refus « droit_refuse » pour l'équipe de service.
+    expect(await erreur("demander_remboursement($1, 100, 'Test', 'cle-test-s1', $2)", [c.id, service])).toContain("droit_refuse");
     const neuve = await payee("acceptee");
     expect(await erreur("demander_remboursement($1, 100, 'Test', 'cle-test-s2', $2)", [neuve.id, gerant])).toContain("statut_non_remboursable");
     expect(await erreur("demander_remboursement($1, 0, 'Test', 'cle-test-s3', $2)", [c.id, gerant])).toContain("montant_invalide");

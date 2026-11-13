@@ -38,6 +38,20 @@ Migration `supabase/migrations/20261127130000_reclamations.sql`, aucun objet par
   - nLPD : codes personnels et plats offerts partent dans l'export du client ; à la suppression du compte, les plats offerts en attente et les codes pas encore utilisés sont effacés, un code déjà utilisé est éteint et détaché du client. Migration `20261213190000_geste_reduction.sql`.
 - **Liste** (`reclamations_gestion`) : ouvertes d'abord, filtres état, type, période, commande ; compteurs par état. La fiche complète d'une commande liste ses réclamations.
 
+## Responsable de service (D1, oui de Jérémy le 13.11.2026)
+
+Le responsable n'agit qu'avec le réglage `role_responsable_actif` à vrai ; sans lui, tout reste au gérant. Liste de bo-socle, tableau dans `src/lib/personnel/droits.ts`.
+
+| Route | Ouvert au responsable | Reste au gérant |
+|---|---|---|
+| `/api/gestion/commandes` | `voir_commandes` : options_filtres, liste_page, liste, jours, fiche, fiche_complete, courriel ; `rembourser` ; `modifier_commande` : modifier ; `annuler_apres_prete` : annuler | noter, recreer, heure, reimprimer, renvoyer_courriel, offrir |
+| `/api/gestion/clients` | `voir_commandes` : liste, fiche | noter, marquer |
+| `/api/gestion/reclamations` | `voir_commandes` : liste, fiche | ouvrir, suivre, geste |
+
+- Base : `demander_remboursement` passe de `gerant_nom` à `auteur_droit(…, 'rembourser')` (migration `20261213200000_responsable_commandes.sql`) ; refus `droit_refuse`, traduit « Réservé au gérant. ». `modifier_commande` et `annuler_commande_partie` passent par la PR de tablette (`20261213220000`).
+- Écran : `useDroit` et `useRoleGestion` (`src/components/gestion/droits.tsx`) cachent au responsable la note, l'heure, la réimpression (une à une et en lot), le renvoi d'un e-mail, « Recréer », le plat offert, la réclamation à noter, le geste et le suivi du dossier, la marque. Le serveur revérifie toujours.
+- Tests : `tests/unit/responsable-commandes-sql.test.ts`, `tests/e2e/gestion-responsable-commandes.spec.ts` (comptes `responsable-commandes-{bureau,mobile}@laferme.test`).
+
 ## Écrans (vague 3)
 
 - `/gestion/commandes` (`src/components/gestion/commandes/`) : liste paginée côté serveur avec pastilles de statut, fiche en panneau (contenu au prix payé, chronologie, e-mails, notes, gestes, réclamations). Tests : `tests/e2e/gestion-commandes.spec.ts`. Captures : `docs/rendus/vague-3/bo-commandes/commandes-apres-*`.

@@ -170,6 +170,8 @@ const ERREURS_REMBOURSEMENT: Record<string, string> = {
   commande_inconnue: "Commande introuvable.",
   sans_paiement_en_ligne: "Paiement en ligne introuvable pour cette commande : vérifiez dans Stripe.",
   "Réservé au gérant": "Réservé au gérant.",
+  // Responsable de service sans le droit « rembourser », ou rôle éteint (D1, auteur_droit).
+  droit_refuse: "Réservé au gérant.",
 };
 
 // Erreurs où Stripe a répondu et refusé : rien n'est parti (requête invalide, droits, carte).

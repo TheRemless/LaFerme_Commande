@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { corpsJson, refus } from "@/lib/comptes/api";
 import { fonctionSql } from "@/lib/db/serveur";
 import { filtresReclamations, gesteReclamation, nouvelleReclamation, suiviReclamation } from "@/lib/gestion-reclamations";
-import { exigerGerant } from "@/lib/personnel/session";
+import type { ActionDroit } from "@/lib/personnel/droits";
+import { exigerDroit, exigerGerant } from "@/lib/personnel/session";
 
 // Réclamations des clients au back-office (vague 3, bo-commandes), gérant seulement. Tout en POST.
 // { action: "liste", ...filtres } | { action: "fiche", id } | { action: "ouvrir", commande_id, type, description, source? }
@@ -22,10 +23,14 @@ const ERREURS: Record<string, [string, number]> = {
   detail_invalide: ["Précisez le geste (3 à 200 caractères).", 422],
 };
 
+// Responsable de service (D1) : la liste et le dossier ; ouvrir, suivre et noter un geste restent au gérant.
+const DROITS: Record<string, ActionDroit> = { liste: "voir_commandes", fiche: "voir_commandes" };
+
 export async function POST(requete: Request) {
-  const g = await exigerGerant(requete);
-  if ("reponse" in g) return g.reponse;
   const c = await corpsJson(requete);
+  const droit = typeof c?.action === "string" && Object.hasOwn(DROITS, c.action) ? DROITS[c.action] : undefined;
+  const g = droit ? await exigerDroit(requete, droit) : await exigerGerant(requete);
+  if ("reponse" in g) return g.reponse;
   if (!c) return refus("Requête illisible.", 400);
   const sansCache = { headers: { "Cache-Control": "no-store" } };
   try {

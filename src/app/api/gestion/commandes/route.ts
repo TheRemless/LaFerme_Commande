@@ -6,7 +6,8 @@ import { centimes, dateValide } from "@/lib/gestion";
 import { filtresListe, texteNote, UUID } from "@/lib/gestion-commandes";
 import { actionGestion, type ActionGestion } from "@/lib/actions-gestion";
 import { modifierCommande } from "@/lib/modifier-commande";
-import { exigerGerant } from "@/lib/personnel/session";
+import type { ActionDroit } from "@/lib/personnel/droits";
+import { exigerDroit, exigerGerant } from "@/lib/personnel/session";
 import { recreerCommande } from "@/lib/recreer-commande";
 import { quandValide } from "@/lib/validation";
 
@@ -24,10 +25,26 @@ import { quandValide } from "@/lib/validation";
 
 const RELANCE_MAX_MS = 23 * 3_600_000;
 
+// Responsable de service (D1, liste de bo-socle) : voir les commandes, rembourser, modifier, annuler. Le reste
+// (note, heure, réimpression, renvoi d'e-mail, recréer, plat offert) reste au gérant. La base revérifie.
+const DROITS: Record<string, ActionDroit> = {
+  options_filtres: "voir_commandes",
+  liste_page: "voir_commandes",
+  liste: "voir_commandes",
+  jours: "voir_commandes",
+  fiche: "voir_commandes",
+  fiche_complete: "voir_commandes",
+  courriel: "voir_commandes",
+  rembourser: "rembourser",
+  modifier: "modifier_commande",
+  annuler: "annuler_apres_prete",
+};
+
 export async function POST(requete: Request) {
-  const g = await exigerGerant(requete);
-  if ("reponse" in g) return g.reponse;
   const c = await corpsJson(requete);
+  const droit = typeof c?.action === "string" && Object.hasOwn(DROITS, c.action) ? DROITS[c.action] : undefined;
+  const g = droit ? await exigerDroit(requete, droit) : await exigerGerant(requete);
+  if ("reponse" in g) return g.reponse;
   if (!c) return refus("Requête illisible.", 400);
   const sansCache = { headers: { "Cache-Control": "no-store" } };
 
