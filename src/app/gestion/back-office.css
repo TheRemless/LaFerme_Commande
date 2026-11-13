@@ -1612,3 +1612,120 @@
   background: var(--bo-fond);
   border: 1px solid var(--bo-trait);
 }
+
+/* ---------- Mise en route (bo-socle, 13.11) ---------- */
+.bo-mer {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 860px;
+}
+.bo-mer-tete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 16px;
+}
+.bo-mer-tete .aide {
+  flex: 1 1 280px;
+  margin: 0;
+}
+.bo-mer-compte {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+.bo-mer-etapes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: etape;
+}
+.bo-mer-etape {
+  counter-increment: etape;
+  background: var(--bo-surface);
+  border: 1px solid var(--bo-trait);
+  border-left: 4px solid var(--bo-trait-fort);
+  border-radius: var(--bo-rayon);
+}
+.bo-mer-etape[data-faite] {
+  border-left-color: var(--basilic);
+}
+.bo-mer-etape summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 44px;
+  padding: 12px 16px;
+  cursor: pointer;
+  list-style: none;
+}
+.bo-mer-etape summary::-webkit-details-marker {
+  display: none;
+}
+/* Le numéro de l'étape, ou la coche une fois faite. */
+.bo-mer-marque {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 4px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  border: 2px solid var(--bo-texte);
+  border-radius: var(--bo-rayon);
+}
+.bo-mer-etape:not([data-faite]) .bo-mer-marque::before {
+  content: counter(etape);
+}
+.bo-mer-etape[data-faite] .bo-mer-marque {
+  color: var(--bo-surface);
+  background: var(--basilic);
+  border-color: var(--basilic);
+}
+.bo-mer-titre {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.bo-mer-conseil {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  vertical-align: 1px;
+  border: 1px solid var(--bo-trait-fort);
+  border-radius: 3px;
+}
+.bo-mer-etat {
+  font-size: 14px;
+  color: var(--bo-texte-doux);
+}
+.bo-mer-corps {
+  padding: 0 16px 16px 56px;
+}
+.bo-mer-marche {
+  margin: 0 0 10px;
+  padding-left: 20px;
+}
+.bo-mer-marche li + li {
+  margin-top: 6px;
+}
+.bo-mer-liens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 0;
+}
+@media (max-width: 767px) {
+  .bo-mer-corps {
+    padding-left: 16px;
+  }
+}

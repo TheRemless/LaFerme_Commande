@@ -21,6 +21,13 @@ export type Rubrique = {
 
 export type Groupe = { titre: string; rubriques: Rubrique[] };
 
+export const MISE_EN_ROUTE: Rubrique = {
+  href: "/gestion/mise-en-route",
+  titre: "Mise en route",
+  icone: "mise-en-route",
+  resume: "Tout ce qu'il faut régler avant le premier service : équipe, tablette, imprimantes, livreurs, e-mails, paiement.",
+};
+
 export const ACCUEIL: Rubrique = { href: "/gestion", titre: "Accueil", icone: "accueil", resume: "La journée en un coup d'œil." };
 
 export const GROUPES: Groupe[] = [
@@ -59,6 +66,8 @@ export const GROUPES: Groupe[] = [
   {
     titre: "Réglages du restaurant",
     rubriques: [
+      // bo-socle. En tête du menu tant qu'une étape reste à faire (avecMiseEnRoute, coque), ici ensuite.
+      MISE_EN_ROUTE,
       // bo-operations (propriétaire de /gestion/horaires : s'il la renomme, garder une redirection depuis l'ancienne adresse)
       { href: "/gestion/horaires", titre: "Livraison et horaires", icone: "horaires", resume: "Zones, horaires, fermetures, délais et capacité." },
       { href: "/gestion/calendrier", titre: "Calendrier", icone: "jour", resume: "Le mois vu par les clients : services, fermetures, fériés et commandes déjà prises." },
@@ -115,3 +124,12 @@ export function titreRubrique(href: string): string {
   if (!r) throw new Error(`Rubrique inconnue : ${href}`);
   return r.titre;
 }
+
+/** Menu du gérant tant que la mise en route n'est pas finie : elle passe en tête, avant l'accueil. Ensuite elle
+ *  reste à sa place, dans Réglages du restaurant. */
+export function avecMiseEnRoute(groupes: Groupe[], finie: boolean): Groupe[] {
+  if (finie) return groupes;
+  const sans = groupes.map((g) => ({ ...g, rubriques: g.rubriques.filter((r) => r.href !== MISE_EN_ROUTE.href) })).filter((g) => g.rubriques.length > 0);
+  return [{ titre: "Avant le premier service", rubriques: [MISE_EN_ROUTE] }, ...sans];
+}
+

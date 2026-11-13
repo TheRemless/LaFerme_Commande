@@ -109,12 +109,12 @@ function sonnerAnnulation(ctx: AudioContext) {
 
 export function Tablette({
   nom,
-  gerant = false,
+  annulerPartie = false,
   backOffice = false,
   supabase,
 }: {
   nom: string;
-  gerant?: boolean;
+  annulerPartie?: boolean;
   // Peut ouvrir les commandes au back-office (gérant, ou responsable au rôle ouvert) : sinon, pas de lien qui mène à un refus.
   backOffice?: boolean;
   supabase: { url: string; cle: string } | null;
@@ -706,7 +706,7 @@ export function Tablette({
       {donnees === null ? (
         <p className="tab-vide">Chargement…</p>
       ) : !resultats && onglet === "livraisons" ? (
-        <OngletLivraisons commandes={donnees.commandes} plusTard={listes.plusTard} donnees={livraisons} agir={agirLivraison} annulerPartie={gerant} />
+        <OngletLivraisons commandes={donnees.commandes} plusTard={listes.plusTard} donnees={livraisons} agir={agirLivraison} annulerPartie={annulerPartie} />
       ) : enLignes ? (
         <div className={`tab-tableau${detail ? " tab-tableau-detail" : ""}`} onPointerDown={() => (dernierAppui.current = Date.now())}>
           {liste.length > 0 ? (
@@ -744,7 +744,7 @@ export function Tablette({
                   avance={avance}
                   taches={complete?.taches ?? (donnees.impression.taches ?? []).filter((t) => t.commande_id === detail.id)}
                   livraison={livraisonDe.get(detail.id)}
-                  gerant={gerant}
+                  annulerPartie={annulerPartie}
                   agir={(corps) => agir(detail.id, corps)}
                   recharger={charger}
                   modifiable={modifiable}
@@ -790,7 +790,7 @@ export function Tablette({
               avance={avance}
               taches={(donnees.impression.taches ?? []).filter((t) => t.commande_id === c.id)}
               livraison={livraisonDe.get(c.id)}
-              gerant={gerant}
+              annulerPartie={annulerPartie}
               agir={(corps) => agir(c.id, corps)}
               recharger={charger}
               modifiable={modifiable}
@@ -842,7 +842,7 @@ function CarteCommande({
   avance,
   taches,
   livraison,
-  gerant,
+  annulerPartie,
   agir,
   recharger,
   modifiable = false,
@@ -854,7 +854,7 @@ function CarteCommande({
   avance: DelaisImpression;
   taches: Tache[];
   livraison?: { nom: string; rang: number; l: DonneesLivraisons["livraisons"][number] };
-  gerant: boolean;
+  annulerPartie: boolean;
   agir: (corps: Record<string, unknown>) => Promise<void>;
   recharger: () => Promise<void>;
   // Geste « Modifier… » permis (gérant, ou équipe si modification_par_equipe) et retour d'action en bas d'écran.
@@ -1155,12 +1155,12 @@ function CarteCommande({
               Il manque…
             </button>
           )}
-          {c.statut === "partie" && !gerant && (
-            // Livraison partie : l'annuler rembourse tout, donc gérant seulement (audit de sécurité 2, S2-01).
-            // Client absent : onglet Livraisons, sans remboursement.
-            <p className="aide">Seul le gérant peut annuler une livraison partie.</p>
+          {c.statut === "partie" && !annulerPartie && (
+            // Livraison partie : l'annuler rembourse tout, donc gérant ou responsable de service au rôle ouvert
+            // (audit de sécurité 2, S2-01 ; D1). Client absent : onglet Livraisons, sans remboursement.
+            <p className="aide">Seul le gérant ou le responsable de service peut annuler une livraison partie.</p>
           )}
-          {c.statut !== "prete" && (c.statut !== "partie" || gerant) && (
+          {c.statut !== "prete" && (c.statut !== "partie" || annulerPartie) && (
             // À l'écart des autres boutons : elle annule la commande (et rembourse si elle est payée). Une
             // livraison partie s'annule aussi (adresse introuvable), par le gérant : le livreur le lit.
             <>

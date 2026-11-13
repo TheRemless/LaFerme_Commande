@@ -92,6 +92,7 @@ export const NOMS_OBJETS: Record<string, string> = {
   import: "Import du tableau",
   imprimante: "Imprimante",
   cloture: "Clôture du jour",
+  plan_comptes: "Plan de comptes Crésus",
 };
 
 export const nomObjet = (objet: string) => NOMS_OBJETS[objet] ?? objet.replace(/_/g, " ");

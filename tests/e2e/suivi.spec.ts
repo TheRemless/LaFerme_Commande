@@ -223,5 +223,8 @@ test("allergie rappelée au suivi, heure confirmée en fourchette comme à l'acc
   const courriels = await (await client.request.get(`/dev/courriels?jeton=${jeton}`)).text();
   expect(courriels).toContain("Vous avez signalé une allergie.");
   expect(courriels).not.toContain("Arachides");
+  // Un seul e-mail à la commande (13.11.2026) : la confirmation donne le reçu, l'acceptation ne part plus.
+  expect(courriels).toContain(`/suivi/${jeton}/recu`);
+  expect(courriels).not.toMatch(/acceptée, La Ferme/);
   await client.close();
 });

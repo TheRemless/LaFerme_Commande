@@ -85,6 +85,9 @@ test("une réclamation se suit jusqu'à sa clôture", async () => {
   await ligne.getByRole("button").first().click();
   const fiche = gestion.getByRole("dialog");
   await expect(fiche.getByText("Pizza froide à l'arrivée.")).toBeVisible();
+  // Gestes pour la prochaine fois d'abord (éteints par défaut), le remboursement en dernier.
+  await expect(fiche.getByLabel("Geste pour le client").locator("option")).toHaveText(["Choisir…", "Pas de geste", "Un remboursement déjà fait"]);
+  await expect(fiche.getByText(/« Offert » et « Réduction » sur la prochaine commande ne sont pas encore activés/)).toBeVisible();
   await fiche.getByLabel("Geste pour le client").selectOption("aucun");
   await fiche.getByLabel("Pourquoi").fill("Client satisfait des excuses");
   await fiche.getByRole("button", { name: "Noter le geste" }).click();

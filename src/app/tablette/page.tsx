@@ -14,6 +14,10 @@ export default async function PageTablette() {
   // Commandes au back-office (lien du bandeau des remboursements) : gérant, ou responsable au rôle ouvert.
   const backOffice =
     personnel && personnel.role !== "livreur" ? await fonctionSql<boolean>("droit_personnel", { p_personnel: personnel.id, p_action: "voir_commandes" }) : false;
+  // Annuler une livraison partie : gérant, ou responsable de service au rôle ouvert (D1). Pour l'écran seulement,
+  // le serveur revérifie (droit_personnel, puis auteur_droit en base).
+  const annulerPartie =
+    personnel && personnel.role !== "livreur" ? await fonctionSql<boolean>("droit_personnel", { p_personnel: personnel.id, p_action: "annuler_apres_prete" }) : false;
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const cle = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   return (
@@ -30,7 +34,7 @@ export default async function PageTablette() {
           </a>
         </div>
       ) : (
-        <Tablette nom={personnel.nom} gerant={personnel.role === "gerant"} backOffice={backOffice} supabase={url && cle ? { url, cle } : null} />
+        <Tablette nom={personnel.nom} annulerPartie={annulerPartie} backOffice={backOffice} supabase={url && cle ? { url, cle } : null} />
       )}
     </main>
   );

@@ -11,6 +11,7 @@ import type { TypeCourriel } from "@/lib/courriel/quota";
 import { fourchette } from "@/lib/heure-reelle";
 import { plageTexte } from "@/lib/plage-heure";
 import { instantGeneve, type ConfigService } from "@/lib/service";
+import { recuDisponible } from "@/lib/recu";
 
 // Même heure partout que l'accueil (client-commande) : fourchette selon les réglages de largeur de
 // bo-operations ; sans configuration ou à largeur 0, une seule heure (« vers 19h40 »).
@@ -43,6 +44,9 @@ export function detailsLigne(cat: Catalogue | null, l: { choix: Record<string, s
 }
 
 export { MOTIF_DEMANDE_CLIENT };
+
+// Un seul e-mail à la commande (13.11.2026) : l'acceptation ne part plus par e-mail, elle se lit au suivi.
+const HEURE_AU_SUIVI = "Le restaurant confirme l'heure sur la page de suivi dès qu'il accepte la commande.";
 
 // Allergie de la commande (client-commande, #71) : l'e-mail la mentionne sans recopier le texte, une donnée de
 // santé ne se copie pas dans la table courriels ni dans un e-mail transférable. Le texte est sur le suivi.
@@ -121,12 +125,13 @@ export function courrielConfirmation(c: Commande, cat: Catalogue | null, estimat
     [`dont TVA ${String(c.taux_tva_pourcent).replace(".", ",")} %`, prixChf(c.tva_centimes)],
   ];
   const sujet = `Commande ${c.numero} reçue, La Ferme`;
+  const recu = recuDisponible(c);
   const texte = [
     `Bonjour ${c.client_prenom},`,
     "",
     `Nous avons bien reçu votre commande n° ${c.numero}.`,
     modeTexte(c, estimation, config),
-    "Le restaurant vous confirme l'heure dès qu'il l'accepte.",
+    HEURE_AU_SUIVI,
     ...(c.allergie ? [ALLERGIE_SIGNALEE] : []),
     "",
     ...lignes.flatMap((l) => [`${l.titre}  ${l.prix}`, ...l.details.map((d) => `   ${d}`)]),
@@ -135,13 +140,14 @@ export function courrielConfirmation(c: Commande, cat: Catalogue | null, estimat
     paiement,
     "",
     `Suivre la commande : ${lienSuivi(c)}`,
+    ...(recu ? [`Reçu avec TVA : ${lienSuivi(c)}/recu`] : []),
     `Une question ? ${TELEPHONE}`,
     "",
     RESTAURANT,
   ].join("\n");
   const html = enveloppe(`
 <p>Bonjour ${echapper(c.client_prenom)},</p>
-<p>Nous avons bien reçu votre commande n° <strong>${c.numero}</strong>.<br>${echapper(modeTexte(c, estimation, config))}<br>Le restaurant vous confirme l'heure dès qu'il l'accepte.</p>${c.allergie ? `\n<p><strong>${ALLERGIE_SIGNALEE}</strong></p>` : ""}
+<p>Nous avons bien reçu votre commande n° <strong>${c.numero}</strong>.<br>${echapper(modeTexte(c, estimation, config))}<br>${HEURE_AU_SUIVI}</p>${c.allergie ? `\n<p><strong>${ALLERGIE_SIGNALEE}</strong></p>` : ""}
 <table style="width:100%;border-collapse:collapse">${lignes
     .map(
       (l) => `<tr><td style="padding:6px 0;border-top:1px solid #ddd"><strong>${echapper(l.titre)}</strong>${l.details
@@ -155,7 +161,7 @@ export function courrielConfirmation(c: Commande, cat: Catalogue | null, estimat
     })
     .join("")}</table>
 <p>${echapper(paiement)}</p>
-${bouton(lienSuivi(c), "Suivre la commande")}
+${bouton(lienSuivi(c), "Suivre la commande")}${recu ? `\n<p><a href="${echapper(`${lienSuivi(c)}/recu`)}" style="color:#1c1b1a">Reçu avec TVA</a></p>` : ""}
 <p>Une question ? ${TELEPHONE}</p>`, c.origine, `Nous avons bien reçu votre commande n° ${c.numero}.`);
   return { sujet, texte, html, type: "confirmation" as TypeCourriel };
 }

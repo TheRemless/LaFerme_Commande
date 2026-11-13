@@ -40,7 +40,7 @@ export function OngletLivraisons({
   plusTard?: Set<string>;
   donnees: DonneesLivraisons | null;
   agir: (corps: Record<string, unknown>) => Promise<void>;
-  // Peut annuler une livraison partie (gérant) : sinon, le texte dit à qui le demander.
+  // Peut annuler une livraison partie (gérant, ou responsable au rôle ouvert) : sinon, le texte dit à qui le demander.
   annulerPartie?: boolean;
 }) {
   const [envoi, setEnvoi] = useState(false);
@@ -251,7 +251,7 @@ function Tournee({
                         ? " s'il répond, ou « Client absent : clore » s'il ne répond pas."
                         : annulerPartie || x.commande_statut !== "partie"
                           ? " ou annulez la commande dans « En cours »."
-                          : " ou demandez au gérant d'annuler la commande (elle est remboursée)."}
+                          : " ou demandez au gérant ou au responsable de service d'annuler la commande (elle est remboursée)."}
                     </p>
                   )}
                   {confirmer === x.commande_id && (

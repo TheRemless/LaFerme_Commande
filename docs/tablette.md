@@ -280,6 +280,17 @@ Mesure sur le jeu de rush de qualite (91 commandes en cours, `scripts/tablette/m
 - Bandeau des remboursements pas passés sur une ligne : les numéros du jour, puis le nombre des jours d'avant avec leurs dates, et « Voir au back-office » (`/gestion/commandes?remboursement=echec`). Avant : 18 numéros sans date, en permanence (les numéros recommencent chaque jour).
 - Captures : `docs/rendus/vague-3/tablette/compact-avant-*.png` et `compact-apres-*.png`, mesures `compact-mesures.json`.
 
+## Responsable de service sur la tablette (D1, oui de Jérémy le 13.11.2026)
+
+Liste de bo-socle. Le responsable n'agit qu'avec le réglage `role_responsable_actif` à vrai (posé par le chef sur la vraie base) : sans lui, rien ne change, et un responsable reste un membre de l'équipe de service. Migration `20261213220000_tablette_responsable.sql`.
+
+- **Annuler une livraison partie** : gérant ou responsable (droit « annuler_apres_prete »). La tablette lit le droit pour montrer « Annuler la commande » (`droit_personnel`), la route le revérifie, et la base aussi (`annuler_commande_partie` passe de `gerant_nom` à `auteur_droit`).
+- **Modifier une commande** : le responsable a le droit « modifier_commande », comme le gérant, sans le réglage `modification_par_equipe` et même quand la commande est prête ou partie. Route `/api/tablette/modifier` et base (`modifier_commande` accepte le rôle responsable). Rôle éteint : la règle de l'équipe.
+- **Coup de feu** : le responsable au rôle ouvert peut toujours, comme le chef d'équipe d'un soir. Rôle éteint : la règle de l'équipe (`coup_de_feu_par_equipe`).
+- **Fermer le service du jour** (contrat de bo-operations, `src/lib/fermer-service.ts`) : bloc dans « Pause, délai, ruptures », visible pour le droit « fermer_service ». Quand fermer (ce midi, ce soir, toute la journée), puis le motif, lu par les clients et jamais un nom. Une confirmation dit la suite (« Les clients ne pourront plus commander pour ce soir. »). Après la fermeture : « Fermé pour ce soir. Commandes déjà prises : n° 12, 15. Traitez-les dans « En cours ». ». Seul le gérant rouvre, au back-office. Route `/api/tablette/fermer-service` (GET `{ autorise }`, POST `{ quoi, motif }` derrière `exigerDroit(requete, "fermer_service")`, la date vient de la base).
+- Capture : `docs/rendus/vague-3/tablette/responsable-fermer-service.png` (responsable, jusqu'à la confirmation).
+- Tests : `tests/unit/tablette-responsable-sql.test.ts` (annuler et modifier, équipe refusée, rôle éteint), e2e `tablette.spec.ts` (bloc jusqu'à la confirmation sans fermer, l'équipe sans bloc et refusée en 403).
+
 ## Mise en situation du 13.11.2026 (service complet sur le jeu de rush)
 
 Joué en local : tablette 1024 × 768, téléphone de comptoir 375 et 390 px, téléphone d'un livreur, poste pizza. Corrigé ici :
@@ -288,7 +299,7 @@ Joué en local : tablette 1024 × 768, téléphone de comptoir 375 et 390 px, t�
 - **Son** : après « Continuer sans son », la barre dit « Son coupé. Activer le son ». Avant, il fallait recharger la page.
 - **Écran qui s'éteint** : « Continuer sans son » garde aussi l'écran allumé. Si l'appareil refuse, la barre le dit : « Cet appareil peut éteindre l'écran. Réglez sa mise en veille sur « Jamais ». »
 - **Remboursements pas passés** : « Voir au back-office » seulement pour qui peut l'ouvrir (droit « voir_commandes »). Pour les autres : « Le gérant les reprend au back-office. »
-- **Adresse introuvable** (onglet Livraisons) : le numéro du client cliquable dans le texte du problème. Pour une livraison partie, l'équipe lit « demandez au gérant d'annuler la commande (elle est remboursée) », puisqu'elle ne peut pas l'annuler elle-même.
+- **Adresse introuvable** (onglet Livraisons) : le numéro du client cliquable dans le texte du problème. Pour une livraison partie, qui n'a pas le droit de l'annuler lit « demandez au gérant ou au responsable de service d'annuler la commande (elle est remboursée) ».
 - **Imprimante en panne** : le bandeau ajoute « Vérifiez le papier et le câble, puis éteignez et rallumez l'imprimante. »
 - **Livreur, après « Problème »** : « Le restaurant est prévenu. Attendez son appel, ou appelez-le au 022 792 16 89. »
 - **M5, nouvelle livraison** : la page du livreur vibre, sonne et dit « Nouvelle livraison pour vous : n° 17. ». Le bouton « Activer le son et les alertes des nouvelles livraisons » (une fois) débloque le son et demande la permission des notifications : page cachée derrière une autre appli, une notification « Nouvelle livraison, N° 17 » part (iPhone et ordinateur ; Android Chrome demande un service worker, il garde le son et la vibration). Téléphone verrouillé, navigateur fermé : rien, il faudrait des notifications poussées par le serveur.
