@@ -45,6 +45,7 @@ describe("destinataireValide", () => {
   });
   it("garde le nom et le téléphone nettoyés", () => {
     expect(destinataireValide({ nom: "  Marc   Rochat ", telephone: "079 111 22 33" })).toEqual({ nom: "Marc Rochat", telephone: "079 111 22 33" });
+    expect(destinataireValide({ nom: "Marc\u001b[1m", telephone: "079 111 22 33" })).toEqual({ nom: "Marc[1m", telephone: "079 111 22 33" });
   });
   it("refuse un nom vide ou un téléphone faux", () => {
     expect(destinataireValide({ nom: "", telephone: "079 111 22 33" })).toBe("nom");

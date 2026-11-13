@@ -101,13 +101,20 @@ export function detailsValides(v: unknown): Details | null {
   return { sonnette, etage, code, instructions };
 }
 
+// Caractères de contrôle retirés (une imprimante de tickets les interprète), sauts de ligne et tabulations
+// compris ensuite dans les espaces par texte().
+function sansControle(v: string): string {
+  return v.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "");
+}
+
 // Commande pour quelqu'un d'autre : la personne qui reçoit ou vient chercher la commande (vague 3).
 // Absente : null (pour soi-même). Sinon le destinataire nettoyé, ou le nom du champ faux.
 export type Destinataire = { nom: string; telephone: string };
 export function destinataireValide(v: unknown): Destinataire | "nom" | "telephone" | null {
   if (v === undefined || v === null) return null;
   const d = (typeof v === "object" ? v : {}) as Record<string, unknown>;
-  const nom = texte(d.nom, 1, 80);
+  // Imprimé sur les tickets : caractères de contrôle retirés, comme pour l'allergie.
+  const nom = texte(typeof d.nom === "string" ? sansControle(d.nom) : d.nom, 1, 80);
   if (!nom) return "nom";
   const telephone = texte(d.telephone, 8, 20);
   if (!telephone || !telephoneValide(telephone)) return "telephone";
@@ -120,7 +127,7 @@ export const LIMITE_ALLERGIE = 120;
 export function allergieValide(v: unknown): string | null {
   if (v === undefined || v === null) return "";
   if (typeof v !== "string") return null;
-  return texte(v.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, ""), 0, LIMITE_ALLERGIE);
+  return texte(sansControle(v), 0, LIMITE_ALLERGIE);
 }
 
 export function cleValide(v: unknown): string | null {
