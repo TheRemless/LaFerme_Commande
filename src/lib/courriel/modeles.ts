@@ -40,7 +40,7 @@ export { MOTIF_DEMANDE_CLIENT };
 // - Carte : https://support.stripe.com/questions/how-long-do-refunds-take-to-reach-my-customer (5 à 10 jours
 //   ouvrables ; Stripe donne ailleurs jusqu'à 14 jours, d'où « en général » et « selon votre banque »).
 export const DELAI_REMBOURSEMENT =
-  "Avec TWINT, la somme revient en général en quelques minutes. Avec une carte, en général de 5 à 10 jours ouvrables, selon votre banque.";
+  "Avec TWINT, l'argent arrive en général en quelques minutes. Avec une carte, en général de 5 à 10 jours ouvrables, selon votre banque.";
 
 function phraseAnnulation(c: Commande, motif: string): { texte: string; html: string } {
   if (motif === MOTIF_DEMANDE_CLIENT) {

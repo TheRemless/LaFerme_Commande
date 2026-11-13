@@ -84,7 +84,7 @@ describe("phrases du suivi", () => {
   it("dit l'état réel du remboursement Stripe", () => {
     expect(phraseRemboursement(ligne({}))).toMatchObject({ etat: "fait", texte: expect.stringMatching(/^CHF 15\.00 remboursés le 13 novembre\./) });
     // Délais sourcés (documentation Stripe lue le 13.11.2026), pas « selon votre banque » seul.
-    expect(phraseRemboursement(ligne({})).texte).toContain("Avec TWINT, la somme revient en général en quelques minutes.");
+    expect(phraseRemboursement(ligne({})).texte).toContain("Avec TWINT, l'argent arrive en général en quelques minutes.");
     expect(phraseRemboursement(ligne({})).texte).toContain("de 5 à 10 jours ouvrables");
     expect(phraseRemboursement(ligne({ statut: "en_cours", fait_le: null })).texte).toBe("CHF 15.00 en cours de remboursement. La banque ne l'a pas encore confirmé.");
     expect(phraseRemboursement(ligne({ statut: "echec", fait_le: null })).texte).toContain("n'a pas abouti");
