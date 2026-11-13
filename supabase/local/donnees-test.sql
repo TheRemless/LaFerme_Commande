@@ -43,3 +43,8 @@ insert into personnel (email, nom, role) values
 insert into personnel (email, nom, role) values
   ('zones-bureau@laferme.test', 'Zones bureau', 'gerant'),
   ('zones-mobile@laferme.test', 'Zones mobile', 'gerant');
+
+-- Planning des livreurs (tests/e2e/planning-livreurs.spec.ts, vague 3) : un gérant et un livreur à part.
+insert into personnel (email, nom, role) values
+  ('planning-bureau@laferme.test', 'Planning bureau', 'gerant'),
+  ('planning-livreur@laferme.test', 'Livreur planning', 'livreur');
