@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { alertesDe, resumerCommandes, type DonneesAccueil } from "@/lib/accueil-gestion";
+import { aNotifier, lirePreferences, PREFERENCES_PAR_DEFAUT, titreAvecCompteur, CATEGORIES_ALERTE } from "@/lib/alertes-accueil";
 import type { CommandeTablette } from "@/lib/tablette";
 
 // Accueil du back-office (vague 3) : ce que le gérant voit en premier. Les calculs de ventes sont ceux de
@@ -134,5 +135,85 @@ describe("alertes", () => {
   it("le quota épuisé devient bloquant", () => {
     const a = alertesDe({ ...vide, quota: { envoyes: 500, refuses: 4, plafond: 500, restants: 0, libere_a: null, alerte: true } });
     expect(a[0]).toMatchObject({ cle: "courriels", niveau: "bloquant" });
+  });
+
+  it("chaque alerte a un type réglable", () => {
+    const a = alertesDe({
+      ...vide,
+      tablette_muette: true,
+      hier_a_encaisser: 2,
+      sans_livreur: { cle: "sans-livreur", niveau: "attention", titre: "Aucun livreur prévu ce soir" },
+      quota: { envoyes: 420, refuses: 0, plafond: 500, restants: 80, libere_a: null, alerte: true },
+      remboursements: { echecs: [{ numero: 1, cree_le: "2026-11-10T12:00:00Z" }], bloques: [] },
+    });
+    const types = new Set<string | undefined>(CATEGORIES_ALERTE.map((t) => t.type));
+    expect(a.length).toBeGreaterThan(3);
+    for (const x of a) expect(types.has(x.type)).toBe(true);
+  });
+
+  it("les remboursements et le comptoir citent chaque commande avec son jour, et la liste filtrée", () => {
+    const a = alertesDe({
+      ...vide,
+      hier_a_encaisser: 2,
+      hier_a_encaisser_commandes: [
+        { id: "c1", numero: 30, jour: "2026-11-10" },
+        { id: "c2", numero: 30, jour: "2026-11-11" },
+      ],
+      remboursements: {
+        echecs: [
+          { numero: 36, cree_le: "2026-11-09T12:00:00Z", commande_id: "r1", jour: "2026-11-09" },
+          { numero: 36, cree_le: "2026-11-09T12:05:00Z", commande_id: "r1", jour: "2026-11-09" },
+          { numero: 4, cree_le: "2026-11-12T19:00:00Z", commande_id: "r2", jour: "2026-11-12" },
+        ],
+        bloques: [],
+      },
+    });
+    const r = a.find((x) => x.cle === "remboursements")!;
+    // Deux essais sur la même commande : une seule fiche. Le numéro n'est plus répété dans le texte.
+    expect(r.commandes).toEqual([
+      { id: "r1", numero: 36, jour: "2026-11-09" },
+      { id: "r2", numero: 4, jour: "2026-11-12" },
+    ]);
+    expect(r.detail).toBe("Le client n'a pas été remboursé.");
+    expect(r.liste?.href).toBe("/gestion/commandes?remboursement=echec&du=2026-11-09&au=2026-11-13");
+    const c = a.find((x) => x.cle === "comptoir-hier")!;
+    expect(c.commandes?.map((x) => x.jour)).toEqual(["2026-11-10", "2026-11-11"]);
+    expect(c.liste?.href).toBe("/gestion/commandes?paiement=a_encaisser_retrait&du=2026-11-06&au=2026-11-12");
+    // Aucune donnée de client dans une adresse.
+    for (const x of a) expect(x.liste?.href ?? "").not.toMatch(/@|Léa|Essai/);
+  });
+
+  it("l'alerte « Aucun livreur prévu » de bo-operations entre dans la catégorie livreurs, triée par niveau", () => {
+    const sansLivreur = { cle: "sans-livreur", niveau: "bloquant" as const, titre: "Aucun livreur prévu ce soir", geste: { href: "/gestion/livreurs", texte: "Ouvrir le planning" } };
+    const a = alertesDe({ ...vide, hier_a_encaisser: 1, sans_livreur: sansLivreur });
+    expect(a[0]).toMatchObject({ ...sansLivreur, type: "livreurs" });
+    expect(alertesDe({ ...vide, sans_livreur: null })).toEqual([]);
+  });
+});
+
+describe("préférences des alertes (par appareil)", () => {
+  const alerte = (cle: string, type: (typeof CATEGORIES_ALERTE)[number]["type"]) => ({ cle, type, niveau: "attention" as const, titre: cle });
+
+  it("relit un stockage abîmé avec les valeurs par défaut, notifications coupées", () => {
+    expect(lirePreferences(null)).toEqual(PREFERENCES_PAR_DEFAUT);
+    expect(lirePreferences({ notifier: "oui", types: { comptoir: true, inconnu: true, retard: 3 } })).toEqual({
+      notifier: false,
+      types: { ...PREFERENCES_PAR_DEFAUT.types, comptoir: true },
+    });
+  });
+
+  it("notifie seulement les alertes nouvelles d'un type choisi", () => {
+    const prefs = { notifier: true, types: { ...PREFERENCES_PAR_DEFAUT.types, comptoir: false } };
+    const a = [alerte("tablette", "tablette"), alerte("comptoir-hier", "comptoir"), alerte("retard", "retard")];
+    expect(aNotifier(a, new Set(["retard"]), prefs).map((x) => x.cle)).toEqual(["tablette"]);
+    expect(aNotifier(a, new Set(), { ...prefs, notifier: false })).toEqual([]);
+    // Une alerte sans type (construite par une autre session) prévient toujours.
+    expect(aNotifier([{ cle: "sans-livreur", niveau: "bloquant", titre: "x" }], new Set(), prefs).map((x) => x.cle)).toEqual(["sans-livreur"]);
+  });
+
+  it("met le compteur devant le titre de l'onglet sans l'empiler", () => {
+    expect(titreAvecCompteur("Commandes | La Ferme", 3)).toBe("(3) Commandes | La Ferme");
+    expect(titreAvecCompteur("(3) Commandes | La Ferme", 1)).toBe("(1) Commandes | La Ferme");
+    expect(titreAvecCompteur("(3) Commandes | La Ferme", 0)).toBe("Commandes | La Ferme");
   });
 });

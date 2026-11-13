@@ -1,8 +1,11 @@
 // Accueil du back-office : la journée en un coup d'œil (vague 3, bo-socle). Lundi 9h ou vendredi 20h, le
 // gérant voit en dix secondes ce qui demande un geste. Ce module ne fait que rassembler ce qui existe :
-// file de la tablette, état du service, impression, quota d'e-mails, ventes (pilotage_ventes, bo-pilotage).
-// Une source en panne ne vide pas l'accueil : sa partie vaut null et l'écran dit « indisponible ».
+// file de la tablette, état du service, impression, quota d'e-mails, ventes (pilotage_ventes, bo-pilotage),
+// alerte « Aucun livreur prévu » (bo-operations). Une source en panne ne vide pas l'accueil : sa partie vaut null et
+// l'écran dit « indisponible ». Les alertes sont aussi lues hors de l'accueil (compteur dans le titre de
+// l'onglet, badge du menu, notifications : src/components/gestion/alertes.tsx).
 
+import type { Alerte, CommandeAlerte } from "@/lib/alertes-accueil";
 import { chargerCatalogue } from "@/lib/catalogue";
 import { chargerConfigService } from "@/lib/config-service";
 import { etatQuotaCourriels, type EtatQuota } from "@/lib/courriel/quota";
@@ -11,6 +14,7 @@ import { fonctionSql } from "@/lib/db/serveur";
 import { heureDe } from "@/lib/heures";
 import { etatImpression, type EtatImpression } from "@/lib/impression/service";
 import { jourDeService, serviceDe, type Service, type TableauVentes } from "@/lib/pilotage";
+import { chargerAlerteSansLivreur } from "@/lib/sans-livreur";
 import { ajouterJours, etatService, serviceEnCours, zoneFermeeJusqua, type ConfigService, type EtatService } from "@/lib/service";
 import { fileTablette, type CommandeTablette } from "@/lib/tablette";
 
@@ -41,6 +45,10 @@ export type EtatRestaurant = {
   ruptures: { nom: string; jusqu_au: string | null }[];
 };
 
+export type { Alerte, CommandeAlerte } from "@/lib/alertes-accueil";
+
+type Suivi = { numero: number; cree_le: string; commande_id?: string; jour?: string };
+
 export type DonneesAccueil = {
   maintenant: string;
   jour: string;
@@ -50,27 +58,23 @@ export type DonneesAccueil = {
   ventes: TableauVentes | null;
   /** Commandes au comptoir des sept jours d'avant pas notées encaissées (jours fermés compris). */
   hier_a_encaisser: number | null;
+  /** Ces commandes-là, avec leur jour (100 au plus). Facultatif pour les anciens appels. */
+  hier_a_encaisser_commandes?: CommandeAlerte[] | null;
   impression: Pick<EtatImpression, "imprimantes"> & { echecs: number } | null;
   tablette_muette: boolean | null;
   quota: EtatQuota | null;
   alerte_acceptation_minutes: number;
+  /** « Aucun livreur prévu » de bo-operations (src/lib/sans-livreur.ts) : null quand un livreur est prévu, que
+   *  le service ne prend pas de livraisons ou que la dernière commande est passée. */
+  sans_livreur?: Alerte | null;
   /** Remboursements à suivre, tous jours confondus (remboursements_a_suivre de bo-pilotage) : en échec, ou pas
    *  confirmés par Stripe depuis plus de 24 heures. null tant que la fonction manque (base pas encore migrée) :
    *  l'accueil retombe alors sur les chiffres du service en cours. Champ facultatif pour les anciens appels. */
-  remboursements?: { echecs: { numero: number; cree_le: string }[]; bloques: { numero: number; cree_le: string }[] } | null;
+  remboursements?: { echecs: Suivi[]; bloques: Suivi[] } | null;
 };
 
-type RemboursementASuivre = { numero: number; statut: string; cree_le: string };
-
-export type Alerte = {
-  cle: string;
-  /** « bloquant » : le service en souffre maintenant. « attention » : à régler aujourd'hui. */
-  niveau: "bloquant" | "attention";
-  titre: string;
-  detail?: string;
-  depuis?: string;
-  geste?: { href: string; texte: string };
-};
+type RemboursementASuivre = { numero: number; statut: string; cree_le: string; commande_id: string; jour: string };
+type LigneListe = { id: string; numero: number; jour_service: string; statut: string };
 
 const sur = <T>(p: Promise<T>): Promise<T | null> => p.catch(() => null);
 
@@ -109,6 +113,24 @@ export function etatRestaurant(config: ConfigService, maintenant: Date, ruptures
 
 const NB = (n: number, un: string, plusieurs: string) => `${n} ${n > 1 ? plusieurs : un}`;
 
+/** Une commande par fiche (deux remboursements de la même commande n'en font qu'une), dans l'ordre reçu. */
+function commandesDe(suivis: Suivi[]): CommandeAlerte[] | undefined {
+  const vues = new Map<string, CommandeAlerte>();
+  for (const s of suivis) if (s.commande_id && s.jour && !vues.has(s.commande_id)) vues.set(s.commande_id, { id: s.commande_id, numero: s.numero, jour: s.jour });
+  return vues.size ? [...vues.values()] : undefined;
+}
+
+/** Adresse de la liste des commandes filtrée. Seulement des filtres, jamais une donnée de client. */
+export function listeFiltree(filtres: Record<string, string>): string {
+  return `/gestion/commandes?${new URLSearchParams(filtres).toString()}`;
+}
+
+/** Période qui couvre toutes les commandes citées (du plus ancien jour à aujourd'hui). */
+function periodeDe(commandes: CommandeAlerte[] | undefined, jour: string): Record<string, string> {
+  const jours = (commandes ?? []).map((c) => c.jour).sort();
+  return { du: jours[0] ?? jour, au: jour };
+}
+
 /** Ce qui demande un geste, du plus urgent au moins urgent. Pur : testé dans tests/unit/accueil-gestion.test.ts. */
 export function alertesDe(d: DonneesAccueil): Alerte[] {
   const a: Alerte[] = [];
@@ -117,6 +139,7 @@ export function alertesDe(d: DonneesAccueil): Alerte[] {
     const n = c.a_accepter_en_retard.map((x) => x.numero).join(", ");
     a.push({
       cle: "a-accepter",
+      type: "acceptation",
       niveau: "bloquant",
       titre: c.a_accepter_en_retard.length > 1 ? `Commandes ${n} pas encore acceptées` : `Commande ${n} pas encore acceptée`,
       detail: `Plus de ${d.alerte_acceptation_minutes} min d'attente.`,
@@ -125,53 +148,71 @@ export function alertesDe(d: DonneesAccueil): Alerte[] {
     });
   }
   if (d.tablette_muette && d.restaurant?.en_service)
-    a.push({ cle: "tablette", niveau: "bloquant", titre: "La tablette ne répond plus", detail: "Sans elle, les commandes en ligne se mettent en pause seules.", geste: { href: "/tablette", texte: "Ouvrir la tablette" } });
+    a.push({ cle: "tablette", type: "tablette", niveau: "bloquant", titre: "La tablette ne répond plus", detail: "Sans elle, les commandes en ligne se mettent en pause seules.", geste: { href: "/tablette", texte: "Ouvrir la tablette" } });
   const pause = d.restaurant?.livraison.etat === "pause" ? d.restaurant.livraison : null;
   if (pause && pause.etat === "pause")
-    a.push({ cle: "pause", niveau: "bloquant", titre: "Commandes en ligne en pause", detail: pause.jusqua ? `Jusqu'à ${heureDe(pause.jusqua)}.` : "Sans heure de fin.", geste: { href: "/tablette", texte: "Reprendre sur la tablette" } });
+    a.push({ cle: "pause", type: "pause", niveau: "bloquant", titre: "Commandes en ligne en pause", detail: pause.jusqua ? `Jusqu'à ${heureDe(pause.jusqua)}.` : "Sans heure de fin.", geste: { href: "/tablette", texte: "Reprendre sur la tablette" } });
   for (const i of d.impression?.imprimantes ?? []) {
     if (i.actif && !i.en_ligne)
-      a.push({ cle: `imprimante-${i.id}`, niveau: d.restaurant?.en_service ? "bloquant" : "attention", titre: `Imprimante ${i.nom} hors ligne`, depuis: i.vue_le ?? undefined, geste: { href: "/gestion/imprimantes", texte: "Voir les imprimantes" } });
+      a.push({ cle: `imprimante-${i.id}`, type: "impression", niveau: d.restaurant?.en_service ? "bloquant" : "attention", titre: `Imprimante ${i.nom} hors ligne`, depuis: i.vue_le ?? undefined, geste: { href: "/gestion/imprimantes", texte: "Voir les imprimantes" } });
   }
   if (d.impression && d.impression.echecs > 0)
-    a.push({ cle: "tickets", niveau: "bloquant", titre: `${NB(d.impression.echecs, "ticket", "tickets")} pas imprimé${d.impression.echecs > 1 ? "s" : ""}`, geste: { href: "/tablette", texte: "Réimprimer sur la tablette" } });
+    a.push({ cle: "tickets", type: "impression", niveau: "bloquant", titre: `${NB(d.impression.echecs, "ticket", "tickets")} pas imprimé${d.impression.echecs > 1 ? "s" : ""}`, geste: { href: "/tablette", texte: "Réimprimer sur la tablette" } });
   if (c && c.en_retard.length)
-    a.push({ cle: "retard", niveau: "attention", titre: `${NB(c.en_retard.length, "commande", "commandes")} après l'heure promise`, detail: `N° ${c.en_retard.map((x) => x.numero).join(", ")}.`, depuis: c.en_retard[0].heure, geste: { href: "/tablette", texte: "Voir sur la tablette" } });
+    a.push({ cle: "retard", type: "retard", niveau: "attention", titre: `${NB(c.en_retard.length, "commande", "commandes")} après l'heure promise`, detail: `N° ${c.en_retard.map((x) => x.numero).join(", ")}.`, depuis: c.en_retard[0].heure, geste: { href: "/tablette", texte: "Voir sur la tablette" } });
+  if (d.sans_livreur) a.push({ ...d.sans_livreur, type: "livreurs" });
   const rs = d.remboursements;
   if (rs) {
-    if (rs.echecs.length)
+    if (rs.echecs.length) {
+      const commandes = commandesDe(rs.echecs);
       a.push({
         cle: "remboursements",
+        type: "remboursements",
         niveau: "attention",
         titre: NB(rs.echecs.length, "remboursement a échoué", "remboursements ont échoué"),
-        detail: `Le client n'a pas été remboursé. N° ${[...new Set(rs.echecs.map((x) => x.numero))].join(", ")}.`,
+        detail: commandes ? "Le client n'a pas été remboursé." : `Le client n'a pas été remboursé. N° ${[...new Set(rs.echecs.map((x) => x.numero))].join(", ")}.`,
         depuis: rs.echecs[0].cree_le,
-        geste: { href: "/gestion/commandes", texte: "Voir les commandes" },
+        commandes,
+        liste: { href: listeFiltree({ remboursement: "echec", ...periodeDe(commandes, d.jour) }), texte: "Voir la liste" },
       });
-    if (rs.bloques.length)
+    }
+    if (rs.bloques.length) {
+      const commandes = commandesDe(rs.bloques);
       a.push({
         cle: "remboursements-en-cours",
+        type: "remboursements",
         niveau: "attention",
         titre: `${NB(rs.bloques.length, "remboursement", "remboursements")} pas confirmé${rs.bloques.length > 1 ? "s" : ""} par Stripe depuis plus de 24 heures`,
-        detail: `N° ${[...new Set(rs.bloques.map((x) => x.numero))].join(", ")}.`,
+        detail: commandes ? undefined : `N° ${[...new Set(rs.bloques.map((x) => x.numero))].join(", ")}.`,
         depuis: rs.bloques[0].cree_le,
-        geste: { href: "/gestion/commandes", texte: "Voir les commandes" },
+        commandes,
+        liste: { href: listeFiltree({ remboursement: "en_cours", ...periodeDe(commandes, d.jour) }), texte: "Voir la liste" },
       });
+    }
   }
   const r = rs ? null : d.ventes?.periode.remboursements;
   if (r && r.echecs_ouverts > 0)
-    a.push({ cle: "remboursements", niveau: "attention", titre: `${NB(r.echecs_ouverts, "remboursement a échoué", "remboursements ont échoué")} ${d.service === "midi" ? "ce midi" : "ce soir"}`, detail: "Le client n'a pas été remboursé.", geste: { href: "/gestion/commandes", texte: "Voir les commandes" } });
+    a.push({ cle: "remboursements", type: "remboursements", niveau: "attention", titre: `${NB(r.echecs_ouverts, "remboursement a échoué", "remboursements ont échoué")} ${d.service === "midi" ? "ce midi" : "ce soir"}`, detail: "Le client n'a pas été remboursé.", geste: { href: "/gestion/commandes", texte: "Voir les commandes" } });
   if (r && r.en_cours > 0)
-    a.push({ cle: "remboursements-en-cours", niveau: "attention", titre: `${NB(r.en_cours, "remboursement en cours", "remboursements en cours")} chez Stripe`, geste: { href: "/gestion/commandes", texte: "Voir les commandes" } });
+    a.push({ cle: "remboursements-en-cours", type: "remboursements", niveau: "attention", titre: `${NB(r.en_cours, "remboursement en cours", "remboursements en cours")} chez Stripe`, geste: { href: "/gestion/commandes", texte: "Voir les commandes" } });
   if (d.quota?.alerte)
     a.push({
       cle: "courriels",
+      type: "courriels",
       niveau: d.quota.restants === 0 ? "bloquant" : "attention",
       titre: `E-mails : ${d.quota.envoyes} sur ${d.quota.plafond} envoyés aujourd'hui`,
       detail: d.quota.restants === 0 ? "Plus d'e-mail possible aujourd'hui : seuls les plus importants passent quand la limite se libère." : "Au-delà, seuls les e-mails les plus importants partent.",
     });
   if (d.hier_a_encaisser && d.hier_a_encaisser > 0)
-    a.push({ cle: "comptoir-hier", niveau: "attention", titre: `${NB(d.hier_a_encaisser, "commande", "commandes")} au comptoir des derniers jours pas notée${d.hier_a_encaisser > 1 ? "s" : ""} encaissée${d.hier_a_encaisser > 1 ? "s" : ""}`, detail: d.hier_a_encaisser > 1 ? "Elles manquent dans l'export comptable." : "Elle manque dans l'export comptable.", geste: { href: "/gestion/commandes", texte: "Voir les commandes" } });
+    a.push({
+      cle: "comptoir-hier",
+      type: "comptoir",
+      niveau: "attention",
+      titre: `${NB(d.hier_a_encaisser, "commande", "commandes")} au comptoir des derniers jours pas notée${d.hier_a_encaisser > 1 ? "s" : ""} encaissée${d.hier_a_encaisser > 1 ? "s" : ""}`,
+      detail: d.hier_a_encaisser > 1 ? "Elles manquent dans l'export comptable." : "Elle manque dans l'export comptable.",
+      commandes: d.hier_a_encaisser_commandes?.length ? d.hier_a_encaisser_commandes : undefined,
+      liste: { href: listeFiltree({ paiement: "a_encaisser_retrait", du: ajouterJours(d.jour, -7), au: ajouterJours(d.jour, -1) }), texte: "Voir la liste" },
+    });
   return a.sort((x, y) => (x.niveau === y.niveau ? 0 : x.niveau === "bloquant" ? -1 : 1));
 }
 
@@ -196,20 +237,36 @@ function joursPrecedents(jour: string): Promise<TableauVentes | null> {
   return valeur;
 }
 
+// Commandes au comptoir des sept jours d'avant pas notées encaissées, avec leur jour. Pas de cache : une
+// commande notée encaissée quitte l'alerte à la lecture suivante. 100 au plus (les autres : « Voir la liste »).
+async function comptoirPasEncaisse(jour: string): Promise<{ commandes: CommandeAlerte[]; total: number }> {
+  const r = await fonctionSql<{ total: number; lignes: LigneListe[] }>("liste_commandes_gestion", {
+    p: { debut: ajouterJours(jour, -7), fin: ajouterJours(jour, -1), paiements: ["a_encaisser_retrait"], statuts: STATUTS_A_ENCAISSER, tri: "ancien", page: 1, par_page: 100 },
+  });
+  return { commandes: r.lignes.map((l) => ({ id: l.id, numero: l.numero, jour: l.jour_service })), total: Number(r.total) };
+}
+// Une commande refusée n'est pas à encaisser (même règle que pilotage_ventes) ; annulées et paiement en attente
+// sont déjà exclues par liste_commandes_gestion.
+const STATUTS_A_ENCAISSER = ["nouvelle", "acceptee", "en_preparation", "prete", "partie", "terminee"];
+
 export async function chargerAccueil(maintenant = new Date()): Promise<DonneesAccueil & { alertes: Alerte[] }> {
   const jour = jourDeService(maintenant);
   const service = serviceDe(maintenant);
-  const [file, config, impression, quota, ventes, hier, catalogue, muette, minutes, aSuivre] = await Promise.all([
+  const lireConfig = sur(chargerConfigService());
+  const [file, config, impression, quota, ventes, hier, comptoir, catalogue, muette, minutes, aSuivre, sansLivreur] = await Promise.all([
     sur(fileTablette(maintenant)),
-    sur(chargerConfigService()),
+    lireConfig,
     sur(etatImpression()),
     sur(etatQuotaCourriels()),
     sur(fonctionSql<TableauVentes>("pilotage_ventes", { p_debut: jour, p_fin: jour, p_comp_debut: null, p_comp_fin: null, p_service: service })),
     joursPrecedents(jour),
+    sur(comptoirPasEncaisse(jour)),
     sur(chargerCatalogue()),
     sur(fonctionSql<boolean>("tablette_muette", { p_secondes: TABLETTE_MUETTE_S })),
     sur(alerteMinutes()),
     sur(fonctionSql<RemboursementASuivre[]>("remboursements_a_suivre", { p_heures: 24 })),
+    // Une requête légère, lancée dès que la configuration est lue.
+    lireConfig.then((c) => (c ? sur(chargerAlerteSansLivreur(c, maintenant)) : null)),
   ]);
   // Réglage illisible : 5 minutes, la valeur posée par la migration 20261111090000 (la même que la surveillance lit).
   const seuil = minutes ?? 5;
@@ -225,15 +282,18 @@ export async function chargerAccueil(maintenant = new Date()): Promise<DonneesAc
     commandes: file ? resumerCommandes(file, maintenant, seuil) : null,
     restaurant: config ? etatRestaurant(config, maintenant, ruptures) : null,
     ventes,
-    hier_a_encaisser: hier?.periode.a_encaisser ?? null,
+    // La liste fait foi (sans cache) ; le compte de pilotage_ventes (cinq minutes de cache) en secours.
+    hier_a_encaisser: comptoir?.total ?? hier?.periode.a_encaisser ?? null,
+    hier_a_encaisser_commandes: comptoir?.commandes ?? null,
     impression: impression ? { imprimantes: impression.imprimantes, echecs: impression.taches.filter((t) => t.etat === "echec").length } : null,
     tablette_muette: muette,
     quota,
     alerte_acceptation_minutes: seuil,
+    sans_livreur: sansLivreur,
     remboursements: aSuivre
       ? {
-          echecs: aSuivre.filter((x) => x.statut === "echec").map(({ numero, cree_le }) => ({ numero, cree_le })),
-          bloques: aSuivre.filter((x) => x.statut === "en_cours").map(({ numero, cree_le }) => ({ numero, cree_le })),
+          echecs: aSuivre.filter((x) => x.statut === "echec").map(({ numero, cree_le, commande_id, jour }) => ({ numero, cree_le, commande_id, jour })),
+          bloques: aSuivre.filter((x) => x.statut === "en_cours").map(({ numero, cree_le, commande_id, jour }) => ({ numero, cree_le, commande_id, jour })),
         }
       : null,
   };

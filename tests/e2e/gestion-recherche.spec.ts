@@ -8,6 +8,8 @@ test.describe.configure({ mode: "serial" });
 
 const ORIGINE = { Origin: SITE };
 let page: Page;
+// Prénom de la commande créée par le test « nom du client », retrouvée ensuite autrement.
+let prenomCree = "";
 const fenetre = () => page.getByRole("dialog", { name: "Recherche dans le back-office" });
 const champ = () => fenetre().getByRole("combobox");
 // Le bouton « Recherche » de l'en-tête (la page Commandes a son propre bouton « Chercher »).
@@ -61,6 +63,7 @@ test("une rubrique se trouve par son nom ou ce qu'on y fait", async () => {
 
 test("une commande se trouve par le nom du client, sans que le nom passe dans l'adresse", async ({ request }, info) => {
   const prenom = `Cherche${info.project.name}${passage()}`;
+  prenomCree = prenom;
   const rep = await request.post("/api/commandes", {
     headers: ORIGINE,
     data: {
@@ -69,7 +72,7 @@ test("une commande se trouve par le nom du client, sans que le nom passe dans l'
       moyen: "comptoir",
       quand: { type: "asap" },
       heure: "2026-11-10T19:05",
-      client: { prenom, nom: "Test", telephone: "079 000 00 00", email: `${prenom.toLowerCase()}@laferme.test` },
+      client: { prenom, nom: "Test", telephone: "079 000 00 00", email: `${prenom.toLowerCase()}.mail@laferme.test` },
       lignes: [{ slug: "pizza-margherita", qte: 1, choix: {}, retraits: [], note: "" }],
     },
   });
@@ -90,6 +93,18 @@ test("une commande se trouve par le nom du client, sans que le nom passe dans l'
   await page.keyboard.press("Escape");
   await expect(fiche).toHaveCount(0);
   expect(demandes.some((u) => u.includes(prenom))).toBe(false);
+});
+
+test("la même commande se trouve par le nom avant le prénom, et par le début de l'e-mail", async () => {
+  const prenom = prenomCree;
+  expect(prenom).not.toBe("");
+  await ouvrir();
+  await champ().fill(`test ${prenom.toLowerCase()}`);
+  await expect(fenetre().getByRole("option", { name: new RegExp(`^N° \\d+, ${prenom} Test`) })).toBeVisible();
+  // « .ma » n'est que dans l'e-mail : seul le début de l'e-mail peut trouver le client.
+  await champ().fill(`${prenom.toLowerCase()}.ma`);
+  await expect(fenetre().getByRole("option", { name: new RegExp(`^${prenom} Test`) })).toBeVisible();
+  await page.keyboard.press("Escape");
 });
 
 test("rien ne correspond : la fenêtre le dit ; Échap la ferme", async () => {

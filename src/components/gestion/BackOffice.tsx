@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { FournisseurAlertes, useAlertes } from "@/components/gestion/alertes";
 import { FournisseurCarte, useCarte } from "@/components/gestion/contexte-carte";
 import { groupesPour, rubriqueDe, rubriqueOuverte, type Rubrique } from "@/components/gestion/navigation";
 import { RechercheGlobale } from "@/components/gestion/RechercheGlobale";
@@ -29,9 +30,11 @@ export function BackOffice({ nom, role = "gerant", children }: { nom: string; ro
         <FournisseurNotifications>
           <FournisseurRaccourcis>
             <FournisseurCarte>
-              <Coque nom={nom} role={role}>
-                {children}
-              </Coque>
+              <FournisseurAlertes actif={role === "gerant"}>
+                <Coque nom={nom} role={role}>
+                  {children}
+                </Coque>
+              </FournisseurAlertes>
             </FournisseurCarte>
           </FournisseurRaccourcis>
         </FournisseurNotifications>
@@ -55,6 +58,9 @@ function Coque({ nom, role, children }: { nom: string; role: "gerant" | "respons
   const titre = useRef<HTMLHeadingElement>(null);
   const focusApres = useRef<"tiroir" | "menu" | "titre" | null>(null);
   const [erreurSortie, setErreurSortie] = useState<string | null>(null);
+  const alertes = useAlertes()?.lecture.donnees?.alertes;
+  const nbAlertes = alertes?.length ?? 0;
+  const bloquant = Boolean(alertes?.some((x) => x.niveau === "bloquant"));
 
   useEffect(() => {
     try {
@@ -165,10 +171,21 @@ function Coque({ nom, role, children }: { nom: string; role: "gerant" | "respons
       {/* Tiroir ouvert : le reste de la page est inerte (ni clic ni Tab), comme derrière une fenêtre. */}
       <div className="bo-corps" inert={tiroir || undefined}>
         <header className="bo-tete">
-          <button ref={boutonMenu} type="button" className="bo-bouton-menu" aria-controls="bo-menu" aria-expanded={tiroir} onClick={() => basculerTiroir(true)}>
+          <button ref={boutonMenu} type="button" className="bo-bouton-menu" aria-controls="bo-menu" aria-expanded={tiroir} aria-describedby={nbAlertes > 0 ? "bo-menu-alertes" : undefined} onClick={() => basculerTiroir(true)}>
             <IconeGestion nom="menu" />
             <span>Menu</span>
+            {/* Sur téléphone, Accueil est dans le tiroir : le nombre d'alertes reste visible sur le bouton. */}
+            {nbAlertes > 0 && (
+              <span className="bo-badge" data-bloquant={bloquant || undefined} aria-hidden="true">
+                {nbAlertes}
+              </span>
+            )}
           </button>
+          {nbAlertes > 0 && (
+            <span id="bo-menu-alertes" className="sr-only">
+              {nbAlertes} alerte{nbAlertes > 1 ? "s" : ""} à régler
+            </span>
+          )}
           <div className="bo-titre">
             <p className="bo-titre-groupe">{groupe.titre}</p>
             <h1 ref={titre} tabIndex={-1}>
@@ -189,10 +206,21 @@ function Coque({ nom, role, children }: { nom: string; role: "gerant" | "respons
 
 function LienRubrique({ rubrique, courante }: { rubrique: Rubrique; courante: boolean }) {
   const { carte } = useCarte();
+  const alertes = useAlertes()?.lecture.donnees?.alertes;
   const router = useRouter();
   const peutPartir = usePeutPartir();
-  // Badges : ce qui attend le gérant dans la rubrique (vague 3 : d'autres viendront, commandes à traiter, alertes).
-  const badge = rubrique.href === "/gestion/carte" && carte && carte.bloquants > 0 ? carte.bloquants : null;
+  // Badges : ce qui attend le gérant dans la rubrique. Accueil : les alertes, foncé si l'une bloque le service.
+  const badge =
+    rubrique.href === "/gestion/carte" && carte && carte.bloquants > 0
+      ? carte.bloquants
+      : rubrique.href === "/gestion" && alertes && alertes.length > 0
+        ? alertes.length
+        : null;
+  const bloquant = rubrique.href === "/gestion" && Boolean(alertes?.some((a) => a.niveau === "bloquant"));
+  const description =
+    rubrique.href === "/gestion"
+      ? `${badge} alerte${badge !== null && badge > 1 ? "s" : ""} à régler${bloquant ? ", dont au moins une bloque le service" : ""}`
+      : `${badge} ${badge !== null && badge > 1 ? "plats bloquent" : "plat bloque"} la mise en ligne`;
   // Le nom du lien reste celui de la rubrique ; le badge est lu comme description.
   const idBadge = `bo-badge-${rubrique.href.replace(/\W+/g, "-")}`;
   return (
@@ -213,14 +241,14 @@ function LienRubrique({ rubrique, courante }: { rubrique: Rubrique; courante: bo
         <IconeGestion nom={rubrique.icone} />
         <span className="bo-libelle">{rubrique.titre}</span>
         {badge !== null && (
-          <span className="bo-badge" aria-hidden="true">
+          <span className="bo-badge" data-bloquant={bloquant || undefined} aria-hidden="true">
             {badge}
           </span>
         )}
       </Link>
       {badge !== null && (
         <span id={idBadge} className="sr-only">
-          {badge} {badge > 1 ? "plats bloquent" : "plat bloque"} la mise en ligne
+          {description}
         </span>
       )}
     </li>
