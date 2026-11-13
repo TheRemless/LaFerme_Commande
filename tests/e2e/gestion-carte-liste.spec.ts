@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { codeDuPersonnel } from "./site";
 
 // Carte du back-office en liste (vague 3) : filtres de qualité, fiche dans le panneau, rupture jusqu'à une
 // date, prix en lot (aperçu seulement : aucun prix de la carte n'est changé pour les autres tests).
@@ -16,10 +17,7 @@ test.beforeAll(async ({ browser }, info) => {
   gestion = await browser.newPage({ baseURL: info.project.use.baseURL });
   await gestion.goto("/gestion");
   await gestion.getByLabel("E-mail", { exact: true }).fill(`liste-${info.project.name}@laferme.test`);
-  await gestion.getByRole("button", { name: "Recevoir un code" }).click();
-  const code = gestion.locator(".note-preversion strong");
-  await expect(code).toHaveText(/^\d{8}$/);
-  await gestion.getByLabel("Code à 8 chiffres").fill(await code.innerText());
+  await gestion.getByLabel("Code à 8 chiffres").fill(await codeDuPersonnel(gestion));
   await gestion.getByRole("button", { name: "Me connecter" }).click();
   // Connexion faite (l'accueil du back-office s'affiche) avant d'ouvrir une rubrique.
   await expect(gestion.getByRole("heading", { level: 1, name: "Accueil" })).toBeVisible();

@@ -52,7 +52,8 @@ export async function codeDuPersonnel(page: Page): Promise<string> {
   const alerte = page.locator(".panier-alerte");
   for (let essai = 0; essai < 3; essai++) {
     await page.getByRole("button", { name: "Recevoir un code" }).click();
-    await expect(code.or(alerte).first()).toBeVisible({ timeout: 15_000 });
+    // 20 s : le premier appel après le démarrage du serveur compile la page.
+    await expect(code.or(alerte).first()).toBeVisible({ timeout: 20_000 });
     if (await code.isVisible()) {
       await expect(code).toHaveText(/^\d{8}$/);
       return code.innerText();
