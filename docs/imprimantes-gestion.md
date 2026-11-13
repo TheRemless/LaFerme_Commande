@@ -9,7 +9,8 @@ En plus de l'état en direct (en ligne, papier, capot), le back-office donne pou
 | `imprimes_aujourdhui`, `echecs_aujourdhui` | Depuis minuit, heure de Genève |
 
 - Aucune donnée de client : ni nom ni numéro de commande.
-- Les tickets de test, sans commande, comptent aussi : un test sorti prouve le branchement. Le bouton « Imprimer un ticket de test » arrive avec la PR de la session `tablette` (`ticket_de_test`, `src/lib/impression/test.ts`).
+- Les tickets de test, sans commande, comptent aussi : un test sorti prouve le branchement.
+- **Imprimer un ticket de test** (imprimante active seulement) : un ticket « TEST » avec le poste, le nom de l'imprimante, l'heure et qui l'a demandé part dans sa file. Il sort dans quelques secondes si l'imprimante est en ligne, sinon à sa reconnexion (le message le dit). Il apparaît dans le résumé comme un ticket en attente, puis sorti. Route `/api/gestion/imprimantes` `{ type: "test", id }`, serveur `imprimerTicketTest` et base `ticket_de_test` (session `tablette`, gérant revérifié et journalisé). Une imprimante désactivée le refuse.
 - **Écran** : rubrique « Imprimantes ». Sous chaque imprimante, en plus de son état en direct :
   - le dernier ticket sorti, avec le jour s'il n'est pas d'aujourd'hui ;
   - les tickets en attente et depuis quand ;
