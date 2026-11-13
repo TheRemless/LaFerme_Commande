@@ -21,7 +21,8 @@ test.beforeAll(async ({ browser }, info) => {
   await expect(code).toHaveText(/^\d{8}$/);
   await gestion.getByLabel("Code à 8 chiffres").fill(await code.innerText());
   await gestion.getByRole("button", { name: "Me connecter" }).click();
-  await expect(gestion.getByRole("heading", { name: "Back-office" }).or(gestion.getByRole("navigation").first())).toBeVisible();
+  // Connexion faite (l'accueil du back-office s'affiche) avant d'ouvrir une rubrique.
+  await expect(gestion.getByRole("heading", { level: 1, name: "Accueil" })).toBeVisible();
 });
 
 test.afterAll(async () => {
