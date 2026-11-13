@@ -25,6 +25,7 @@ import {
   useNotifier,
 } from "@/components/gestion/ui";
 import Link from "next/link";
+import { useDroit, useRoleGestion } from "@/components/gestion/droits";
 import { nouvelleCle } from "@/lib/cle";
 import { jourGeneveDe } from "@/lib/heures";
 import { depuisHeureGeneve } from "@/lib/service";
@@ -501,6 +502,8 @@ function Courriels({
 }) {
   const notifier = useNotifier();
   const confirmer = useConfirmer();
+  // Renvoyer un e-mail reste au gérant (D1) : le responsable lit seulement.
+  const gerant = useRoleGestion() === "gerant";
   async function renvoyer(m: { id: string; sujet: string }) {
     const ok = await confirmer({
       titre: "Renvoyer cet e-mail ?",
@@ -559,13 +562,15 @@ function Courriels({
           >
             {ouvert?.id === m.id ? "Fermer" : "Lire"}
           </button>{" "}
-          <button
-            type="button"
-            className="bo-bouton bo-bouton-discret bo-bouton-petit"
-            onClick={() => renvoyer(m)}
-          >
-            Renvoyer au client
-          </button>
+          {gerant && (
+            <button
+              type="button"
+              className="bo-bouton bo-bouton-discret bo-bouton-petit"
+              onClick={() => renvoyer(m)}
+            >
+              Renvoyer au client
+            </button>
+          )}
           {ouvert?.id === m.id && (
             <pre className="bo-courriel-texte">{ouvert.texte}</pre>
           )}
@@ -579,16 +584,20 @@ function Courriels({
 function Notes({ fiche, apres }: { fiche: Fiche; apres: () => Promise<void> }) {
   // Un formulaire neuf après chaque note : le champ repart vide, sans « changements non enregistrés ».
   const [n, setN] = useState(0);
+  // Écrire une note reste au gérant (D1) ; le responsable les lit.
+  const gerant = useRoleGestion() === "gerant";
   return (
     <div className="bo-fiche-sections">
-      <NouvelleNote
-        key={n}
-        commande={fiche.id}
-        fait={async () => {
-          setN((x) => x + 1);
-          await apres();
-        }}
-      />
+      {gerant && (
+        <NouvelleNote
+          key={n}
+          commande={fiche.id}
+          fait={async () => {
+            setN((x) => x + 1);
+            await apres();
+          }}
+        />
+      )}
       {fiche.notes.length > 0 && (
         <ul className="bo-fiche-liste">
           {[...fiche.notes].reverse().map((note) => (
@@ -677,30 +686,36 @@ function Gestes({
   const sansGeste = (fiche.reclamations ?? []).filter(
     (r) => !r.geste && r.statut !== "close",
   );
+  // Responsable de service (D1) : modifier, rembourser, annuler ; le reste est au gérant (le serveur revérifie).
+  const gerant = useRoleGestion() === "gerant";
+  const peutModifier = useDroit("modifier_commande");
+  const peutRembourser = useDroit("rembourser");
+  const peutAnnuler = useDroit("annuler_apres_prete");
   return (
     <div className="bo-fiche-sections">
-      {(fiche.plats_offerts ?? []).length > 0 &&
+      {gerant &&
+        (fiche.plats_offerts ?? []).length > 0 &&
         !["refusee", "annulee"].includes(fiche.statut) && (
           <PlatsOfferts fiche={fiche} apres={apres} />
         )}
-      {HEURE_MODIFIABLE.includes(fiche.statut) && (
+      {gerant && HEURE_MODIFIABLE.includes(fiche.statut) && (
         <ChangerHeure
           key={fiche.heure_prevue ?? "asap"}
           fiche={fiche}
           apres={apres}
         />
       )}
-      {IMPRIMABLE.includes(fiche.statut) && (
+      {gerant && IMPRIMABLE.includes(fiche.statut) && (
         <Reimprimer fiche={fiche} apres={apres} />
       )}
-      {MODIFIABLE.includes(fiche.statut) ? (
+      {!peutModifier ? null : MODIFIABLE.includes(fiche.statut) ? (
         <Modifier fiche={fiche} apres={apres} />
       ) : (
         <p className="bo-champ-aide">
           Une commande terminée ou annulée ne se modifie plus.
         </p>
       )}
-      {sansGeste.length > 0 && (
+      {gerant && sansGeste.length > 0 && (
         <section aria-labelledby="fc-avant-remb">
           <h3 id="fc-avant-remb">Avant de rembourser</h3>
           <p className="bo-champ-aide">
@@ -714,9 +729,9 @@ function Gestes({
           />
         </section>
       )}
-      {REMBOURSABLE.includes(fiche.statut) &&
-      reste > 0 &&
-      fiche.statut_paiement !== "a_encaisser_retrait" ? (
+      {!peutRembourser ? null : REMBOURSABLE.includes(fiche.statut) &&
+        reste > 0 &&
+        fiche.statut_paiement !== "a_encaisser_retrait" ? (
         <Rembourser
           key={fiche.remboursements.length}
           fiche={fiche}
@@ -751,7 +766,8 @@ function Gestes({
                   ({auteur(`gestion:${r.personnel_nom}`)},{" "}
                   {jourCourt(r.cree_le)})
                 </span>
-                {r.statut === "en_cours" &&
+                {peutRembourser &&
+                  r.statut === "en_cours" &&
                   r.moyen === "stripe" &&
                   (Date.now() - Date.parse(r.cree_le) < 23 * 3_600_000 ? (
                     <Relancer fiche={fiche} r={r} apres={apres} />
@@ -767,10 +783,10 @@ function Gestes({
           </ul>
         </section>
       )}
-      {ANNULABLE.includes(fiche.statut) && (
+      {peutAnnuler && ANNULABLE.includes(fiche.statut) && (
         <Annuler key={fiche.statut} fiche={fiche} apres={apres} />
       )}
-      <Recreer fiche={fiche} />
+      {gerant && <Recreer fiche={fiche} />}
     </div>
   );
 }
@@ -1397,16 +1413,20 @@ function Reclamations({
 }) {
   const [n, setN] = useState(0);
   const liste = fiche.reclamations ?? [];
+  // Noter une réclamation reste au gérant (D1) ; le responsable voit la liste et ouvre le dossier.
+  const gerant = useRoleGestion() === "gerant";
   return (
     <div className="bo-fiche-sections">
-      <NouvelleReclamation
-        key={n}
-        commande={fiche.id}
-        fait={async () => {
-          setN((x) => x + 1);
-          await apres();
-        }}
-      />
+      {gerant && (
+        <NouvelleReclamation
+          key={n}
+          commande={fiche.id}
+          fait={async () => {
+            setN((x) => x + 1);
+            await apres();
+          }}
+        />
+      )}
       {liste.length > 0 && (
         <ul className="bo-fiche-liste">
           {liste.map((r) => (
@@ -1443,13 +1463,16 @@ function DossierReclamation({
   geste: string | null;
   statut: string;
 }) {
+  const gerant = useRoleGestion() === "gerant";
   return (
     <Link
       href="/gestion/clients"
       className="bo-bouton bo-bouton-discret bo-bouton-petit"
       onClick={() => demanderOuverture({ type: "reclamation", cle: id })}
     >
-      {geste || statut === "close" ? "Ouvrir le dossier" : "Noter un geste"}
+      {gerant && !geste && statut !== "close"
+        ? "Noter un geste"
+        : "Ouvrir le dossier"}
     </Link>
   );
 }
