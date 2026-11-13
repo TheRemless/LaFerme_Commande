@@ -55,7 +55,7 @@ export const GROUPES: Groupe[] = [
       { href: "/gestion/horaires", titre: "Livraison et horaires", icone: "horaires", resume: "Zones, horaires, fermetures, délais et capacité." },
       { href: "/gestion/livreurs", titre: "Livreurs", icone: "livreurs", resume: "Les livreurs et leurs tournées.", aVenir: true },
       { href: "/gestion/imprimantes", titre: "Imprimantes", icone: "imprimante", resume: "Les deux postes d'impression et leur état." },
-      { href: "/gestion/reglages", titre: "Réglages généraux", icone: "horaires", resume: "E-mail des alertes, créneaux, commande à l'avance, annulation par le client." },
+      { href: "/gestion/reglages", titre: "Réglages généraux", icone: "reglages", resume: "E-mail des alertes, créneaux, commande à l'avance, annulation par le client." },
     ],
   },
   {
