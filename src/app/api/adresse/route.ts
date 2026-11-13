@@ -14,6 +14,7 @@ export async function POST(requete: Request) {
   // Saisie à la main : retrouvée dans le registre fédéral dès l'accueil, comme au paiement (CM-01).
   const r = await zoneServeur(await chargerConfigService(), corps, true);
   if ("erreur" in r) return NextResponse.json({ erreur: r.erreur }, { status: r.code });
+  if (r.statut === "zone-fermee") return NextResponse.json({ statut: "zone-fermee", verifiee: r.verifiee, jusqua: r.jusqua });
   if (r.statut !== "livrable") return NextResponse.json({ statut: "hors-zone", verifiee: r.verifiee });
   const { numero, frais_centimes, minimum_centimes, delai_min, delai_max } = r.zone;
   // L'adresse officielle (avec son identifiant du registre) remplace celle tapée par le client.

@@ -16,6 +16,7 @@ import { requeteDuSite } from "@/lib/comptes/origine-requete";
 import { compteCourant, jetonSession } from "@/lib/comptes/session";
 import { empreinte, ipDe } from "@/lib/comptes/securite";
 import { champClientInvalide, cleValide, clientValide, MESSAGE_CHAMP, detailsValides, lignesValides, quandValide } from "@/lib/validation";
+import { messageZoneFermee, SUITE_ZONE_FERMEE } from "@/lib/zone-fermee";
 import { zoneServeur, type AdresseRetenue } from "@/lib/zone-serveur";
 import { nomClient } from "@/lib/nom-plat";
 
@@ -76,6 +77,7 @@ export async function POST(requete: Request) {
     if (!details) return refus("Indiquez le nom sur la sonnette.");
     const r = await zoneServeur(config, corps.adresse, true);
     if ("erreur" in r) return refus(r.erreur, r.code);
+    if (r.statut === "zone-fermee") return refus(`${messageZoneFermee(r.jusqua)} ${SUITE_ZONE_FERMEE}`);
     if (r.statut !== "livrable") return refus("Cette adresse est hors de notre zone de livraison.");
     zone = r.zone;
     adresse = r.adresse;

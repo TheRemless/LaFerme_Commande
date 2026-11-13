@@ -2,6 +2,8 @@
 
 Trois pages à imprimer. La première se colle en cuisine près de la tablette, la deuxième reste avec le gérant, la troisième se donne à chaque livreur. Elles décrivent le site tel qu'il est au 16.11.2026. Le numéro à appeler reste à remplir.
 
+Ce que voit le client qui commande, pour répondre au téléphone : `docs/vague-3/client-commande.md`.
+
 ---
 
 ## Page 1. La tablette (à afficher en cuisine)
@@ -101,7 +103,9 @@ Adresse : la page `/gestion` du site, au téléphone ou à l'ordinateur. Connexi
 
 Numéro à appeler en cas de problème : ______________________
 
-Le back-office s'ouvre sur « Commandes ». Les autres rubriques sont juste en dessous du titre.
+Le back-office s'ouvre sur l'accueil. Les rubriques sont dans le menu à gauche, rangées par groupe (Commandes et clients, Carte et offre, Chiffres, Réglages du restaurant, Équipe). Au téléphone, toucher « Menu » en haut à gauche. Sur ordinateur, « Réduire le menu » ne garde que les icônes.
+
+Chaque rubrique a sa propre adresse, par exemple `/gestion/carte` ou `/gestion/commandes`. On peut la garder en favori ou l'envoyer à quelqu'un de l'équipe : il devra se connecter. Le bouton retour du navigateur ramène à la rubrique d'avant. « Se déconnecter » est en bas du menu.
 
 ### Commandes
 

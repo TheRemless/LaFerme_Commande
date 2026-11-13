@@ -2,6 +2,26 @@
 
 Adresse : `/gestion` (non indexée). Réservé au rôle `gerant` de la table `personnel`, même connexion par code que la tablette. Un membre « service » voit « Réservé au gérant ».
 
+## Coque (vague 3, 13.11.2026)
+
+Une page par rubrique, rangées par groupe dans le menu latéral. La liste unique est `src/components/gestion/navigation.ts` : ajouter une rubrique, c'est une ligne dans son groupe et un dossier `src/app/gestion/<chemin>/page.tsx` qui exporte `metadata.title`.
+
+| Groupe | Rubrique | Adresse |
+|---|---|---|
+| Service du jour | Accueil | `/gestion` |
+| Commandes et clients | Commandes | `/gestion/commandes` |
+| Carte et offre | Carte, Plat du jour, Suppléments et pâtes, Importer le tableau | `/gestion/carte`, `/gestion/plat-du-jour`, `/gestion/supplements`, `/gestion/import` |
+| Chiffres | Export comptable, Journal | `/gestion/export`, `/gestion/journal` |
+| Réglages du restaurant | Livraison et horaires, Imprimantes | `/gestion/horaires`, `/gestion/imprimantes` |
+| Équipe | Équipe | `/gestion/equipe` |
+
+- **Contrôle d'accès.** `src/app/gestion/layout.tsx` vérifie le gérant côté serveur, une fois pour toutes les rubriques : sans session, l'écran de connexion s'affiche à la même adresse (après connexion, on reste sur la rubrique demandée) ; un autre rôle voit « Réservé au gérant ». Les pages ne portent aucune donnée : tout passe par `/api/gestion/**`, qui revérifie le gérant à chaque requête.
+- **Menu.** Large sur ordinateur (1024 px et plus), rail d'icônes sur tablette en portrait, tiroir « Menu » sur téléphone (Échap ou le changement de rubrique le referment). « Réduire le menu » et « Agrandir le menu » sont gardés dans le navigateur (`laferme.gestion.menu`). La rubrique ouverte porte `aria-current="page"`.
+- **Badges.** Le nombre de plats qui bloquent la mise en ligne est sur « Carte » (lu comme description du lien).
+- **Carte partagée.** La coque charge `/api/gestion/carte` une fois (`contexte-carte.tsx`) et la garde d'une rubrique à l'autre : Carte, Plat du jour, Suppléments, Import et le badge lisent la même copie.
+- **Styles.** `src/app/gestion/back-office.css`, toutes les règles sous `.bo`. Le contenu des rubriques garde les classes `.ges-*` de `globals.css`.
+- Tests : `tests/e2e/gestion-coque.spec.ts` (adresses, retour arrière, connexion à une adresse profonde, menu, tiroir, droits), comptes `coque-*` dans `supabase/local/donnees-test.sql`.
+
 ## Ce qu'on y fait
 
 | Rubrique | Contenu |
@@ -27,7 +47,7 @@ Adresse : `/gestion` (non indexée). Réservé au rôle `gerant` de la table `pe
 
 ## Carte sans développeur (16.11.2026)
 
-Migration `supabase/migrations/20261116090000_carte_gestion.sql`. Tests : `tests/unit/carte-gestion-sql.test.ts` (base), `tests/unit/carte-gestion.test.ts` (serveur et photos), `tests/e2e/gestion-carte.spec.ts` (écrans). Captures : `docs/rendus/carte-gestion/`.
+Migration `supabase/migrations/20261118090000_carte_gestion.sql`. Tests : `tests/unit/carte-gestion-sql.test.ts` (base), `tests/unit/carte-gestion.test.ts` (serveur et photos), `tests/e2e/gestion-carte.spec.ts` (écrans). Captures : `docs/rendus/carte-gestion/`.
 
 - **Plat ajouté.** Il naît hors de la vente (`origine = 'gestion'`). Il ne peut être en vente que si `motifs_plat` est vide : mêmes motifs que la vue `plats_bloquants` (prix à valider, allergènes manquants, provenance à fournir, supplément à valider, retraits à valider), qui est désormais construite sur cette même fonction. Un déclencheur sur `plats` le revérifie à chaque mise en vente ou changement d'un de ces champs (une rupture posée sur la tablette passe toujours). Les plats de la carte d'origine gardent leur comportement d'avant.
 - **Slug.** Tiré du nom, sans accent. S'il existe déjà, ou s'il apparaît dans une commande passée, la base ajoute -2, -3 : « recommander » ne retombe jamais sur un autre plat.
@@ -53,19 +73,12 @@ Contrôles : gérant connecté et requête du site ; 5 Mo au plus (Netlify refus
 
 Le module d'image `sharp` est déclaré dans `package.json` et se construit pour Linux sur Netlify. Le back-office n'étant pas ouvert sur les préversions, `/api/diagnostic/images` (préversions seulement) réduit une image générée avec le même code et répond `{ "ok": true, "taille": "2133x1600" }` quand tout marche.
 
-## Disponibilités et ruptures planifiées (vague 3, 13.11.2026)
+## Carte, vague 3
 
-Migration `supabase/migrations/20261210090000_disponibilites.sql`. Tests : `tests/unit/disponibilites-sql.test.ts` (base), `tests/unit/disponibilite.test.ts` (contrôle et saisie). L'écran arrive après la nouvelle coque du back-office : en attendant, le serveur accepte déjà les actions `disponibilite` et `rupture` de `/api/gestion/carte`.
-
-- **Disponibilités.** Un plat de la carte peut être réservé à un service (midi ou soir), à un mode (livraison ou à emporter) et à certains jours de la semaine (colonnes `dispo_service`, `dispo_mode`, `dispo_jours` ; vide = sans restriction, sept jours cochés = tous les jours). Le plat du jour garde sa date et son service, seul le mode s'y règle. Le serveur refuse au panier et au paiement un plat pris hors de ses disponibilités, d'après le créneau et le mode choisis (`src/lib/disponibilite.ts`, appelé par `erreurPlatsDuJour`). Motifs montrés au client : « Seulement le soir. », « Seulement à emporter. », « Seulement le vendredi et le samedi. ».
-- **Rupture planifiée.** `rupture_jour` (plats et options) se lit « épuisé jusqu'au » cette date comprise, d'aujourd'hui à 60 jours. La tablette y met toujours aujourd'hui ; le back-office peut mettre une date plus lointaine. Le plat revient seul le lendemain. « Remettre » sur la tablette lève aussi une rupture planifiée. Un plat épuisé jusqu'au jeudi 19 novembre reste commandable pour un créneau du vendredi 20 ; pour un créneau d'ici jeudi, le client lit « Épuisé. De retour le vendredi 20 novembre. ». Une option épuisée l'est jusqu'à sa date, quel que soit le jour choisi.
-- **Poste ou catégorie entière** (four en panne). Table `ruptures_groupees` : cible `poste:pizza`, `poste:cuisine` ou `categorie:<slug>`, épuisée jusqu'à une date comprise (aujourd'hui pour une panne). Tous ses plats sont épuisés pour le client et sur la tablette (`rupture_groupee` dit pourquoi), panier et paiement les refusent. La lever ne remet pas un plat épuisé seul avant. Tout membre actif peut la poser ou la lever (`regler_rupture_groupee`, le bouton de service est à la tablette) ; le back-office l'envoie par l'action `rupture_groupee`.
-- **Choix obligatoire épuisé.** Quand un groupe obligatoire n'a plus assez d'options disponibles (plus de penne ni de spaghetti), le plat est épuisé pour le client (« Épuisé pour aujourd'hui. ») et refusé au panier et au paiement. `motifPlat` (`src/lib/plat-du-jour.ts`) donne ce motif comme tous les autres, la carte affiche le même texte que le refus du serveur. La tablette liste aussi les options des choix obligatoires (`options_tablette`, champ `obligatoire`).
-- **Journal.** Objets `disponibilite`, `rupture`, `rupture_option` et `rupture_groupee` (un gérant ; un membre du service est noté dans `journal_personnel`), avec la valeur d'avant et d'après. Ils ne s'annulent pas depuis le journal : on règle de nouveau la disponibilité ou on remet le plat.
+Disponibilités, ruptures planifiées, four en panne, groupes d'options, prix en lot, copie d'un plat : voir [carte-gestion.md](carte-gestion.md).
 
 ## Pas encore fait
 
-- Créer un nouveau groupe d'options (autre que les suppléments de pizza et le choix des pâtes).
 - Supprimer une catégorie vide (elle reste invisible des clients tant qu'elle n'a aucun plat en vente).
 
 ## Vague 2 (16.11.2026, audit du gérant)
@@ -127,3 +140,7 @@ Migration `supabase/migrations/20261127110000_annulation_client.sql`. Serveur : 
 - **Effet** : statut « refusée » avec le motif « Annulée à votre demande. », colonne `annulee_par_client_le` remplie (le suivi écrit « vous avez annulé », la tablette fige la carte, les chiffres ne la comptent pas comme un refus), événement par « client » dans l'historique, tablette prévenue (signal vide, elle relit sa file).
 - **Argent** : payée en ligne, remboursée en entier tout de suite (même chemin que le refus de la tablette). Si Stripe refuse, la commande reste annulée, le client reçoit « le remboursement n'est pas encore parti » et le restaurant reçoit l'alerte « remboursement à refaire ». Au comptoir : rien à rembourser, e-mail « Rien n'a été débité ».
 - **Rejouée** (double appui, retour en arrière) : « déjà annulée », aucun second remboursement.
+
+## Commandes et clients, suite (vague 3)
+
+Clients, réclamations et gestes du back-office : voir [back-office/commandes-clients.md](back-office/commandes-clients.md).

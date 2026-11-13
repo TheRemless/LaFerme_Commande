@@ -152,6 +152,7 @@ export type Commande = {
   quand_minutes: number | null;
   heure_confirmee: string | null;
   accepte_le?: string | null;
+  paye_le?: string | null;
   // Premiers tickets créés (null : pas encore imprimée, commande à l'avance). Absent avant la migration.
   tickets_le?: string | null;
   zone_numero: number | null;
@@ -169,6 +170,8 @@ export type Commande = {
   compte_demande: boolean;
   // Détachée par la suppression de son compte : jamais rangée de nouveau. Absent avant la migration 20261202110000.
   detachee_du_compte?: boolean;
+  // Annulée par le client depuis le suivi (bo-commandes, #70). Absent avant sa migration.
+  annulee_par_client_le?: string | null;
   origine: string;
   cree_le: string;
   lignes: LigneCommande[];
