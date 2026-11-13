@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { adresseDuCompte, codeDuPersonnel, SITE } from "./site";
+import { adresseDuCompte, codeDuPersonnel, passage, SITE } from "./site";
 
 // Recherche globale du back-office (⌘K, vague 3, bo-socle) : commande par numéro ou nom, plat, rubrique.
 // Le texte cherché part en POST, jamais dans l'adresse.
@@ -60,7 +60,7 @@ test("une rubrique se trouve par son nom ou ce qu'on y fait", async () => {
 });
 
 test("une commande se trouve par le nom du client, sans que le nom passe dans l'adresse", async ({ request }, info) => {
-  const prenom = `Cherche${info.project.name}`;
+  const prenom = `Cherche${info.project.name}${passage()}`;
   const rep = await request.post("/api/commandes", {
     headers: ORIGINE,
     data: {

@@ -128,11 +128,12 @@ test("le plat du jour de demain s'enregistre et se liste à part", async ({}, in
   });
   await form.getByLabel("Jour").fill(demain);
   await form.getByLabel("Service").selectOption("midi");
-  await form.getByLabel("Nom affiché").fill(`Osso buco essai ${info.project.name}`);
+  const osso = `Osso buco essai ${info.project.name} ${passage()}`;
+  await form.getByLabel("Nom affiché").fill(osso);
   await form.getByLabel("Prix (CHF)").fill("25");
   await expect(form.getByLabel("Prix validé")).toHaveCount(0);
   await form.getByLabel("Allergènes").fill("céleri (essai)");
   await form.getByRole("button", { name: "Publier le plat du jour" }).click();
   await expect(form.getByRole("status")).toContainText("il sera en tête de la carte le");
-  await expect(gestion.getByRole("button", { name: new RegExp(`^Osso buco essai ${info.project.name}`) })).toContainText("midi");
+  await expect(gestion.getByRole("button", { name: new RegExp(`^${osso}`) })).toContainText("midi");
 });
