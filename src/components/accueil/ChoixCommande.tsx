@@ -7,6 +7,8 @@ import { adresseTexte, chercherAdresses, numeroTape, type Adresse, type Details 
 import { ecrireChoix, lireChoix, type Quand, type ZoneChoisie } from "@/lib/choix";
 import { prixCourt } from "@/lib/prix";
 import { messageZoneFermee } from "@/lib/zone-fermee";
+import { fourchette } from "@/lib/heure-reelle";
+import { plageTexte } from "@/lib/plage-heure";
 import {
   creneaux,
   depuisHeureGeneve,
@@ -225,6 +227,8 @@ export function ChoixCommande({
   const etatPizzas = useMemo(() => etatService(config, maintenant, mode, zone, true), [config, maintenant, mode, zone]);
   const asapPizzasSeulement = etatCarte.etat !== "ouvert" && etatPizzas.etat === "ouvert";
   const etat = asapPizzasSeulement ? etatPizzas : etatCarte;
+  // Heure annoncée en fourchette autour de l'heure promise (largeur réglée au back-office).
+  const plage = etat.etat === "ouvert" ? fourchette(config, mode, etat.desQuePossible) : null;
   const listeCarte = useMemo(() => creneauxLibres(creneaux(config, maintenant, mode, zone), pleins, mode), [config, maintenant, mode, zone, pleins]);
   const liste = useMemo(() => creneauxLibres(creneaux(config, maintenant, mode, zone, true), pleins, mode), [config, maintenant, mode, zone, pleins]);
   const fermetureAVenir = useMemo(() => fermetureProche(config, maintenant), [config, maintenant]);
@@ -283,6 +287,7 @@ export function ChoixCommande({
         quand.type === "asap" ? asapPizzasSeulement : quand.type === "creneau" ? !pourTous.has(`${quand.date} ${quand.minutes}`) : false,
       heureSimulee,
       estimation: quand.type === "asap" && etat.etat === "ouvert" ? etat.desQuePossible : undefined,
+      fourchette: quand.type === "asap" && plage ? plage : undefined,
     });
     router.push("/carte");
   }
@@ -575,7 +580,7 @@ export function ChoixCommande({
               <>
                 <label className="option">
                   <input type="radio" name={`${ids}-quand`} checked={!plusTard} onChange={() => setPlusTard(false)} />
-                  <span>Dès que possible, vers {heureTexte(etat.desQuePossible)}</span>
+                  <span>Dès que possible, {plage ? plageTexte(plage) : `vers ${heureTexte(etat.desQuePossible)}`}</span>
                 </label>
                 <label className="option">
                   <input type="radio" name={`${ids}-quand`} checked={plusTard} onChange={() => setPlusTard(true)} />
