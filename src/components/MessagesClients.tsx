@@ -7,6 +7,7 @@ import { messagesVisibles, type MessageClient, type Page } from "@/lib/messages-
 // docs/messages-clients.md. Le texte du gérant est rendu en texte, jamais en HTML.
 // La page vient du cache (une minute au plus) : le serveur trie à l'heure du rendu, puis le navigateur
 // retrie à son heure et toutes les 30 secondes, pour qu'un message commence et finisse à la minute près.
+// Hors de l'accueil, la bannière est accessoire : config illisible, la page s'affiche sans elle (messages absents).
 export function MessagesClients({ messages, page, rendu }: { messages: MessageClient[] | undefined; page: Page; rendu: number }) {
   const [maintenant, setMaintenant] = useState(rendu);
   useEffect(() => {

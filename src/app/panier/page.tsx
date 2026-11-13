@@ -22,14 +22,14 @@ export default async function Panier() {
     chargerCatalogue(),
     chargerPopulaires(),
     chargerOptionsCommande(),
-    chargerConfigService(),
+    chargerConfigService().catch(() => null),
   ]);
   return (
     <>
       <EnTete>
         <ResumeChoix />
       </EnTete>
-      <MessagesClients messages={config.messages} page="panier" rendu={Date.now()} />
+      <MessagesClients messages={config?.messages} page="panier" rendu={Date.now()} />
       <main id="contenu" className="page-panier">
         <PagePanier
           catalogue={catalogue}

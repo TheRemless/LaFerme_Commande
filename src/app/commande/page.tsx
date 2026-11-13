@@ -16,13 +16,13 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Finaliser la commande, La Ferme", robots: PRIVE };
 
 export default async function Commande() {
-  const [catalogue, compte, options, codes, config] = await Promise.all([chargerCatalogue(), compteCourant(), chargerOptionsCommande(), codesActifs(), chargerConfigService()]);
+  const [catalogue, compte, options, codes, config] = await Promise.all([chargerCatalogue(), compteCourant(), chargerOptionsCommande(), codesActifs(), chargerConfigService().catch(() => null)]);
   return (
     <>
       <EnTete>
         <ResumeChoix />
       </EnTete>
-      <MessagesClients messages={config.messages} page="paiement" rendu={Date.now()} />
+      <MessagesClients messages={config?.messages} page="paiement" rendu={Date.now()} />
       <main id="contenu" className="page-commande">
         <Suspense>
           <PageCommande catalogue={catalogue} preversion={process.env.CONTEXTE_DEPLOIEMENT !== "production"} couvertsActifs={options.couverts_actifs} codesActifs={codes}

@@ -27,7 +27,7 @@ export default async function PageCarte() {
     chargerCatalogue(),
     chargerPopulaires(),
     chargerOptionsCommande(),
-    chargerConfigService(),
+    chargerConfigService().catch(() => null),
   ]);
   const preversion = process.env.CONTEXTE_DEPLOIEMENT !== "production";
   const aValider = categories.some((c) => c.plats.some((p) => p.prix_a_valider));
@@ -36,7 +36,7 @@ export default async function PageCarte() {
       <EnTete>
         <ResumeChoix />
       </EnTete>
-      <MessagesClients messages={config.messages} page="carte" rendu={Date.now()} />
+      <MessagesClients messages={config?.messages} page="carte" rendu={Date.now()} />
       {preversion && aValider && (
         <p className="bandeau-preversion" role="note">
           Préversion : prix proposés, en attente de validation.
