@@ -205,7 +205,8 @@ function Coque({ nom, role, children }: { nom: string; role: "gerant" | "respons
         <BandeauHorsLigne />
         <main id="contenu" className="gestion bo-contenu">
           {/* Rubrique fermée à ce rôle (adresse tapée à la main) : on le dit, sans afficher l'écran. Les API refusent de toute façon. */}
-          {rubriqueOuverte(rubrique, role) ? children : <DroitsInsuffisants quoi={rubrique.titre.toLowerCase()} />}
+          {/* Responsable sur l'accueil : rien, le temps de passer sur Commandes (effet plus haut). */}
+          {role === "responsable" && chemin === "/gestion" ? null : rubriqueOuverte(rubrique, role) ? children : <DroitsInsuffisants quoi={rubrique.titre.toLowerCase()} />}
         </main>
       </div>
     </div>

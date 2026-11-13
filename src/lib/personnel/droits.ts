@@ -14,8 +14,17 @@ export const ACTIONS_DROIT = {
 
 export type ActionDroit = keyof typeof ACTIONS_DROIT;
 
-/** Les actions du responsable de service : toutes celles du tableau (droit_personnel en base fait foi). */
-export const ACTIONS_RESPONSABLE = Object.keys(ACTIONS_DROIT) as ActionDroit[];
+/** Les actions du responsable de service, écrites une à une comme dans droit_personnel (la base fait foi) :
+ *  une action ajoutée au tableau pour son libellé n'est pas donnée au responsable par mégarde. */
+export const ACTIONS_RESPONSABLE: readonly ActionDroit[] = [
+  "annuler_apres_prete",
+  "rembourser",
+  "client_absent",
+  "modifier_commande",
+  "voir_commandes",
+  "deconnecter_appareil",
+  "fermer_service",
+];
 
 /** Pour l'écran seulement (cacher un bouton) : le serveur revérifie avec exigerDroit et auteur_droit. */
 export function aLeDroit(role: string, action: ActionDroit): boolean {
