@@ -26,6 +26,16 @@ test("coup de feu, services d'une zone, zone fermée", async ({ page }, info) =>
   const cdf = page.locator(".bo-cdf");
   const zone3 = page.locator(".ges-zone").filter({ hasText: "Zone 3" });
   try {
+    // Retard sur les commandes en cours : aperçu seulement. Le geste décalerait les commandes des autres fichiers
+    // de tests (base commune) ; il est vérifié en base (decaler-commandes-sql) et côté serveur (decalage.test).
+    const decaler = page.locator(".bo-decaler");
+    await expect(decaler.getByRole("heading", { name: "Retard sur les commandes en cours" })).toBeVisible();
+    await expect(decaler.getByRole("status")).toHaveText(/^(Aucune commande en cours à décaler\.|\d+ commandes? en cours, \d+ clients? prévenus? par e-mail\.)$/);
+    await decaler.getByLabel("Four (les commandes avec pizzas)").check();
+    await expect(decaler.getByRole("button", { name: /^Décaler de 15 min$/ })).toBeVisible();
+    await decaler.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `${CAPTURES}/horaires-decaler-1024.png` });
+
     // Tester une adresse : Onex (zone 1) puis hors zone. Montants lus en base, jamais écrits ici.
     const testeur = page.locator(".bo-test-adresse");
     await testeur.getByLabel("NPA").fill("1213");

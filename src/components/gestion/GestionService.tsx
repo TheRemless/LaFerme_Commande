@@ -5,6 +5,7 @@ import { enregistrer } from "@/components/gestion/enregistrer";
 import { poster } from "@/lib/requete-client";
 import { jourTexte } from "@/lib/service";
 import { CoupDeFeu } from "@/components/gestion/CoupDeFeu";
+import { DecalerCommandes } from "@/components/gestion/DecalerCommandes";
 import { TesterAdresse } from "@/components/gestion/TesterAdresse";
 import { ZoneOperations } from "@/components/gestion/ZoneOperations";
 import "./service.css";
@@ -65,6 +66,7 @@ export function GestionService() {
   return (
     <div className="ges-service">
       <CoupDeFeu />
+      <DecalerCommandes />
       <section className="ges-bloc">
         <h2>Zones de livraison</h2>
         <p className="aide">Enregistrer une zone la valide : elle n&apos;est plus marquée « proposition » sur le site.</p>

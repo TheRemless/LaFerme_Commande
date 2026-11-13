@@ -214,7 +214,7 @@ La carte s'ouvre en « Liste » : un plat par ligne, ce qui reste à compléter,
 
 Qui livre les sept prochains jours, absence et renfort en un geste, semaine type, livraisons de chacun : `docs/planning-livreurs.md`, « Mode d'emploi ».
 
-Coup de feu (en tête de la rubrique), zones livrées le soir seulement ou fermées pour quelques heures ainsi que « Tester une adresse » : `docs/coup-de-feu.md` et `docs/zones-services.md`, « Écran du back-office » et « Tester une adresse ».
+Coup de feu (en tête de la rubrique), retard sur les commandes en cours, zones livrées le soir seulement ou fermées pour quelques heures ainsi que « Tester une adresse » : `docs/coup-de-feu.md`, `docs/decaler-commandes.md` et `docs/zones-services.md`.
 
 ### Messages aux clients
 
