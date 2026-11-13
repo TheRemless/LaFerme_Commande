@@ -66,6 +66,18 @@ describe("registre sain, entrée inattendue", () => {
   });
 });
 
+describe("registre saturé (429)", () => {
+  it("compte comme une panne, pas comme une adresse introuvable", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("Too many requests", { status: 429 })));
+    await expect(retrouverAdresse({ rue: "Rue de Carouge", numero: "50", npa: "1213", localite: "Onex" })).rejects.toThrow();
+    // L'adresse témoin reçoit aussi 429 : repli sur le NPA, adresse non vérifiée.
+    const r = await zoneServeur(config, { rue: "Avenue du Gros-Chêne", numero: "20", npa: "1213", localite: "Onex" }, true);
+    expect(r).toMatchObject({ statut: "livrable", verifiee: false, adresse: { nonVerifiee: true } });
+    oublierTemoinRegistre();
+    expect(await zoneServeur(config, { featureId: "1234567_0", rue: "Avenue du Gros-Chêne", numero: "20", npa: "1213", localite: "Onex" })).toMatchObject({ statut: "livrable", verifiee: false });
+  });
+});
+
 describe("vraie panne", () => {
   it("le registre et l'adresse témoin muets : l'adresse est acceptée sur son NPA, non vérifiée", async () => {
     vi.stubGlobal("fetch", registre("en-panne"));

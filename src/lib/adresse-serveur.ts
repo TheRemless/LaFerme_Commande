@@ -13,8 +13,8 @@ export async function adresseOfficielle(featureId: string): Promise<(Adresse & {
     next: { revalidate: 86400 },
   });
   // Une réponse 4xx tient à la demande (identifiant inconnu ou mal formé) : adresse introuvable. Seuls le délai,
-  // le réseau et une réponse 5xx sont une panne (relecture de qualite, #222).
-  if (rep.status >= 400 && rep.status < 500) return null;
+  // le réseau, une réponse 5xx et 429 (trop de requêtes, le registre est saturé) sont une panne (qualite, #222).
+  if (refusDeLaDemande(rep.status)) return null;
   if (!rep.ok) throw new Error(`Registre des bâtiments indisponible (${rep.status})`);
   const a = ((await rep.json()) as { feature?: { attributes?: Attributs } }).feature?.attributes;
   if (!a?.dplz4 || !a.dplzname) return null;
@@ -37,8 +37,8 @@ export async function retrouverAdresse(a: { rue: string; numero: string; npa: st
   const { lireLibelle, memeNumero, memeRue } = await import("@/lib/adresse");
   const params = new URLSearchParams({ searchText: texteRecherche(a), type: "locations", origins: "address", limit: "10", sr: "4326" });
   const rep = await fetch(`${RECHERCHE}?${params}`, { signal: AbortSignal.timeout(4000) });
-  // 4xx : la demande elle-même est refusée, l'adresse n'est pas retrouvée. 5xx : panne.
-  if (rep.status >= 400 && rep.status < 500) return null;
+  // 4xx : la demande elle-même est refusée, l'adresse n'est pas retrouvée. 5xx ou 429 : panne.
+  if (refusDeLaDemande(rep.status)) return null;
   if (!rep.ok) throw new Error(`geo.admin a répondu ${rep.status}`);
   const corps = (await rep.json()) as { results?: { attrs: { label: string; featureId?: string } }[] };
   for (const r of corps.results ?? []) {
@@ -92,4 +92,9 @@ export async function registreRepond(): Promise<boolean> {
 // Tests : oublier le témoin gardé.
 export function oublierTemoinRegistre(): void {
   temoin = null;
+}
+
+// 4xx sauf 429 : c'est la demande qui est refusée (adresse introuvable). 429 dit que le registre ne suit plus.
+function refusDeLaDemande(statut: number): boolean {
+  return statut >= 400 && statut < 500 && statut !== 429;
 }
