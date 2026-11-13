@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useConfirmer, useNotifier } from "@/components/gestion/ui";
 import { jourGeneveDe } from "@/lib/heures";
 import { poster } from "@/lib/requete-client";
@@ -19,6 +19,13 @@ export function ZoneOperations({ zone, recharger }: { zone: ZoneOps; recharger: 
   const ids = useId();
   const services = zone.services ?? ["midi", "soir"];
   const fermeeJusqua = zone.fermee_jusqu_a && new Date(zone.fermee_jusqu_a).getTime() > Date.now() ? zone.fermee_jusqu_a : null;
+  // À l'heure de réouverture, la fiche se redessine d'elle-même (la page ne se relit pas seule).
+  const [, redessiner] = useState(0);
+  useEffect(() => {
+    if (!fermeeJusqua) return;
+    const t = window.setTimeout(() => redessiner((n) => n + 1), Math.min(new Date(fermeeJusqua).getTime() - Date.now() + 1000, 2_147_000_000));
+    return () => window.clearTimeout(t);
+  }, [fermeeJusqua]);
   const [jour, setJour] = useState(() => jourGeneveDe(new Date()));
   const [heure, setHeure] = useState("21:00");
   const [motif, setMotif] = useState("");
