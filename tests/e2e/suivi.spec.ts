@@ -11,6 +11,9 @@ let gestion: Page;
 
 test.beforeAll(async ({ browser }, info) => {
   gestion = await browser.newPage({ baseURL: SITE });
+  // IP propre (x-forwarded-for, cru seulement sur le poste local) : la limite de 20 codes de l'équipe par heure
+  // et par IP est partagée par toute la suite sinon.
+  await gestion.setExtraHTTPHeaders({ "x-forwarded-for": `10.27.${info.project.name === "bureau" ? 1 : 2}.${Math.floor(Math.random() * 250)}` });
   await gestion.goto("/gestion");
   await gestion.getByLabel("E-mail", { exact: true }).fill(`suivi-${info.project.name}@laferme.test`);
   await gestion.getByRole("button", { name: "Recevoir un code" }).click();
