@@ -251,14 +251,13 @@ test("rythme de relecture : 15 s tant qu'une commande est en cours", async ({ re
 // tablette doit quand même faire avancer le temps : « Attend depuis » monte et une commande programmée passe
 // d'« À l'avance » à « En cours » à son heure d'impression, sans nouvelle donnée.
 test("204 sans changement : l'attente monte et l'avance passe en cours à l'heure serveur", async ({ request }) => {
-  const page = await tablette.context().newPage();
+  const page = tablette;
   try {
-    await page.goto("/tablette");
-    await page.getByRole("button", { name: "Continuer sans son" }).click();
     const carteDe = (numero: string) => page.locator(".tab-commande", { has: page.locator(".tab-num", { hasText: new RegExp(`^${numero}$`) }) });
 
     // Programmée : acceptée 15 min plus tard, tickets prévus 30 min avant, donc dans « À l'avance ».
     const programmee = await commander(request, "Avance", "comptoir");
+    await page.getByRole("button", { name: /^À accepter/ }).click();
     await expect(carteDe(programmee.numero)).toBeVisible({ timeout: 15_000 });
     await carteDe(programmee.numero).getByRole("button", { name: "+15 min" }).click();
     await carteDe(programmee.numero).getByRole("button", { name: /^Accepter pour/ }).click();
@@ -289,6 +288,7 @@ test("204 sans changement : l'attente monte et l'avance passe en cours à l'heur
     await carteDe(attend.numero).getByRole("button", { name: /^Accepter pour/ }).click();
     await expect(carteDe(attend.numero)).toBeHidden({ timeout: 15_000 });
   } finally {
-    await page.close();
+    // Relectures normales de nouveau : l'heure revient à celle du serveur dès la suivante.
+    await page.unroute("**/api/tablette/file*");
   }
 });
