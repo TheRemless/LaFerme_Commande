@@ -7,6 +7,8 @@ import { etatService } from "@/lib/service";
 import { surveillanceAuPassage } from "@/lib/surveillance";
 import { fileTablette } from "@/lib/tablette";
 import { allegerFile, versionFile } from "@/lib/tablette-file";
+import { raisonCharge } from "@/lib/heure-reelle";
+import { chargeDuMoment } from "@/lib/heure-reelle-serveur";
 
 // Signe de vie de la tablette : la surveillance met le site en pause s'il manque 3 minutes pendant le
 // service. Une écriture toutes les 30 secondes au plus par instance de fonction suffit largement.
@@ -44,6 +46,9 @@ export async function GET(requete: Request) {
       pause: config.pause ?? null,
       preparation_minutes: config.reglages.preparation_minutes,
       retard_minutes: config.reglages.retard_minutes ?? 0,
+      // Pourquoi les heures s'allongent en ce moment (file du four, de la cuisine, livreurs), à côté de « Préparation
+      // N min ». Détail calculé ici, jamais dans une page publique (bo-operations, heure promise réaliste).
+      raison_charge: raisonCharge(await chargeDuMoment().catch(() => null)),
       impression_avance: config.reglages.impression_avance,
     },
     impression: legere.impression,

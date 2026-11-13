@@ -411,3 +411,9 @@
 .tab-couverts {
   font-weight: 700;
 }
+
+/* Raison de l'heure réaliste (vague 3, bo-operations) : sous l'état, en gras, une ligne. */
+.tab-raison {
+  display: block;
+  font-weight: 700;
+}

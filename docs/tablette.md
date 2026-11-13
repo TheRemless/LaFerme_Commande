@@ -187,3 +187,7 @@ Une commande acceptée dont le client, le téléphone, les consignes ou l'adress
 - `imprimerModification(commandeId, changements)` (`src/lib/impression/modification.ts`), changements `{ champ, avant, apres }` lisibles (« Téléphone », « Consignes », « Adresse »). Appelée par `modifierCommande` (bo-commandes) après `modifier_commande`, seulement si quelque chose a changé ; un échec n'empêche pas la modification.
 - Ticket (`ticketModification`, `src/lib/impression/ticket.ts`) : « MODIFIÉE », mode et numéro, heure de la modification, puis pour chaque changement l'ancienne valeur et la nouvelle en négatif, puis l'état à jour (client, « Pour : … », adresse et consignes).
 - Rien si les premiers tickets ne sont pas sortis (ils porteront les nouvelles valeurs), ni pour une commande terminée, refusée ou annulée, ni sans vrai changement. Renvoie le nombre de tickets créés. Pas de migration (`creer_taches_impression`, comme une réimpression).
+
+## Raison de l'heure réaliste (vague 3, base et texte de bo-operations)
+
+Sous « Préparation N min », en gras, la raison qui allonge les heures annoncées en ce moment : « Four : 22 pizzas en file, 42 min. Heures annoncées +25 min. » (`raisonCharge`, `chargeDuMoment`, calculés dans la route de la file, jamais dans une page publique). Rien quand rien n'allonge les heures, ce qui est le cas tant que les réglages de l'heure réaliste (`allongement_max_minutes`, débits du four et de la cuisine) restent à zéro.
