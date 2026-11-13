@@ -7,6 +7,8 @@ export type Adresse = {
   localite: string;
   // Identifiant du bâtiment dans le registre fédéral, absent pour une adresse saisie à la main.
   featureId?: string;
+  // Acceptée sur son seul NPA par le serveur pendant une panne du registre fédéral (C15).
+  nonVerifiee?: true;
 };
 
 export type Details = { etage: string; sonnette: string; code: string; instructions: string };

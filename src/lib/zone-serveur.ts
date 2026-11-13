@@ -1,6 +1,7 @@
 import "server-only";
 import { adresseOfficielle, retrouverAdresse } from "@/lib/adresse-serveur";
-import { zonePour, type ConfigService, type Zone } from "@/lib/service";
+import { chargerOptionsCommande } from "@/lib/options-commande";
+import { zonePour, zonePourNpaSeul, type ConfigService, type Zone } from "@/lib/service";
 import { MESSAGE_REGISTRE_EN_PANNE } from "@/lib/registre-panne";
 
 // Zone d'une adresse décidée par le serveur. Avec un identifiant du registre fédéral, l'adresse
@@ -12,7 +13,9 @@ export function champ(v: unknown): string | null {
   return typeof v === "string" && v.trim().length > 0 && v.length <= LONGUEUR_MAX ? v.trim() : null;
 }
 
-export type AdresseRetenue = { rue: string; numero: string; npa: string; localite: string; featureId?: string };
+// nonVerifiee : acceptée sur son seul NPA pendant une panne du registre fédéral (C15). Enregistrée avec la
+// commande : la tablette avertit l'équipe, qui contrôle la rue avant d'accepter.
+export type AdresseRetenue = { rue: string; numero: string; npa: string; localite: string; featureId?: string; nonVerifiee?: true };
 
 export type ResultatZoneServeur =
   | { statut: "livrable"; zone: Zone; verifiee: boolean; adresse: AdresseRetenue }
@@ -36,7 +39,7 @@ export async function zoneServeur(config: ConfigService, adresse: unknown, exige
     try {
       featureId = await retrouverAdresse({ rue, numero, npa, localite });
     } catch {
-      return { erreur: MESSAGE_REGISTRE_EN_PANNE, code: 503 };
+      return surLeNpaSeul(config, a);
     }
     if (!featureId) {
       return { erreur: "Nous ne trouvons pas cette adresse. Vérifiez\u2011la, ou appelez\u2011nous au 022\u00a0792\u00a016\u00a089.", code: 422 };
@@ -51,7 +54,7 @@ export async function zoneServeur(config: ConfigService, adresse: unknown, exige
     try {
       officielle = await adresseOfficielle(featureId);
     } catch {
-      return { erreur: MESSAGE_REGISTRE_EN_PANNE, code: 503 };
+      return surLeNpaSeul(config, a);
     }
     if (!officielle) return { erreur: "Adresse introuvable dans le registre fédéral.", code: 422 };
     if (officielle.canton !== "GE") return { statut: "hors-zone", verifiee: true };
@@ -60,6 +63,11 @@ export async function zoneServeur(config: ConfigService, adresse: unknown, exige
     verifiee = true;
     // L'adresse officielle fait foi : c'est elle qui est enregistrée, pas celle tapée par le client.
     retenue = { rue: officielle.rue, numero: officielle.numero, npa: officielle.npa, localite: officielle.localite, featureId };
+  } else if (a.nonVerifiee === true) {
+    // Au panier (sans appel au registre) : une adresse acceptée sur son NPA pendant la panne garde le même
+    // calcul, pour que le total ne change pas d'une page à l'autre. Le drapeau vient du navigateur, mais il ne
+    // peut que rendre la livraison plus chère ; au paiement, le registre est de nouveau interrogé.
+    return surLeNpaSeul(config, a);
   } else {
     npa = champ(a.npa);
     localite = champ(a.localite);
@@ -70,4 +78,25 @@ export async function zoneServeur(config: ConfigService, adresse: unknown, exige
   if (r.statut === "livrable") return { statut: "livrable", zone: r.zone, verifiee, adresse: retenue };
   if (r.statut === "zone-fermee" && r.jusqua) return { statut: "zone-fermee", verifiee, jusqua: r.jusqua };
   return { statut: "hors-zone", verifiee };
+}
+
+// Registre fédéral muet (panne, délai dépassé). Réglage npa_seul_en_panne_actif (C15) : l'adresse tapée est
+// acceptée sur son seul NPA, au prix de la zone la plus chère de ce NPA, et marquée « non vérifiée ». Éteint, ou
+// adresse sans rue ni NPA lisibles : le client lit le message de panne (à emporter ou téléphone).
+async function surLeNpaSeul(config: ConfigService, a: Record<string, unknown>): Promise<ResultatZoneServeur> {
+  const panne = { erreur: MESSAGE_REGISTRE_EN_PANNE, code: 503 } as const;
+  const rue = champ(a.rue);
+  const npa = champ(a.npa);
+  if (!rue || !npa || !/^\d{4}$/.test(npa)) return panne;
+  if (!(await chargerOptionsCommande()).npa_seul_en_panne_actif) return panne;
+  const r = zonePourNpaSeul(config, npa);
+  if (r.statut === "zone-fermee" && r.jusqua) return { statut: "zone-fermee", verifiee: false, jusqua: r.jusqua };
+  if (r.statut !== "livrable") return { statut: "hors-zone", verifiee: false };
+  return {
+    statut: "livrable",
+    zone: r.zone,
+    verifiee: false,
+    // Sans l'identifiant du registre : rien ne la fait passer pour vérifiée plus loin.
+    adresse: { rue, numero: champ(a.numero) ?? "", npa, localite: champ(a.localite) ?? "", nonVerifiee: true },
+  };
 }
