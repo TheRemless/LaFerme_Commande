@@ -77,13 +77,6 @@ Le module d'image `sharp` est déclaré dans `package.json` et se construit pour
 
 Disponibilités, ruptures planifiées, four en panne, groupes d'options, prix en lot, copie d'un plat : voir [carte-gestion.md](carte-gestion.md).
 
-## Prix en lot et copie d'un plat (vague 3, 13.11.2026)
-
-Migration `supabase/migrations/20261210110000_prix_en_lot.sql`. Tests : `tests/unit/prix-en-lot-sql.test.ts`. Écran après la coque ; le serveur accepte déjà les actions `prix_en_lot` et `dupliquer` de `/api/gestion/carte`.
-
-- **Prix en lot** : une catégorie entière ou une liste de plats, et une règle (nouveau prix pour chacun, hausse ou baisse en pour cent, ou en francs), arrondie à 5, 10, 50 centimes ou au franc. La base calcule les nouveaux prix à partir des siens. Aperçu d'abord (avant et après, rien n'est écrit), puis application : tout passe ou rien ne passe. Chaque plat changé est journalisé comme un changement de prix fait à la main, donc annulable plat par plat. Sans « Prix validé », les prix changés repartent à valider. Un plat ajouté au back-office et en vente exige « Prix validé », dès l'aperçu. Plats archivés et plats du jour exclus.
-- **Copier un plat** (« Pizza Tonno grande ») : même catégorie, poste, description, prix, provenance, allergènes, disponibilités, options et retraits ; hors de la vente jusqu'à ce qu'on la mette en vente. Elle se range juste après son modèle. Une photo envoyée n'est pas copiée (elle disparaît avec son plat), une photo du shooting l'est. Journal : `plat_ajoute`, avec le plat d'origine.
-
 ## Pas encore fait
 
 - Supprimer une catégorie vide (elle reste invisible des clients tant qu'elle n'a aucun plat en vente).
