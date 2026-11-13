@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { adresseDuCompte, SITE } from "./site";
+import { adresseDuCompte, codeDuPersonnel, SITE } from "./site";
 import { expect, test, type APIRequestContext, type Browser, type BrowserContext, type Page } from "@playwright/test";
 
 // Livreurs : la tablette (1024 px) donne les commandes, deux téléphones (375 px tactiles) les livrent.
@@ -21,10 +21,7 @@ async function connecter(page: Page, url: string, email: string) {
   await adresseDuCompte(page, email);
   await page.goto(url);
   await page.getByLabel("E-mail", { exact: true }).fill(email);
-  await page.getByRole("button", { name: "Recevoir un code" }).click();
-  const code = page.locator(".note-preversion strong");
-  await expect(code).toHaveText(/^\d{8}$/);
-  await page.getByLabel("Code à 8 chiffres").fill(await code.innerText());
+  await page.getByLabel("Code à 8 chiffres").fill(await codeDuPersonnel(page));
   await page.getByRole("button", { name: "Me connecter" }).click();
 }
 
