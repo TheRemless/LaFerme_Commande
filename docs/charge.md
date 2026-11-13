@@ -16,6 +16,8 @@ BASE_LOCALE=1 BASE_LOCALE_INSTANTANE=$PWD/.pglite/rush.tar.gz npm run build && B
 npm run charge:vendredi -- --site=http://localhost:3229 --minutes=5 --tablettes=15 --relecture=5
 ```
 
+Scènes de la vague (four en panne, décalage, coup de feu) à jouer pendant une charge : `npx tsx scripts/charge/scenes.ts --site=http://localhost:3229`.
+
 Options : `--minutes`, `--tablettes`, `--relecture` (secondes entre deux relectures d'une tablette), `--suivis` (clients qui suivent leur commande, page rafraîchie toutes les 20 s), `--livreurs` (15 s), `--back-offices` (30 s), `--commandes-heure` (commandes passées, payées par la doublure de paiement puis acceptées). Le script se connecte avec les comptes factices du jeu de rush. Les tablettes simulées renvoient la version de la file reçue (`?version=`, en-tête `X-Version-File`) comme la vraie tablette ; `--sans-version` mesure la file complète à chaque relecture.
 
 ## Résultats
@@ -42,6 +44,26 @@ Fonctions SQL appelées à chaque relecture de la tablette (instantané du jeu d
 | `livreurs_tablette` | 6 ms | 4 Ko |
 | `plats_tablette` | 2 ms | 12 Ko |
 | `charge_cuisine`, `etat_impression`, `manques_en_cours`, `commandes_en_retard`, `etat_coup_de_feu` | moins de 1 ms | moins de 1 Ko |
+
+## Passe finale (13.11.2026, main a81ff48, toutes les PR de la vague)
+
+Jeu de rush régénéré avec les 95 migrations, build de production local, tablettes avec la file allégée (#146 : 204 sans corps quand rien n'a changé).
+
+| Scénario | Résultat |
+|---|---|
+| Vendredi soir sans Realtime (15 tablettes à 5 s, 40 suivis, 60 commandes à l'heure), 5 min | 0 erreur ; p95 sous 60 ms partout ; file de la tablette 18 Ko en moyenne (163 à 185 Ko avant) |
+| Trois fois un vendredi (45 tablettes, 120 suivis, 180 commandes à l'heure), 3 min | 22 requêtes par seconde, 0 erreur, p95 sous 60 ms partout (file 53 ms, suivi 51 ms) |
+
+Gestes de la vague joués pendant la charge (`npx tsx scripts/charge/scenes.ts`), tous réussis :
+
+| Geste | Effet vérifié | Temps |
+|---|---|---|
+| Four en panne (poste pizza) | une pizza est refusée (« Épuisé pour aujourd'hui ») | 7 ms |
+| Four réparé | la pizza est de nouveau acceptée | 4 ms |
+| Décaler de 15 min | 28 commandes décalées, 28 clients prévenus (e-mails en doublure en local) | 23 ms |
+| Coup de feu lancé puis fini | retard appliqué, puis rendu | 8 ms |
+
+En local, les e-mails partent en doublure. Le vrai envoi SMTP prend une à deux secondes par e-mail : le décalage les envoie par lots de 8 (#211). À mesurer en recette.
 
 ## Ce qu'on en retient
 
