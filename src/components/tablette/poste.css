@@ -161,3 +161,16 @@
 .poste-sorties button {
   min-height: 44px;
 }
+.poste-allergie {
+  margin: 0;
+  padding: 6px 10px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--blanc);
+  background: var(--encre);
+}
+.poste-pour {
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+}

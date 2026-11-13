@@ -19,9 +19,12 @@ export type CommandePourTicket = {
   heure_confirmee: string | null;
   statut_paiement: string;
   moyen_paiement: string;
-  lignes: { nom: string; qte: number; station: "pizza" | "cuisine"; details: string[] }[];
+  lignes: { nom: string; qte: number; station: "pizza" | "cuisine"; details: string[]; pour?: string }[];
   // Allergie ou intolérance signalée par le client pour toute la commande (vide ou absent : rien de signalé).
   allergie?: string | null;
+  // Vague 3 (client-commande) : personne qui reçoit la commande, couverts et serviettes demandés.
+  destinataire?: { nom: string; telephone: string } | null;
+  couverts?: boolean;
 };
 
 // Note du client sur un plat : écrite « … » par detailsTablette.
@@ -68,6 +71,8 @@ export function ticketsDeCommande(
     const jour = JOUR.format(new Date(c.heure_confirmee ?? accepteLe));
     contenu.push({ t: "deux", gauche: jour.charAt(0).toUpperCase() + jour.slice(1), droite: `acceptée ${heure(accepteLe)}` });
     contenu.push({ t: "texte", texte: `Client : ${c.client_prenom} ${c.client_nom.charAt(0)}.   ${c.client_telephone}` });
+    // Commandée pour quelqu'un d'autre : c'est cette personne qui reçoit le sac (ou vient le chercher).
+    if (c.destinataire?.nom) contenu.push({ t: "texte", texte: `Pour : ${c.destinataire.nom}   ${c.destinataire.telephone}`, gras: true });
     if (c.mode === "livraison" && c.adresse) {
       contenu.push({ t: "texte", texte: `Adresse : ${c.adresse.rue} ${c.adresse.numero}, ${c.adresse.npa} ${c.adresse.localite}` });
       const d = c.details_livraison;
@@ -80,9 +85,13 @@ export function ticketsDeCommande(
     contenu.push({ t: "filet" });
     for (const l of lignes) {
       contenu.push({ t: "texte", texte: `${l.qte} x ${l.nom}`, taille: 2, gras: true });
+      if (l.pour?.trim()) contenu.push({ t: "texte", texte: `pour ${l.pour.trim()}`, retrait: true, gras: true });
       // Retraits en gras, note du client en négatif : lisibles à un mètre.
       for (const d of l.details) contenu.push({ t: "texte", texte: d, retrait: true, gras: d.startsWith("SANS") || estNote(d), inverse: estNote(d) });
     }
+    // Couverts et serviettes : sur le ticket du poste qui fait le sac (cuisine s'il y a des lignes cuisine).
+    const sac = c.lignes.some((l) => l.station === "cuisine") ? "cuisine" : "pizza";
+    if (c.couverts && station === sac) contenu.push({ t: "texte", texte: "+ COUVERTS ET SERVIETTES", gras: true });
     contenu.push({ t: "filet" });
     if (ailleurs > 0) contenu.push({ t: "texte", texte: `Aussi ${autre === "pizza" ? "aux pizzas" : "en cuisine"} : ${ailleurs} article${ailleurs > 1 ? "s" : ""}` });
     contenu.push({ t: "texte", texte: `Paiement : ${paiement(c)}`, gras: true });

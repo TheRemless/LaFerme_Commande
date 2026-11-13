@@ -97,12 +97,14 @@ export function VuePoste({ station }: { station: Station }) {
                     {retard ? <span className="poste-retard-texte">En retard</span> : <>Reçue il y a {depuis(c.a_faire_le)} min</>}
                   </p>
                 </div>
+                {c.allergie && <p className="poste-allergie">Allergie : {c.allergie}</p>}
                 <ul className="poste-lignes">
                   {c.lignes.map((l, i) => (
                     <li key={i}>
                       <span className="poste-qte">{l.qte}</span>
                       <span>
                         {nomCourt(l.nom, station)}
+                        {l.pour?.trim() && <span className="poste-pour">pour {l.pour.trim()}</span>}
                         {l.details.map((d) => (
                           <span key={d} className={d.startsWith("«") ? "poste-note" : "poste-detail"}>
                             {d}

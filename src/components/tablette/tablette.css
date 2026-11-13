@@ -386,3 +386,28 @@
   letter-spacing: 0;
   white-space: nowrap;
 }
+
+/* Nouveautés de la commande client (vague 3) : allergie en négatif comme sur le ticket, prénom sous le plat. */
+.tab-allergie,
+.tab-ligne-allergie {
+  margin: 0;
+  padding: 4px 10px;
+  font-weight: 700;
+  color: var(--blanc);
+  background: var(--encre);
+}
+.tab-allergie {
+  font-size: 20px;
+}
+.tab-ligne-allergie {
+  display: block;
+  width: fit-content;
+  font-size: 16px;
+}
+.tab-pour {
+  display: block;
+  font-weight: 600;
+}
+.tab-couverts {
+  font-weight: 700;
+}

@@ -166,3 +166,16 @@ Un écran au poste pizza ou cuisine, **derrière un lien** : `/tablette/poste/pi
 - « Prête » sur un poste ne change pas le statut de la commande : le comptoir garde « Prête au comptoir ». Les tickets papier continuent de sortir.
 - Relecture toutes les 5 s. Hors connexion : « Les tickets papier restent la référence. »
 - Captures : `docs/rendus/vague-3/tablette/poste-*.png` (`scripts/tablette/vue-poste.mjs` après `scripts/tablette/rush.mjs`).
+
+## Nouveautés de la commande client (vague 3, colonnes de client-commande)
+
+Migration `20261212110000_tablette_nouveautes_client.sql` (après les colonnes de client-commande, `20261210130000` à `20261210210000` : le préfixe `20261203` passerait avant elles). Elle recrée `file_tablette` (depuis `20261203090000`) et `livraisons_livreur` (depuis `20261119090000`) avec seulement les champs nouveaux. Le code les lit comme facultatifs.
+
+| Donnée | Tablette | Vue par poste | Ticket | Page livreur |
+|---|---|---|---|---|
+| Allergie | En négatif sur la carte, avant les plats, et sur la ligne du tableau | En négatif en tête de la fiche | « ALLERGIE : … » en tête des deux postes (depuis #74) | Rien |
+| Personne qui reçoit (`destinataire`) | « Pour : nom », son téléphone cliquable | Rien | « Pour : nom   téléphone » sous le client | « Pour : nom, commandée par … », « Appeler » la joint elle |
+| Couverts et serviettes | « Couverts et serviettes » | Rien | « + COUVERTS ET SERVIETTES » sur le ticket du poste qui fait le sac | Rien |
+| Prénom par ligne (`pour`) | « pour Hugo » sous le plat | Sous le plat | « pour Hugo » sous le plat | Rien |
+
+Couverts et prénoms restent éteints côté client (réglages `couverts_actifs` et `prenom_par_ligne_actif`, décisions C8 et C5) : la tablette les montre dès qu'ils arrivent. Captures : `docs/rendus/vague-3/tablette/nouveautes-*.png` (`scripts/tablette/nouveautes-client.mjs`, après `scripts/tablette/rush.mjs`).
