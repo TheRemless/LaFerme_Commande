@@ -42,3 +42,14 @@ test("sans allergie, le champ reste facultatif", async ({ page }) => {
   await expect(page.getByLabel("Allergie ou intolérance")).not.toHaveAttribute("required", "");
   await expect(page.getByText("sans pouvoir garantir l'absence de traces", { exact: false })).toBeVisible();
 });
+
+test("une allergie saisie il y a plus de deux heures n'est pas reprise", async ({ page }) => {
+  await poser(page);
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem("allergie-posee")) return;
+    sessionStorage.setItem("allergie-posee", "1");
+    sessionStorage.setItem("laferme.allergie", JSON.stringify({ texte: "Gluten", le: Date.now() - 3 * 3600 * 1000 }));
+  });
+  await page.goto("/commande");
+  await expect(page.getByLabel("Allergie ou intolérance")).toHaveValue("");
+});

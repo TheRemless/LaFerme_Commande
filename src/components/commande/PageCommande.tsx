@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 import { lireChoix, type Choix } from "@/lib/choix";
 import { platDe, type Catalogue } from "@/lib/panier";
-import { CLE_ALLERGIE, noterPlaceEnvoyee, useCalculPanier, usePanier, type ReponsePanier } from "@/lib/panier-local";
+import { lireAllergie, noterAllergie, noterPlaceEnvoyee, useCalculPanier, usePanier, type ReponsePanier } from "@/lib/panier-local";
 import { comptoirPermis } from "@/lib/plafond-comptoir";
 import { prixChf, prixCourt, prixPhrase } from "@/lib/prix";
 import { heureTexte, jourTexte } from "@/lib/service";
@@ -87,13 +87,7 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
   const [champFaux, setChampFaux] = useState<ChampClient | null>(null);
 
   useEffect(() => setChoix(lireChoix()), []);
-  useEffect(() => {
-    try {
-      setAllergie(sessionStorage.getItem(CLE_ALLERGIE) ?? "");
-    } catch {
-      // Stockage bloqué : le champ part vide.
-    }
-  }, []);
+  useEffect(() => setAllergie(lireAllergie()), []);
 
   // Coordonnées gardées dans l'onglet : un paiement refusé ou un rechargement ne les efface plus (CM-04).
   // sessionStorage seulement, elles disparaissent avec l'onglet. Un client connecté a déjà les siennes.
@@ -289,11 +283,7 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
                 aria-describedby={`${ids}-allergie-aide`}
                 onChange={(e) => {
                   setAllergie(e.target.value);
-                  try {
-                    sessionStorage.setItem(CLE_ALLERGIE, e.target.value);
-                  } catch {
-                    // Stockage bloqué : le champ reste rempli à l'écran.
-                  }
+                  noterAllergie(e.target.value);
                 }}
               />
               <p className="aide" id={`${ids}-allergie-aide`}>
