@@ -70,7 +70,7 @@ export function evenementTexte(e: Evenement): { titre: string; detail?: string }
       const detail = typeof e.detail === "string" ? e.detail : undefined;
       if (e.de === e.vers) {
         if (detail?.startsWith("heure ")) return { titre: "Heure changée", detail: heureDetail(detail.slice(6)) };
-        if (detail?.startsWith("modifiee ")) return { titre: "Commande modifiée", detail: detail.slice(9).replaceAll("client_", "").replaceAll("_livraison", "") };
+        if (detail?.startsWith("modifiee ")) return { titre: "Commande modifiée", detail: champsModifies(detail.slice(9)) };
         if (detail?.startsWith("recreee")) return { titre: detail.startsWith("recreee depuis") ? "Recréée" : "Recréée en une nouvelle commande", detail: detail.replace(/^recreee (depuis|en) /, "n° ") };
         return { titre: detail ?? "Mise à jour" };
       }
@@ -96,9 +96,26 @@ export function evenementTexte(e: Evenement): { titre: string; detail?: string }
   }
 }
 
-function heureDetail(iso: string): string {
+// Postgres écrit « 2026-11-13 19:15:00+00 » (timestamptz en texte) : on le ramène au format ISO.
+const CHAMPS: Record<string, string> = {
+  client_prenom: "prénom",
+  client_nom: "nom",
+  client_telephone: "téléphone",
+  details_livraison: "consignes de livraison",
+  adresse: "adresse",
+  zone_numero: "zone",
+};
+function champsModifies(liste: string): string {
+  return liste
+    .split(",")
+    .map((c) => CHAMPS[c.trim()] ?? c.trim())
+    .join(", ");
+}
+
+function heureDetail(brut: string): string {
+  const iso = brut.trim().replace(" ", "T").replace(/([+-]\d{2})$/, "$1:00");
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
+  if (Number.isNaN(d.getTime())) return brut;
   return `pour ${d.toLocaleTimeString("fr-CH", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Zurich" })}`;
 }
 

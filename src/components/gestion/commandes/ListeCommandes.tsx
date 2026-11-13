@@ -165,6 +165,14 @@ const COLONNES: Colonne<LigneCommande>[] = [
   },
 ];
 
+// Le serveur trie l'heure prévue et le numéro dans l'ordre croissant, le montant dans l'ordre décroissant ;
+// la flèche de l'écran suit donc toujours le sens réel des données.
+function triPermis(t: Tri): Tri {
+  if (t.cle === "heure" || t.cle === "numero") return { cle: t.cle, sens: "asc" };
+  if (t.cle === "montant") return { cle: t.cle, sens: "desc" };
+  return t;
+}
+
 // Tri de l'écran → tri connu du serveur.
 function triServeur(t: Tri): string {
   if (t.cle === "heure") return "heure";
@@ -320,7 +328,7 @@ export function ListeCommandes() {
         onReessayer={charger}
         tri={tri}
         onTri={(t) => {
-          setTri(t);
+          setTri(triPermis(t));
           setPage(1);
         }}
         pagination={{
