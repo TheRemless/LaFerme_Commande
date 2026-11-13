@@ -49,8 +49,12 @@ export async function POST(requete: Request) {
   }
 
   if (c.action === "fiche_complete") {
-    const fiche = await fonctionSql("fiche_commande_gestion", { p_id: c.id });
-    return fiche ? NextResponse.json(fiche, sansCache) : refus("Commande inconnue.", 404);
+    const [fiche, reclamations] = await Promise.all([
+      fonctionSql<Record<string, unknown> | null>("fiche_commande_gestion", { p_id: c.id }),
+      // Réclamations de la commande (vague 3) : absentes tant que la base n'est pas migrée.
+      fonctionSql<{ lignes: unknown[] }>("reclamations_gestion", { p: { commande_id: c.id, par_page: 100 } }).catch(() => null),
+    ]);
+    return fiche ? NextResponse.json({ ...fiche, reclamations: reclamations?.lignes ?? [] }, sansCache) : refus("Commande inconnue.", 404);
   }
 
   if (c.action === "courriel") {
