@@ -101,7 +101,9 @@ insert into personnel (email, nom, role) values
   ('groupes-bureau@laferme.test', 'Groupes bureau', 'gerant'),
   ('groupes-mobile@laferme.test', 'Groupes mobile', 'gerant'),
   ('promos-bureau@laferme.test', 'Promos bureau', 'gerant'),
-  ('promos-mobile@laferme.test', 'Promos mobile', 'gerant');
+  ('promos-mobile@laferme.test', 'Promos mobile', 'gerant'),
+  ('menus-bureau@laferme.test', 'Menus bureau', 'gerant'),
+  ('menus-mobile@laferme.test', 'Menus mobile', 'gerant');
 
 -- Rubrique Clients du back-office (vague 3, bo-commandes, tests/e2e/gestion-clients.spec.ts).
 insert into personnel (email, nom, role) values
@@ -110,6 +112,11 @@ insert into personnel (email, nom, role) values
 
 -- Écran Livraison et horaires, parties de la vague 3 (tests/e2e/gestion-service-v3.spec.ts).
 insert into personnel (email, nom, role) values ('ecran-service@laferme.test', 'Écran service', 'gerant');
+
+-- Rapports (bo-pilotage, tests/e2e/gestion-rapports.spec.ts, vague 3) : un compte par projet Playwright.
+insert into personnel (email, nom, role) values
+  ('rapports-bureau@laferme.test', 'Rapports bureau', 'gerant'),
+  ('rapports-mobile@laferme.test', 'Rapports mobile', 'gerant');
 
 -- Écran Messages aux clients, vague 3 (tests/e2e/gestion-messages.spec.ts).
 insert into personnel (email, nom, role) values ('ecran-messages@laferme.test', 'Écran messages', 'gerant');

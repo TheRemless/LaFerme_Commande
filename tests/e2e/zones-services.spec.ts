@@ -1,4 +1,4 @@
-import { SITE } from "./site";
+import { codeDuPersonnel, SITE } from "./site";
 import { expect, test, type Page } from "@playwright/test";
 
 // Zones par service et zone fermée jusqu'à une heure (vague 3, bo-operations) : la route du back-office, sans
@@ -14,10 +14,7 @@ const ORIGINE = { Origin: SITE };
 async function connecter(page: Page, email: string) {
   await page.goto("/gestion");
   await page.getByLabel("E-mail", { exact: true }).fill(email);
-  await page.getByRole("button", { name: "Recevoir un code" }).click();
-  const code = page.locator(".note-preversion strong");
-  await expect(code).toHaveText(/^\d{8}$/);
-  await page.getByLabel("Code à 8 chiffres").fill(await code.innerText());
+  await page.getByLabel("Code à 8 chiffres").fill(await codeDuPersonnel(page));
   await page.getByRole("button", { name: "Me connecter" }).click();
   await expect(page.getByLabel("Code à 8 chiffres")).toHaveCount(0);
 }
