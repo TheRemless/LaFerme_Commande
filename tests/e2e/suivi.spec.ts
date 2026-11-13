@@ -189,7 +189,7 @@ test("réclamation depuis le suivi : le client dit ce qui manque, le restaurant 
 });
 
 test("allergie rappelée au suivi, heure confirmée en fourchette comme à l'accueil", async ({ browser }, info) => {
-  const prenom = `Allerg${info.project.name}`;
+  const prenom = `Allerg${info.project.name}${passage()}`;
   const rep = await gestion.request.post("/api/commandes", {
     headers: ORIGINE,
     data: {
