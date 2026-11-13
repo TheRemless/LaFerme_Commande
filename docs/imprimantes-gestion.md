@@ -10,6 +10,11 @@ En plus de l'état en direct (en ligne, papier, capot), le back-office donne pou
 
 - Aucune donnée de client : ni nom ni numéro de commande.
 - Les tickets de test, sans commande, comptent aussi : un test sorti prouve le branchement. Le bouton « Imprimer un ticket de test » arrive avec la PR de la session `tablette` (`ticket_de_test`, `src/lib/impression/test.ts`).
-- Que faire en panne : `docs/pannes.md`, « L'imprimante ne sort rien ». L'écran y renverra.
+- **Écran** : rubrique « Imprimantes ». Sous chaque imprimante, en plus de son état en direct :
+  - le dernier ticket sorti, avec le jour s'il n'est pas d'aujourd'hui ;
+  - les tickets en attente et depuis quand ;
+  - les tickets imprimés et en échec du jour.
+  Des tickets en attente ou en échec s'écrivent en gras, avec un filet à gauche. L'écran se relit toutes les 30 secondes.
+- **En cas de panne** : un bloc de l'écran reprend les cinq gestes de `docs/pannes.md`, « L'imprimante ne sort rien ». Captures : `docs/rendus/vague-3/bo-operations/imprimantes-1024.png`.
 
 Avant la migration, `resume` vaut null et l'écran garde l'état en direct seul.
