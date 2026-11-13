@@ -99,7 +99,8 @@ test("une commande arrive, on l'accepte, puis prête, retirée et payée", async
   await tablette.getByRole("button", { name: /^En cours/ }).click();
   await expect(carte).toContainText("Acceptée pour");
   // Le client voit l'heure confirmée sur son suivi.
-  expect(await (await request.get(suivi)).text()).toContain("Prête vers");
+  // Heure en fourchette selon les réglages (« Prête entre … et … »), une seule heure à largeur 0 (vague 3).
+  expect(await (await request.get(suivi)).text()).toMatch(/Prête (vers|entre)/);
 
   await carte.getByRole("button", { name: "Prête au comptoir" }).click();
   await expect(carte).toContainText("Prête au comptoir pour");

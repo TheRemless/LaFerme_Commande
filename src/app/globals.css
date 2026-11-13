@@ -3733,3 +3733,21 @@ body.fiche-ouverte {
 .appareils small {
   color: var(--encre-douce);
 }
+
+/* Suivi : heure en fourchette, allergie signalée (vague 3, client-compte). */
+.suivi-heure-fin {
+  display: block;
+  font-size: 40px;
+  line-height: 1.1;
+}
+.suivi-allergie {
+  margin: 12px 0;
+  padding: 10px 14px;
+  background: var(--blanc);
+  border-left: 6px solid var(--alerte-trait);
+  border-radius: 4px;
+}
+.suivi-allergie h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+}

@@ -8,6 +8,16 @@ import { MOTIF_DEMANDE_CLIENT } from "@/lib/motifs";
 import { nomClient } from "@/lib/nom-plat";
 import { ADRESSE_SITE } from "@/lib/site";
 import type { TypeCourriel } from "@/lib/courriel/quota";
+import { fourchette } from "@/lib/heure-reelle";
+import { plageTexte } from "@/lib/plage-heure";
+import { instantGeneve, type ConfigService } from "@/lib/service";
+
+// Même heure partout que l'accueil (client-commande) : fourchette selon les réglages de largeur de
+// bo-operations ; sans configuration ou à largeur 0, une seule heure (« vers 19h40 »).
+type ConfigHeure = Pick<ConfigService, "reglages"> | null | undefined;
+function quandPlage(c: Pick<Commande, "mode">, minutes: number, config: ConfigHeure): string {
+  return plageTexte(config ? fourchette(config, c.mode, minutes) : { basse: minutes, haute: minutes });
+}
 
 // Textes des courriels, passés par redaction-fr (voix de Giuseppe : direct, factuel).
 // Rien d'autre que des faits du registre (adresse, téléphone) et le contenu de la commande.
@@ -33,6 +43,10 @@ export function detailsLigne(cat: Catalogue | null, l: { choix: Record<string, s
 }
 
 export { MOTIF_DEMANDE_CLIENT };
+
+// Allergie de la commande (client-commande, #71) : l'e-mail la mentionne sans recopier le texte, une donnée de
+// santé ne se copie pas dans la table courriels ni dans un e-mail transférable. Le texte est sur le suivi.
+const ALLERGIE_SIGNALEE = "Vous avez signalé une allergie. Vérifiez-la sur la page de suivi.";
 
 // Délais de remboursement selon le moyen de paiement (le site ne sait pas lequel le client a choisi chez
 // Stripe : on donne les deux). Sources lues le 13.11.2026 :
@@ -89,15 +103,15 @@ function lienSuivi(c: Commande): string {
 }
 
 // estimation : heure « vers » annoncée à l'accueil pour « dès que possible » (CM-05), en minutes du jour.
-function modeTexte(c: Commande, estimation: number | null = null): string {
-  const quand = c.quand_type === "asap" && estimation !== null ? `dès que possible (vers ${heureTexte(estimation)})` : quandTexte(c);
+function modeTexte(c: Commande, estimation: number | null = null, config: ConfigHeure = null): string {
+  const quand = c.quand_type === "asap" && estimation !== null ? `dès que possible (${quandPlage(c, estimation, config)})` : quandTexte(c);
   if (c.mode === "livraison" && c.adresse) {
     return `Livraison ${quand}, ${c.adresse.rue}${c.adresse.numero ? ` ${c.adresse.numero}` : ""}, ${c.adresse.npa} ${c.adresse.localite}.`;
   }
   return `À emporter ${quand}, Route de Chancy 132 à Onex.`;
 }
 
-export function courrielConfirmation(c: Commande, cat: Catalogue | null, estimation: number | null = null) {
+export function courrielConfirmation(c: Commande, cat: Catalogue | null, estimation: number | null = null, config: ConfigHeure = null) {
   const paiement = c.moyen_paiement === "comptoir" ? `À payer au comptoir en venant la chercher, ${prixChf(c.total_centimes)}.` : `Payée en ligne, ${prixChf(c.total_centimes)}.`;
   const lignes = c.lignes.map((l) => ({ titre: `${l.qte} × ${nomClient(l.nom, l.station === "pizza")}`, prix: prixCourt(l.total_centimes), details: detailsLigne(cat, l) }));
   const sommes = [
@@ -111,8 +125,9 @@ export function courrielConfirmation(c: Commande, cat: Catalogue | null, estimat
     `Bonjour ${c.client_prenom},`,
     "",
     `Nous avons bien reçu votre commande n° ${c.numero}.`,
-    modeTexte(c, estimation),
+    modeTexte(c, estimation, config),
     "Le restaurant vous confirme l'heure dès qu'il l'accepte.",
+    ...(c.allergie ? [ALLERGIE_SIGNALEE] : []),
     "",
     ...lignes.flatMap((l) => [`${l.titre}  ${l.prix}`, ...l.details.map((d) => `   ${d}`)]),
     "",
@@ -126,7 +141,7 @@ export function courrielConfirmation(c: Commande, cat: Catalogue | null, estimat
   ].join("\n");
   const html = enveloppe(`
 <p>Bonjour ${echapper(c.client_prenom)},</p>
-<p>Nous avons bien reçu votre commande n° <strong>${c.numero}</strong>.<br>${echapper(modeTexte(c, estimation))}<br>Le restaurant vous confirme l'heure dès qu'il l'accepte.</p>
+<p>Nous avons bien reçu votre commande n° <strong>${c.numero}</strong>.<br>${echapper(modeTexte(c, estimation, config))}<br>Le restaurant vous confirme l'heure dès qu'il l'accepte.</p>${c.allergie ? `\n<p><strong>${ALLERGIE_SIGNALEE}</strong></p>` : ""}
 <table style="width:100%;border-collapse:collapse">${lignes
     .map(
       (l) => `<tr><td style="padding:6px 0;border-top:1px solid #ddd"><strong>${echapper(l.titre)}</strong>${l.details
@@ -270,16 +285,17 @@ export function courrielCourt(c: Commande, sujet: string, phrases: string[], ave
   return courrielType(c, "suivi", sujet, phrases, avecSuivi);
 }
 
-function heurePhrase(c: Commande, iso: string): string {
-  return c.mode === "livraison" ? `Le livreur passe chez vous vers ${heureDe(iso)}.` : `Elle sera prête vers ${heureDe(iso)}, Route de Chancy 132 à Onex.`;
+function heurePhrase(c: Commande, iso: string, config: ConfigHeure = null): string {
+  const quand = quandPlage(c, instantGeneve(new Date(iso)).minutes, config);
+  return c.mode === "livraison" ? `Le livreur passe chez vous ${quand}.` : `Elle sera prête ${quand}, Route de Chancy 132 à Onex.`;
 }
 
-export function courrielAcceptation(c: Commande, heureIso: string) {
-  return courrielType(c, "acceptation", `Commande ${c.numero} acceptée, La Ferme`, [`Votre commande n° ${c.numero} est acceptée.`, heurePhrase(c, heureIso)]);
+export function courrielAcceptation(c: Commande, heureIso: string, config: ConfigHeure = null) {
+  return courrielType(c, "acceptation", `Commande ${c.numero} acceptée, La Ferme`, [`Votre commande n° ${c.numero} est acceptée.`, heurePhrase(c, heureIso, config)]);
 }
 
-export function courrielNouvelleHeure(c: Commande, heureIso: string) {
-  return courrielType(c, "nouvelle_heure", `Commande ${c.numero}, nouvelle heure`, [`L'heure de votre commande n° ${c.numero} change.`, heurePhrase(c, heureIso)]);
+export function courrielNouvelleHeure(c: Commande, heureIso: string, config: ConfigHeure = null) {
+  return courrielType(c, "nouvelle_heure", `Commande ${c.numero}, nouvelle heure`, [`L'heure de votre commande n° ${c.numero} change.`, heurePhrase(c, heureIso, config)]);
 }
 
 // Commande modifiée par l'équipe à la demande du client (vague 3, bo-commandes) : nouveau récapitulatif
