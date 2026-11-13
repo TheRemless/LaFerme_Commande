@@ -25,7 +25,7 @@ const ERREURS: Record<string, string> = {
   personnel_inactif: "Votre accès a été retiré. Reconnectez-vous.",
   commande_inconnue: "Commande introuvable.",
   deja_change: "Cette commande a déjà changé. La liste se met à jour.",
-  reserve_gerant: "Commande prête ou partie : seul le gérant peut la modifier.",
+  reserve_gerant: "Seul le gérant peut modifier cette commande.",
   statut_non_modifiable: "Une commande terminée ou annulée ne se modifie plus.",
   pas_une_livraison: "C'est une commande à emporter : pas d'adresse à modifier.",
   zone_differente: "Cette adresse est dans une autre zone, avec d'autres frais. Elle ne peut pas être changée ici.",

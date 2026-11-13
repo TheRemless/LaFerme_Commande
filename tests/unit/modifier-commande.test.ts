@@ -49,6 +49,7 @@ beforeAll(async () => {
   const s = (await db.query<{ id: string; nom: string }>("select id, nom from personnel where email = 'equipe-bureau@laferme.test'")).rows[0];
   gerant = { ...g, email: "gerant-bureau@laferme.test", role: "gerant" };
   service = { ...s, email: "equipe-bureau@laferme.test", role: "service" };
+  await db.query("update reglages set valeur = 'true' where cle = 'modification_par_equipe'");
 });
 
 describe("contrôle de forme", () => {
@@ -95,7 +96,7 @@ describe("modifier une commande acceptée", () => {
     const c = await livraison();
     const db = await baseLocale();
     await db.query("select changer_statut($1, 'partie', 'tablette:Test')", [c]);
-    expect(await modifierCommande(c, { nom: "Bianchi" }, service)).toEqual({ ok: false, message: "Commande prête ou partie : seul le gérant peut la modifier." });
+    expect(await modifierCommande(c, { nom: "Bianchi" }, service)).toEqual({ ok: false, message: "Seul le gérant peut modifier cette commande." });
     expect((await modifierCommande(c, { nom: "Bianchi" }, gerant, { de: "acceptee" })).message).toMatch(/déjà changé/);
     expect((await modifierCommande(c, { nom: "Bianchi" }, gerant, { de: "partie" })).ok).toBe(true);
   });

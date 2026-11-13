@@ -82,7 +82,7 @@ Migration `supabase/migrations/20261127100000_modifier_commande.sql`, aucun obje
 
 - **Modifiable** : prénom, nom, téléphone ; pour une livraison, sonnette, étage, code, instructions et l'adresse si elle reste dans la même zone (mêmes frais, même minimum). L'adresse passe par le registre fédéral comme au paiement : c'est l'adresse officielle qui est enregistrée.
 - **Pas ici** (touche au montant, décision de Jérémy) : adresse dans une autre zone, livraison ↔ retrait, article ajouté. Retirer un article passe par « Il manque… » (remboursement calculé par la base).
-- **Qui** (proposition à valider par Jérémy) : l'équipe tant que la commande est à accepter, acceptée ou en préparation ; le gérant seul une fois prête ou partie ; personne ensuite. Revérifié en base.
+- **Qui** : le gérant jusqu'à « prête » ou « partie » ; personne une fois terminée ou annulée. L'équipe (rôle service) tant que la commande est à accepter, acceptée ou en préparation, seulement si le réglage `modification_par_equipe` est vrai : nouveau droit, **désactivé par défaut** en attendant la décision de Jérémy. Revérifié en base.
 - **Traces** : seuls les champs changés, avant et après, au journal du back-office (`commande`) ; un événement « modifiee … » dans l'historique de la commande ; « adresse_modifiee » au journal des livraisons si un livreur l'a déjà.
 - **Client** : un e-mail « Commande n modifiée » ne reprend que les champs changés, avec le lien de suivi. Rien n'est envoyé si rien n'a changé.
 - **Ticket « MODIFIÉE »** : pas encore, à faire avec la session `tablette`.

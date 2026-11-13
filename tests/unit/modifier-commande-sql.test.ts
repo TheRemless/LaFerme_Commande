@@ -53,6 +53,8 @@ beforeEach(async () => {
   gerant = await idPersonnel("gerant-bureau@laferme.test");
   service = await idPersonnel("equipe-bureau@laferme.test");
   livreur = await idPersonnel("marco@laferme.test");
+  // Droit de l'équipe : désactivé par défaut (décision de Jérémy), activé ici pour la plupart des cas.
+  await db.query("update reglages set valeur = 'true' where cle = 'modification_par_equipe'");
 });
 
 describe("modifier une commande acceptée, sans toucher au montant", () => {
@@ -119,6 +121,15 @@ describe("modifier une commande acceptée, sans toucher au montant", () => {
     expect(await erreur("modifier_commande($1, $2, $3, 'x')", [c, { details_livraison: { etage: "2" } }, gerant])).toContain("champ_invalide");
     // Le montant ne fait pas partie des champs modifiables : il est ignoré.
     expect((await modifier(c, { total_centimes: 1 }, gerant)).modifie).toBe(false);
+  });
+
+  it("par défaut, l'équipe ne modifie pas : gérant seulement", async () => {
+    await db.query("update reglages set valeur = 'false' where cle = 'modification_par_equipe'");
+    const c = await commande();
+    expect(await erreur("modifier_commande($1, $2, $3, 'x')", [c, { client_nom: "Bianchi" }, service])).toContain("reserve_gerant");
+    expect((await modifier(c, { client_nom: "Bianchi" }, gerant)).modifie).toBe(true);
+    const r = (await db.query<{ proposition: boolean }>("select proposition from reglages where cle = 'modification_par_equipe'")).rows[0];
+    expect(r.proposition).toBe(true);
   });
 
   it("aucun droit direct pour un visiteur", async () => {

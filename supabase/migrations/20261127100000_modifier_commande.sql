@@ -4,12 +4,17 @@
 -- instructions) et l'adresse dans la MÊME zone (mêmes frais, même minimum). Une adresse dans une autre zone,
 -- un passage livraison ↔ retrait ou un article ajouté touchent au montant : décision de Jérémy, pas ici.
 --
--- Droits (proposition à valider par Jérémy) : l'équipe (service ou gérant) tant que la commande est à
--- accepter, acceptée ou en préparation ; le gérant seul une fois prête ou partie ; personne ensuite.
+-- Droits : le gérant tant que la commande n'est ni terminée ni annulée. L'équipe (rôle service) aussi tant
+-- qu'elle est à accepter, acceptée ou en préparation, mais seulement si le réglage modification_par_equipe
+-- est vrai : nouveau droit, décision de Jérémy, désactivé par défaut. L'activer :
+--   update reglages set valeur = 'true', proposition = false where cle = 'modification_par_equipe';
 -- Le serveur a déjà validé la forme des champs et décidé la zone de l'adresse (registre fédéral) : la base
 -- revérifie l'auteur, l'état, le mode et que la zone n'a pas changé.
 --
 -- Objets partagés recréés : aucun. Compatible avant et après : le code de main n'appelle pas cette fonction.
+
+insert into reglages (cle, valeur, proposition) values ('modification_par_equipe', 'false', true)
+on conflict (cle) do nothing;
 
 create function modifier_commande(p_commande uuid, p jsonb, p_personnel uuid, p_par text, p_de text default null) returns jsonb
 language plpgsql as $$
@@ -32,12 +37,14 @@ begin
   if p_de is not null and c.statut <> p_de then
     raise exception 'deja_change';
   end if;
-  if c.statut in ('prete', 'partie') then
-    if pe.role <> 'gerant' then
-      raise exception 'reserve_gerant';
-    end if;
-  elsif c.statut not in ('nouvelle', 'acceptee', 'en_preparation') then
+  if c.statut not in ('nouvelle', 'acceptee', 'en_preparation', 'prete', 'partie') then
     raise exception 'statut_non_modifiable';
+  end if;
+  if pe.role <> 'gerant' and (
+    c.statut in ('prete', 'partie')
+    or not coalesce((select (valeur #>> '{}')::boolean from reglages where cle = 'modification_par_equipe' and jsonb_typeof(valeur) = 'boolean'), false)
+  ) then
+    raise exception 'reserve_gerant';
   end if;
 
   foreach k in array array['client_prenom', 'client_nom', 'client_telephone'] loop
