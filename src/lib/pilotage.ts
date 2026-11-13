@@ -132,3 +132,27 @@ export function ecart(actuel: number, precedent: number): number | null {
   if (precedent === 0) return null;
   return Math.round(((actuel - precedent) / precedent) * 100);
 }
+
+// Analyses d'une période (pilotage_analyses). Aucune donnée personnelle : les clients ne sont que comptés.
+export type Analyses = {
+  debut: string;
+  fin: string;
+  service: Service | null;
+  ventes_plats_centimes: number;
+  plats: { slug: string; nom: string; categorie: string; qte: number; ttc_centimes: number }[];
+  categories: { categorie: string; qte: number; ttc_centimes: number; plats: number }[];
+  // jour : 1 = lundi … 7 = dimanche ; heure : 0 à 23 à Genève ; jours : nombre de ces jours dans la période.
+  heures: { jour: number; heure: number; commandes: number; ttc_centimes: number; jours: number }[];
+  jours_semaine: Record<string, number>;
+  zones: { zone: number | null; nom: string | null; commandes: number; ttc_centimes: number; frais_centimes: number; panier_moyen_centimes: number }[];
+  clients: {
+    clients: number;
+    nouveaux: number;
+    nouveaux_commandes: number;
+    nouveaux_ttc_centimes: number;
+    fideles: number;
+    fideles_commandes: number;
+    fideles_ttc_centimes: number;
+    revenus_dans_la_periode: number;
+  };
+};
