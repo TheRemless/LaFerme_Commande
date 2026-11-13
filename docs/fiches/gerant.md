@@ -27,6 +27,7 @@ En cas de problème, appeler : ______________________
 | Un livreur malade | Back-office, « Livreurs », « Absent » à côté de son nom. |
 | Un renfort arrive | Même écran, « Ajouter un livreur… » sous le service. |
 | Le four tombe en panne | Back-office, « Carte », « Four en panne… ». L'écran liste les commandes touchées. Appeler chaque client. |
+| Une imprimante « en ligne » ne sort rien | Papier coincé ou mal mis, le site ne le voit pas. Remettre le rouleau, puis « Réimprimer » sur la commande. |
 | Une imprimante ne revient pas | Back-office, « Imprimantes », « Renvoyer ses tickets sur une autre », puis « Désactiver ». |
 | La tablette est figée | N'importe quel téléphone ouvre `/tablette` et prend le relais. |
 | Bandeau « Pause automatique » | La tablette n'a pas répondu pendant 3 minutes. « Reprendre les commandes ». |
@@ -45,7 +46,7 @@ En cas de problème, appeler : ______________________
 
 ## Fermeture
 
-1. Tablette, onglet « En cours ». Il ne reste rien à faire.
+1. Tablette, onglet « En cours ». Il ne reste rien à faire. Le comptoir suit sa consigne de fin de service.
 2. Onglet « Terminées ». Une commande retirée sans paiement noté garde « Espèces » et « Carte ».
 3. Back-office, « Clôture du jour ». Lire « Comptoir pas encore encaissé » puis « À vérifier ».
 4. Compter la caisse. Écrire les espèces et le total du ticket du terminal.

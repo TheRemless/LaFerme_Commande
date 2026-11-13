@@ -8,8 +8,10 @@ Restaurant : 022 792 16 89
 
 1. Ouvrir la page sur votre téléphone. Elle demande votre e-mail.
 2. Entrer l'e-mail donné au gérant, puis le code à 8 chiffres reçu par e-mail.
+   Sans e-mail sur votre téléphone, demander un code au gérant puis toucher « J'ai un code du restaurant ».
 3. Vous restez connecté 12 heures. Il faut se reconnecter à chaque service.
-4. Garder la page ouverte. Elle ne sonne pas quand une livraison arrive.
+4. Toucher « Activer le son et les alertes », puis accepter. La page sonne et vibre à chaque nouvelle livraison.
+5. Garder la page ouverte. Téléphone verrouillé ou page fermée, l'alerte peut ne pas arriver.
 
 ## Une tournée
 
@@ -30,7 +32,9 @@ Restaurant : 022 792 16 89
 
 | Je me demande | Réponse |
 |---|---|
-| Le client ne répond pas à la porte. | « Appeler » suivi de son prénom. Sans réponse, « Problème », « Client absent », « Prévenir le restaurant ». Attendre l'appel du restaurant. |
+| Le client ne répond pas à la porte. | « Appeler » suivi de son prénom. Sans réponse, « Problème », « Client absent », « Prévenir le restaurant ». |
+| J'ai signalé un problème et j'ai d'autres sacs. | Garder le sac et partir à l'arrêt suivant. Les autres clients n'attendent pas. Le restaurant vous appelle en route. |
+| J'ai signalé un problème et c'est mon dernier sac. | Attendre sur place l'appel du restaurant, ou l'appeler au 022 792 16 89. |
 | Je ne trouve pas l'adresse. | Appeler le client. Sinon « Problème », « Adresse introuvable ». |
 | Autre souci (accident, sac renversé). | « Problème », « Autre », écrire un mot, « Prévenir le restaurant ». Puis appeler le restaurant. |
 | Je n'ai plus de réseau. | Continuer. Vos gestes partent seuls quand le réseau revient. Ne pas fermer la page. |

@@ -114,7 +114,7 @@ Sans imprimante pour un poste, les tickets de ce poste s'affichent sur la tablet
 
 ### 5. Écrans de poste, si on les essaie (5 min)
 
-Un écran au four ou en cuisine se règle comme la tablette, avec un compte « Tablette », sur `/tablette/poste/pizza` ou `/tablette/poste/cuisine`. Les tickets papier continuent de sortir. Voir M2 avant de s'y fier.
+Un écran au four ou en cuisine se règle comme la tablette, avec un compte « Tablette », sur `/tablette/poste/pizza` ou `/tablette/poste/cuisine`. Les tickets papier continuent de sortir. Le papier reste la référence.
 
 <a id="planning-livreurs"></a>
 
@@ -131,10 +131,11 @@ Back-office, rubrique « Livreurs ».
 
 1. Il ouvre `https://<adresse du site>/livreur` sur son téléphone.
 2. Il entre son e-mail, puis le code reçu.
-3. Il ajoute la page à l'écran d'accueil.
-4. On lui donne sa fiche ([fiches/livreur.md](fiches/livreur.md)).
+3. Il touche « Activer le son et les alertes », puis il accepte.
+4. Il ajoute la page à l'écran d'accueil.
+5. On lui donne sa fiche ([fiches/livreur.md](fiches/livreur.md)).
 
-La connexion par un code affiché sur la tablette (sans e-mail) est construite. Elle est fermée dans la base au 13.11.2026 et le back-office n'a pas de case pour l'ouvrir. Voir M3.
+Sans e-mail lisible sur son téléphone, le gérant ou un responsable touche « Code de connexion » à côté de son prénom, dans l'onglet « Livraisons » de la tablette. Huit chiffres s'affichent, valables 10 minutes. Le livreur touche « J'ai un code du restaurant » sur `/livreur`. Ouvert dans la vraie base le 13.11.2026 d'après le chef, pas rejoué à l'écran.
 
 ## Le jour J, une heure avant l'ouverture (environ 40 min)
 
@@ -155,7 +156,7 @@ La connexion par un code affiché sur la tablette (sans e-mail) est construite. 
 1. Commander en livraison à une vraie adresse de la zone 1, payée en ligne (TWINT ou carte). Petit montant.
 2. Accepter sur la tablette.
 3. Onglet « Livraisons ». Toucher « À » suivi du prénom du livreur.
-4. Sur le téléphone du livreur, la livraison apparaît. La page ne sonne pas et ne vibre pas (M5). Il touche « Je pars ». L'e-mail « en route » arrive.
+4. Sur le téléphone du livreur, la livraison apparaît. La page sonne et vibre s'il a touché « Activer le son et les alertes ». Il touche « Je pars ». L'e-mail « en route » arrive.
 5. Il touche « Livrée ». La commande passe dans « Terminées ».
 6. Back-office, « Commandes », ouvrir la commande, onglet « Gestes », « Rembourser », « Tout ce qui reste ». Vérifier que le remboursement arrive.
 
@@ -201,8 +202,6 @@ La liste classée, avec le propriétaire de chaque point, est dans le fichier d'
 | N° | Manque | Ce qu'on fait le jour J en attendant |
 |---|---|---|
 | M1 | Aucune imprimante réelle n'a été branchée. L'accès à sa page de réglages n'est pas vérifié | Brancher la première imprimante plusieurs jours avant |
-| M2 | Écran du poste pizza : à 15h10, « Reste à sortir » additionnait les commandes du soir. Vu sur le jeu de rush, à revérifier | Se fier aux tickets papier |
-| M3 | Connexion d'un livreur par code : fermée dans la base, pas de case au back-office | Chaque livreur se connecte par e-mail |
 | M4 | Un gérant n'ouvre pas `/livreur` | Le patron qui livre fait noter « Partie » puis « Livrée » sur la tablette |
-| M5 | La page du livreur ne sonne pas quand on lui donne une livraison | Le comptoir appelle le livreur |
-| M6 | Débits du four et de la cuisine à zéro dans la base locale | Vérifier la valeur dans « Réglages généraux » sur le vrai site |
+| M5 | Son, vibration et notification du livreur : construits (#238), pas vérifiés sur un vrai téléphone | Le comptoir prévient aussi le livreur de vive voix |
+| M6 | Débit du four posé à 15 dans la vraie base le 13.11.2026. Cuisine et livreurs à zéro | Vérifier les valeurs dans « Réglages généraux » |

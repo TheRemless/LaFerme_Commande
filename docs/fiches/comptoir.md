@@ -22,7 +22,7 @@ En cas de problème, appeler : ______________________
 | Je me demande | Réponse |
 |---|---|
 | Où sont les commandes acceptées ? | Onglet « En cours ». La plus pressée est en haut. |
-| Comment je sais ce qui presse ? | La ligne le dit. « En retard de 4 min », « À lancer », « À sortir dans 6 min ». |
+| Comment je sais ce qui presse ? | La ligne le dit. Voir « Ce que dit chaque ligne », plus bas. |
 | Le sac est prêt, je fais quoi ? | Toucher « Prête ». Le client reçoit un e-mail. |
 | Je me suis trompé de bouton. | Toucher « Annuler » en bas de l'écran. Vous avez 5 secondes. Après, appeler le gérant. |
 | Le client vient chercher son sac déjà payé en ligne. | Toucher « Retirée ». |
@@ -37,14 +37,28 @@ En cas de problème, appeler : ______________________
 | Quatre commandes arrivent d'un coup. | « Accepter les 4 à l'heure proposée… ». Celles avec une allergie restent à lire une par une. |
 | Une commande est pour demain. | Onglet « À l'avance ». L'accepter le jour même. |
 | Le ticket n'est pas sorti. | Toucher « Ticket » sur la commande pour le lire à l'écran. Regarder le papier et le capot de l'imprimante. |
-| La tablette ne sonne plus. | Recharger la page, toucher « Démarrer le service », monter le volume. |
+| La tablette dit l'imprimante « en ligne » mais rien ne sort. | Le site ne voit pas un papier coincé ou mal mis. Ouvrir le capot, remettre le rouleau, refermer. Puis « Réimprimer » sur la commande. En attendant, « Ticket » l'affiche à l'écran. |
+| La tablette ne sonne plus. | Toucher « Activer le son » dans la barre du haut. Monter le volume. |
 | La tablette demande un e-mail. | Entrer l'e-mail du compte, puis le code reçu par e-mail. |
+
+## Ce que dit chaque ligne de « En cours »
+
+| La ligne dit | Ce que ça veut dire |
+|---|---|
+| « À lancer dans 12 min » | La cuisine a encore 12 minutes avant de commencer. |
+| « À lancer », avec un trait épais | Il faut commencer maintenant pour tenir l'heure promise. |
+| « À sortir dans 6 min » | Dans 6 minutes, le sac doit être au comptoir, ou partir avec le livreur. |
+| « En retard de 4 min » | L'heure promise est passée de 4 minutes. À traiter en premier. |
+
+Une livraison se lance plus tôt qu'un retrait à la même heure, car le trajet est compté.
+
+Sous les onglets, le compteur donne le nombre de commandes en retard et le nombre « à lancer maintenant ».
 
 ## Les livraisons
 
 1. Onglet « Livraisons ». À gauche, les commandes sans livreur.
 2. Toucher « À » suivi du prénom du livreur.
-3. Prévenir le livreur de vive voix. Son téléphone ne sonne pas.
+3. Son téléphone sonne et vibre si sa page est ouverte. Dans le doute, le prévenir de vive voix.
 4. À droite, la tournée de chaque livreur. « Plus tôt » et « Plus tard » changent l'ordre.
 
 | Je me demande | Réponse |
@@ -53,6 +67,14 @@ En cas de problème, appeler : ______________________
 | Un bandeau jaune dit « problème signalé ». | Appeler le client ou le livreur. Si c'est réglé, « Problème réglé ». |
 | Le client est absent et ne répond pas. | « Client absent : clore », puis « Oui, clore sans rembourser ». Le gérant décide ensuite. |
 | Il n'y a plus de livreur. | « Pause, délai, ruptures », puis « Fermer la livraison ». |
+
+## À la fin du service
+
+1. Onglet « En cours ». Il ne doit rien rester. Une commande remise et oubliée se termine avec « Retirée » ou « Livrée ».
+2. Une commande que personne n'est venu chercher reste telle quelle. Noter son numéro pour le gérant.
+3. Onglet « Terminées ». Une commande qui garde « Espèces » et « Carte » n'a pas de paiement noté. Toucher le bon bouton.
+4. Prévenir le gérant que la tablette est à jour. Il fait la clôture du jour après.
+5. Laisser la tablette branchée et connectée. Ne pas toucher « Déconnexion ». La livraison se rouvre et le retard revient à zéro tout seuls dans la nuit.
 
 ## Ce que je ne fais pas
 
