@@ -114,13 +114,13 @@ test("reçu avec TVA : vendeur, numéro de TVA, plats et TVA, sans données du c
   await expect(recu).not.toContainText("079 000 00 00");
   await expect(recu).not.toContainText(`${prenom.toLowerCase()}@laferme.test`);
   await expect(recu).not.toContainText("Test");
-  await client.screenshot({ path: `${RENDUS}/recu-375.png`, fullPage: true });
+  await client.screenshot({ path: capture("recu-375.png"), fullPage: true });
   await client.close();
   const petit = await browser.newPage({ baseURL: SITE, viewport: { width: 320, height: 700 } });
   await petit.goto(`/suivi/${jeton}/recu`);
   await expect(petit.locator(".recu h1")).toBeVisible();
   expect(await petit.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
-  await petit.screenshot({ path: `${RENDUS}/recu-320.png`, fullPage: true });
+  await petit.screenshot({ path: capture("recu-320.png"), fullPage: true });
   await petit.close();
 });
 
@@ -162,11 +162,11 @@ test("annulation par le client : absente par défaut, puis activée, la commande
     await client.reload();
     await client.getByRole("button", { name: "Annuler ma commande" }).click();
     await expect(client.getByText(/^Annuler la commande n° \d+ \? Le restaurant ne la préparera pas\. Le montant vous est remboursé\.$/)).toBeVisible();
-    await client.screenshot({ path: `${RENDUS}/suivi-annuler-375.png`, fullPage: true });
+    await client.screenshot({ path: capture("suivi-annuler-375.png"), fullPage: true });
     await client.getByRole("button", { name: "Oui, annuler" }).click();
     await expect(client.getByRole("heading", { name: "Commande annulée" })).toBeVisible();
     await expect(client.locator(".suivi-change")).toContainText("Vous avez annulé la commande.");
-    await client.screenshot({ path: `${RENDUS}/suivi-annulee-375.png`, fullPage: true });
+    await client.screenshot({ path: capture("suivi-annulee-375.png"), fullPage: true });
   } finally {
     await reglerAnnulation(false);
     await client.close();
@@ -185,7 +185,7 @@ test("réclamation depuis le suivi : le client dit ce qui manque, le restaurant 
   await bloc.getByLabel("Il manquait quelque chose").check();
   await bloc.getByLabel("Dites-nous ce qui s'est passé").fill("Il manquait la deuxième pizza.");
   await expect(bloc).toContainText("30 / 500");
-  await client.screenshot({ path: `${RENDUS}/suivi-reclamation-375.png`, fullPage: true });
+  await client.screenshot({ path: capture("suivi-reclamation-375.png"), fullPage: true });
   await bloc.getByRole("button", { name: "Envoyer au restaurant" }).click();
   await expect(bloc.getByRole("status")).toHaveText("Merci, le restaurant a reçu votre message.");
   await client.close();
@@ -220,7 +220,7 @@ test("allergie rappelée au suivi, heure confirmée en fourchette comme à l'acc
   await expect(client.locator(".suivi-allergie")).toContainText("Arachides, allergie sévère");
   // Largeur par défaut à emporter : 10 minutes, « Prête entre … et … ».
   await expect(client.getByRole("heading", { level: 1 })).toContainText(/Prête entre \d{1,2}h\d{2}\s*et \d{1,2}h\d{2}/);
-  await client.screenshot({ path: `${RENDUS}/suivi-fourchette-allergie-375.png`, fullPage: true });
+  await client.screenshot({ path: capture("suivi-fourchette-allergie-375.png"), fullPage: true });
   // L'e-mail de confirmation mentionne l'allergie sans recopier le texte.
   const jeton = lien.match(/suivi\/([A-Za-z0-9_-]+)/)![1];
   const courriels = await (await client.request.get(`/dev/courriels?jeton=${jeton}`)).text();
