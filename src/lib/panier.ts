@@ -3,7 +3,8 @@
 // Tous les prix viennent du catalogue lu en base : aucun montant n'est écrit ici.
 import type { Dispo } from "@/lib/disponibilite";
 
-export type OptionCatalogue = { nom: string; prix_centimes: number; prix_a_valider: boolean; rupture?: boolean };
+// par_defaut : cochée d'avance sur la fiche (le client peut la décocher).
+export type OptionCatalogue = { nom: string; prix_centimes: number; prix_a_valider: boolean; rupture?: boolean; par_defaut?: boolean };
 export type GroupeCatalogue = { slug: string; nom: string; choix_min: number; choix_max: number; options: OptionCatalogue[] };
 export type RetraitCatalogue = { nom: string; a_valider: boolean };
 export type PlatCatalogue = {

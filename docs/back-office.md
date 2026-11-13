@@ -62,9 +62,19 @@ Migration `supabase/migrations/20261128090000_disponibilites.sql`. Tests : `test
 - **Poste ou catégorie entière** (four en panne). Table `ruptures_groupees` : cible `poste:pizza`, `poste:cuisine` ou `categorie:<slug>`, épuisée jusqu'à une date comprise (aujourd'hui pour une panne). Tous ses plats sont épuisés pour le client et sur la tablette (`rupture_groupee` dit pourquoi), panier et paiement les refusent. La lever ne remet pas un plat épuisé seul avant. Tout membre actif peut la poser ou la lever (`regler_rupture_groupee`, le bouton de service est à la tablette) ; le back-office l'envoie par l'action `rupture_groupee`.
 - **Journal.** Objets `disponibilite`, `rupture`, `rupture_option` et `rupture_groupee` (un gérant ; un membre du service est noté dans `journal_personnel`), avec la valeur d'avant et d'après. Ils ne s'annulent pas depuis le journal : on règle de nouveau la disponibilité ou on remet le plat.
 
+## Groupes d'options (vague 3, 13.11.2026)
+
+Migration `supabase/migrations/20261128100000_groupes_options.sql`. Tests : `tests/unit/groupes-options-sql.test.ts`. Écran après la coque ; le serveur accepte déjà les actions `nouveau_groupe`, `groupe`, `defauts`, `ordre_options`, `renommer_option` et `plats_du_groupe` de `/api/gestion/carte`.
+
+- **Groupe neuf** (sauce au choix, cuisson, accompagnement) : nom, minimum (0 à 10) et maximum (1 à 20). Il naît sans option ni plat : on lui ajoute ses options (« Ajouter un supplément » existant), puis la liste des plats qui le portent. Un même groupe se pose sur autant de plats qu'on veut ; changer un prix d'option le change partout.
+- **Ticket** : un groupe à choix obligatoire et unique (minimum 1, maximum 1) s'imprime `CHOIX`, les autres `+`, comme aujourd'hui.
+- **Garde-fous** : un minimum que les options proposées ne remplissent pas est refusé dès qu'un plat en vente porte le groupe ; un plat ajouté au back-office et en vente ne reçoit pas un groupe dont un prix reste à valider (même verrou que sa fiche).
+- **Options cochées d'avance** (`options.par_defaut`) : au plus le maximum du groupe, le client peut les décocher. L'affichage sur la fiche du client est à `client-commande`.
+- **Nom et ordre des options** : renommer garde les commandes passées intactes (le nom choisi y est copié).
+- **Journal** : objets `groupe`, `groupe_defauts`, `groupe_ordre`, `groupe_plats`, `option_nom`. Ils ne s'annulent pas depuis le journal.
+
 ## Pas encore fait
 
-- Créer un nouveau groupe d'options (autre que les suppléments de pizza et le choix des pâtes).
 - Supprimer une catégorie vide (elle reste invisible des clients tant qu'elle n'a aucun plat en vente).
 
 ## Vague 2 (16.11.2026, audit du gérant)
