@@ -1,6 +1,8 @@
 import "server-only";
 import { chargerConfigService } from "@/lib/config-service";
-import { fonctionSql } from "@/lib/db/serveur";
+import { courrielRefusRemboursementEnCours } from "@/lib/courriel/modeles";
+import { envoyerCourriel } from "@/lib/courriel/envoi";
+import { commandeParId, courrielsDeCommande, fonctionSql } from "@/lib/db/serveur";
 import type { Personnel } from "@/lib/personnel/session";
 import { alerter, dansUnService } from "@/lib/surveillance";
 import { agir, rafraichirCaches } from "@/lib/tablette";
@@ -19,6 +21,19 @@ import { agir, rafraichirCaches } from "@/lib/tablette";
 
 const REFUS_PAR_TOUR = 3;
 const BUDGET_MS = 4000;
+// Délai par commande : un Stripe ou un SMTP qui traîne ne retient pas la route au-delà (le geste continue en
+// arrière-plan ; s'il est coupé, la reprise le rattrape).
+const DELAI_PAR_COMMANDE_MS = 4000;
+
+function avecDelai<T>(p: Promise<T>, numero: number): Promise<T> {
+  let minuterie: ReturnType<typeof setTimeout> | undefined;
+  return Promise.race([
+    p,
+    new Promise<never>((_, non) => {
+      minuterie = setTimeout(() => non(new Error(`commande ${numero} : pas de réponse en ${DELAI_PAR_COMMANDE_MS / 1000} s`)), DELAI_PAR_COMMANDE_MS);
+    }),
+  ]).finally(() => clearTimeout(minuterie));
+}
 
 // Le geste est noté « tablette:Refus automatique » dans l'historique de la commande (evenements_commande.par) :
 // c'est à ce nom que la reprise retrouve ses refus. Aucun compte derrière ; un refus de commande nouvelle et un
@@ -67,7 +82,7 @@ export async function refuserCommandesSansReponse(fin = Date.now() + BUDGET_MS):
   for (const c of a.commandes.slice(0, REFUS_PAR_TOUR)) {
     if (Date.now() >= fin) break;
     // de « nouvelle » : acceptée sur la tablette à la dernière seconde, elle n'est pas refusée (SS-06).
-    const r = await agir(c.id, { action: "refuser", motif: motifRefusAutomatique(a.minutes), de: "nouvelle" }, REFUS_AUTOMATIQUE).catch((e) => {
+    const r = await avecDelai(agir(c.id, { action: "refuser", motif: motifRefusAutomatique(a.minutes), de: "nouvelle" }, REFUS_AUTOMATIQUE), c.numero).catch((e) => {
       console.error(`Refus automatique de la commande ${c.numero} : ${e instanceof Error ? e.message : e}`);
       return { ok: false };
     });
@@ -78,23 +93,34 @@ export async function refuserCommandesSansReponse(fin = Date.now() + BUDGET_MS):
 
 // Refus automatique payé en ligne mais pas remboursé depuis plus de 2 minutes (fonction coupée entre les deux,
 // Stripe en panne) : remboursement relancé, une commande à la fois. rembourserCommande ne rembourse pas deux
-// fois ; réussi, il envoie l'e-mail de remboursement au client. Au premier échec, une alerte au gérant.
+// fois ; réussi, il envoie l'e-mail de remboursement au client.
+// Échec et client encore sans nouvelles (la fonction a été coupée avant tout e-mail) : il reçoit « le
+// remboursement n'est pas encore parti » et le gérant une alerte, une seule fois. Si Stripe était déjà en
+// panne au refus, agir l'a déjà fait : rien de plus (relecture BIS de qualite, double alerte).
 export async function reprendreRemboursements(fin = Date.now() + BUDGET_MS): Promise<number[]> {
-  const a = await lire<(Ref & { premiere: boolean })[]>("refus_automatiques_a_rembourser", []);
+  const a = await lire<Ref[]>("refus_automatiques_a_rembourser", []);
   const repris: number[] = [];
   for (const c of a) {
     if (Date.now() >= fin) break;
-    const r = await agir(c.id, { action: "rembourser" }, REFUS_AUTOMATIQUE).catch((e) => {
+    const r = await avecDelai(agir(c.id, { action: "rembourser" }, REFUS_AUTOMATIQUE), c.numero).catch((e) => {
       console.error(`Remboursement repris de la commande ${c.numero} : ${e instanceof Error ? e.message : e}`);
       return { ok: false };
     });
-    if (r.ok) repris.push(c.numero);
-    else if (c.premiere) {
-      await alerter(`Commande ${c.numero} : remboursement à refaire`, [
-        `La commande ${c.numero} a été refusée automatiquement, mais son remboursement n'est pas passé.`,
-        "Sur la tablette, onglet « Terminées », touchez « Rembourser ». Si ça ne passe toujours pas, remboursez depuis Stripe.",
-      ], "alerte", "remboursement").catch((e) => console.error(`Alerte non envoyée : ${e instanceof Error ? e.message : e}`));
+    if (r.ok) {
+      repris.push(c.numero);
+      continue;
     }
+    const deja = await courrielsDeCommande(c.id).catch(() => null);
+    if (deja === null || deja.length > 0) continue;
+    const commande = await commandeParId(c.id);
+    if (!commande) continue;
+    await envoyerCourriel({ commandeId: c.id, destinataire: commande.client_email, ...courrielRefusRemboursementEnCours(commande, commande.motif ?? "") }).catch((e) =>
+      console.error(`Courriel de remboursement en cours non envoyé pour la commande ${c.numero} : ${e instanceof Error ? e.message : e}`),
+    );
+    await alerter(`Commande ${c.numero} : remboursement à refaire`, [
+      `La commande ${c.numero} a été refusée automatiquement, mais son remboursement n'est pas passé.`,
+      "Sur la tablette, onglet « Terminées », touchez « Rembourser ». Si ça ne passe toujours pas, remboursez depuis Stripe.",
+    ], "alerte", "remboursement").catch((e) => console.error(`Alerte non envoyée : ${e instanceof Error ? e.message : e}`));
   }
   return repris;
 }
