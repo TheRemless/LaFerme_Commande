@@ -19,6 +19,7 @@ import { allergieValide, champClientInvalide, destinataireValide, cleValide, LIM
 import { messageZoneFermee, SUITE_ZONE_FERMEE } from "@/lib/zone-fermee";
 import { zoneServeur, type AdresseRetenue } from "@/lib/zone-serveur";
 import { nomClient } from "@/lib/nom-plat";
+import { chargerOptionsCommande } from "@/lib/options-commande";
 
 // Passage de la commande. Le serveur refait tous les contrôles avec la base : contenu et prix, adresse
 // retrouvée dans le registre fédéral, zone, minimum, heure. Il enregistre la commande, puis renvoie
@@ -72,7 +73,7 @@ export async function POST(requete: Request) {
     );
   }
 
-  const [catalogue, config] = await Promise.all([chargerCatalogue(), chargerConfigService()]);
+  const [catalogue, config, options] = await Promise.all([chargerCatalogue(), chargerConfigService(), chargerOptionsCommande()]);
 
   let zone: Zone | undefined;
   let details = null;
@@ -155,6 +156,8 @@ export async function POST(requete: Request) {
       compte_demande: creerCompte,
       allergie,
       destinataire,
+      // Éteints (réglages), les couverts et les prénoms envoyés par le navigateur ne sont pas gardés.
+      couverts: options.couverts_actifs && corps.couverts === true,
       lignes: totaux.lignes.map((l) => ({
         slug: l.slug,
         nom: l.nom,
@@ -166,6 +169,7 @@ export async function POST(requete: Request) {
         prix_choix: prixChoix(catalogue, l),
         retraits: l.retraits,
         note: l.note.trim(),
+        pour: options.prenom_par_ligne_actif ? (l.pour ?? "") : "",
       })),
     });
   } catch (e) {
