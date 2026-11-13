@@ -256,3 +256,17 @@ Zéro e-mail : le gérant ou un responsable touche « Code de connexion » à c�
 ## Retour arrière : « Annuler » pendant 5 secondes (P0 du contrôle de produit-gestion)
 
 Un geste qui change un statut ou écrit un encaissement (« Prête », « Partie », « Retirée », « Livrée », « Retirée, espèces / carte », « Encaissée … ») ne part qu'après 5 secondes. En bas de l'écran : « N° 17 : Prête au comptoir dans 4 s. » et « Annuler ». Pendant ce temps, rien n'est écrit en base, imprimé ni envoyé au client (e-mail « prête » ou « en route ») : annuler ne laisse aucune trace, il n'y a rien à défaire. Un seul geste en attente par commande. Si la page se ferme pendant le délai, les gestes en attente partent tout de suite. Accepter et refuser gardent leur propre confirmation ; « Prête » de la vue par poste a « Rouvrir ». Module `src/components/tablette/differe.ts`.
+
+## Tableau compact et bandeau des remboursements court (P1 du contrôle de produit-gestion)
+
+Mesure sur le jeu de rush de qualite (91 commandes en cours, `scripts/tablette/mesurer.mjs` avec `COMPTE=lea.rush@exemple.test`) :
+
+| Écran | Commandes visibles sans défiler, avant | Après |
+|---|---|---|
+| Paysage 1024 × 768 | 7 | 11 |
+| Paysage 1180 × 820 | 7 | 12 |
+| Portrait 820 × 1180 | 11 | 19 |
+
+- Ligne de 46 px au lieu de 68 : bouton de geste à 44 px (taille tactile minimale, aucune cible plus petite), interligne et marges réduits, retard marqué par un contour qui ne prend pas de place, « à encaisser » sur la ligne du client (deux lignes par commande au plus).
+- Bandeau des remboursements pas passés sur une ligne : les numéros du jour, puis le nombre des jours d'avant avec leurs dates, et « Voir au back-office » (`/gestion/commandes?remboursement=echec`). Avant : 18 numéros sans date, en permanence (les numéros recommencent chaque jour).
+- Captures : `docs/rendus/vague-3/tablette/compact-avant-*.png` et `compact-apres-*.png`, mesures `compact-mesures.json`.
