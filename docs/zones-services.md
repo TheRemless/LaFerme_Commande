@@ -10,7 +10,7 @@ Avant, une zone était livrée à tous les services ou à aucun. Deux réglages 
 - **Rouvrir avant l'heure** : « Rouvrir » (équipe). Une fermeture déjà finie n'a rien à rouvrir.
 - **Bornes** :
   - fermeture : de maintenant à sept jours au plus. Au-delà, on décoche « Zone ouverte » au back-office ;
-  - motif : de 2 à 120 caractères. Il est lisible par tous, comme les frais et les délais, et il est prévu pour être montré au client ;
+  - motif : de 2 à 120 caractères. Il est lisible par tous, comme les frais et les délais, et il est prévu pour être montré au client. N'y écrire que ce qu'un client peut lire (« Neige »), jamais un nom ni une raison personnelle (« Marco malade ») ;
   - au moins un service par zone.
 - **Contrôles** : le gérant pour les services, l'équipe (`service` ou `gerant`) pour fermer et rouvrir. La base les revérifie, les livreurs n'y ont pas accès.
 - **Journal** : objets `zone_services` (avant et après) et `zone_fermeture` (heure et motif ; `apres` vide pour une réouverture).
