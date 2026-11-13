@@ -39,3 +39,17 @@
   border: 1px solid var(--bo-trait);
   border-radius: var(--bo-rayon);
 }
+
+/* E-mails d'alerte par type (vague 3) : sous-groupe du bloc Alertes. */
+.bo-reg-sous-groupe {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 0;
+  padding: 12px 0 0;
+  border: 0;
+  border-top: 1px solid var(--bo-trait);
+}
+.bo-reg-sous-groupe legend {
+  padding: 0;
+  font-weight: 600;
+}

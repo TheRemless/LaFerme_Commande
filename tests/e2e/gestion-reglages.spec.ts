@@ -25,6 +25,9 @@ test("réglages généraux : e-mail des alertes, erreur de saisie, accessibilit�
   try {
     await expect(page.getByLabel("Longueur d'un créneau")).toHaveValue("15");
     await expect(page.getByLabel("Le client peut annuler sa commande depuis son suivi")).not.toBeChecked();
+    // E-mails d'alerte par type : tous envoyés au départ.
+    await expect(page.getByLabel("Commande pas encore acceptée")).toBeChecked();
+    await expect(page.getByLabel("Réclamation d'un client")).toBeChecked();
     // Interrupteurs de client-commande : présents et éteints (les allumer changerait la carte des autres tests).
     await expect(page.getByLabel("« Les plus commandés » en tête de la carte")).not.toBeChecked();
     await expect(page.getByLabel("Proposer une boisson ou un dessert au panier")).not.toBeChecked();
