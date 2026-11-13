@@ -38,3 +38,6 @@ insert into personnel (email, nom, role) values
 insert into personnel (email, nom, role) values
   ('zones-bureau@laferme.test', 'Zones bureau', 'gerant'),
   ('zones-mobile@laferme.test', 'Zones mobile', 'gerant');
+
+-- Réglages généraux (tests/e2e/reglages-generaux.spec.ts, vague 3).
+insert into personnel (email, nom, role) values ('reglages-bureau@laferme.test', 'Réglages bureau', 'gerant');
