@@ -9,7 +9,7 @@ export type TypeCode = "pourcentage" | "montant" | "livraison";
 export type RaisonRefus =
   | "desactive" | "inconnu" | "inactif" | "pas_commence" | "expire" | "minimum" | "plafond" | "deja_utilise" | "pas_premiere" | "retrait" | "client_inconnu";
 export type EvaluationCode =
-  | { ok: true; code: string; type: TypeCode; remise_centimes: number }
+  | { ok: true; code: string; type: TypeCode; remise_centimes: number; a_verifier?: boolean }
   | { ok: false; raison: RaisonRefus; minimum_centimes?: number };
 
 export const FORMAT_CODE = /^[A-Z0-9-]{3,20}$/;
