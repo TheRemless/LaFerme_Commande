@@ -954,7 +954,7 @@
 .bo-raccourcis dd {
   margin: 0;
 }
-kbd {
+:is(.bo, .bo-boite) kbd {
   display: inline-block;
   min-width: 26px;
   margin-right: 4px;

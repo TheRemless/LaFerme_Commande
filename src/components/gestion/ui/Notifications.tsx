@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { IconeGestion } from "@/components/gestion/ui/icones";
 
 // Notifications du back-office : un message court en bas de l'écran après une action, avec « Annuler »
@@ -101,8 +101,3 @@ export function useNotifier(): (n: Notification) => void {
   return n;
 }
 
-/** Pour les composants qui peuvent vivre hors de la coque (tests, tablette) : ne fait rien sans fournisseur. */
-export function useNotifierSiPossible(): (n: Notification) => void {
-  const n = useContext(Contexte);
-  return useMemo(() => n ?? (() => undefined), [n]);
-}

@@ -24,7 +24,11 @@ export function FournisseurConfirmation({ children }: { children: React.ReactNod
   const confirmer = useCallback(
     (d: Demande) =>
       new Promise<boolean>((resoudre) => {
-        setDemande({ ...d, repondre: resoudre });
+        // Une seule boîte à la fois : une demande encore ouverte vaut « non ».
+        setDemande((avant) => {
+          avant?.repondre(false);
+          return { ...d, repondre: resoudre };
+        });
       }),
     [],
   );

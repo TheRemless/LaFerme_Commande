@@ -7,7 +7,7 @@ export { ecartPourcent, ecartTexte, montant, nombre } from "@/components/gestion
 export { BarreEnregistrer, Champ, useFormulaire, type EtatEnvoi, type OptionsFormulaire } from "@/components/gestion/ui/Formulaire";
 export { useGardeModifications, usePeutPartir } from "@/components/gestion/ui/Garde";
 export { IconeGestion, type NomIconeGestion } from "@/components/gestion/ui/icones";
-export { useNotifier, useNotifierSiPossible, type Notification } from "@/components/gestion/ui/Notifications";
+export { useNotifier, type Notification } from "@/components/gestion/ui/Notifications";
 export { Onglets, type Onglet } from "@/components/gestion/ui/Onglets";
 export { PanneauLateral } from "@/components/gestion/ui/PanneauLateral";
 export { decalerJour, dureeJours, periodeComparaison, periodeDe, verifierPeriode, type Periode } from "@/components/gestion/ui/periodes";

@@ -12,11 +12,14 @@ export function SelecteurPeriode({
   onChange,
   maxJours = 366,
   libelle = "Période",
+  futur = false,
 }: {
   valeur: Periode;
   onChange: (p: Periode) => void;
   maxJours?: number;
   libelle?: string;
+  /** Autoriser des dates après aujourd'hui (commandes à l'avance, fermetures prévues). */
+  futur?: boolean;
 }) {
   const id = useId();
   const aujourdhui = jourGeneveDe(new Date());
@@ -57,9 +60,9 @@ export function SelecteurPeriode({
       </div>
       <div className="bo-periode-dates">
         <label htmlFor={`${id}-d`}>Du</label>
-        <input id={`${id}-d`} type="date" value={brouillon.debut} max={aujourdhui} aria-invalid={erreur ? true : undefined} onChange={(e) => proposer({ ...brouillon, debut: e.target.value })} />
+        <input id={`${id}-d`} type="date" value={brouillon.debut} max={futur ? undefined : aujourdhui} aria-invalid={erreur ? true : undefined} onChange={(e) => proposer({ ...brouillon, debut: e.target.value })} />
         <label htmlFor={`${id}-f`}>au</label>
-        <input id={`${id}-f`} type="date" value={brouillon.fin} max={aujourdhui} aria-invalid={erreur ? true : undefined} onChange={(e) => proposer({ ...brouillon, fin: e.target.value })} />
+        <input id={`${id}-f`} type="date" value={brouillon.fin} max={futur ? undefined : aujourdhui} aria-invalid={erreur ? true : undefined} onChange={(e) => proposer({ ...brouillon, fin: e.target.value })} />
       </div>
       {erreur && (
         <p id={`${id}-e`} className="bo-champ-erreur" role="alert">

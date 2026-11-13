@@ -65,7 +65,12 @@ export function useFormulaire<T extends Record<string, unknown>>(initiales: T, o
 
   // Les valeurs de départ changent (autre fiche, rechargement) : on repart d'elles.
   const cleInitiales = JSON.stringify(initiales);
+  const referenceJson = useRef(cleInitiales);
   useEffect(() => {
+    // Le parent recharge après un enregistrement et renvoie ce qu'on vient d'écrire : rien à remettre,
+    // et « Enregistré. » reste affiché.
+    if (cleInitiales === referenceJson.current) return;
+    referenceJson.current = cleInitiales;
     setValeurs(JSON.parse(cleInitiales));
     setReference(JSON.parse(cleInitiales));
     setErreurs({});
@@ -116,6 +121,7 @@ export function useFormulaire<T extends Record<string, unknown>>(initiales: T, o
         return;
       }
       setReference(valeurs);
+      referenceJson.current = JSON.stringify(valeurs);
       setEtat("enregistre");
       options.current.apres?.(r, valeurs);
     },

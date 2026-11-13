@@ -21,7 +21,9 @@ function correspond(touches: string, e: KeyboardEvent): boolean {
 
 function enSaisie(e: KeyboardEvent): boolean {
   const el = e.target as HTMLElement | null;
-  return !!el && (el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName));
+  if (!el) return false;
+  if (el.tagName === "INPUT") return !["checkbox", "radio", "button", "submit", "reset"].includes((el as HTMLInputElement).type);
+  return el.isContentEditable || ["TEXTAREA", "SELECT"].includes(el.tagName);
 }
 
 export function FournisseurRaccourcis({ children }: { children: React.ReactNode }) {
@@ -39,7 +41,10 @@ export function FournisseurRaccourcis({ children }: { children: React.ReactNode 
       if (fenetre) return;
       if (e.key === "?" && !mod) {
         e.preventDefault();
-        setVisibles([...liste.current.values()].map(({ touches, description }) => ({ touches, description })));
+        // Le dernier enregistré gagne : une touche n'apparaît qu'une fois, avec ce qu'elle fait vraiment.
+        const parTouche = new Map<string, Raccourci>();
+        for (const { touches, description } of liste.current.values()) parTouche.set(touches.toLowerCase(), { touches, description });
+        setVisibles([...parTouche.values()]);
         setAide(true);
         return;
       }

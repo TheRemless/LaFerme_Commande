@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { usePeutPartir } from "@/components/gestion/ui/Garde";
+import { PorteeGarde, usePeutPartir } from "@/components/gestion/ui/Garde";
 import { IconeGestion } from "@/components/gestion/ui/icones";
 
 // Panneau de fiche, ouvert à droite par-dessus une liste (une commande, un plat, un client).
@@ -9,7 +9,15 @@ import { IconeGestion } from "@/components/gestion/ui/icones";
 // d'où l'on vient. Avec des changements non enregistrés, il demande avant de se fermer.
 // Sur téléphone, il prend tout l'écran.
 
-export function PanneauLateral({
+export function PanneauLateral(props: Parameters<typeof Panneau>[0]) {
+  return (
+    <PorteeGarde>
+      <Panneau {...props} />
+    </PorteeGarde>
+  );
+}
+
+function Panneau({
   titre,
   sousTitre,
   onFermer,
