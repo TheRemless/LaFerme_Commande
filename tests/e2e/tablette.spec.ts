@@ -100,6 +100,8 @@ test("une commande arrive, on l'accepte, puis prête, retirée et payée", async
   // Heure en fourchette selon les réglages (« Prête entre … et … »), une seule heure à largeur 0 (vague 3).
   expect(await (await request.get(suivi)).text()).toMatch(/Prête (vers|entre)/);
 
+  // « Modifier… » : construit désactivé pour l'équipe de service (modification_par_equipe faux).
+  await expect(carte.getByRole("button", { name: "Modifier…" })).toHaveCount(0);
   await carte.getByRole("button", { name: "Prête au comptoir" }).click();
   await expect(carte).toContainText("Prête au comptoir pour");
   // Retrait payé au comptoir : un seul geste, retirée et encaissée (audit du gérant, G01).

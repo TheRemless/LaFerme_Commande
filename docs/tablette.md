@@ -234,3 +234,10 @@ Au chargement de la page, rien ne sonne pour ce qui était déjà là.
 ## Raison de l'heure réaliste (vague 3, base et texte de bo-operations)
 
 Sous « Préparation N min », en gras, la raison qui allonge les heures annoncées en ce moment : « Four : 22 pizzas en file, 42 min. Heures annoncées +25 min. » (`raisonCharge`, `chargeDuMoment`, calculés dans la route de la file, jamais dans une page publique). Rien quand rien n'allonge les heures, ce qui est le cas tant que les réglages de l'heure réaliste (`allongement_max_minutes`, débits du four et de la cuisine) restent à zéro.
+
+## « Modifier… » une commande depuis la tablette (vague 3, contrat de bo-commandes #65)
+
+Le client appelle pour corriger son téléphone, son nom ou les consignes de livraison. Bouton « Modifier… » sur la carte (à accepter, acceptée, en préparation), panneau prérempli, seuls les champs changés partent. Route `/api/tablette/modifier` sur `modifierCommande` : le client reçoit le nouveau récapitulatif par e-mail et, si les tickets sont déjà sortis, un ticket « MODIFIÉE » sort au poste du sac. L'adresse se change au back-office (recherche d'adresse et zone).
+
+- Qui : le gérant toujours ; l'équipe de service seulement si `modification_par_equipe` est vrai. **Construit désactivé** (réglage de bo-commandes, décision de Jérémy). La base revérifie.
+- Capture : `docs/rendus/vague-3/tablette/modifier-1180.png` (`scripts/tablette/modifier.mjs`, compte gérant, n'enregistre rien).
