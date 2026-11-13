@@ -51,8 +51,10 @@ export async function POST(requete: Request) {
   }
   // Remboursement qui finit plus tard (TWINT) : seul « succeeded » le rend fait, « failed » alerte le restaurant
   // (audit de sécurité 2, S2-03). Rejoué ou reçu dans le désordre : la base ne change qu'une ligne en cours.
-  // refund.created : un remboursement réussi tout de suite dont la réponse s'est perdue se rattache ici.
-  if (evenement.type === "charge.refund.updated" || evenement.type === "refund.updated" || evenement.type === "refund.created") {
+  // Réponse perdue à la création : la ligne se rattache par les metadata au changement d'état suivant. Pas
+  // refund.created : il peut arriver avant la réponse de Stripe au serveur, qui n'enverrait alors pas l'e-mail
+  // au client. Un remboursement réussi tout de suite se reprend à la relance (retrouverRemboursement).
+  if (evenement.type === "charge.refund.updated" || evenement.type === "refund.updated") {
     const refund = evenement.data.object as Stripe.Refund;
     await appliquerEtatRemboursement(refund.id, etatRemboursement(refund.status), refund.failure_reason ?? null, refund.metadata?.remboursement_id ?? null);
   }
