@@ -1,6 +1,6 @@
 # Coup de feu (vague 3, bo-operations)
 
-Un soir chargé, l'équipe durcit le service en un geste au lieu de trois boutons séparés. Tout revient seul à l'heure choisie. Migration `supabase/migrations/20261130090000_coup_de_feu.sql`, serveur `src/lib/coup-de-feu.ts`, route `src/app/api/coup-de-feu/route.ts`.
+Un soir chargé, l'équipe durcit le service en un geste au lieu de trois boutons séparés. Tout revient seul à l'heure choisie. Migration `supabase/migrations/20261130090000_coup_de_feu.sql`, serveur `src/lib/coup-de-feu.ts`, route du back-office `src/app/api/gestion/coup-de-feu/route.ts` (gérant). La tablette a sa route (`/api/tablette/coup-de-feu`, session `tablette`) sur les mêmes fonctions.
 
 ## Ce que fait le geste
 
@@ -22,9 +22,19 @@ Un soir chargé, l'équipe durcit le service en un geste au lieu de trois bouton
 
 Réglage `coup_de_feu_defaut`, marqué « proposition » : 20 minutes de retard, une heure, 2 livraisons et 2 retraits par créneau (la moitié de 3 et 4, arrondie au-dessus), livraison ouverte. L'écran les propose, l'équipe peut les changer avant de toucher le bouton.
 
-## Contrat de la route (pour la tablette et le back-office)
+## Contrat
 
-`GET /api/coup-de-feu` (équipe connectée) :
+Serveur (`src/lib/coup-de-feu.ts`), à appeler depuis une route qui a déjà vérifié la session :
+
+- `etatCoupDeFeu()` : l'état ci-dessous. Appeler `finCoupDeFeuEchue()` juste avant pour ne jamais montrer un coup de feu échu.
+- `lancerCoupDeFeu(personnel, corps)` : `{ ok: true, etat }` ou `{ ok: false, erreur }` (texte en français, à renvoyer en 422).
+- `finirCoupDeFeu(personnel)` : `{ ok, etat }`, `ok` faux si plus rien n'était en cours.
+
+Base : `lancer_coup_de_feu(p jsonb, p_personnel uuid)`, `finir_coup_de_feu(p_personnel uuid)`, `fin_coup_de_feu_echue()`, `etat_coup_de_feu()`. Les deux premières revérifient l'équipe (`service` ou `gerant`, actif).
+
+### Route du back-office
+
+`GET /api/gestion/coup-de-feu` (gérant connecté) :
 
 ```json
 {
@@ -37,7 +47,7 @@ Réglage `coup_de_feu_defaut`, marqué « proposition » : 20 minutes de retard,
 
 Pendant un coup de feu, `en_cours` vaut `{ debut, jusqua, par, applique, avant }` (dates ISO, `par` : prénom du dernier lancement).
 
-`POST /api/coup-de-feu` avec l'en-tête `Origin` du site :
+`POST /api/gestion/coup-de-feu` avec l'en-tête `Origin` du site :
 
 - `{ "action": "lancer", "retard_minutes": 20, "duree_minutes": 60, "livraison_fermee": false, "capacite_livraison": 2, "capacite_retrait": 2 }`. Capacités absentes ou `null` : inchangées. Au moins un changement. Réponse : l'état ci-dessus avec `enregistre: true`. Erreur de saisie : 422 et `erreur` en français.
 - `{ "action": "finir" }`. Réponse : l'état, `enregistre: true`, ou `deja: true` si plus rien n'était en cours (autre appareil, fin automatique).
@@ -50,6 +60,6 @@ Le code marche avant la migration : la surveillance ignore l'absence de `fin_cou
 
 ## Pas encore fait
 
-- Écran de la tablette (session `tablette`) et du back-office (après la coque de `bo-socle`) : bouton, valeurs proposées modifiables, compte à rebours, « Fin du coup de feu ».
+- Route et écran de la tablette (session `tablette`), écran du back-office (après la coque de `bo-socle`) : bouton, valeurs proposées modifiables, compte à rebours, « Fin du coup de feu ».
 - Réglage des valeurs proposées au back-office.
 - Délai par poste (pizza, cuisine) : le retard reste commun aux deux postes.

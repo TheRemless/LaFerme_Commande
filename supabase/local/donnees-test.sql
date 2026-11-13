@@ -26,7 +26,7 @@ insert into personnel (email, nom, role) values
 
 -- Coup de feu (tests/e2e/coup-de-feu.spec.ts, vague 3) : un compte par projet Playwright.
 insert into personnel (email, nom, role) values
-  ('cdf-bureau@laferme.test', 'Coup de feu bureau', 'service'),
-  ('cdf-mobile@laferme.test', 'Coup de feu mobile', 'service'),
-  ('cdf-livreur-bureau@laferme.test', 'Livreur bureau', 'livreur'),
-  ('cdf-livreur-mobile@laferme.test', 'Livreur mobile', 'livreur');
+  ('cdf-bureau@laferme.test', 'Coup de feu bureau', 'gerant'),
+  ('cdf-mobile@laferme.test', 'Coup de feu mobile', 'gerant'),
+  ('cdf-service-bureau@laferme.test', 'Service bureau', 'service'),
+  ('cdf-service-mobile@laferme.test', 'Service mobile', 'service');
