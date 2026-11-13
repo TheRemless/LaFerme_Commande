@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { adresseDuCompte, codeDuPersonnel, SITE } from "./site";
+import { adresseDuCompte, codeDuPersonnel, passage, SITE } from "./site";
 
 // Vague 3, bo-commandes : rubrique Clients (invités compris) et réclamations suivies comme des dossiers.
 test.describe.configure({ mode: "serial" });
@@ -21,12 +21,12 @@ async function connecter(page: Page, adresse: string) {
 test.beforeAll(async ({ browser }, info) => {
   gestion = await (await browser.newContext({ baseURL: SITE })).newPage();
   await connecter(gestion, `clients-${info.project.name}@laferme.test`);
-  const prenom = `Bocli${info.project.name}${Date.now() % 100000}`;
+  const prenom = `Bocli${info.project.name}${passage()}`;
   email = `${prenom.toLowerCase()}@laferme.test`;
   const rep = await gestion.request.post("/api/commandes", {
     headers: { Origin: SITE },
     data: {
-      cle: `bo-cli-${info.project.name}-${Date.now()}`,
+      cle: `bo-cli-${info.project.name}-${passage()}`,
       mode: "retrait",
       moyen: "comptoir",
       quand: { type: "asap" },

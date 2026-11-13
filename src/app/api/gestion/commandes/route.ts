@@ -30,6 +30,10 @@ export async function POST(requete: Request) {
   if (!c) return refus("Requête illisible.", 400);
   const sansCache = { headers: { "Cache-Control": "no-store" } };
 
+  if (c.action === "options_filtres") {
+    return NextResponse.json(await fonctionSql("options_filtres_commandes", {}), sansCache);
+  }
+
   if (c.action === "liste_page") {
     const f = filtresListe(c);
     if (!f.ok) return refus(f.erreur);
