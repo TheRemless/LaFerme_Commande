@@ -104,7 +104,25 @@ test("coup de feu, services d'une zone, zone fermée", async ({ page }, info) =>
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.screenshot({ path: `${CAPTURES}/horaires-coup-de-feu-375.png` });
 
+    // Semaine type (onglet Horaires) : ouvrir le dimanche midi (fermé au départ), puis le refermer.
+    await page.setViewportSize({ width: 1024, height: 900 });
+    await page.getByRole("tab", { name: "Horaires" }).click();
+    const semaine = page.locator(".bo-semaine");
+    await semaine.getByRole("button", { name: "Ouvrir le dimanche midi chaque semaine" }).click();
+    await semaine.getByRole("button", { name: "Ouvrir chaque semaine" }).click();
+    await expect(page.getByText(/^Ouvert chaque semaine : le dimanche midi, de \d+h\d{2} à \d+h\d{2}\.$/)).toBeVisible();
+    await expect(semaine.getByRole("button", { name: "Fermer le dimanche midi chaque semaine" })).toBeVisible();
+    const axeSemaine = await new AxeBuilder({ page }).include(".bo-contenu").analyze();
+    expect(axeSemaine.violations.map((v) => `${v.id} : ${v.nodes.length}`)).toEqual([]);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({ path: `${CAPTURES}/horaires-semaine-type-1024.png` });
+    await semaine.getByRole("button", { name: "Fermer le dimanche midi chaque semaine" }).click();
+    await expect(page.getByRole("dialog")).toContainText("Fermer le dimanche midi, chaque semaine ?");
+    await page.getByRole("dialog").getByRole("button", { name: "Fermer chaque semaine" }).click();
+    await expect(semaine.getByRole("button", { name: "Ouvrir le dimanche midi chaque semaine" })).toBeVisible();
+
     // Fin du coup de feu, réouverture et retour aux deux services.
+    await page.getByRole("tab", { name: "Ce soir" }).click();
     await page.setViewportSize({ width: 1024, height: 900 });
     await cdf.getByRole("button", { name: "Finir le coup de feu" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Finir le coup de feu" }).click();
@@ -119,5 +137,6 @@ test("coup de feu, services d'une zone, zone fermée", async ({ page }, info) =>
     await poster("/api/gestion/coup-de-feu", { action: "finir" });
     await poster("/api/gestion/service", { type: "zone-rouvrir", numero: 3 });
     await poster("/api/gestion/service", { type: "zone-services", numero: 3, services: ["midi", "soir"] });
+    await poster("/api/gestion/service", { type: "semaine-fermer", jour: 7, service: "midi" });
   }
 });
