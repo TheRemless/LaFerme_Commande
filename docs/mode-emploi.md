@@ -199,6 +199,10 @@ La carte s'ouvre en « Liste » : un plat par ligne, ce qui reste à compléter,
 - « Nouvelle adresse » et « Désactiver » demandent une confirmation, car l'imprimante s'arrête aussitôt. Appeler le numéro ci-dessus avant d'y toucher.
 - « Alerte de commande en attente » règle après combien de minutes un e-mail part quand une commande n'est pas acceptée.
 
+### Promotions
+
+- Codes promo, désactivés tant que l'offre n'est pas décidée par Jérémy : créer un code par support (flyer, autocollant), l'activer, voir ce qu'il a rapporté. Détail : [codes-promo.md](codes-promo.md#écran-promotions-back-office).
+
 ### Importer le tableau
 
 - Remplir seulement les cases jaunes de `validation-carte.xlsx`. Prix en chiffres (18 ou 18.50, sans « .- » ni « CHF »). Commandable « oui » ou « non ».

@@ -164,3 +164,19 @@
 .bo-ligne-champs-haut .bo-champ {
   max-width: 28ch;
 }
+
+/* Promotions : l'état de l'interrupteur général, en tête, cadre d'encre (pas de couleur). */
+.bo-promo-interrupteur {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bo-surface);
+  border: 2px solid var(--bo-texte);
+  border-radius: var(--bo-rayon);
+}
+.bo-promo-interrupteur p {
+  margin: 0;
+}
