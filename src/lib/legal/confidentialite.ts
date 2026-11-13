@@ -16,6 +16,7 @@ export const CONFIDENTIALITE: PageLegale = {
       contenu: [
         [
           "Pour une commande : prénom, nom, téléphone, e-mail, adresse de livraison et ses compléments (étage, sonnette, code, instructions), plats choisis, notes, heure et montant.",
+          "Si vous la signalez, une allergie ou une intolérance pour toute la commande. C'est une donnée de santé. Elle sert à la cuisine et n'est jamais recopiée dans votre compte ni dans un e-mail.",
           "Pour un compte client, si vous en créez un : e-mail, coordonnées, adresses de livraison enregistrées et historique des commandes.",
           "Pour la sécurité de la connexion : la date des connexions et un court extrait chiffré de l'adresse IP, sans votre adresse IP complète.",
           "Le paiement est traité par Stripe. Le site ne reçoit ni ne garde vos données de carte.",
@@ -55,6 +56,7 @@ export const CONFIDENTIALITE: PageLegale = {
         [
           "Commandes : [durée à fixer avec la fiduciaire pour la part comptable].",
           "Compte client : jusqu'à sa suppression, que vous pouvez faire vous-même dans votre espace. Les commandes déjà passées restent alors dans la comptabilité, sans lien avec un compte.",
+          "Allergie ou intolérance : effacée 30 jours après la commande, sur la commande et sur les tickets de cuisine. Elle reste au plus 30 jours de plus dans les copies de sauvegarde chiffrées.",
           "Codes de connexion : valables 10 minutes, effacés ensuite lors du nettoyage régulier de la base. Sessions : valables 30 jours au plus. Journal des connexions : effacé après 6 mois, lors du même nettoyage.",
         ],
       ],
