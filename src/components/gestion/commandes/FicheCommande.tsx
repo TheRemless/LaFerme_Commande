@@ -16,6 +16,7 @@ import {
   Champ,
   Chargement,
   Chronologie,
+  demanderOuverture,
   EtatErreur,
   montant,
   Onglets,
@@ -23,6 +24,7 @@ import {
   useFormulaire,
   useNotifier,
 } from "@/components/gestion/ui";
+import Link from "next/link";
 import { nouvelleCle } from "@/lib/cle";
 import { jourGeneveDe } from "@/lib/heures";
 import { depuisHeureGeneve } from "@/lib/service";
@@ -125,6 +127,13 @@ type Fiche = {
     derniere_le: string;
   } | null;
   chronologie: Evenement[];
+  // Plats offerts en attente pour ce client (D3), vides tant que le réglage est éteint.
+  plats_offerts?: {
+    id: string;
+    detail: string;
+    cree_par: string;
+    cree_le: string;
+  }[];
   reclamations?: {
     id: string;
     type: string;
@@ -665,8 +674,15 @@ function Gestes({
     .filter((r) => r.statut === "fait" || r.statut === "en_cours")
     .reduce((t, r) => t + r.montant_centimes, 0);
   const reste = fiche.total_centimes - reserve;
+  const sansGeste = (fiche.reclamations ?? []).filter(
+    (r) => !r.geste && r.statut !== "close",
+  );
   return (
     <div className="bo-fiche-sections">
+      {(fiche.plats_offerts ?? []).length > 0 &&
+        !["refusee", "annulee"].includes(fiche.statut) && (
+          <PlatsOfferts fiche={fiche} apres={apres} />
+        )}
       {HEURE_MODIFIABLE.includes(fiche.statut) && (
         <ChangerHeure
           key={fiche.heure_prevue ?? "asap"}
@@ -683,6 +699,20 @@ function Gestes({
         <p className="bo-champ-aide">
           Une commande terminée ou annulée ne se modifie plus.
         </p>
+      )}
+      {sansGeste.length > 0 && (
+        <section aria-labelledby="fc-avant-remb">
+          <h3 id="fc-avant-remb">Avant de rembourser</h3>
+          <p className="bo-champ-aide">
+            Une réclamation attend son geste. Notez-le sur le dossier avant de
+            rembourser.
+          </p>
+          <DossierReclamation
+            id={sansGeste[0].id}
+            geste={null}
+            statut={sansGeste[0].statut}
+          />
+        </section>
       )}
       {REMBOURSABLE.includes(fiche.statut) &&
       reste > 0 &&
@@ -1142,6 +1172,66 @@ function ChangerHeure({
   );
 }
 
+// Un plat offert après une réclamation attend la commande suivante du client : l'équipe le met dans la commande,
+// puis le marque ici (il ne s'offre qu'une fois).
+function PlatsOfferts({
+  fiche,
+  apres,
+}: {
+  fiche: Fiche;
+  apres: () => Promise<void>;
+}) {
+  const notifier = useNotifier();
+  const confirmer = useConfirmer();
+  const [envoi, setEnvoi] = useState(false);
+  async function offrir(g: { id: string; detail: string }) {
+    const ok = await confirmer({
+      titre: "Offert dans cette commande ?",
+      texte: `« ${g.detail} » est noté comme offert dans la commande N° ${fiche.numero}. Il ne sera plus proposé.`,
+      oui: "C'est offert",
+    });
+    if (!ok) return;
+    setEnvoi(true);
+    const r = await poster("/api/gestion/commandes", {
+      action: "offrir",
+      id: fiche.id,
+      geste: g.id,
+    });
+    setEnvoi(false);
+    notifier({
+      texte: r.ok ? "Plat offert noté." : messageDe(r, "Pas noté."),
+      ton: r.ok ? "succes" : "erreur",
+    });
+    if (r.ok) await apres();
+  }
+  return (
+    <section aria-labelledby="fc-offert">
+      <h3 id="fc-offert">Offert à ce client</h3>
+      <ul className="bo-fiche-liste">
+        {(fiche.plats_offerts ?? []).map((g) => (
+          <li key={g.id}>
+            <p>
+              <strong>{g.detail}</strong>
+              <span className="bo-champ-aide">
+                {" "}
+                (promis par {g.cree_par}, {jourCourt(g.cree_le)})
+              </span>
+            </p>
+            <button
+              type="button"
+              className="bo-bouton bo-bouton-second bo-bouton-petit"
+              disabled={envoi}
+              onClick={() => offrir(g)}
+            >
+              Offert dans cette commande
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function Reimprimer({
   fiche,
   apres,
@@ -1328,6 +1418,7 @@ function Reclamations({
                 , {ETAT_RECLAMATION[r.statut] ?? r.statut}
               </p>
               <p className="bo-note-texte">{r.description}</p>
+              <DossierReclamation id={r.id} geste={r.geste} statut={r.statut} />
               <p className="bo-champ-aide">
                 {r.cree_par === "client"
                   ? "Envoyée par le client depuis son suivi"
@@ -1339,6 +1430,27 @@ function Reclamations({
         </ul>
       )}
     </div>
+  );
+}
+
+// Le geste se note sur le dossier (rubrique Clients, onglet Réclamations) : plat offert ou réduction d'abord.
+function DossierReclamation({
+  id,
+  geste,
+  statut,
+}: {
+  id: string;
+  geste: string | null;
+  statut: string;
+}) {
+  return (
+    <Link
+      href="/gestion/clients"
+      className="bo-bouton bo-bouton-discret bo-bouton-petit"
+      onClick={() => demanderOuverture({ type: "reclamation", cle: id })}
+    >
+      {geste || statut === "close" ? "Ouvrir le dossier" : "Noter un geste"}
+    </Link>
   );
 }
 
