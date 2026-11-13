@@ -241,3 +241,14 @@ Le client appelle pour corriger son téléphone, son nom ou les consignes de liv
 
 - Qui : le gérant toujours ; l'équipe de service seulement si `modification_par_equipe` est vrai. **Construit désactivé** (réglage de bo-commandes, décision de Jérémy). La base revérifie.
 - Capture : `docs/rendus/vague-3/tablette/modifier-1180.png` (`scripts/tablette/modifier.mjs`, compte gérant, n'enregistre rien).
+
+## Connexion d'un livreur par code (vague 3, D13 point 3 de produit-gestion, construit désactivé)
+
+Zéro e-mail : le gérant ou un responsable touche « Code de connexion » à côté du livreur (onglet Livraisons), la tablette affiche 8 chiffres en grand, valables 10 minutes et une seule fois. Sur `/livreur`, « J'ai un code du restaurant » : le livreur les tape et sa session s'ouvre pour la soirée (12 heures, comme aujourd'hui).
+
+- Migration `20261203150000_code_livreur.sql` : réglage `connexion_livreur_par_code` (faux, proposition), table `codes_livreur` (code en empreinte HMAC seulement), `creer_code_livreur` (gérant ou responsable actif, livreur actif, journalisé ; un nouveau code annule le précédent), `utiliser_code_livreur` (même frein par connexion que la connexion de l'équipe, `attente_limite('echec_ip')` ; ouvre une session de livreur ordinaire, que « Déconnecter un téléphone perdu » coupe comme les autres).
+- Serveur `src/lib/personnel/code-livreur.ts`, routes `/api/tablette/code-livreur` (GET `{ actif, autorise }`, POST `{ livreur }`) et `/api/personnel/code-livreur` (POST `{ code }`, contrôle d'origine, cookie `HttpOnly` de 12 heures).
+- Relecture de sécurité de qualite (13.11.2026, `revue-securite-pr204.md`) : un responsable ne crée un code que si son rôle est ouvert (droit « deconnecter_appareil » relu par `droit_personnel`, à la création comme pour afficher le bouton). Frein global en plus du frein par connexion : au-delà de 100 codes faux en 10 minutes, toutes connexions confondues, plus aucun code n'est accepté jusqu'à ce que la fenêtre passe, et le restaurant reçoit une alerte (une fois, au 100e).
+- Frein par connexion partagé avec la connexion de l'équipe (choix gardé) : un livreur qui se trompe plusieurs fois fait attendre la connexion suivante sur le Wi-Fi du restaurant, puisque tous les appareils y sortent par la même adresse.
+- **Pour l'ouvrir** (décision de Jérémy, après la relecture de sécurité de qualite) : `update reglages set valeur = 'true', proposition = false where cle = 'connexion_livreur_par_code';`
+- Fermé : aucun bouton sur la tablette, rien de plus sur `/livreur`, et les deux fonctions refusent.

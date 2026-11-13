@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { CodeLivreur } from "./CodeLivreur";
 import type { DonneesLivraisons, LivraisonTablette, LivreurTablette } from "@/lib/livreur";
 import type { CommandeTablette } from "@/lib/tablette";
 import { heureDe as heure } from "@/lib/heures";
@@ -39,6 +40,14 @@ export function OngletLivraisons({
   agir: (corps: Record<string, unknown>) => Promise<void>;
 }) {
   const [envoi, setEnvoi] = useState(false);
+  // « Code de connexion » des livreurs : gérant ou responsable, réglage connexion_livreur_par_code ouvert.
+  const [codeAutorise, setCodeAutorise] = useState(false);
+  useEffect(() => {
+    fetch("/api/tablette/code-livreur", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setCodeAutorise(d?.autorise === true))
+      .catch(() => undefined);
+  }, []);
   async function faire(corps: Record<string, unknown>) {
     setEnvoi(true);
     await agir(corps);
@@ -101,6 +110,7 @@ export function OngletLivraisons({
             commandeDe={commandeDe}
             envoi={envoi}
             faire={faire}
+            codeAutorise={codeAutorise}
           />
         ))}
       </div>
@@ -122,6 +132,7 @@ function Tournee({
   commandeDe,
   envoi,
   faire,
+  codeAutorise = false,
 }: {
   livreur: LivreurTablette;
   autres: LivreurTablette[];
@@ -129,6 +140,7 @@ function Tournee({
   commandeDe: Map<string, CommandeTablette>;
   envoi: boolean;
   faire: (corps: Record<string, unknown>) => Promise<void>;
+  codeAutorise?: boolean;
 }) {
   const [confirmer, setConfirmer] = useState<string | null>(null);
   const actives = livraisons.filter((x) => EN_COURS.includes(x.commande_statut));
@@ -151,6 +163,7 @@ function Tournee({
             {actives.some((x) => x.ordre_manuel) ? "Reprendre l'ordre proposé" : "Recalculer l'ordre"}
           </button>
         )}
+        {codeAutorise && livreur.actif && <CodeLivreur livreur={livreur.id} nom={livreur.nom} />}
       </header>
 
       {annulees.map((x) => (
