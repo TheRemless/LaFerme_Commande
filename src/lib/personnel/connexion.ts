@@ -2,6 +2,7 @@ import "server-only";
 import { after } from "next/server";
 import { courrielBlocagePersonnel, courrielCode } from "@/lib/courriel/modeles";
 import { courrielConfigure, envoyerCodeParCourriel, envoyerParSmtp } from "@/lib/courriel/envoi";
+import { QuotaAtteint } from "@/lib/courriel/quota";
 import { enregistrerCourriel, fonctionSql } from "@/lib/db/serveur";
 import { codeAffichable, refusSansCourriel, type ResultatDemandeCode, type ResultatVerification } from "@/lib/comptes/connexion";
 import { empreinte, ipCourt, nouveauCode, nouveauJeton } from "@/lib/comptes/securite";
@@ -36,7 +37,17 @@ async function demander(email: string, ip: string): Promise<ResultatDemandeCode>
     p_ip_court: ipCourt(ip),
   });
   if (attente > 0) return { statut: "attente", attente };
-  // Adresse inconnue : même réponse, aucun courriel (on n'écrit pas à quelqu'un qui n'est pas de l'équipe).
+  // -3 : plafond global des codes de l'équipe atteint pour la première fois en 24 heures (réglage
+  // plafond_codes_personnel_jour, désactivé tant que Jérémy n'a pas donné la valeur). On prévient le restaurant.
+  if (attente === -3)
+    await apresReponse(
+      alerter("Codes de connexion de l'équipe : plafond du jour atteint", [
+        "Le site ne crée plus de code de connexion pour l'équipe jusqu'à demain.",
+        "Les appareils déjà connectés restent connectés.",
+        "Si personne de l'équipe n'a demandé autant de codes, quelqu'un connaît des adresses de l'équipe et essaie d'entrer.",
+      ]).catch((e) => console.error(`Alerte de plafond non envoyée : ${e instanceof Error ? e.message : e}`)),
+    );
+  // Adresse inconnue ou plafond atteint : même réponse, aucun courriel (on n'écrit pas à quelqu'un qui n'est pas de l'équipe).
   if (attente < 0) return { statut: "envoye" };
   const courriel = { destinataire: email, ...courrielCode(code) };
   if (courrielConfigure()) {
@@ -87,12 +98,24 @@ async function prevenirBlocage(email: string, jusquA: string): Promise<void> {
   const quand = `${jourTexte(fin.date)} à ${heureTexte(fin.minutes)}`;
   const m = courrielBlocagePersonnel(quand);
   const smtp = courrielConfigure();
-  if (smtp) await envoyerParSmtp(email, m.sujet, m.texte, m.html);
-  await enregistrerCourriel({ commande_id: null, destinataire: email, sujet: m.sujet, texte: m.texte, html: m.html, fournisseur: smtp ? "smtp" : "doublure" });
+  // Limite d'envoi du jour atteinte : le membre ne reçoit rien, mais la copie et l'alerte au restaurant
+  // partent quand même (l'alerte a une priorité plus haute que le courriel de blocage).
+  let parti = !smtp;
+  if (smtp) {
+    try {
+      await envoyerParSmtp(email, m.sujet, m.texte, m.html, { type: "blocage" });
+      parti = true;
+    } catch (e) {
+      if (!(e instanceof QuotaAtteint)) throw e;
+      console.error(e.message);
+    }
+  }
+  if (parti) await enregistrerCourriel({ commande_id: null, destinataire: email, sujet: m.sujet, texte: m.texte, html: m.html, fournisseur: smtp ? "smtp" : "doublure" });
   await alerter("Adresse de l'équipe bloquée 24 heures, La Ferme", [
     `L'adresse ${email} a reçu 15 codes faux sur la tablette ou le back-office.`,
     `La connexion par code est bloquée jusqu'au ${quand}. Les appareils déjà connectés restent connectés.`,
     "Si ce n'était pas ce membre de l'équipe, quelqu'un connaît son adresse et essaie d'entrer.",
+    ...(parti ? [] : ["Le membre n'a pas reçu d'e-mail : la limite d'envoi du jour est atteinte. Prévenez-le."]),
   ]);
 }
 
