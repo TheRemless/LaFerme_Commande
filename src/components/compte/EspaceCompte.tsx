@@ -218,6 +218,11 @@ export function EspaceCompte({ donnees, preversion }: { donnees: DonneesEspace; 
                       <Link className="lien" href={`/suivi/${c.jeton_suivi}`}>
                         Suivre la commande
                       </Link>
+                      {c.statut !== "refusee" && (
+                        <Link className="lien" href={`/suivi/${c.jeton_suivi}/recu`}>
+                          Reçu
+                        </Link>
+                      )}
                     </div>
                   </div>
                 </li>

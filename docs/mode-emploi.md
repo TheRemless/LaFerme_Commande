@@ -124,8 +124,6 @@ Avec TWINT, Stripe confirme parfois un remboursement plus tard. La fiche le mont
 
 Le client voit chaque remboursement sur sa page de suivi, avec le montant et l'état (remboursé, en cours, pas abouti), sans le motif. Un remboursement qui n'a pas abouti lui dit d'appeler le restaurant. Une somme déduite au comptoir y figure aussi, avec le reste à payer. Quand l'heure prévue est dépassée de 10 minutes, la page lui dit que le restaurant a du retard et lui donne le numéro.
 
-Une commande « dès que possible » pas encore acceptée 10 minutes après le paiement, pendant le service : la page de suivi dit au client que le restaurant n'a pas encore confirmé, qu'il est prévenu, et lui donne le numéro. Le client lit « annulée » (jamais « refusée ») et, pour un remboursement, les délais habituels : quelques minutes avec TWINT, de 5 à 10 jours ouvrables avec une carte.
-
 Client absent à la livraison : la commande est close sans remboursement, avec le motif « Client absent à la livraison. » et une alerte par e-mail au gérant. Ouvrir la commande et décider au cas par cas (rien, une partie ou tout).
 
 ### Équipe

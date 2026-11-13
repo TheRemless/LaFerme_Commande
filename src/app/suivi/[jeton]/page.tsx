@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EnTete } from "@/components/EnTete";
 import { Icone } from "@/components/Icone";
@@ -15,6 +16,7 @@ import { commandeParJeton } from "@/lib/db/serveur";
 import { nomClient } from "@/lib/nom-plat";
 import { prixChf, prixCourt } from "@/lib/prix";
 import { PRIVE } from "@/lib/site";
+import { recuDisponible } from "@/lib/recu";
 import { attenteConfirmation, enRetard, libellePaiement, PHRASE_ATTENTE, PHRASE_RETARD, phraseRemboursement, remboursementsSuivi, resteComptoir } from "@/lib/suivi";
 import { MOTIF_CLIENT_ABSENT } from "@/lib/livraisons-textes";
 import { MOTIF_DEMANDE_CLIENT } from "@/lib/motifs";
@@ -209,6 +211,13 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
             <p>
               Une question ? <a href="tel:+41227921689">022 792 16 89</a>
             </p>
+            {recuDisponible(c) && (
+              <p>
+                <Link className="lien" href={`/suivi/${c.jeton_suivi}/recu`}>
+                  Reçu avec TVA
+                </Link>
+              </p>
+            )}
           </section>
           {process.env.CONTEXTE_DEPLOIEMENT !== "production" && (
             <p className="suivi-info">

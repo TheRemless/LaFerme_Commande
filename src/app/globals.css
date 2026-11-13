@@ -3575,3 +3575,76 @@ body.fiche-ouverte {
   font-weight: 700;
   border-left: 6px solid var(--alerte-trait);
 }
+
+/* Reçu avec TVA (vague 3, client-compte) : papier blanc, encre, lisible à l'impression. */
+.page-recu {
+  min-height: calc(100vh - var(--hauteur-tete));
+  padding: 24px 0 48px;
+  background: var(--beton);
+}
+.recu {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 20px max(16px, env(safe-area-inset-left));
+  color: var(--encre);
+  background: var(--blanc);
+  border-radius: 4px;
+}
+.recu h1 {
+  font-size: 28px;
+}
+.recu-vendeur,
+.recu-meta {
+  margin: 12px 0;
+}
+.recu-table {
+  width: 100%;
+  margin: 12px 0;
+  border-collapse: collapse;
+}
+.recu-table th,
+.recu-table td {
+  padding: 8px 0;
+  text-align: left;
+  vertical-align: top;
+  border-top: 1px solid var(--filet);
+}
+.recu-table td:last-child,
+.recu-table tfoot td {
+  text-align: right;
+  white-space: nowrap;
+}
+.recu-table thead th:last-child {
+  text-align: right;
+}
+.recu-detail {
+  display: block;
+  color: var(--encre-douce);
+}
+.recu-total th,
+.recu-total td {
+  font-size: 18px;
+  font-weight: 700;
+}
+.recu-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  margin-top: 20px;
+}
+@media print {
+  .page-recu {
+    padding: 0;
+    background: var(--blanc);
+  }
+  .recu {
+    max-width: none;
+    padding: 0;
+  }
+  .tete,
+  .pied,
+  .recu-actions {
+    display: none !important;
+  }
+}

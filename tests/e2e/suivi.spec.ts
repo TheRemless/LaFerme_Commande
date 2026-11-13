@@ -93,3 +93,32 @@ test("remboursement partiel : visible au suivi, puis son échec chez Stripe", as
   expect(await petit.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
   await petit.close();
 });
+
+test("reçu avec TVA : vendeur, numéro de TVA, plats et TVA, sans données du client", async ({ browser }, info) => {
+  const prenom = `Recu${info.project.name}`;
+  const { jeton } = await commandeRetireePayee(prenom);
+  const client = await browser.newPage({ baseURL: SITE, viewport: { width: 375, height: 812 } });
+  await client.goto(`/suivi/${jeton}`);
+  await client.getByRole("link", { name: "Reçu avec TVA" }).click();
+  await expect(client).toHaveURL(new RegExp(`/suivi/${jeton}/recu$`));
+  const recu = client.locator(".recu");
+  await expect(recu.getByRole("heading", { name: /^Reçu, commande \d+$/ })).toBeVisible();
+  await expect(recu).toContainText("Restaurant La Ferme Sàrl");
+  await expect(recu).toContainText("TVA CHE-103.250.692 TVA");
+  await expect(recu).toContainText("2 × Margherita");
+  await expect(recu.locator(".recu-total")).toContainText("Total");
+  await expect(recu).toContainText(/dont TVA \d+,?\d* %/);
+  await expect(recu).toContainText("Payé en ligne.");
+  // Ni nom de famille, ni téléphone, ni e-mail.
+  await expect(recu).not.toContainText("079 000 00 00");
+  await expect(recu).not.toContainText(`${prenom.toLowerCase()}@laferme.test`);
+  await expect(recu).not.toContainText("Test");
+  await client.screenshot({ path: `${RENDUS}/recu-375.png`, fullPage: true });
+  await client.close();
+  const petit = await browser.newPage({ baseURL: SITE, viewport: { width: 320, height: 700 } });
+  await petit.goto(`/suivi/${jeton}/recu`);
+  await expect(petit.locator(".recu h1")).toBeVisible();
+  expect(await petit.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+  await petit.screenshot({ path: `${RENDUS}/recu-320.png`, fullPage: true });
+  await petit.close();
+});
