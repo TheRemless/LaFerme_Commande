@@ -27,13 +27,15 @@ describe("réglages généraux", () => {
       annulation_client_active: false,
       plats_populaires_actifs: false,
       suggestion_panier_active: false,
-      rythme: { debit_pizza_quart_heure: 0, debit_cuisine_quart_heure: 0, allongement_max_minutes: 45, fourchette_livraison_minutes: 15, fourchette_retrait_minutes: 10, livraisons_par_livreur_heure: 0 },
+      rythme: { debit_pizza_quart_heure: 15, debit_cuisine_quart_heure: 0, allongement_max_minutes: 45, fourchette_livraison_minutes: 15, fourchette_retrait_minutes: 10, livraisons_par_livreur_heure: 0 },
       interrupteurs: expect.arrayContaining([
         expect.objectContaining({ cle: "annulation_client_active", valeur: false }),
         expect.objectContaining({ cle: "plats_populaires_actifs", valeur: false }),
         expect.objectContaining({ cle: "suggestion_panier_active", valeur: false }),
         expect.objectContaining({ cle: "couverts_actifs", libelle: "Proposer couverts et serviettes au paiement", valeur: false }),
         expect.objectContaining({ cle: "prenom_par_ligne_actif", valeur: false }),
+        // Case du bloc Équipe (20261213140000) ; la valeur est posée en production par le chef.
+        expect.objectContaining({ cle: "connexion_livreur_par_code", valeur: false }),
       ]),
     });
   });

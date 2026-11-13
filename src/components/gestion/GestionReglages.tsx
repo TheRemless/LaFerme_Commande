@@ -59,7 +59,7 @@ const RYTHME: {
   {
     cle: "debit_pizza_quart_heure",
     libelle: "Pizzas que le four sort en 15 minutes",
-    aide: "0 : le four n'est pas compté. Au départ 0, en attente du chiffre de Jérémy.",
+    aide: "15 : le chiffre de Jérémy (5 pizzas toutes les 5 minutes). 0 : le four n'est pas compté.",
     min: 0,
     max: 100,
   },
@@ -116,6 +116,9 @@ function maintenant(charge: Charge): string {
       : "Livraisons pas comptées (débit à 0).";
   return `${cuisine} ${livraison}`;
 }
+
+// Interrupteurs de l'équipe (pas des clients) : bloc « Équipe » à part (mise en situation, M3).
+const EQUIPE = ["connexion_livreur_par_code"];
 
 // Valeurs du formulaire : du texte pour les champs à saisir, comme l'écran les montre.
 type Valeurs = {
@@ -361,10 +364,10 @@ function Formulaire({
         )}
       </fieldset>
 
-      {generaux.interrupteurs && generaux.interrupteurs.length > 0 && (
+      {generaux.interrupteurs && generaux.interrupteurs.some((i) => !EQUIPE.includes(i.cle)) && (
         <fieldset className="bo-reg-groupe">
           <legend>Ce que le site propose aux clients</legend>
-          {generaux.interrupteurs.map((i) => (
+          {generaux.interrupteurs.filter((i) => !EQUIPE.includes(i.cle)).map((i) => (
             <div key={i.cle} className="bo-reg-case">
               <label>
                 <input
@@ -374,6 +377,21 @@ function Formulaire({
                     f.changer("oui", { ...v.oui, [i.cle]: e.target.checked })
                   }
                 />
+                <span>{i.libelle}</span>
+              </label>
+              {i.aide && <p className="aide">{i.aide}</p>}
+            </div>
+          ))}
+        </fieldset>
+      )}
+
+      {generaux.interrupteurs && generaux.interrupteurs.some((i) => EQUIPE.includes(i.cle)) && (
+        <fieldset className="bo-reg-groupe">
+          <legend>Équipe</legend>
+          {generaux.interrupteurs.filter((i) => EQUIPE.includes(i.cle)).map((i) => (
+            <div key={i.cle} className="bo-reg-case">
+              <label>
+                <input type="checkbox" checked={v.oui[i.cle] ?? false} onChange={(e) => f.changer("oui", { ...v.oui, [i.cle]: e.target.checked })} />
                 <span>{i.libelle}</span>
               </label>
               {i.aide && <p className="aide">{i.aide}</p>}

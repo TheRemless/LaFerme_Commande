@@ -83,3 +83,11 @@ Le gérant ne réglait que l'adresse qui reçoit les alertes. Il choisit désorm
 - Gérant seulement, journalisé (objet `type_alerte`). Route `/api/gestion/service` `{ type: "type-alerte", cle, actif }`.
 - Tests : `tests/unit/types-alertes-sql.test.ts`, `types-alertes.test.ts`, `tests/e2e/gestion-reglages.spec.ts`.
 
+## Mise en situation (13.11.2026)
+
+Manques relevés par `produit-gestion`, migration `20261213140000_mise_en_situation_ops.sql`.
+
+- **Connexion des livreurs par code (M3)** : Jérémy l'a voulue ouverte au lancement ; le chef a posé `connexion_livreur_par_code` à vrai en production le 13.11.2026. Le réglage devient une case du nouveau bloc « Équipe » de Réglages généraux (déclarée dans `interrupteurs_gestion`). La migration ne touche pas sa valeur. Le gérant ou le responsable touche « Code de connexion » à côté du livreur sur la tablette (onglet Livraisons). Le code fait 8 chiffres et vaut 10 minutes ; le livreur le tape sur son téléphone.
+- **Adresse des alertes vide (M10)** : tant que `destinataireAlertes()` ne donne rien (« E-mail qui reçoit les alertes » vide et variable d’installation `ALERTE_EMAIL` absente, même règle que la Mise en route), l'accueil du back-office affiche « Aucune adresse ne reçoit les alertes », avec le lien vers les réglages (`src/lib/adresse-alertes.ts`, branché comme « Aucun livreur prévu »). La rubrique Mise en route de `bo-socle` a la même étape.
+- **Four (M6)** : `debit_pizza_quart_heure` = 15 dans la base locale aussi (posé en production par le chef). La migration ne change que la valeur 0. L'aide de l'écran ne dit plus « en attente du chiffre de Jérémy » pour le four. Cuisine et livreurs restent à 0, à décider.
+

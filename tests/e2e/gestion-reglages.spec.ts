@@ -31,9 +31,13 @@ test("réglages généraux : e-mail des alertes, erreur de saisie, accessibilit�
     // Interrupteurs de client-commande : présents et éteints (les allumer changerait la carte des autres tests).
     await expect(page.getByLabel("« Les plus commandés » en tête de la carte")).not.toBeChecked();
     await expect(page.getByLabel("Proposer une boisson ou un dessert au panier")).not.toBeChecked();
-    // Rythme de la cuisine : débits à 0 au départ, la file n'est pas comptée.
-    await expect(page.getByLabel("Pizzas que le four sort en 15 minutes")).toHaveValue("0");
-    await expect(page.getByText(/^En ce moment : la file n'est pas comptée \(débits à 0\)\. Livraisons pas comptées/)).toBeVisible();
+    // Rythme de la cuisine : le four à 15, cuisine et livreurs à 0.
+    await expect(page.getByLabel("Pizzas que le four sort en 15 minutes")).toHaveValue("15");
+    // Connexion des livreurs par code : case du bloc Équipe (décochée dans la base locale, cochée en production).
+    await expect(page.getByRole("group", { name: "Équipe" }).getByLabel("Connexion des livreurs par un code affiché sur la tablette")).toBeVisible();
+    // Four compté (15, chiffre de Jérémy) ; ce qu'il dit dépend des commandes des autres tests.
+    await expect(page.getByText(/^En ce moment : /)).toBeVisible();
+    await expect(page.getByText(/^En ce moment : la file n'est pas comptée/)).toHaveCount(0);
     await expect(page.getByLabel("Livraisons qu'un livreur fait en une heure")).toHaveValue("0");
 
     // Erreur de saisie : le champ est signalé, rien ne part.
