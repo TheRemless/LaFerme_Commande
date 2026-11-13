@@ -134,7 +134,8 @@ export function OngletLivraisons({
           <Tournee
             key={l.id}
             livreur={l}
-            autres={[...boutons, ...menu].filter((x) => x.id !== l.id)}
+            autres={boutons.filter((x) => x.id !== l.id)}
+            autresMenu={menu.filter((x) => x.id !== l.id)}
             livraisons={donnees.livraisons.filter((x) => x.livreur_id === l.id)}
             commandeDe={commandeDe}
             envoi={envoi}
@@ -157,6 +158,7 @@ function presence(l: LivreurTablette): string {
 function Tournee({
   livreur,
   autres,
+  autresMenu = [],
   livraisons,
   commandeDe,
   envoi,
@@ -165,6 +167,8 @@ function Tournee({
 }: {
   livreur: LivreurTablette;
   autres: LivreurTablette[];
+  // Livreurs ni prévus ni connectés (grande équipe) : dans le menu « Donner à… ».
+  autresMenu?: LivreurTablette[];
   livraisons: LivraisonTablette[];
   commandeDe: Map<string, CommandeTablette>;
   envoi: boolean;
@@ -283,14 +287,13 @@ function Tournee({
                         Client absent : clore
                       </button>
                     )}
-                    {autres.length <= BOUTONS_MAX - 1 ? (
-                      autres.map((a) => (
-                        <button key={a.id} type="button" className="bouton-second" disabled={envoi} onClick={() => faire({ action: "attribuer", commande: x.commande_id, livreur: a.id })}>
-                          Donner à {a.nom}
-                        </button>
-                      ))
-                    ) : (
-                      // Grande équipe : un menu, les prévus au planning en premier.
+                    {autres.map((a) => (
+                      <button key={a.id} type="button" className="bouton-second" disabled={envoi} onClick={() => faire({ action: "attribuer", commande: x.commande_id, livreur: a.id })}>
+                        Donner à {a.nom}
+                      </button>
+                    ))}
+                    {autresMenu.length > 0 && (
+                      // Grande équipe : les livreurs ni prévus ni connectés dans un menu.
                       <select
                         className="liv-donner"
                         aria-label={`Donner la commande ${x.numero} à un autre livreur`}
@@ -298,8 +301,8 @@ function Tournee({
                         value=""
                         onChange={(e) => e.target.value && faire({ action: "attribuer", commande: x.commande_id, livreur: e.target.value })}
                       >
-                        <option value="">Donner à…</option>
-                        {autres.map((a) => (
+                        <option value="">{autres.length > 0 ? "Donner à un autre…" : "Donner à…"}</option>
+                        {autresMenu.map((a) => (
                           <option key={a.id} value={a.id}>
                             {a.nom}
                           </option>
