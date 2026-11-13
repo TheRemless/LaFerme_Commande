@@ -16,6 +16,12 @@ Rubrique `/gestion/rapports` (groupe Chiffres). Écran `src/components/gestion/R
 - Palette Béton : barres en béton sombre, période d'avant en trait d'encre de 2 px, grille au filet. Les deux séries se distinguent par la forme (barre, trait) et par la légende, pas par la couleur. Le validateur de couleurs du skill dataviz signale deux gris sans teinte (attendu dans le style Béton) et passe la séparation pour les daltonismes (ΔE 32) et le contraste.
 - Le dessin a une largeur fixe : le texte garde sa taille quel que soit le nombre de jours. Sur téléphone, le graphique défile dans son cadre, jamais la page (vérifié : 0 px de débordement).
 
-## Pas encore là
+## Onglets d'analyse (Plats, Heures, Zones et clients, Livreurs)
 
-- Ventes par plat, carte de chaleur, zones, nouveaux clients : la fonction `pilotage_analyses` est dans la PR #127. L'écran viendra après son intégration.
+Écran `src/components/gestion/AnalysesRapports.tsx`, route `GET /api/gestion/pilotage/analyses` (fonction `pilotage_analyses`, et `stats_livreurs` de bo-operations reprise telle quelle). Mêmes période et service que l'onglet Ventes. Captures sur le jeu de rush : `docs/rendus/vague-3/bo-pilotage/analyses-*.png`.
+
+- Plats : les vingt mieux vendus (puis « Afficher les … plats »), quantité, CHF et part des ventes de plats, avec leur catégorie. À côté, la même chose par catégorie.
+- Heures : carte de chaleur des commandes en moyenne par jour, pour chaque jour de la semaine et heure de service, et la pointe en une phrase. Une seule teinte en cinq marches, le nombre est écrit dans chaque case (aucune information portée par la seule couleur). Les marches foncées passent le texte au blanc, contraste vérifié (au moins 4,5).
+- Zones et clients : clients, nouveaux et fidèles (comptés, jamais nommés), livraisons par zone avec frais et panier moyen.
+- Livreurs : livraisons, livrées, client absent, problèmes, temps moyen et retard moyen par livreur, sur la journée entière (le choix du service ne s'applique pas ici).
+- Onglet Ventes : la carte « Refusées » dit aussi combien de commandes ont été annulées par le client, comptées à part.
