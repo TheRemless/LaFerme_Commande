@@ -11,7 +11,7 @@ Migration `supabase/migrations/20261127120000_clients.sql`, aucun objet partagé
 - **Fiche** (`fiche_client_gestion`, action `fiche`) : chiffres, fréquence (jours entre deux commandes), livraisons et retraits, téléphones et adresses utilisés (une adresse comptée une fois), cinq plats préférés, cent dernières commandes, remboursements, notes, marque, compte.
 - **Note interne** (`ajouter_note_client`, action `noter`) : gérant seulement, jamais montrée au client. Le journal note qui l'a écrite et quand, pas son texte (il ne survit pas à l'effacement).
 - **Marque « à surveiller » ou « bloqué »** (`marquer_client`, action `marquer`) : **désactivée par défaut** (réglage `marque_client_active`, décision de Jérémy, D2). Gérant seulement, motif obligatoire, journalisée (`client`), se retire. Même activée, elle ne bloque rien d'elle-même : `client_marque(email, téléphone)` est prête pour le parcours de commande (marque retrouvée aussi par le téléphone), qui en décidera l'effet.
-- **nLPD** : `donnees_gestion_client(email)` (notes et marque, pour l'export du client) et `effacer_notes_client(email)` (à la suppression du compte : notes et lignes du journal qui les nomment), à brancher par la session `client-compte`. La marque reste après la suppression du compte (proposition : supprimer son compte ne doit pas lever un blocage).
+- **nLPD** : `donnees_gestion_client(email)` (notes et marque, pour l'export du client) et `effacer_notes_client(email)` (à la suppression du compte : notes, marque et lignes du journal qui les nomment ; la marque part avec le compte, décision de Jérémy du 13.11.2026, migration `20261213180000_marque_effacee_avec_compte.sql`), branchée par la session `client-compte`.
 
 ## Gestes du back-office sur une commande
 

@@ -142,13 +142,18 @@ describe("notes et marque", () => {
     expect(await f("client_marque('g@exemple.ch', null)")).toBeNull();
   });
 
-  it("nLPD : notes et marque dans l'export, notes effacées avec le compte, marque gardée", async () => {
+  it("nLPD : notes et marque dans l'export, toutes deux effacées avec le compte", async () => {
     await commande({ email: "h@exemple.ch", total: 2000 });
     await f("ajouter_note_client('h@exemple.ch', 'Livrer par la porte arrière', $1)", [gerant]);
     expect(await f("donnees_gestion_client('H@exemple.ch')")).toMatchObject({ notes: [{ texte: "Livrer par la porte arrière" }], marque: null });
     const journal = (await db.query<{ apres: unknown }>("select apres from journal_gestion where objet = 'note_client' and cle = 'h@exemple.ch'")).rows;
     expect(JSON.stringify(journal)).not.toContain("porte arrière");
+    await db.query("update reglages set valeur = 'true' where cle = 'marque_client_active'");
+    await f("marquer_client('h@exemple.ch', 'surveiller', 'Deux commandes non retirées', $1)", [gerant]);
+    await db.query("update reglages set valeur = 'false' where cle = 'marque_client_active'");
     expect(await f("effacer_notes_client('h@exemple.ch')")).toBe(1);
+    expect((await db.query("select 1 from marques_client where email = 'h@exemple.ch'")).rows).toHaveLength(0);
+    expect((await db.query("select 1 from journal_gestion where objet = 'client' and cle = 'h@exemple.ch'")).rows).toHaveLength(0);
     expect((await db.query("select 1 from journal_gestion where objet = 'note_client' and cle = 'h@exemple.ch'")).rows).toHaveLength(0);
     expect(await f("donnees_gestion_client('h@exemple.ch')")).toMatchObject({ notes: [] });
   });
