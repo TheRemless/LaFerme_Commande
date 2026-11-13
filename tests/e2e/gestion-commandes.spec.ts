@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { adresseDuCompte, codeDuPersonnel, SITE } from "./site";
+import { adresseDuCompte, codeDuPersonnel, passage, SITE } from "./site";
 
 // Vague 3, bo-commandes : rubrique Commandes sur le kit du back-office. Liste paginée côté serveur avec
 // pastilles de statut et recherche, fiche en panneau (onglets), note interne, modification d'une commande,
@@ -23,11 +23,11 @@ test.beforeAll(async ({ browser }, info) => {
   // Axe demande une page ouverte dans un contexte (browser.newContext()).
   gestion = await (await browser.newContext({ baseURL: SITE })).newPage();
   await connecter(gestion, `commandes-${info.project.name}@laferme.test`);
-  prenom = `Bocmd${info.project.name}${Date.now() % 100000}`;
+  prenom = `Bocmd${info.project.name}${passage()}`;
   const rep = await gestion.request.post("/api/commandes", {
     headers: { Origin: SITE },
     data: {
-      cle: `bo-cmd-${info.project.name}-${Date.now()}`,
+      cle: `bo-cmd-${info.project.name}-${passage()}`,
       mode: "retrait",
       moyen: "comptoir",
       quand: { type: "asap" },
@@ -94,12 +94,12 @@ test("la fiche montre la commande, garde une note et enregistre un changement de
 });
 
 test("« on ferme plus tôt » : deux commandes s'annulent d'un geste, avec un seul motif", async ({}, info) => {
-  const nom = `Lot${info.project.name}${Date.now() % 100000}`;
+  const nom = `Lot${info.project.name}${passage()}`;
   for (const i of [1, 2]) {
     const rep = await gestion.request.post("/api/commandes", {
       headers: { Origin: SITE },
       data: {
-        cle: `bo-lot-${info.project.name}-${i}-${Date.now()}`,
+        cle: `bo-lot-${info.project.name}-${i}-${passage()}`,
         mode: "retrait",
         moyen: "comptoir",
         quand: { type: "asap" },
