@@ -48,6 +48,11 @@ test("un plat se trouve et s'ouvre au clavier, la fenêtre passe axe", async () 
   await champ().press("Enter");
   await expect(page.getByRole("heading", { level: 1, name: "Carte" })).toBeVisible();
   await expect(fenetre()).toBeHidden();
+  // La carte ouvre la fiche du plat choisi dans son panneau (bo-carte, useOuverture) ; on la ferme.
+  const fiche = page.getByRole("dialog", { name: "Pizza Tonno" });
+  await expect(fiche).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(fiche).toBeHidden();
 });
 
 test("une rubrique se trouve par son nom ou ce qu'on y fait", async () => {

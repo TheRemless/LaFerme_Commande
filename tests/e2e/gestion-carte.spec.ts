@@ -60,6 +60,8 @@ test("un plat neuf naît hors de la vente et dit ce qui lui manque", async () =>
   await fiche.getByLabel("Commandable sur le site").check();
   await fiche.getByRole("button", { name: "Enregistrer le plat" }).click();
   await expect(fiche.getByRole("status")).toContainText("Pas en vente tant qu'il reste : prix à valider, allergènes manquants.");
+  // La case cochée sans succès est décochée : la fiche n'a plus de changement non enregistré.
+  await fiche.getByLabel("Commandable sur le site").uncheck();
 });
 
 test("une photo s'envoie, s'affiche en aperçu, puis se retire", async () => {
@@ -99,6 +101,11 @@ test("les codes promo sont fermés sans session de gérant", async ({ request })
 });
 
 test("le plat s'archive, quitte la liste, puis se remet", async () => {
+  // Fiche ouverte dans le panneau de la liste : on la ferme et on passe à la vue par catégorie, où vivent
+  // les archives et l'ordre des plats.
+  await gestion.keyboard.press("Escape");
+  await gestion.getByRole("tab", { name: "Par catégorie et ordre" }).click();
+  await gestion.getByRole("button", { name: new RegExp(`^${nom}`) }).click();
   const fiche = gestion.locator(".ges-fiche");
   await fiche.getByRole("button", { name: "Archiver ce plat" }).click();
   await fiche.getByRole("button", { name: `Oui, archiver ${nom}` }).click();

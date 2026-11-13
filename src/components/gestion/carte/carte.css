@@ -1,0 +1,123 @@
+/* Carte du back-office, vague 3 (bo-carte). Seulement ce que le kit ne fait pas : la tête de la liste, le
+   prix modifiable dans une ligne, l'aperçu des prix en lot, les parties de la fiche. Jetons du kit
+   (back-office.css), aucune couleur en dur. */
+
+.bo-carte {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.bo-carte-tete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.bo-carte-filtres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.bo-carte-filtres .bo-puce {
+  min-height: var(--bo-cible);
+}
+.bo-compte {
+  margin-left: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.bo-carte-filtre-categorie select {
+  min-height: var(--bo-cible);
+}
+
+/* Prix dans la ligne : un vrai champ, aligné comme les chiffres, assez large pour le doigt. */
+.bo-prix-ligne {
+  width: 7ch;
+  min-height: var(--bo-cible);
+  padding: 0 8px;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--bo-texte);
+  background: var(--bo-surface);
+  border: 1px solid var(--bo-trait);
+  border-radius: var(--bo-rayon);
+}
+.bo-prix-ligne:focus {
+  outline: 2px solid var(--bo-texte);
+  outline-offset: 1px;
+}
+
+.bo-carte .bo-formulaire,
+.bo-panneau .bo-formulaire {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+}
+.bo-choix {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.bo-choix legend {
+  width: 100%;
+  margin-bottom: 4px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.bo-ligne-champs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+.bo-fiche-partie {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--bo-trait);
+}
+.bo-fiche-partie h3 {
+  margin: 0 0 12px;
+  font-size: 17px;
+}
+.bo-fiche-partie h3 + * + h3,
+.bo-fiche-partie form + h3 {
+  margin-top: 20px;
+}
+
+/* Erreur : cadre d'encre épais sur blanc, comme le kit. */
+.bo-panneau .bo-erreur,
+.bo-carte .bo-erreur {
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--bo-surface);
+  border: 3px solid var(--bo-texte);
+  border-radius: var(--bo-rayon);
+}
+
+.bo-apercu {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--bo-taille);
+}
+.bo-apercu caption {
+  padding-bottom: 8px;
+  text-align: left;
+  color: var(--bo-texte-doux);
+}
+.bo-apercu :is(th, td) {
+  padding: 8px 6px;
+  text-align: left;
+  border-bottom: 1px solid var(--bo-trait);
+}
+.bo-apercu thead th {
+  font-size: 14px;
+}
+.bo-apercu .nombre {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
