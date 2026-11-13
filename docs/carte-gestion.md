@@ -46,6 +46,7 @@ Rubrique `/gestion/carte`, onglet « Liste » (par défaut). Code : `src/compone
 - **Changer un prix sur place.** Toucher le prix dans la ligne, écrire, puis Entrée (ou toucher ailleurs). Échap rend l'ancien. Un prix changé ainsi repart à valider.
 - **Gestes en lot.** Cocher des plats, puis : « Changer les prix » (en pour cent ou en francs, hausse ou baisse, arrondi, aperçu avant et après, puis « Appliquer »), « Valider les prix », « Épuiser jusqu'au… » (une date), « Remettre en vente ».
 - **Fiche d'un plat.** Toucher son nom : la fiche s'ouvre sur le côté (plein écran sur téléphone). En plus de la fiche habituelle : disponibilités (midi, soir, livraison, à emporter, jours), rupture jusqu'à une date avec « Remettre en vente », et « Copier ce plat ».
+- **Étiquettes** (végétarien, végane, épicé) : sur la fiche, à cocher seulement si le restaurant l'a vérifié ; colonne « Étiquettes » dans « Colonnes ».
 - **Ajouter un plat** : bouton en haut à droite ; la fiche du plat créé s'ouvre aussitôt.
 - La liste lit la carte déjà chargée par le back-office (une centaine de plats au plus) : filtres et tri se font dans le navigateur, 50 lignes par page. L'export CSV donne les colonnes affichées.
 

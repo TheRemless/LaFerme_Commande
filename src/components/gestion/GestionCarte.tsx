@@ -34,6 +34,8 @@ export type PlatGestion = {
   // Vague 3 : disponibilités et dernier jour d'une rupture planifiée (absents avant la migration).
   dispo?: { service: "midi" | "soir" | null; mode: "livraison" | "retrait" | null; jours: number[] | null };
   rupture_jusqu_au?: string | null;
+  // Étiquettes posées par le gérant (vegetarien, vegane, epice), absentes avant la migration 20261210150000.
+  etiquettes?: string[];
 };
 export type GroupeGestion = {
   slug: string;
