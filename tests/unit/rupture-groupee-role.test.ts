@@ -51,6 +51,8 @@ describe("regler_rupture_groupee : rôle contrôlé en base", () => {
 
   it("un responsable passe tant que le rôle est activé, est refusé quand il est coupé", async () => {
     const responsable = await membre("responsable", "responsable");
+    // La base embarquée a le rôle activé (donnees-test.sql, D1) : on le coupe d'abord.
+    await db.query("insert into reglages (cle, valeur, proposition) values ('role_responsable_actif', 'false', false) on conflict (cle) do update set valeur = excluded.valeur");
     expect(await regler(responsable)).toEqual({ erreur: expect.stringContaining("droit_refuse") });
     await db.query("insert into reglages (cle, valeur, proposition) values ('role_responsable_actif', 'true', false) on conflict (cle) do update set valeur = excluded.valeur");
     expect(await regler(responsable)).toEqual({ ok: true });

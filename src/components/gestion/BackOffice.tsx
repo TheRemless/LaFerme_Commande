@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FournisseurAlertes, useAlertes } from "@/components/gestion/alertes";
 import { FournisseurCarte, useCarte } from "@/components/gestion/contexte-carte";
+import { FournisseurRole } from "@/components/gestion/droits";
 import { groupesPour, rubriqueDe, rubriqueOuverte, type Rubrique } from "@/components/gestion/navigation";
 import { RechercheGlobale } from "@/components/gestion/RechercheGlobale";
 import { FournisseurConfirmation } from "@/components/gestion/ui/Confirmation";
@@ -25,21 +26,23 @@ const CLE_MENU = "laferme.gestion.menu";
 // role : « responsable » seulement quand le rôle D1 est activé (contrôlé dans src/app/gestion/layout.tsx).
 export function BackOffice({ nom, role = "gerant", children }: { nom: string; role?: "gerant" | "responsable"; children: React.ReactNode }) {
   return (
-    <FournisseurConfirmation>
-      <FournisseurGarde>
-        <FournisseurNotifications>
-          <FournisseurRaccourcis>
-            <FournisseurCarte>
-              <FournisseurAlertes actif={role === "gerant"}>
-                <Coque nom={nom} role={role}>
-                  {children}
-                </Coque>
-              </FournisseurAlertes>
-            </FournisseurCarte>
-          </FournisseurRaccourcis>
-        </FournisseurNotifications>
-      </FournisseurGarde>
-    </FournisseurConfirmation>
+    <FournisseurRole value={role}>
+      <FournisseurConfirmation>
+        <FournisseurGarde>
+          <FournisseurNotifications>
+            <FournisseurRaccourcis>
+              <FournisseurCarte>
+                <FournisseurAlertes actif={role === "gerant"}>
+                  <Coque nom={nom} role={role}>
+                    {children}
+                  </Coque>
+                </FournisseurAlertes>
+              </FournisseurCarte>
+            </FournisseurRaccourcis>
+          </FournisseurNotifications>
+        </FournisseurGarde>
+      </FournisseurConfirmation>
+    </FournisseurRole>
   );
 }
 
@@ -58,6 +61,11 @@ function Coque({ nom, role, children }: { nom: string; role: "gerant" | "respons
   const titre = useRef<HTMLHeadingElement>(null);
   const focusApres = useRef<"tiroir" | "menu" | "titre" | null>(null);
   const [erreurSortie, setErreurSortie] = useState<string | null>(null);
+  // Responsable de service sur l'accueil (réservé au gérant : les ventes) : il passe sur Commandes. La page le
+  // redirige côté serveur, mais pas après une connexion faite sur place (la coque se rafraîchit sans recharger).
+  useEffect(() => {
+    if (role === "responsable" && chemin === "/gestion") router.replace("/gestion/commandes");
+  }, [role, chemin, router]);
   const alertes = useAlertes()?.lecture.donnees?.alertes;
   const nbAlertes = alertes?.length ?? 0;
   const bloquant = Boolean(alertes?.some((x) => x.niveau === "bloquant"));
@@ -192,7 +200,7 @@ function Coque({ nom, role, children }: { nom: string; role: "gerant" | "respons
               {rubrique.titre}
             </h1>
           </div>
-          {role === "gerant" && <RechercheGlobale />}
+          <RechercheGlobale />
         </header>
         <BandeauHorsLigne />
         <main id="contenu" className="gestion bo-contenu">

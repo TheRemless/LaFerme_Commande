@@ -1,6 +1,6 @@
 // Droits fins de l'équipe (vague 3, bo-socle, décision D1). Le tableau vit en base (droit_personnel) : ici,
 // seulement les noms des actions et leur libellé, pour l'écran Équipe, le menu et la documentation.
-// Rôle « responsable de service » DÉSACTIVÉ tant que le réglage role_responsable_actif n'est pas à true.
+// Rôle « responsable de service » : oui de Jérémy le 13.11.2026 ; il n'agit qu'avec le réglage role_responsable_actif à true.
 
 export const ACTIONS_DROIT = {
   annuler_apres_prete: "Annuler après « Prête » ou une livraison partie",
@@ -13,6 +13,14 @@ export const ACTIONS_DROIT = {
 } as const;
 
 export type ActionDroit = keyof typeof ACTIONS_DROIT;
+
+/** Les actions du responsable de service : toutes celles du tableau (droit_personnel en base fait foi). */
+export const ACTIONS_RESPONSABLE = Object.keys(ACTIONS_DROIT) as ActionDroit[];
+
+/** Pour l'écran seulement (cacher un bouton) : le serveur revérifie avec exigerDroit et auteur_droit. */
+export function aLeDroit(role: string, action: ActionDroit): boolean {
+  return role === "gerant" || (role === "responsable" && ACTIONS_RESPONSABLE.includes(action));
+}
 
 /** Le gérant fait tout ; le reste du back-office (prix, carte, zones, équipe, chiffres, imprimantes) lui est réservé. */
 export const RESERVE_AU_GERANT = [

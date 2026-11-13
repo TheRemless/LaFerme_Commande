@@ -34,8 +34,8 @@ describe("appareils en base", () => {
   it("le gérant coupe un seul appareil, journalisé ; l'équipe de service ne peut ni lister ni couper", async () => {
     const a = await session(membre, "appareil-test-2");
     await session(membre, "appareil-test-3");
-    await expect(db.query("select appareils_personnel($1::uuid, $2::uuid, '')", [membre, membre])).rejects.toThrow(/Réservé au gérant/);
-    await expect(db.query("select couper_appareil_personnel($1::uuid, $2::uuid)", [a, membre])).rejects.toThrow(/Réservé au gérant/);
+    await expect(db.query("select appareils_personnel($1::uuid, $2::uuid, '')", [membre, membre])).rejects.toThrow(/Réservé au gérant|droit_refuse/);
+    await expect(db.query("select couper_appareil_personnel($1::uuid, $2::uuid)", [a, membre])).rejects.toThrow(/Réservé au gérant|droit_refuse/);
     expect((await db.query<{ r: boolean }>("select couper_appareil_personnel($1::uuid, $2::uuid) as r", [a, gerant])).rows[0].r).toBe(true);
     expect((await db.query<{ r: boolean }>("select couper_appareil_personnel($1::uuid, $2::uuid) as r", [a, gerant])).rows[0].r).toBe(false);
     const restants = (await db.query<{ n: number }>("select count(*)::int as n from sessions_personnel where jeton_hache in ('appareil-test-2', 'appareil-test-3') and revoquee_le is null")).rows[0].n;
