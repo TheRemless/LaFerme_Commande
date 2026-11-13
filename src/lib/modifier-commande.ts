@@ -65,6 +65,32 @@ export function champsModification(d: DemandeModification): { ok: true; p: Recor
   return { ok: true, p };
 }
 
+// Ticket « MODIFIÉE » (tablette) : chaque champ changé en une ligne lisible, avant et après.
+export type ChangementLisible = { champ: string; avant: string; apres: string };
+const NOMS_CHAMPS: Record<string, string> = { client_prenom: "Prénom", client_nom: "Nom", client_telephone: "Téléphone" };
+
+function consignesTexte(v: unknown): string {
+  if (!v || typeof v !== "object") return "";
+  const d = v as Record<string, unknown>;
+  const morceaux = [d.sonnette && `Sonnette ${d.sonnette}`, d.etage && `étage ${d.etage}`, d.code && `code ${d.code}`].filter(Boolean) as string[];
+  return [morceaux.join(", "), typeof d.instructions === "string" && d.instructions ? `« ${d.instructions} »` : ""].filter(Boolean).join(", ");
+}
+function adresseTexte(v: unknown): string {
+  if (!v || typeof v !== "object") return "";
+  const a = v as Record<string, unknown>;
+  return `${[a.rue, a.numero].filter(Boolean).join(" ")}, ${[a.npa, a.localite].filter(Boolean).join(" ")}`;
+}
+
+export function changementsLisibles(avant: Record<string, unknown> = {}, apres: Record<string, unknown> = {}): ChangementLisible[] {
+  const lignes: ChangementLisible[] = [];
+  for (const cle of Object.keys(apres)) {
+    if (NOMS_CHAMPS[cle]) lignes.push({ champ: NOMS_CHAMPS[cle], avant: String(avant[cle] ?? ""), apres: String(apres[cle] ?? "") });
+    else if (cle === "details_livraison") lignes.push({ champ: "Consignes", avant: consignesTexte(avant[cle]), apres: consignesTexte(apres[cle]) });
+    else if (cle === "adresse") lignes.push({ champ: "Adresse", avant: adresseTexte(avant[cle]), apres: adresseTexte(apres[cle]) });
+  }
+  return lignes.filter((l) => l.avant !== l.apres);
+}
+
 // depuis : « gestion » pour le back-office (auteur « gestion:Nom », comme les remboursements), sinon la tablette.
 export async function modifierCommande(
   commandeId: string,
@@ -92,7 +118,7 @@ export async function modifierCommande(
       p.zone_minimum_centimes = z.zone.minimum_centimes;
     }
   }
-  let r: { modifie: boolean; champs: string[] };
+  let r: { modifie: boolean; champs: string[]; avant?: Record<string, unknown>; apres?: Record<string, unknown> };
   try {
     r = await fonctionSql("modifier_commande", { p_commande: commandeId, p, p_personnel: personnel.id, p_par: options.depuis === "gestion" ? `gestion:${personnel.nom}` : auteur(personnel), p_de: options.de ?? null });
   } catch (e) {

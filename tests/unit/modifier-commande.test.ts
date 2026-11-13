@@ -101,3 +101,30 @@ describe("modifier une commande acceptée", () => {
     expect((await modifierCommande(c, { nom: "Bianchi" }, gerant, { de: "partie" })).ok).toBe(true);
   });
 });
+
+describe("ticket « MODIFIÉE » : changements lisibles", () => {
+  it("traduit chaque champ en une ligne avant et après, et ignore ce qui n'a pas changé", async () => {
+    const { changementsLisibles } = await import("@/lib/modifier-commande");
+    expect(
+      changementsLisibles(
+        {
+          client_telephone: "079 111 22 33",
+          details_livraison: { sonnette: "Rossi", etage: "2", code: "", instructions: "" },
+          adresse: { rue: "Route de Chancy", numero: "1", npa: "1213", localite: "Onex" },
+          client_nom: "Rossi",
+        },
+        {
+          client_telephone: "079 444 55 66",
+          details_livraison: { sonnette: "Rossi", etage: "3", code: "1234", instructions: "Sonner deux fois" },
+          adresse: { rue: "Route de Chancy", numero: "45", npa: "1213", localite: "Onex", featureId: "f1" },
+          client_nom: "Rossi",
+          zone_numero: 1,
+        },
+      ),
+    ).toEqual([
+      { champ: "Téléphone", avant: "079 111 22 33", apres: "079 444 55 66" },
+      { champ: "Consignes", avant: "Sonnette Rossi, étage 2", apres: "Sonnette Rossi, étage 3, code 1234, « Sonner deux fois »" },
+      { champ: "Adresse", avant: "Route de Chancy 1, 1213 Onex", apres: "Route de Chancy 45, 1213 Onex" },
+    ]);
+  });
+});
