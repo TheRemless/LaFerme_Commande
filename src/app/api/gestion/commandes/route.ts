@@ -4,6 +4,7 @@ import { rembourserApresCoup } from "@/lib/commandes";
 import { fonctionSql } from "@/lib/db/serveur";
 import { centimes, dateValide } from "@/lib/gestion";
 import { filtresListe, texteNote, UUID } from "@/lib/gestion-commandes";
+import { actionGestion, type ActionGestion } from "@/lib/actions-gestion";
 import { modifierCommande } from "@/lib/modifier-commande";
 import { exigerGerant } from "@/lib/personnel/session";
 
@@ -14,6 +15,8 @@ import { exigerGerant } from "@/lib/personnel/session";
 // Vague 3 (bo-commandes) : { action: "liste_page", ...filtres (src/lib/gestion-commandes.ts) }
 // | { action: "fiche_complete", id } | { action: "courriel", id, courriel } | { action: "noter", id, texte }
 // | { action: "modifier", id, de?, prenom?, nom?, telephone?, details?, adresse? } (vague 3, sans toucher au montant)
+// | { action: "heure", id, heure } | { action: "annuler", id, motif, de? } | { action: "reimprimer", id, station? }
+// | { action: "renvoyer_courriel", id, courriel } (vague 3, src/lib/actions-gestion.ts)
 
 export async function POST(requete: Request) {
   const g = await exigerGerant(requete);
@@ -49,8 +52,12 @@ export async function POST(requete: Request) {
   }
 
   if (c.action === "fiche_complete") {
-    const fiche = await fonctionSql("fiche_commande_gestion", { p_id: c.id });
-    return fiche ? NextResponse.json(fiche, sansCache) : refus("Commande inconnue.", 404);
+    const [fiche, reclamations] = await Promise.all([
+      fonctionSql<Record<string, unknown> | null>("fiche_commande_gestion", { p_id: c.id }),
+      // Réclamations de la commande (vague 3) : absentes tant que la base n'est pas migrée.
+      fonctionSql<{ lignes: unknown[] }>("reclamations_gestion", { p: { commande_id: c.id, par_page: 100 } }).catch(() => null),
+    ]);
+    return fiche ? NextResponse.json({ ...fiche, reclamations: reclamations?.lignes ?? [] }, sansCache) : refus("Commande inconnue.", 404);
   }
 
   if (c.action === "courriel") {
@@ -73,6 +80,11 @@ export async function POST(requete: Request) {
   if (c.action === "modifier") {
     const de = typeof c.de === "string" ? c.de : undefined;
     const r = await modifierCommande(c.id, { prenom: c.prenom, nom: c.nom, telephone: c.telephone, details: c.details, adresse: c.adresse }, g.personnel, { de, depuis: "gestion" });
+    return NextResponse.json(r, { status: r.ok ? 200 : 409, ...sansCache });
+  }
+
+  if (c.action === "heure" || c.action === "annuler" || c.action === "reimprimer" || c.action === "renvoyer_courriel") {
+    const r = await actionGestion(c.id, c as unknown as ActionGestion, g.personnel);
     return NextResponse.json(r, { status: r.ok ? 200 : 409, ...sansCache });
   }
 
