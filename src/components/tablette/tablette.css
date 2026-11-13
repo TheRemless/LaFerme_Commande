@@ -411,3 +411,33 @@
 .tab-couverts {
   font-weight: 700;
 }
+.tab-decaler {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+.tab-decaler p {
+  margin: 0;
+}
+.tab-decaler-choix {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 2px solid var(--encre);
+  background: var(--blanc);
+}
+.tab-decaler-choix .boutons-ligne {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tab-decaler-choix .boutons-ligne button {
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 48px;
+  padding: 0 18px;
+}
+.poste > .tab-decaler {
+  justify-items: start;
+  margin-top: 0;
+}

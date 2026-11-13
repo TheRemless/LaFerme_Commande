@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { heureDe } from "@/lib/heures";
 import { poster } from "@/lib/requete-client";
 import { CoupDeFeu } from "./CoupDeFeu";
+import { Decaler } from "./Decaler";
 
 type Props = {
   reglages: { pause: { active: boolean; jusqua: string | null; livraisonFermee: boolean } | null; preparation_minutes: number; retard_minutes?: number };
@@ -138,6 +139,8 @@ export function Reglages({ reglages, onChange }: Props) {
           </button>
         </div>
         <p className="aide">Ajouté aux heures annoncées, à emporter et en livraison. Revient à zéro chaque nuit.</p>
+        {/* Les commandes déjà acceptées gardent leur heure : ce geste les décale et prévient les clients. */}
+        <Decaler onChange={onChange} />
       </div>
 
       <div className="tab-bloc tab-ruptures">

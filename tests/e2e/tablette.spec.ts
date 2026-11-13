@@ -198,6 +198,18 @@ test("supplément épuisé : refusé à la commande, puis revient", async ({ req
   await tablette.getByRole("button", { name: "Fermer les réglages" }).click();
 });
 
+test("décaler les commandes en cours : aperçu puis annulation, rien ne bouge", async () => {
+  // Pas de vrai décalage : il décalerait les commandes des autres tests qui tournent en même temps.
+  await tablette.getByRole("button", { name: "Pause, délai, ruptures" }).click();
+  const bloc = tablette.locator(".tab-decaler");
+  await bloc.getByRole("button", { name: "Décaler les commandes en cours…" }).click();
+  await expect(bloc).toContainText(/commandes? en cours à décaler|Décaler de :/);
+  const annuler = bloc.getByRole("button", { name: /^(Annuler|Fermer)$/ });
+  await annuler.click();
+  await expect(bloc.getByRole("button", { name: "Décaler les commandes en cours…" })).toBeVisible();
+  await tablette.getByRole("button", { name: "Fermer les réglages" }).click();
+});
+
 test("rupture du jour : le plat est grisé sur la carte, puis revient", async ({ page }) => {
   await tablette.getByRole("button", { name: "Pause, délai, ruptures" }).click();
   const { recherchePlat, plat, slug } = rupturesDuProjet();

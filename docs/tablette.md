@@ -180,6 +180,15 @@ Migration `20261212110000_tablette_nouveautes_client.sql` (après les colonnes d
 
 Couverts et prénoms restent éteints côté client (réglages `couverts_actifs` et `prenom_par_ligne_actif`, décisions C8 et C5) : la tablette les montre dès qu'ils arrivent. Captures : `docs/rendus/vague-3/tablette/nouveautes-*.png` (`scripts/tablette/nouveautes-client.mjs`, après `scripts/tablette/rush.mjs`).
 
+## « +N min sur les commandes en cours » (vague 3, P0 de produit-gestion ; base et serveur de bo-operations, #186)
+
+Le retard du soir ne touche que les commandes à venir ; les commandes déjà acceptées gardaient leur heure et leurs clients n'étaient pas prévenus. Route `/api/tablette/decaler` sur `apercuDecalage` et `decalerCommandes` (`src/lib/decalage.ts`, doc `docs/decaler-commandes.md`). Composant `src/components/tablette/Decaler.tsx`.
+
+- Dans « Retard ce soir » : « Décaler les commandes en cours… » montre l'aperçu (« 10 commandes, 10 clients prévenus par e-mail. Décaler de : »), puis « +5 », « +10 », « +15 » ou « +20 min » décale et prévient chaque client. Deux gestes. La clé du geste est tirée à ce moment : un double appui ne décale pas deux fois.
+- Sur la vue par poste : « Décaler les commandes pizza… », seulement les commandes que ce poste n'a pas encore sorties.
+- Avant la #186 dans main : « Pas encore disponible : réglez le retard ce soir à la place. »
+- Captures : `docs/rendus/vague-3/tablette/decaler-*.png` (`scripts/tablette/decaler.mjs`, n'appuie pas sur « +N min »).
+
 ## Ticket « MODIFIÉE » (vague 3, contrat avec bo-commandes, #65)
 
 Une commande acceptée dont le client, le téléphone, les consignes ou l'adresse changent après la sortie de ses tickets : un ticket « MODIFIÉE » au poste qui fait le sac (cuisine s'il y a des lignes cuisine, sinon pizza). Les plats ne changent jamais par ce chemin.
