@@ -7,15 +7,30 @@ import { etatImpression } from "@/lib/impression/service";
 import { origineSure } from "@/lib/origine";
 import { exigerGerant } from "@/lib/personnel/session";
 
+type ResumeImprimante = {
+  id: number;
+  dernier_ticket_le: string | null;
+  en_attente: number;
+  plus_ancien_en_attente_le: string | null;
+  imprimes_aujourdhui: number;
+  echecs_aujourdhui: number;
+};
+
 // Imprimantes du restaurant. L'URL CloudPRNT contient le jeton en clair : elle n'est montrée qu'une fois,
 // à la création ou au renouvellement du jeton, puis seule son empreinte reste en base.
 
 export async function GET(requete: Request) {
   const g = await exigerGerant(requete, { lecture: true });
   if ("reponse" in g) return g.reponse;
-  const [etat, reglages] = await Promise.all([etatImpression(), lirePublic<{ cle: string; valeur: unknown }>("reglages")]);
+  const [etat, reglages, resume] = await Promise.all([
+    etatImpression(),
+    lirePublic<{ cle: string; valeur: unknown }>("reglages"),
+    // Dernier ticket sorti, tickets en attente, échecs du jour (vague 3). Absent tant que la base n'est pas migrée.
+    fonctionSql<ResumeImprimante[]>("resume_imprimantes", {}).catch(() => null),
+  ]);
   const alerte = Number(reglages.find((r) => r.cle === "alerte_acceptation_minutes")?.valeur ?? 5);
-  return NextResponse.json({ imprimantes: etat.imprimantes, alerte_minutes: alerte }, { headers: { "Cache-Control": "no-store" } });
+  const imprimantes = etat.imprimantes.map((i) => ({ ...i, resume: resume?.find((r) => r.id === i.id) ?? null }));
+  return NextResponse.json({ imprimantes, alerte_minutes: alerte }, { headers: { "Cache-Control": "no-store" } });
 }
 
 // { type: "ajouter", nom, station } | { type: "jeton", id } | { type: "actif", id, actif } | { type: "alerte", minutes }
