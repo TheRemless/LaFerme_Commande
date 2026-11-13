@@ -294,3 +294,39 @@ test("204 sans changement : l'attente monte et l'avance passe en cours à l'heur
     await page.unroute("**/api/tablette/file*");
   }
 });
+
+// Vue par poste (vague 3, D12 à l'essai, derrière le lien /tablette/poste/pizza) : la commande acceptée y arrive
+// avec ses tickets, seulement les lignes du poste ; « Lancée », « Prête », puis « Rouvrir » en cas d'erreur.
+test("vue par poste : lancée, prête, rouverte ; chaque poste ses lignes", async ({ browser, request }) => {
+  const { numero } = await commander(request, "Poste", "en_ligne");
+  const carte = tablette.locator(".tab-commande", { has: tablette.locator(".tab-num", { hasText: new RegExp(`^${numero}$`) }) });
+  await tablette.getByRole("button", { name: /^À accepter/ }).click();
+  await expect(carte).toBeVisible({ timeout: 15_000 });
+  await carte.getByRole("button", { name: /^Accepter pour/ }).click();
+  await expect(carte).toBeHidden({ timeout: 15_000 });
+
+  // Même session que la tablette, dans un écran à part (le poste).
+  const ecran = await browser.newContext({ baseURL: SITE, storageState: await tablette.context().storageState() });
+  try {
+    const poste = await ecran.newPage();
+    await poste.goto("/tablette/poste/pizza");
+    const fiche = poste.locator(".poste-commande", { has: poste.locator(".poste-num", { hasText: new RegExp(`^${numero}$`) }) });
+    await expect(fiche).toBeVisible({ timeout: 15_000 });
+    await expect(fiche).toContainText("Margherita");
+    await expect(fiche).not.toContainText("carbonara");
+    await fiche.getByRole("button", { name: "Lancée" }).click();
+    await expect(fiche).toContainText(/Lancée à \d{2}h\d{2}/);
+    await fiche.getByRole("button", { name: "Prête" }).click();
+    await expect(fiche).toBeHidden();
+    const sortie = poste.locator(".poste-sorties li", { hasText: new RegExp(`^${numero} à`) });
+    await sortie.getByRole("button", { name: "Rouvrir" }).click();
+    await expect(fiche).toBeVisible();
+
+    await poste.goto("/tablette/poste/cuisine");
+    const ficheCuisine = poste.locator(".poste-commande", { has: poste.locator(".poste-num", { hasText: new RegExp(`^${numero}$`) }) });
+    await expect(ficheCuisine).toContainText("Pasta alla carbonara");
+    await expect(ficheCuisine).not.toContainText("Margherita");
+  } finally {
+    await ecran.close();
+  }
+});

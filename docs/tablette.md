@@ -155,3 +155,14 @@ Le gérant vérifie qu'une imprimante sort un ticket sans passer de vraie comman
 - Ticket : « TEST », poste et nom de l'imprimante, date et heure de Genève, qui l'a demandé, « Si ce ticket sort, l'imprimante est bien branchée. ». CloudPRNT l'envoie et le confirme comme les autres, fonctions inchangées.
 - Imprimante désactivée ou supprimée avant que l'essai sorte : l'essai est annulé, jamais renvoyé vers une autre imprimante du poste (déclencheur `essai_jamais_deplace`, migration `20261203130000`, relevé par bo-operations).
 - La tablette ne montre pas les essais (la file ne garde que les tickets des commandes actives). Pour lire `taches_impression` ailleurs sans les compter : `commande_id is not null`.
+
+## Vue par poste (vague 3, décision D12 à l'essai)
+
+Un écran au poste pizza ou cuisine, **derrière un lien** : `/tablette/poste/pizza` et `/tablette/poste/cuisine`, même connexion que la tablette, pas d'entrée dans le menu tant que Jérémy n'a pas tranché D12 (recommandé : à l'essai au poste pizza, tickets gardés). Route `/api/tablette/poste`, logique pure dans `src/components/tablette/poste.ts`, base `commande_postes` (section « Horodatage par poste »).
+
+- En haut : « Reste à sortir », la somme par plat des commandes en cours du poste (« 12 Margherita »). Au poste pizza, le mot « Pizza » est retiré des noms.
+- Au milieu : une fiche par commande, dans l'ordre des tickets. Numéro, mode et heure promise, « Reçue il y a N min » ou « En retard », seulement les lignes du poste avec CHOIX, +, SANS et la note du client en négatif. « Lancée » (facultatif) puis « Prête ».
+- En bas : les six dernières sorties (30 minutes), « Rouvrir » en cas d'erreur de doigt tant que la commande est en cuisine.
+- « Prête » sur un poste ne change pas le statut de la commande : le comptoir garde « Prête au comptoir ». Les tickets papier continuent de sortir.
+- Relecture toutes les 5 s. Hors connexion : « Les tickets papier restent la référence. »
+- Captures : `docs/rendus/vague-3/tablette/poste-*.png` (`scripts/tablette/vue-poste.mjs` après `scripts/tablette/rush.mjs`).
