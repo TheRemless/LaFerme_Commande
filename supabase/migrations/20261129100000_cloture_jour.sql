@@ -24,9 +24,6 @@ alter table clotures enable row level security;
 revoke all on clotures from anon, authenticated;
 grant select, insert, update on clotures to service_role;
 
--- Les remboursements d'un jour de service se cherchent par instant.
-create index remboursements_cree_idx on remboursements (cree_le);
-
 create function cloture_rapport(p_jour date) returns jsonb
 language sql stable as $$
   with bornes as (
@@ -108,13 +105,18 @@ language sql stable as $$
   );
 $$;
 
--- Le rapport calculé maintenant et, s'il y en a une, la clôture déjà enregistrée pour ce jour.
+-- Jour clôturé : le rapport enregistré, la clôture (sans le rapport, une seule copie) et change_depuis,
+-- vrai si le rapport calculé maintenant n'est plus le même (commande encaissée, remboursement confirmé…).
+-- Jour pas clôturé : le rapport calculé maintenant.
 create function cloture_jour(p_jour date) returns jsonb
 language sql stable as $$
   select jsonb_build_object(
-    'rapport', cloture_rapport(p_jour),
-    'cloture', (select to_jsonb(c) - 'personnel_id' from clotures c where c.jour = p_jour)
-  );
+    'rapport', coalesce(c.rapport, x.actuel),
+    'cloture', to_jsonb(c) - 'personnel_id' - 'rapport',
+    'change_depuis', c.jour is not null and (c.rapport - 'calcule_le') is distinct from (x.actuel - 'calcule_le')
+  )
+  from (select cloture_rapport(p_jour) as actuel) x
+  left join clotures c on c.jour = p_jour;
 $$;
 
 create function cloturer_jour(p_jour date, p_especes integer, p_carte integer, p_note text, p_personnel uuid) returns jsonb

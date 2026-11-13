@@ -1,6 +1,8 @@
 // Clôture du jour (rapport Z) : types de ce que rend la base (cloture_jour, cloturer_jour) et export CSV.
 // Aucun calcul ici : tout est fait en base, une seule fois.
 
+import { celluleCsv } from "@/lib/gestion";
+import { heureDe, jourGeneveDe } from "@/lib/heures";
 import type { Synthese } from "@/lib/pilotage";
 
 export type Ecart =
@@ -43,12 +45,13 @@ export type Cloture = {
   attendu_comptoir_centimes: number;
   ecart_centimes: number | null;
   note: string;
-  rapport: RapportCloture;
   personnel_nom: string;
   cloture_le: string;
 };
 
-export type ClotureJour = { rapport: RapportCloture; cloture: Cloture | null };
+// rapport : celui enregistré à la clôture si le jour est clôturé, sinon celui calculé maintenant.
+// change_depuis : une commande ou un remboursement du jour a changé depuis la clôture (à reclôturer).
+export type ClotureJour = { rapport: RapportCloture; cloture: Cloture | null; change_depuis: boolean };
 
 // Montant saisi en francs (« 1250.50 », « 1'250,50 »), vide = pas compté. undefined : illisible.
 export function montantCompte(v: unknown): number | null | undefined {
@@ -75,22 +78,20 @@ const LIBELLE_MOYEN = { stripe: "en ligne", especes: "espèces", deduction: "dé
 const LIBELLE_STATUT = { fait: "fait", en_cours: "en cours", echec: "échec" } as const;
 
 const chf = (c: number | null) => (c === null ? "" : (c / 100).toFixed(2));
-const cellule = (v: string | number) => {
-  const s = String(v);
-  // Formules neutralisées (=, +, -, @ en tête) et séparateurs protégés, comme l'export comptable.
-  const sur = /^[=+\-@\t\r]/.test(s) && !/^-?\d+(\.\d+)?$/.test(s) ? `'${s}` : s;
-  return /[;"\n]/.test(sur) ? `"${sur.replace(/"/g, '""')}"` : sur;
-};
-const ligne = (...v: (string | number)[]) => v.map(cellule).join(";");
+const ligne = (...v: (string | number)[]) => v.map((x) => celluleCsv(String(x))).join(";");
 
 // Rapport Z en CSV (point-virgule, BOM pour Excel), sans aucune donnée personnelle.
 export function csvCloture(j: ClotureJour): string {
-  const r = j.cloture?.rapport ?? j.rapport;
+  const r = j.rapport;
   const v = r.ventes;
   const e = r.encaissements;
   const l: string[] = [
     ligne("Clôture du jour", r.jour),
-    ligne("Clôturé le", j.cloture ? `${j.cloture.cloture_le} par ${j.cloture.personnel_nom}` : "pas encore clôturé"),
+    ligne(
+      "Clôturé le",
+      j.cloture ? `${jourGeneveDe(j.cloture.cloture_le)} à ${heureDe(j.cloture.cloture_le)} par ${j.cloture.personnel_nom}` : "pas encore clôturé",
+    ),
+    ...(j.change_depuis ? [ligne("Attention", "des commandes ont changé depuis la clôture : reclôturer")] : []),
     "",
     ligne("Ventes", "Commandes", "CHF"),
     ligne("Commandes prises (TTC)", v.commandes, chf(v.ttc_centimes)),

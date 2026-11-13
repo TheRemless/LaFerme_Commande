@@ -50,6 +50,12 @@ describe("CSV du rapport Z", () => {
     expect(csv).toContain(`"'=HYPERLINK(""x"")"`);
     expect(csv).toContain("Attendu au comptoir;;");
     expect(csv).toContain(";12;19:40;espèces;fait;3.00;");
+    c.cloture = { jour: c.rapport.jour, especes_comptees_centimes: 0, carte_comptoir_centimes: null, attendu_comptoir_centimes: 0,
+      ecart_centimes: 0, note: "", personnel_nom: "Giuseppe", cloture_le: "2026-12-04T22:40:00Z" };
+    c.change_depuis = true;
+    const clos = csvCloture(c);
+    expect(clos).toContain("Clôturé le;2026-12-04 à 23h40 par Giuseppe");
+    expect(clos).toContain("Attention;des commandes ont changé depuis la clôture");
   });
 });
 
