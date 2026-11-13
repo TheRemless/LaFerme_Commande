@@ -1,6 +1,10 @@
 // Contrôle des champs envoyés par le back-office. Tout ce qui n'est pas reconnu est ignoré ;
 // une valeur douteuse rend une erreur claire. Fonctions pures, testées sans base.
+import { celluleCsv } from "@/components/gestion/ui/csv";
 import { estPhotoEnvoyee, PHOTOS } from "@/lib/photos";
+
+// Une seule règle CSV pour tout le back-office : celle du kit (formules neutralisées, seul un nombre garde son signe).
+export { celluleCsv };
 
 export type Resultat<T> = { ok: true; valeur: T } | { ok: false; erreur: string };
 
@@ -335,10 +339,6 @@ export function csvVentes(ventes: Vente[], remboursements: Remboursement[] = [])
     const tva = x.tva - x.tvaRemb;
     lignes.push([t, String(x.n), chf(x.total), chf(-x.rembourse), chf(net), chf(tva), chf(net - tva)]);
   }
-  // Une cellule qui commence par = + - @ serait lue comme une formule par Excel : on la neutralise.
-  const cellule = (x: string) => {
-    const s = /^[=+\-@]/.test(x) && !/^-?\d/.test(x) ? `'${x}` : x;
-    return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
-  return "\uFEFF" + lignes.map((l) => l.map(cellule).join(";")).join("\r\n") + "\r\n";
+  return "\uFEFF" + lignes.map((l) => l.map(celluleCsv).join(";")).join("\r\n") + "\r\n";
 }
+
