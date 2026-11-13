@@ -127,3 +127,7 @@ Migration `supabase/migrations/20261127110000_annulation_client.sql`. Serveur : 
 - **Effet** : statut « refusée » avec le motif « Annulée à votre demande. », colonne `annulee_par_client_le` remplie (le suivi écrit « vous avez annulé », la tablette fige la carte, les chiffres ne la comptent pas comme un refus), événement par « client » dans l'historique, tablette prévenue (signal vide, elle relit sa file).
 - **Argent** : payée en ligne, remboursée en entier tout de suite (même chemin que le refus de la tablette). Si Stripe refuse, la commande reste annulée, le client reçoit « le remboursement n'est pas encore parti » et le restaurant reçoit l'alerte « remboursement à refaire ». Au comptoir : rien à rembourser, e-mail « Rien n'a été débité ».
 - **Rejouée** (double appui, retour en arrière) : « déjà annulée », aucun second remboursement.
+
+## Commandes et clients, suite (vague 3)
+
+Clients, réclamations et gestes du back-office : voir [back-office/commandes-clients.md](back-office/commandes-clients.md).
