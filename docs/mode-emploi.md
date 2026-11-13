@@ -213,6 +213,10 @@ Qui livre les sept prochains jours, absence et renfort en un geste, semaine type
 
 Coup de feu (en tête de la rubrique) et zones livrées le soir seulement ou fermées pour quelques heures : `docs/coup-de-feu.md` et `docs/zones-services.md`, « Écran du back-office ».
 
+### Calendrier
+
+Le mois vu par les clients, fériés à confirmer, fermer un jour ou un service : `docs/calendrier.md`, « Mode d'emploi ».
+
 ### Imprimantes
 
 - La rubrique montre l'état de chaque imprimante.

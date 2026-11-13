@@ -59,6 +59,7 @@ export const GROUPES: Groupe[] = [
     rubriques: [
       // bo-operations (propriétaire de /gestion/horaires : s'il la renomme, garder une redirection depuis l'ancienne adresse)
       { href: "/gestion/horaires", titre: "Livraison et horaires", icone: "horaires", resume: "Zones, horaires, fermetures, délais et capacité." },
+      { href: "/gestion/calendrier", titre: "Calendrier", icone: "jour", resume: "Le mois vu par les clients : services, fermetures, fériés et commandes déjà prises." },
       { href: "/gestion/livreurs", titre: "Livreurs", icone: "livreurs", resume: "Qui livre ce soir, la semaine type et les livraisons de chacun." },
       { href: "/gestion/imprimantes", titre: "Imprimantes", icone: "imprimante", resume: "Les deux postes d'impression et leur état." },
     ],

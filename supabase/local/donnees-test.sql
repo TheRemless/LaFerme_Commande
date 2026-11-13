@@ -104,3 +104,6 @@ insert into personnel (email, nom, role) values
 
 -- Écran Livraison et horaires, parties de la vague 3 (tests/e2e/gestion-service-v3.spec.ts).
 insert into personnel (email, nom, role) values ('ecran-service@laferme.test', 'Écran service', 'gerant');
+
+-- Écran Calendrier du back-office (tests/e2e/gestion-calendrier.spec.ts, vague 3).
+insert into personnel (email, nom, role) values ('ecran-calendrier@laferme.test', 'Écran calendrier', 'gerant');
