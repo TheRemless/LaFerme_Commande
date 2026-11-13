@@ -6,6 +6,9 @@ import { expect, test, type Page } from "@playwright/test";
 // lus par tout le site : on le lance avec 1 minute de retard seulement, et on le finit tout de suite, pour ne
 // pas gêner les autres fichiers de tests qui tournent en même temps.
 test.describe.configure({ mode: "serial" });
+// Adresse à part : la limite de 20 codes du personnel par adresse et par heure est commune à tous les fichiers
+// qui se connectent depuis le poste local (x-forwarded-for n'est lu qu'en local, jamais sur Netlify).
+test.use({ extraHTTPHeaders: { "x-forwarded-for": "10.30.0.1" } });
 
 const ORIGINE = { Origin: SITE };
 
