@@ -51,7 +51,7 @@ export async function annulerParClient(jeton: string): Promise<ResultatAnnulatio
     await alerter(`Commande ${c.numero} : remboursement à refaire`, [
       `Le client a annulé la commande ${c.numero} depuis son suivi, mais le remboursement de ${(c.total_centimes / 100).toFixed(2)} CHF n'est pas passé.`,
       "Sur la tablette, onglet « Terminées », touchez « Rembourser ». Si ça ne passe toujours pas, remboursez depuis Stripe.",
-    ]).catch((e) => console.error(`Alerte non envoyée : ${e instanceof Error ? e.message : e}`));
+    ], "alerte", "remboursement").catch((e) => console.error(`Alerte non envoyée : ${e instanceof Error ? e.message : e}`));
     return { ok: true, message: "Votre commande est annulée. Le remboursement part dans les prochaines heures, vous recevez un e-mail." };
   }
   await prevenir(c, courrielRefus(c, MOTIF_DEMANDE_CLIENT));

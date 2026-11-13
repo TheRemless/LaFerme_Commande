@@ -266,7 +266,9 @@ function FicheReclamation({
     await charger();
     onChange();
   }, [charger, onChange]);
-  const [n, setN] = useState(0);
+  // Un compteur par formulaire : enregistrer un geste ne vide pas un suivi en cours de saisie (qualite, CI #181).
+  const [nGeste, setNGeste] = useState(0);
+  const [nSuivi, setNSuivi] = useState(0);
 
   if (erreur) return <EtatErreur texte={erreur} reessayer={charger} />;
   if (!fiche) return <Chargement lignes={5} />;
@@ -284,8 +286,12 @@ function FicheReclamation({
       </div>
     );
   }
-  const fait = async () => {
-    setN((x) => x + 1);
+  const gesteFait = async () => {
+    setNGeste((x) => x + 1);
+    await apres();
+  };
+  const suiviFait = async () => {
+    setNSuivi((x) => x + 1);
     await apres();
   };
   return (
@@ -353,9 +359,9 @@ function FicheReclamation({
           />
         </section>
         {fiche.statut !== "close" && !fiche.geste && (
-          <Geste key={`g${n}`} fiche={fiche} fait={fait} />
+          <Geste key={`g${nGeste}`} fiche={fiche} fait={gesteFait} />
         )}
-        <Suivre key={`s${n}-${fiche.statut}`} fiche={fiche} fait={fait} />
+        <Suivre key={`s${nSuivi}`} fiche={fiche} fait={suiviFait} />
       </div>
     </div>
   );
@@ -384,8 +390,8 @@ function Suivre({ fiche, fait }: { fiche: Fiche; fait: () => Promise<void> }) {
           ...(v.statut === "close" ? { resolution: v.resolution } : {}),
         }),
       apres: async () => {
-        notifier({ texte: "Enregistré.", ton: "succes" });
         await fait();
+        notifier({ texte: "Enregistré.", ton: "succes" });
       },
     },
   );
@@ -491,9 +497,10 @@ function Geste({ fiche, fait }: { fiche: Fiche; fait: () => Promise<void> }) {
             ? { remboursement_id: v.remboursement_id }
             : { detail: v.detail }),
         }),
+      // Annoncé une fois la fiche rechargée : un choix fait juste après n'est plus effacé (qualite, CI #181).
       apres: async () => {
-        notifier({ texte: "Geste noté.", ton: "succes" });
         await fait();
+        notifier({ texte: "Geste noté.", ton: "succes" });
       },
     },
   );

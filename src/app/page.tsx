@@ -1,5 +1,6 @@
 import { ChoixCommande } from "@/components/accueil/ChoixCommande";
 import { EnTete } from "@/components/EnTete";
+import { MessagesClients } from "@/components/MessagesClients";
 import { PiedDePage } from "@/components/PiedDePage";
 import { chargerConfigService } from "@/lib/config-service";
 import { jsonLd, schemaRestaurant } from "@/lib/schema";
@@ -28,6 +29,7 @@ export default async function Accueil() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(schemaRestaurant()) }} />
       <EnTete />
+      <MessagesClients messages={config.messages} page="accueil" rendu={Date.now()} />
       {preversion && propositions && (
         <p className="bandeau-preversion" role="note">
           Préversion : zones, frais, horaires et prix proposés, en attente de validation.

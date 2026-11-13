@@ -216,7 +216,7 @@ function FicheJour({ jour, passe, fermer, recharger }: { jour: Jour; passe: bool
         ) : ouverts.length === 0 ? (
           <p className="aide">
             Rien d&apos;ouvert ce jour-là. Pour ouvrir exceptionnellement ou retirer une fermeture : rubrique{" "}
-            <a href="/gestion/horaires">Livraison et horaires</a>, « Ouvertures exceptionnelles » et « Fermetures ».
+            <a href="/gestion/horaires#fermetures">Livraison et horaires, onglet « Fermetures »</a> (fermetures et ouvertures exceptionnelles).
           </p>
         ) : (
           <form onSubmit={fermerService} noValidate className="bo-cal-fermer">

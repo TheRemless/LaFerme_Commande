@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { EnTete } from "@/components/EnTete";
+import { MessagesClients } from "@/components/MessagesClients";
 import { PiedDePage } from "@/components/PiedDePage";
 import { ResumeChoix } from "@/components/ResumeChoix";
 import { CarteCommande } from "@/components/carte/CarteCommande";
 import { chargerCarte } from "@/lib/carte";
 import { chargerCatalogue } from "@/lib/catalogue";
+import { chargerConfigService } from "@/lib/config-service";
 import { chargerPopulaires } from "@/lib/populaires";
 import { chargerOptionsCommande } from "@/lib/options-commande";
 import { DESCRIPTION_CARTE, OPEN_GRAPH } from "@/lib/site";
@@ -20,7 +22,13 @@ export const metadata: Metadata = {
 };
 
 export default async function PageCarte() {
-  const [{ categories, source }, catalogue, populaires, options] = await Promise.all([chargerCarte(), chargerCatalogue(), chargerPopulaires(), chargerOptionsCommande()]);
+  const [{ categories, source }, catalogue, populaires, options, config] = await Promise.all([
+    chargerCarte(),
+    chargerCatalogue(),
+    chargerPopulaires(),
+    chargerOptionsCommande(),
+    chargerConfigService().catch(() => null),
+  ]);
   const preversion = process.env.CONTEXTE_DEPLOIEMENT !== "production";
   const aValider = categories.some((c) => c.plats.some((p) => p.prix_a_valider));
   return (
@@ -28,6 +36,7 @@ export default async function PageCarte() {
       <EnTete>
         <ResumeChoix />
       </EnTete>
+      <MessagesClients messages={config?.messages} page="carte" rendu={Date.now()} />
       {preversion && aValider && (
         <p className="bandeau-preversion" role="note">
           Préversion : prix proposés, en attente de validation.

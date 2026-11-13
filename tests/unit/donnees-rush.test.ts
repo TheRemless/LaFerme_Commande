@@ -58,7 +58,10 @@ describe("jeu de données de rush", () => {
     });
     // Tous les cas utiles au service sont là : file en direct, à l'avance, refus, échecs, remboursements, livreurs.
     const statuts = (await db.query<{ s: string }>("select distinct statut as s from commandes")).rows.map((x) => x.s);
-    expect(statuts).toEqual(expect.arrayContaining(["nouvelle", "en_preparation", "terminee", "refusee", "annulee"]));
+    expect(statuts).toEqual(expect.arrayContaining(["terminee", "refusee", "annulee"]));
+    // File en direct : plusieurs étapes du service à la fois (lesquelles dépend du tirage).
+    const actifs = statuts.filter((x) => ["nouvelle", "acceptee", "en_preparation", "prete", "partie"].includes(x));
+    expect(actifs.length).toBeGreaterThanOrEqual(3);
     const n = (await db.query<Record<string, number>>(`select
       (select count(*) from commandes where quand_type = 'creneau' and jour_service > '2026-11-13')::int as a_l_avance,
       (select count(*) from remboursements)::int as remboursements,
@@ -66,6 +69,17 @@ describe("jeu de données de rush", () => {
       (select count(*) from journal_gestion)::int as journal,
       (select count(*) from plats where rupture_jour = '2026-11-13')::int as ruptures`)).rows[0];
     for (const [cle, v] of Object.entries(n)) expect(v, cle).toBeGreaterThan(0);
+    // Avancement par poste (Rapports, onglet « Temps ») : rempli et cohérent.
+    const postes = (await db.query<Record<string, number>>(`select
+      count(*)::int as lignes,
+      count(*) filter (where pret_le < a_faire_le or lance_le > pret_le or pret_le > '2026-11-13T14:00:00Z')::int as incoherents,
+      count(*) filter (where pret_par like 'tablette:%')::int as par_tablette,
+      count(*) filter (where pret_par = 'statut')::int as par_statut
+      from commande_postes`)).rows[0];
+    expect(postes.lignes).toBeGreaterThan(0);
+    expect(postes.incoherents).toBe(0);
+    expect(postes.par_tablette).toBeGreaterThan(0);
+    expect(postes.par_statut).toBeGreaterThan(0);
     await db.close();
   });
 });

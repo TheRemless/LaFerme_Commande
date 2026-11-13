@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useId, useState } from "react";
 import { enregistrer } from "@/components/gestion/enregistrer";
+import { Onglets } from "@/components/gestion/ui";
 import { poster } from "@/lib/requete-client";
 import { jourTexte } from "@/lib/service";
 import { CoupDeFeu } from "@/components/gestion/CoupDeFeu";
@@ -53,8 +54,21 @@ const JOURS = ["", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", 
 const chf = (c: number) => (c / 100).toFixed(2);
 const hm = (t: string) => t.slice(0, 5);
 
+// Cinq parties en onglets (produit-gestion : la page faisait 6,5 écrans). Chacune a son adresse
+// (/gestion/horaires#zones) : un lien, le rechargement et le retour arrière la retrouvent.
+const ONGLETS = [
+  { cle: "soir", titre: "Ce soir" },
+  { cle: "zones", titre: "Zones" },
+  { cle: "horaires", titre: "Horaires" },
+  { cle: "capacite", titre: "Capacité et délais" },
+  { cle: "fermetures", titre: "Fermetures" },
+] as const;
+type CleOnglet = (typeof ONGLETS)[number]["cle"];
+const ongletDe = (hash: string): CleOnglet => ONGLETS.find((o) => `#${o.cle}` === hash)?.cle ?? "soir";
+
 export function GestionService() {
   const [d, setD] = useState<Donnees | null>(null);
+  const [onglet, setOnglet] = useState<CleOnglet>("soir");
   const charger = useCallback(async () => {
     const rep = await fetch("/api/gestion/service", { cache: "no-store" });
     if (rep.ok) setD(await rep.json());
@@ -62,36 +76,67 @@ export function GestionService() {
   useEffect(() => {
     charger();
   }, [charger]);
+  useEffect(() => {
+    const lire = () => setOnglet(ongletDe(window.location.hash));
+    lire();
+    window.addEventListener("hashchange", lire);
+    return () => window.removeEventListener("hashchange", lire);
+  }, []);
+  function choisir(cle: string) {
+    const c = ongletDe(`#${cle}`);
+    setOnglet(c);
+    window.history.replaceState(null, "", `#${c}`);
+  }
   if (!d) return <p className="aide">Chargement…</p>;
   return (
     <div className="ges-service">
-      <CoupDeFeu />
-      <DecalerCommandes />
-      <section className="ges-bloc">
-        <h2>Zones de livraison</h2>
-        <p className="aide">Enregistrer une zone la valide : elle n&apos;est plus marquée « proposition » sur le site.</p>
-        <div className="ges-zones">
-          {d.zones.map((z) => (
-            <FicheZone key={z.numero} zone={z} zones={d.zones} recharger={charger} />
-          ))}
-        </div>
-      </section>
-      <TesterAdresse />
-      <section className="ges-bloc">
-        <h2>Horaires de livraison et de retrait</h2>
-        <p className="aide">Les jours absents sont fermés (dimanche et lundi). Heures de Genève.</p>
-        <div className="ges-horaires">
-          {d.horaires.map((h) => (
-            <LigneHoraire key={h.id} h={h} recharger={charger} />
-          ))}
-        </div>
-      </section>
-      <Preparation minutes={d.preparation} recharger={charger} />
-      <Capacite capacites={d.capacites} recharger={charger} />
-      <Plafond centimes={d.plafond_comptoir_centimes} recharger={charger} />
-      {d.impressionAvance && <ImpressionAvance reglage={d.impressionAvance} recharger={charger} />}
-      <Fermetures fermetures={d.fermetures} recharger={charger} />
-      <Ouvertures ouvertures={d.ouvertures ?? []} recharger={charger} />
+      <Onglets libelle="Parties de la rubrique Livraison et horaires" onglets={[...ONGLETS]} actif={onglet} onChange={choisir}>
+        {onglet === "soir" && (
+          <>
+            <CoupDeFeu />
+            <DecalerCommandes />
+          </>
+        )}
+        {onglet === "zones" && (
+          <>
+            <section className="ges-bloc">
+              <h2>Zones de livraison</h2>
+              <p className="aide">Enregistrer une zone la valide : elle n&apos;est plus marquée « proposition » sur le site.</p>
+              <div className="ges-zones">
+                {d.zones.map((z) => (
+                  <FicheZone key={z.numero} zone={z} zones={d.zones} recharger={charger} />
+                ))}
+              </div>
+            </section>
+            <TesterAdresse />
+          </>
+        )}
+        {onglet === "horaires" && (
+          <section className="ges-bloc">
+            <h2>Horaires de livraison et de retrait</h2>
+            <p className="aide">Les jours absents sont fermés (dimanche et lundi). Heures de Genève.</p>
+            <div className="ges-horaires">
+              {d.horaires.map((h) => (
+                <LigneHoraire key={h.id} h={h} recharger={charger} />
+              ))}
+            </div>
+          </section>
+        )}
+        {onglet === "capacite" && (
+          <>
+            <Preparation minutes={d.preparation} recharger={charger} />
+            <Capacite capacites={d.capacites} recharger={charger} />
+            {d.impressionAvance && <ImpressionAvance reglage={d.impressionAvance} recharger={charger} />}
+            <Plafond centimes={d.plafond_comptoir_centimes} recharger={charger} />
+          </>
+        )}
+        {onglet === "fermetures" && (
+          <>
+            <Fermetures fermetures={d.fermetures} recharger={charger} />
+            <Ouvertures ouvertures={d.ouvertures ?? []} recharger={charger} />
+          </>
+        )}
+      </Onglets>
     </div>
   );
 }

@@ -23,7 +23,7 @@ async function page(largeur, hauteur) {
   return p;
 }
 
-for (const [l, h] of [[1440, 900], [1024, 768], [375, 812]]) {
+for (const [l, h] of [[1440, 900], [1280, 800], [1024, 768], [375, 812]]) {
   const p = await page(l, h);
   await p.screenshot({ path: `${dossier}/commandes-apres-liste-${l}.jpg`, quality: 80, fullPage: l === 375 });
   // Fiche : la première commande « en préparation » du jeu (contenu, client, adresse).

@@ -76,10 +76,14 @@ test("l'export comptable se télécharge en CSV", async () => {
 
 test("une zone se valide, les horaires et les fermetures s'affichent", async () => {
   await rubrique(gestion, "Livraison et horaires");
+  // La rubrique est en onglets (Ce soir, Zones, Horaires, Capacité et délais, Fermetures).
+  await gestion.getByRole("tab", { name: "Zones" }).click();
   const zone = gestion.locator(".ges-zone").first();
   await zone.getByRole("button", { name: "Enregistrer la zone" }).click();
   await expect(zone.getByText("Enregistré.")).toBeVisible();
+  await gestion.getByRole("tab", { name: "Horaires" }).click();
   await expect(gestion.locator(".ges-horaire").first()).toBeVisible();
+  await gestion.getByRole("tab", { name: "Fermetures" }).click();
   await expect(gestion.getByRole("heading", { name: "Fermetures" })).toBeVisible();
 });
 
@@ -179,6 +183,7 @@ test("un membre de l'équipe s'ajoute puis se retire", async ({}, info) => {
 test("un soir se ferme, puis se rouvre par le journal", async ({}, info) => {
   const jour = info.project.name === "bureau" ? "2027-01-05" : "2027-01-12";
   await rubrique(gestion, "Livraison et horaires");
+  await gestion.getByRole("tab", { name: "Fermetures" }).click();
   const bloc = gestion.locator(".ges-bloc", { has: gestion.getByRole("heading", { name: "Fermetures" }) });
   await bloc.getByLabel("Fermer").selectOption("soir");
   await bloc.getByLabel("Le", { exact: true }).fill(jour);
@@ -193,6 +198,7 @@ test("un soir se ferme, puis se rouvre par le journal", async ({}, info) => {
   await ligne.getByRole("button", { name: "Oui, remettre l'ancienne valeur" }).click();
   await expect(gestion.getByText("Ancienne valeur remise.")).toBeVisible();
   await rubrique(gestion, "Livraison et horaires");
+  await gestion.getByRole("tab", { name: "Fermetures" }).click();
   await expect(gestion.locator(".ges-bloc", { has: gestion.getByRole("heading", { name: "Fermetures" }) })).not.toContainText(`Soirée privée ${info.project.name}`);
 });
 

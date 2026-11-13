@@ -90,8 +90,7 @@ export function ticketsDeCommande(
       for (const d of l.details) contenu.push({ t: "texte", texte: d, retrait: true, gras: d.startsWith("SANS") || estNote(d), inverse: estNote(d) });
     }
     // Couverts et serviettes : sur le ticket du poste qui fait le sac (cuisine s'il y a des lignes cuisine).
-    const sac = c.lignes.some((l) => l.station === "cuisine") ? "cuisine" : "pizza";
-    if (c.couverts && station === sac) contenu.push({ t: "texte", texte: "+ COUVERTS ET SERVIETTES", gras: true });
+    if (c.couverts && station === posteDuSac(c)) contenu.push({ t: "texte", texte: "+ COUVERTS ET SERVIETTES", gras: true });
     contenu.push({ t: "filet" });
     if (ailleurs > 0) contenu.push({ t: "texte", texte: `Aussi ${autre === "pizza" ? "aux pizzas" : "en cuisine"} : ${ailleurs} article${ailleurs > 1 ? "s" : ""}` });
     contenu.push({ t: "texte", texte: `Paiement : ${paiement(c)}`, gras: true });
@@ -219,4 +218,42 @@ export function svgTicket(lignes: LigneTicket[]): string {
   }
   const hauteur = y + 40;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${LARGEUR_POINTS}" height="${hauteur}" viewBox="0 0 ${LARGEUR_POINTS} ${hauteur}"><rect width="100%" height="100%" fill="#fff"/><g fill="#000">${elements.join("")}</g></svg>`;
+}
+
+// ---------- Ticket « MODIFIÉE » (vague 3, demandé par bo-commandes, #65) ----------
+
+export type Changement = { champ: string; avant: string; apres: string };
+
+// Poste qui fait le sac : la cuisine s'il y a des lignes cuisine, sinon les pizzas.
+export function posteDuSac(c: Pick<CommandePourTicket, "lignes">): "pizza" | "cuisine" {
+  return c.lignes.some((l) => l.station === "cuisine") ? "cuisine" : "pizza";
+}
+
+// Une commande acceptée change (téléphone, consignes, adresse) après la sortie de ses tickets : un seul ticket, au
+// poste qui fait le sac, avec chaque changement puis l'état à jour. Les plats ne changent jamais ici.
+export function ticketModification(c: CommandePourTicket, changements: Changement[], maintenant: string | Date = new Date()): LigneTicket[] {
+  const contenu: LigneTicket[] = [
+    { t: "texte", texte: "MODIFIÉE", taille: 3, gras: true },
+    { t: "deux", gauche: c.mode === "livraison" ? "LIVRAISON" : "À EMPORTER", droite: `N° ${String(c.numero).padStart(3, "0")}`, taille: 3, gras: true },
+    { t: "texte", texte: `Modifiée à ${heure(maintenant)}${c.heure_confirmee ? `, pour ${heure(c.heure_confirmee)}` : ""}` },
+    { t: "filet" },
+  ];
+  for (const ch of changements) {
+    contenu.push({ t: "texte", texte: `${ch.champ} :`, gras: true });
+    contenu.push({ t: "texte", texte: `avant : ${ch.avant || "(vide)"}`, retrait: true });
+    contenu.push({ t: "texte", texte: `après : ${ch.apres || "(vide)"}`, retrait: true, gras: true, inverse: true });
+  }
+  contenu.push({ t: "filet" });
+  contenu.push({ t: "texte", texte: `Client : ${c.client_prenom} ${c.client_nom.charAt(0)}.   ${c.client_telephone}` });
+  if (c.destinataire?.nom) contenu.push({ t: "texte", texte: `Pour : ${c.destinataire.nom}   ${c.destinataire.telephone}`, gras: true });
+  if (c.mode === "livraison" && c.adresse) {
+    contenu.push({ t: "texte", texte: `Adresse : ${c.adresse.rue} ${c.adresse.numero}, ${c.adresse.npa} ${c.adresse.localite}` });
+    const d = c.details_livraison;
+    if (d) {
+      const complement = [d.etage && `${d.etage} étage`, d.sonnette && `sonnette ${d.sonnette}`, d.code && `code ${d.code}`].filter(Boolean).join(", ");
+      if (complement) contenu.push({ t: "texte", texte: complement, retrait: true });
+      if (d.instructions) contenu.push({ t: "texte", texte: `« ${d.instructions} »`, retrait: true });
+    }
+  }
+  return contenu;
 }

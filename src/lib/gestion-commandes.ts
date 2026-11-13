@@ -48,6 +48,10 @@ export function filtresListe(c: Record<string, unknown>): Resultat<Record<string
     if (c.service !== "midi" && c.service !== "soir") return { ok: false, erreur: "Service inconnu." };
     p.service = c.service;
   }
+  if (!vide(c.remboursement)) {
+    if (c.remboursement !== "fait" && c.remboursement !== "en_cours" && c.remboursement !== "echec") return { ok: false, erreur: "État de remboursement inconnu." };
+    p.remboursement = c.remboursement;
+  }
   if (!vide(c.moyen)) {
     if (c.moyen !== "en_ligne" && c.moyen !== "comptoir") return { ok: false, erreur: "Moyen de paiement inconnu." };
     p.moyen = c.moyen;

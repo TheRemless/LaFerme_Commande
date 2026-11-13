@@ -7,6 +7,7 @@ test.describe.configure({ mode: "serial" });
 
 let gestion: Page;
 let email: string;
+let prenom: string;
 let commande: string;
 
 async function connecter(page: Page, adresse: string) {
@@ -21,7 +22,7 @@ async function connecter(page: Page, adresse: string) {
 test.beforeAll(async ({ browser }, info) => {
   gestion = await (await browser.newContext({ baseURL: SITE })).newPage();
   await connecter(gestion, `clients-${info.project.name}@laferme.test`);
-  const prenom = `Bocli${info.project.name}${passage()}`;
+  prenom = `Bocli${info.project.name}${passage()}`;
   email = `${prenom.toLowerCase()}@laferme.test`;
   const rep = await gestion.request.post("/api/commandes", {
     headers: { Origin: SITE },
@@ -52,7 +53,7 @@ test.afterAll(async () => {
 
 test("un invité se retrouve par e-mail, sa fiche garde une note, la marque attend une décision", async () => {
   await gestion.getByLabel("Nom, téléphone ou e-mail").fill(email);
-  const ligne = gestion.getByRole("row", { name: /Fidele/ });
+  const ligne = gestion.getByRole("row", { name: new RegExp(prenom) });
   await expect(ligne).toHaveCount(1);
   await expect(ligne).toContainText("Invité");
   const r = await new AxeBuilder({ page: gestion }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
@@ -79,7 +80,7 @@ test("un invité se retrouve par e-mail, sa fiche garde une note, la marque atte
 
 test("une réclamation se suit jusqu'à sa clôture", async () => {
   await gestion.getByRole("tab", { name: "Réclamations" }).click();
-  const ligne = gestion.getByRole("row", { name: /Fidele/ });
+  const ligne = gestion.getByRole("row", { name: new RegExp(prenom) });
   await expect(ligne).toHaveCount(1);
   await ligne.getByRole("button").first().click();
   const fiche = gestion.getByRole("dialog");
@@ -88,6 +89,7 @@ test("une réclamation se suit jusqu'à sa clôture", async () => {
   await fiche.getByLabel("Pourquoi").fill("Client satisfait des excuses");
   await fiche.getByRole("button", { name: "Noter le geste" }).click();
   await expect(gestion.getByText("Geste noté.")).toBeVisible();
+  await expect(fiche.getByLabel("Geste pour le client")).toHaveCount(0);
   await fiche.getByLabel("Nouvel état").selectOption("close");
   await fiche.getByLabel("Comment elle s'est réglée").fill("Excuses au téléphone.");
   await fiche.getByRole("button", { name: "Enregistrer", exact: true }).click();

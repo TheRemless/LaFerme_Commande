@@ -19,3 +19,13 @@ En plus de l'état en direct (en ligne, papier, capot), le back-office donne pou
 - **En cas de panne** : un bloc de l'écran reprend les cinq gestes de `docs/pannes.md`, « L'imprimante ne sort rien ». Captures : `docs/rendus/vague-3/bo-operations/imprimantes-1024.png`.
 
 Avant la migration, `resume` vaut null et l'écran garde l'état en direct seul.
+
+## Renvoyer ses tickets sur une autre
+
+Une imprimante en panne (plus de papier, ne répond plus) : « Renvoyer ses tickets sur une autre », sur sa ligne, puis le choix de l'imprimante de destination. Ses tickets en attente, envoyés sans confirmation ou en échec partent sur l'autre. P1 de `produit-gestion`. Migration `20261130250000_renvoyer_tickets.sql`, route `/api/gestion/imprimantes` `{ type: "renvoyer", id, vers }` (gérant, journalisé).
+
+- **Ce qui part** : seulement les tickets des commandes encore à préparer (acceptées ou en préparation). Un ticket déjà envoyé, donc peut-être sorti, repart marqué « RENVOI : CE TICKET EST PEUT-ÊTRE DÉJÀ SORTI ». Un ticket garde son poste : un ticket pizza sorti en cuisine dit toujours PIZZA.
+- **Ce qui reste** : les tickets sortis ou annulés, ceux des commandes prêtes et les tickets de test (ils ne changent jamais d'imprimante).
+- **Les tickets suivants** vont encore à l'imprimante en panne tant qu'elle est active. La désactiver les envoie à l'autre imprimante du même poste, ou sur la tablette. L'écran le rappelle, comme « En cas de panne ».
+- Tests : `tests/unit/renvoyer-tickets-sql.test.ts`, `tests/e2e/gestion-imprimantes.spec.ts`. Capture : `docs/rendus/vague-3/bo-operations/imprimantes-renvoyer-1024.png`.
+
