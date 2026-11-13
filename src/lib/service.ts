@@ -41,6 +41,8 @@ export type Reglages = {
   // (Charge) reste sur le serveur : chargeDuMoment() dans src/lib/heure-reelle-serveur.ts.
   allongement_minutes?: number;
   fourchette?: { livraison: number; retrait: number };
+  // Annulation par le client depuis son suivi (vague 3, C1) : faux par défaut, décision de Jérémy.
+  annulation_client_active?: boolean;
 };
 
 export type Charge = {

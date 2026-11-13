@@ -25,6 +25,7 @@ vi.mock("@/lib/paiement/passerelle", async (original) => ({
 }));
 const { annulerParClient } = await import("@/lib/annulation-client");
 const { POST } = await import("@/app/api/suivi/annuler/route");
+const { chargerConfigService } = await import("@/lib/config-service");
 
 let n = 0;
 async function commande(comptoir = false): Promise<{ id: string; jeton: string }> {
@@ -126,6 +127,15 @@ describe("annulation par le client", () => {
     const db = await baseLocale();
     const mails = (await db.query<{ texte: string }>("select texte from courriels where commande_id = $1", [c.id])).rows;
     expect(mails.at(-1)?.texte).toContain("Le remboursement n'est pas encore parti");
+  });
+});
+
+describe("réglage lu par le suivi", () => {
+  it("annulation_client_active suit la base, faux par défaut", async () => {
+    await activer(false);
+    expect((await chargerConfigService()).reglages.annulation_client_active).toBe(false);
+    await activer(true);
+    expect((await chargerConfigService()).reglages.annulation_client_active).toBe(true);
   });
 });
 

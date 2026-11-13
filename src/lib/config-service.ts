@@ -75,6 +75,8 @@ async function lireConfigService(): Promise<ConfigService & { plafondComptoirCen
       creneau_minutes: nombre(reglages, "creneau_minutes"),
       avance_jours: nombre(reglages, "avance_jours"),
       impression_avance: impressionAvance(reglages),
+      // Vrai seulement si le réglage vaut le booléen vrai : absent (base pas encore migrée) ou autre, faux.
+      annulation_client_active: reglages.find((r) => r.cle === "annulation_client_active")?.valeur === true,
     },
     pause: (() => {
       const jusqua = reglages.find((r) => r.cle === "pause_jusqu_a")?.valeur;
