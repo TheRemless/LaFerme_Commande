@@ -194,6 +194,8 @@ Client absent à la livraison : la commande est close sans remboursement, avec l
 
 Qui livre les sept prochains jours, absence et renfort en un geste, semaine type, livraisons de chacun : `docs/planning-livreurs.md`, « Mode d'emploi ».
 
+Coup de feu (en tête de la rubrique) et zones livrées le soir seulement ou fermées pour quelques heures : `docs/coup-de-feu.md` et `docs/zones-services.md`, « Écran du back-office ».
+
 ### Imprimantes
 
 - La rubrique montre l'état de chaque imprimante.
