@@ -36,4 +36,4 @@ Chaque e-mail part en deux versions, texte seul et mise en page. La mise en page
 Le compte montre le nombre de commandes passées avec lui et les 30 dernières. « Voir les commandes plus anciennes » charge les 30 suivantes.
 ## Adresses enregistrées
 
-Dans son compte, le client corrige les consignes d'une adresse : étage, nom sur la sonnette, code d'entrée et mot pour le livreur. Ce sont les mêmes champs qu'à l'accueil, et la sonnette reste obligatoire.
+Dans son compte, le client corrige les consignes d'une adresse : étage, nom sur la sonnette, code d'entrée et mot pour le livreur. Ce sont les mêmes champs qu'à l'accueil. La sonnette reste obligatoire.
