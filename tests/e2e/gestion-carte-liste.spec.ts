@@ -109,6 +109,7 @@ test("les étiquettes se posent sur la fiche ; végane coche aussi végétarien"
   await expect(gestion.getByText("Étiquettes enregistrées.").last()).toBeVisible();
   await expect(panneau.getByRole("checkbox", { name: "Végétarien" })).not.toBeChecked();
   await gestion.keyboard.press("Escape");
+});
 
 test("en lot : retirer de la vente puis remettre en vente", async () => {
   await gestion.goto("/gestion/carte");
