@@ -98,6 +98,12 @@ export function ClotureJour() {
 
   const r = donnees?.rapport;
   const cl = donnees?.cloture;
+  const en = r?.encaissements;
+  // Espèces et carte séparées : seulement si le rapport les contient (pas une clôture enregistrée avant).
+  const moyens =
+    en && en.comptoir_especes && en.comptoir_carte && en.comptoir_non_note && en.attendu_especes_centimes !== undefined && en.attendu_carte_centimes !== undefined
+      ? { especes: en.comptoir_especes, carte: en.comptoir_carte, nonNote: en.comptoir_non_note, attenduEspeces: en.attendu_especes_centimes, attenduCarte: en.attendu_carte_centimes }
+      : null;
 
   return (
     <div className="clo">
@@ -148,6 +154,7 @@ export function ClotureJour() {
           <div className="clo-deux">
             <section aria-labelledby="clo-encaisse">
               <h3 id="clo-encaisse">Encaissé</h3>
+              <div className="clo-defile" tabIndex={0} role="region" aria-labelledby="clo-encaisse">
               <table className="clo-table">
                 <tbody>
                   <tr>
@@ -160,6 +167,27 @@ export function ClotureJour() {
                     <td className="clo-nb">{nombre(r.encaissements.comptoir.commandes)}</td>
                     <td className="clo-nb">CHF {montant(r.encaissements.comptoir.centimes)}</td>
                   </tr>
+                  {moyens && (
+                    <>
+                      <tr className="clo-detail">
+                        <th scope="row">dont espèces</th>
+                        <td className="clo-nb">{nombre(moyens.especes.commandes)}</td>
+                        <td className="clo-nb">CHF {montant(moyens.especes.centimes)}</td>
+                      </tr>
+                      <tr className="clo-detail">
+                        <th scope="row">dont carte</th>
+                        <td className="clo-nb">{nombre(moyens.carte.commandes)}</td>
+                        <td className="clo-nb">CHF {montant(moyens.carte.centimes)}</td>
+                      </tr>
+                      {moyens.nonNote.commandes > 0 && (
+                        <tr className="clo-detail">
+                          <th scope="row">dont moyen pas noté</th>
+                          <td className="clo-nb">{nombre(moyens.nonNote.commandes)}</td>
+                          <td className="clo-nb">CHF {montant(moyens.nonNote.centimes)}</td>
+                        </tr>
+                      )}
+                    </>
+                  )}
                   <tr>
                     <th scope="row">Déduit au comptoir (manques)</th>
                     <td />
@@ -177,7 +205,14 @@ export function ClotureJour() {
                   </tr>
                 </tbody>
               </table>
-              <p className="aide">Au comptoir : espèces et carte ensemble tant que la tablette ne note pas comment le client a payé.</p>
+              </div>
+              <p className="aide">
+                {!moyens
+                  ? "Au comptoir : espèces et carte ensemble (clôture enregistrée avant que la tablette note le moyen)."
+                  : moyens.nonNote.commandes > 0
+                    ? "Certaines commandes du comptoir n'ont pas de moyen noté : l'écart se lit sur le total, pas par moyen."
+                    : "Espèces : à comparer au tiroir. Carte : à comparer au ticket du terminal."}
+              </p>
             </section>
 
             <section aria-labelledby="clo-caisse" className={cl ? "clo-caisse" : "clo-caisse clo-sans-impression"}>
@@ -189,10 +224,18 @@ export function ClotureJour() {
                 </p>
               )}
               <form onSubmit={cloturer} className="clo-form">
-                <Champ libelle="Espèces comptées (CHF)" aide="Vide si pas compté." erreur={erreursSaisie.especes}>
+                <Champ
+                  libelle="Espèces comptées (CHF)"
+                  aide={moyens ? `Attendu dans le tiroir : CHF ${montant(moyens.attenduEspeces)}. Vide si pas compté.` : "Vide si pas compté."}
+                  erreur={erreursSaisie.especes}
+                >
                   {(a) => <input {...a} inputMode="decimal" autoComplete="off" value={especes} onChange={(e) => setEspeces(e.target.value)} />}
                 </Champ>
-                <Champ libelle="Carte au comptoir (CHF)" aide="Le total du ticket de clôture du terminal." erreur={erreursSaisie.carte}>
+                <Champ
+                  libelle="Carte au comptoir (CHF)"
+                  aide={moyens ? `Le total du ticket du terminal. Attendu : CHF ${montant(moyens.attenduCarte)}.` : "Le total du ticket de clôture du terminal."}
+                  erreur={erreursSaisie.carte}
+                >
                   {(a) => <input {...a} inputMode="decimal" autoComplete="off" value={carte} onChange={(e) => setCarte(e.target.value)} />}
                 </Champ>
                 <Champ libelle="Note" facultatif>
@@ -210,6 +253,7 @@ export function ClotureJour() {
             {r.a_encaisser.length === 0 ? (
               <p className="aide">Tout est encaissé.</p>
             ) : (
+              <div className="clo-defile" tabIndex={0} role="region" aria-labelledby="clo-a-encaisser">
               <table className="clo-table">
                 <thead>
                   <tr>
@@ -230,6 +274,7 @@ export function ClotureJour() {
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </section>
 
@@ -254,6 +299,7 @@ export function ClotureJour() {
             {r.remboursements.length === 0 ? (
               <p className="aide">Aucun remboursement.</p>
             ) : (
+              <div className="clo-defile" tabIndex={0} role="region" aria-labelledby="clo-remb">
               <table className="clo-table">
                 <thead>
                   <tr>
@@ -283,12 +329,14 @@ export function ClotureJour() {
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </section>
 
           <div className="clo-deux">
             <section aria-labelledby="clo-ventes">
               <h3 id="clo-ventes">Ventes</h3>
+              <div className="clo-defile" tabIndex={0} role="region" aria-labelledby="clo-ventes">
               <table className="clo-table">
                 <tbody>
                   <tr>
@@ -318,9 +366,11 @@ export function ClotureJour() {
                   </tr>
                 </tbody>
               </table>
+              </div>
             </section>
             <section aria-labelledby="clo-tva">
               <h3 id="clo-tva">TVA</h3>
+              <div className="clo-defile" tabIndex={0} role="region" aria-labelledby="clo-tva">
               <table className="clo-table">
                 <thead>
                   <tr>
@@ -347,6 +397,7 @@ export function ClotureJour() {
                   )}
                 </tbody>
               </table>
+              </div>
             </section>
           </div>
         </>

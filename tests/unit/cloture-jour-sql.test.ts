@@ -72,7 +72,7 @@ describe("rapport du jour", () => {
     await remboursement(c2.id, 200, "especes", "fait", "2026-12-04T19:30:00Z");
 
     const r = await rapport("2026-12-04");
-    expect(r.encaissements).toEqual({
+    expect(r.encaissements).toMatchObject({
       en_ligne: { commandes: 1, centimes: 4000 },
       comptoir: { commandes: 2, centimes: 3700 },
       deductions_centimes: 300,
@@ -107,6 +107,32 @@ describe("rapport du jour", () => {
       { type: "pas_terminee", numero: b.numero, statut: "prete", centimes: 1800 },
     ]);
     expect(JSON.stringify(r)).not.toMatch(/Prénom|079|client@/);
+  });
+});
+
+describe("espèces et carte au comptoir", () => {
+  it("sépare ce que la tablette a noté, compte à part le non noté, sans faire croire qu'un jour clôturé a changé", async () => {
+    const e1 = await commande({ jour: "2026-12-04", total: 2500, moyen: "comptoir", paiement: "encaisse" });
+    const c1 = await commande({ jour: "2026-12-04", total: 4000, moyen: "comptoir", paiement: "encaisse" });
+    await commande({ jour: "2026-12-04", total: 1000, moyen: "comptoir", paiement: "encaisse" });
+    await db.query("update commandes set moyen_comptoir = 'especes' where id = $1", [e1.id]);
+    await db.query("update commandes set moyen_comptoir = 'carte' where id = $1", [c1.id]);
+    await remboursement(e1.id, 300, "especes", "fait", "2026-12-04T19:30:00Z");
+    const r = await rapport("2026-12-04");
+    expect(r.encaissements).toMatchObject({
+      comptoir_especes: { commandes: 1, centimes: 2500 },
+      comptoir_carte: { commandes: 1, centimes: 4000 },
+      comptoir_non_note: { commandes: 1, centimes: 1000 },
+      attendu_especes_centimes: 2200,
+      attendu_carte_centimes: 4000,
+      attendu_comptoir_centimes: 7200,
+    });
+    // Un rapport enregistré sans ces champs (clôture d'avant) ne passe pas pour « changé ».
+    await f("cloturer_jour('2026-12-04', 2200, 4000, '', $1)", [gerant]);
+    await db.query(`update clotures set rapport = jsonb_set(rapport, '{encaissements}',
+      (rapport -> 'encaissements') - 'comptoir_especes' - 'comptoir_carte' - 'comptoir_non_note' - 'attendu_especes_centimes' - 'attendu_carte_centimes')
+      where jour = '2026-12-04'`);
+    expect((await f<ClotureJour>("cloture_jour('2026-12-04')")).change_depuis).toBe(false);
   });
 });
 
