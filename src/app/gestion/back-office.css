@@ -1021,10 +1021,11 @@
     animation: bo-entre 0.18s ease-out;
   }
 }
+/* Déplacement seul, sans fondu : un texte à moitié transparent ferait échouer les contrôles de contraste
+   (axe) pendant l'entrée, et se lit mal (remarque de bo-pilotage). */
 @keyframes bo-entre {
   from {
-    opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(12px);
   }
 }
 
