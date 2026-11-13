@@ -52,7 +52,8 @@ describe("prix d'une ligne", () => {
   it("exige le choix obligatoire des pâtes", () => {
     const p = pates();
     const t = calculerPanier(cat, [ligne(p.slug)], null);
-    expect(t.lignes[0].erreur).toMatch(/Choisissez/);
+    // Nom du groupe tel que le gérant l'écrit (« Sauce au choix ») : jamais « Choisissez vos sauce au choix ».
+    expect(t.lignes[0].erreur).toBe("Choisissez dans « Pâtes ».");
     expect(t.valide).toBe(false);
   });
 

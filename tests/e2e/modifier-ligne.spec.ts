@@ -74,3 +74,23 @@ test("un plat épuisé depuis l'ajout se rouvre sans pouvoir être validé", asy
   await page.getByRole("button", { name: /^Modifier/ }).click();
   await expect(page.getByRole("dialog").locator(".fiche-pied .bouton-principal")).toBeDisabled();
 });
+
+test("un plat réservé à l'autre mode se rouvre sans pouvoir être validé, avec sa raison", async ({ page }) => {
+  await poser(page, [L("lasagne-de-boeuf")]);
+  // « Dès que possible » avec l'heure estimée que donne l'accueil (19h40).
+  await page.addInitScript(() => {
+    const c = JSON.parse(localStorage.getItem("laferme.choix.v1")!);
+    localStorage.setItem("laferme.choix.v1", JSON.stringify({ ...c, estimation: 1180 }));
+  });
+  await page.route("**/panier", async (r) => {
+    if (r.request().resourceType() !== "document") return r.continue();
+    const rep = await r.fetch();
+    const html = (await rep.text()).replace(/(\\"slug\\":\\"lasagne-de-boeuf\\"[^}]*?\\"dispo\\":)null/g, '$1{\\"service\\":null,\\"mode\\":\\"livraison\\",\\"jours\\":null}');
+    await r.fulfill({ response: rep, body: html });
+  });
+  await page.goto("/panier");
+  await page.getByRole("button", { name: /^Modifier/ }).click();
+  const bouton = page.getByRole("dialog").locator(".fiche-pied .bouton-principal");
+  await expect(bouton).toBeDisabled();
+  await expect(bouton).toHaveText("Seulement en livraison.");
+});
