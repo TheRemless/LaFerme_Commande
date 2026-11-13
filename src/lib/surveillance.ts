@@ -1,5 +1,6 @@
 import "server-only";
 import { chargerConfigService } from "@/lib/config-service";
+import { finCoupDeFeuEchue } from "@/lib/coup-de-feu";
 import { courrielConfigure, envoyerParSmtp } from "@/lib/courriel/envoi";
 import { enregistrerCourriel, fonctionSql } from "@/lib/db/serveur";
 import { imprimerCommandesDues } from "@/lib/impression/service";
@@ -13,6 +14,7 @@ import { rafraichirCaches } from "@/lib/tablette";
 // 3. Chaque nuit, les réglages du soir reviennent à la normale (remise_du_jour).
 // 4. Les commandes acceptées à l'avance reçoivent leurs tickets à l'heure prévue (SS-11), pause ou non :
 //    une commande acceptée doit être préparée.
+// 5. Un coup de feu dont l'heure est passée prend fin (retard, capacité, livraison rendus).
 
 const TABLETTE_MUETTE_S = 180;
 
@@ -69,6 +71,13 @@ export async function executerSurveillance(maintenant = new Date()): Promise<{ f
     return null;
   });
   if (remise) rafraichirCaches("config-service");
+
+  // Coup de feu dont l'heure de fin est passée : retard, capacité et livraison reviennent (vague 3).
+  // Avant la migration 20261130090000, la fonction n'existe pas : rien à finir, rien à signaler.
+  await finCoupDeFeuEchue().catch((e) => {
+    const m = e instanceof Error ? e.message : String(e);
+    if (!/does not exist|Could not find the function/i.test(m)) console.error(`Fin du coup de feu : ${m}`);
+  });
 
   const config = await chargerConfigService();
   const service = dansUnService(config, maintenant);
