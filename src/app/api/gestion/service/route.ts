@@ -5,6 +5,7 @@ import { fonctionSql } from "@/lib/db/serveur";
 import { centimes, champsHoraire, champsZone, dateValide } from "@/lib/gestion";
 import { exigerGerant } from "@/lib/personnel/session";
 import { rafraichirCaches } from "@/lib/tablette";
+import { fermerZone, reglerServicesZone, rouvrirZone } from "@/lib/zones-operations";
 
 export async function GET(requete: Request) {
   const g = await exigerGerant(requete, { lecture: true });
@@ -49,6 +50,16 @@ export async function POST(requete: Request) {
     if (!n) return refus("Zone inconnue.", 404);
     if (!champs.ok) return refus(champs.erreur);
     ok = await fonctionSql<boolean>("modifier_zone", { p_numero: n, p: champs.valeur, p_personnel: qui });
+  } else if (c.type === "zone-services" || c.type === "zone-fermer" || c.type === "zone-rouvrir") {
+    // Zone par service, zone fermée jusqu'à une heure (vague 3) : contrôles et cache dans zones-operations.ts.
+    const r =
+      c.type === "zone-services"
+        ? await reglerServicesZone(g.personnel, c.numero, c.services)
+        : c.type === "zone-fermer"
+          ? await fermerZone(g.personnel, c.numero, c.jusqua, c.motif)
+          : await rouvrirZone(g.personnel, c.numero);
+    if (!r.ok) return refus(r.erreur, r.code);
+    return NextResponse.json({ enregistre: true, ...("deja" in r ? { deja: r.deja } : {}) });
   } else if (c.type === "horaire") {
     const id = entier(c.id);
     const champs = champsHoraire(c.champs);

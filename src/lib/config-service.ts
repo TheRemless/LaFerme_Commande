@@ -54,7 +54,13 @@ async function lireConfigService(): Promise<ConfigService & { plafondComptoirCen
   const retard = retardManuel + allongement;
   const preparation = nombre(reglages, "preparation_minutes");
   return {
-    zones: retard ? zones.map((z) => ({ ...z, delai_min: z.delai_min + retard, delai_max: z.delai_max + retard })) : zones,
+    zones: zones.map((z) => ({
+      ...z,
+      delai_min: z.delai_min + retard,
+      delai_max: z.delai_max + retard,
+      // PGlite rend un timestamptz en Date, Supabase en texte : toujours du texte ISO (comparé dans le navigateur).
+      fermee_jusqu_a: z.fermee_jusqu_a ? new Date(z.fermee_jusqu_a).toISOString() : null,
+    })),
     npa,
     horaires,
     fermetures: fermetures.map((f) => ({ ...f, debut: jour(f.debut), fin: jour(f.fin), service: f.service ?? null })),
