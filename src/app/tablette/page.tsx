@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ConnexionPersonnel } from "@/components/tablette/ConnexionPersonnel";
 import { Tablette } from "@/components/tablette/Tablette";
+import { fonctionSql } from "@/lib/db/serveur";
 import { personnelCourant } from "@/lib/personnel/session";
 import { PRIVE } from "@/lib/site";
 
@@ -10,6 +11,9 @@ export const metadata: Metadata = { title: "Tablette, La Ferme", robots: PRIVE, 
 
 export default async function PageTablette() {
   const personnel = await personnelCourant();
+  // Commandes au back-office (lien du bandeau des remboursements) : gérant, ou responsable au rôle ouvert.
+  const backOffice =
+    personnel && personnel.role !== "livreur" ? await fonctionSql<boolean>("droit_personnel", { p_personnel: personnel.id, p_action: "voir_commandes" }) : false;
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const cle = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   return (
@@ -26,7 +30,7 @@ export default async function PageTablette() {
           </a>
         </div>
       ) : (
-        <Tablette nom={personnel.nom} gerant={personnel.role === "gerant"} supabase={url && cle ? { url, cle } : null} />
+        <Tablette nom={personnel.nom} gerant={personnel.role === "gerant"} backOffice={backOffice} supabase={url && cle ? { url, cle } : null} />
       )}
     </main>
   );

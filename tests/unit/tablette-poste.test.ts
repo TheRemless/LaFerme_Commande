@@ -25,6 +25,16 @@ describe("vuePoste", () => {
     poste("d", "pizza", "2026-11-13T18:20:00Z"),
   ];
 
+  it("commande pas encore mise en route : hors file et hors reste, comptée plus tard (M2)", () => {
+    const v = vuePoste(commandes, postes, "pizza", new Date("2026-11-13T18:47:00Z"));
+    expect(v.en_cours.map((c) => c.numero)).toEqual([11]);
+    expect(v.plus_tard).toBe(1);
+    expect(v.reste).toEqual([
+      { nom: "Pizza Diavola", qte: 1 },
+      { nom: "Pizza Margherita", qte: 1 },
+    ]);
+  });
+
   it("file du poste dans l'ordre des tickets, seulement ses lignes, sans les refusées", () => {
     const v = vuePoste(commandes, postes, "pizza");
     expect(v.en_cours.map((c) => c.numero)).toEqual([11, 12]);

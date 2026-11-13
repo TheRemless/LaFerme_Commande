@@ -43,6 +43,25 @@ function ecrireAttente(v: EnAttente[]) {
 const cleNeuve = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 14)}`;
 
+// Deux notes courtes, comme la tablette, pour une nouvelle livraison.
+function bip(ctx: AudioContext) {
+  const t = ctx.currentTime;
+  for (const [debut, frequence] of [
+    [0, 880],
+    [0.25, 1175],
+  ] as const) {
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.frequency.value = frequence;
+    g.gain.setValueAtTime(0.0001, t + debut);
+    g.gain.exponentialRampToValueAtTime(0.4, t + debut + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + debut + 0.2);
+    o.connect(g).connect(ctx.destination);
+    o.start(t + debut);
+    o.stop(t + debut + 0.22);
+  }
+}
+
 const telLien = (t: string) => `tel:${t.replace(/[^+\d]/g, "")}`;
 
 export function Livreur({ nom, supabase }: { nom: string; supabase: { url: string; cle: string } | null }) {
@@ -57,6 +76,11 @@ export function Livreur({ nom, supabase }: { nom: string; supabase: { url: strin
   const [deplies, setDeplies] = useState<Set<string>>(new Set());
   const envoiEnCours = useRef(false);
   const attenteRef = useRef<EnAttente[]>([]);
+  // Nouvelle livraison donnée par la tablette (M5 de la mise en situation : un livreur dehors ne le savait pas) :
+  // vibration et son. Le navigateur n'autorise le son qu'après un geste : bouton « Activer le son » une fois.
+  const audio = useRef<AudioContext | null>(null);
+  const [sonActif, setSonActif] = useState(false);
+  const connues = useRef<Set<string> | null>(null);
 
   const majAttente = useCallback((v: EnAttente[]) => {
     attenteRef.current = v;
@@ -129,6 +153,47 @@ export function Livreur({ nom, supabase }: { nom: string; supabase: { url: strin
     };
   }, [vider]);
 
+  useEffect(() => {
+    if (!donnees) return;
+    const ids = donnees.livraisons.map((l) => l.commande_id);
+    const nouvelles = connues.current ? donnees.livraisons.filter((l) => !connues.current!.has(l.commande_id)) : [];
+    connues.current = new Set(ids);
+    if (nouvelles.length === 0) return;
+    setMessage(nouvelles.length === 1 ? `Nouvelle livraison pour vous : n° ${nouvelles[0].numero}.` : `${nouvelles.length} nouvelles livraisons pour vous.`);
+    try {
+      navigator.vibrate?.([300, 150, 300]);
+    } catch {
+      // Vibration refusée : le message et le son suffisent.
+    }
+    if (audio.current) bip(audio.current);
+    // Page cachée (autre appli à l'écran) : une notification, si le livreur l'a permise. Android Chrome refuse le
+    // constructeur sans service worker : le son et la vibration restent.
+    if (document.visibilityState === "hidden" && typeof Notification !== "undefined" && Notification.permission === "granted") {
+      try {
+        new Notification("Nouvelle livraison", { body: nouvelles.map((l) => `N° ${l.numero}`).join(", "), tag: "laferme-livraison" });
+      } catch {
+        // Pas de notification sur ce navigateur.
+      }
+    }
+  }, [donnees]);
+
+  async function activerSon() {
+    try {
+      audio.current ??= new AudioContext();
+      await audio.current.resume();
+      bip(audio.current);
+      setSonActif(true);
+    } catch {
+      // Pas de son sur ce téléphone : la vibration et le message restent.
+    }
+    // Même geste : la permission des notifications (refusée : son, vibration et message suffisent).
+    try {
+      if (typeof Notification !== "undefined" && Notification.permission === "default") await Notification.requestPermission();
+    } catch {
+      // ignoré
+    }
+  }
+
   // Même signal vide que la tablette : une commande réattribuée ou annulée se voit tout de suite.
   useEffect(() => {
     if (!supabase) return;
@@ -166,6 +231,11 @@ export function Livreur({ nom, supabase }: { nom: string; supabase: { url: strin
 
   return (
     <div className="livreur">
+      {!sonActif && (
+        <button type="button" className="bouton-second liv-son" onClick={activerSon}>
+          Activer le son et les alertes des nouvelles livraisons
+        </button>
+      )}
       <header className="liv-barre">
         <div>
           <h1>Mes livraisons</h1>
@@ -352,7 +422,14 @@ function Arret({
         <p className="liv-probleme">
           Problème signalé : {PROBLEMES.find(([m]) => m === motifAffiche)?.[1].toLowerCase()}
           {(problemeEnAttente?.detail ?? l.probleme_detail) ? `, « ${problemeEnAttente?.detail ?? l.probleme_detail} »` : ""}.{" "}
-          {problemeEnAttente ? "Envoi en attente du réseau." : "Le restaurant est prévenu."}
+          {problemeEnAttente ? (
+            "Envoi en attente du réseau."
+          ) : (
+            // Et maintenant ? (mise en situation du 13.11) : le restaurant rappelle, ou le livreur l'appelle.
+            <>
+              Le restaurant est prévenu. Attendez son appel, ou appelez-le au <a href={telLien(TELEPHONE_RESTAURANT)}>{TELEPHONE_RESTAURANT}</a>.
+            </>
+          )}
         </p>
       )}
 

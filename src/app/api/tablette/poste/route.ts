@@ -18,7 +18,8 @@ export async function GET(requete: Request) {
   const station = new URL(requete.url).searchParams.get("station") as Station;
   if (!STATIONS.includes(station)) return refus("Poste inconnu.", 404);
   const [commandes, postes] = await Promise.all([fileTablette(), fonctionSql<PosteActif[]>("postes_actifs", {}).catch(() => [] as PosteActif[])]);
-  return NextResponse.json({ maintenant: new Date().toISOString(), ...vuePoste(commandes, postes, station) }, { headers: SANS_CACHE });
+  const maintenant = new Date();
+  return NextResponse.json({ maintenant: maintenant.toISOString(), ...vuePoste(commandes, postes, station, maintenant) }, { headers: SANS_CACHE });
 }
 
 export async function POST(requete: Request) {

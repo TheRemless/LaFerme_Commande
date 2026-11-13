@@ -107,7 +107,18 @@ function sonnerAnnulation(ctx: AudioContext) {
   o.stop(t + 0.62);
 }
 
-export function Tablette({ nom, gerant = false, supabase }: { nom: string; gerant?: boolean; supabase: { url: string; cle: string } | null }) {
+export function Tablette({
+  nom,
+  gerant = false,
+  backOffice = false,
+  supabase,
+}: {
+  nom: string;
+  gerant?: boolean;
+  // Peut ouvrir les commandes au back-office (gérant, ou responsable au rôle ouvert) : sinon, pas de lien qui mène à un refus.
+  backOffice?: boolean;
+  supabase: { url: string; cle: string } | null;
+}) {
   const router = useRouter();
   const [donnees, setDonnees] = useState<Donnees | null>(null);
   const [dernierContact, setDernierContact] = useState<number | null>(null);
@@ -116,6 +127,8 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
   const [demarre, setDemarre] = useState(false);
   // Vrai seulement si le navigateur a accepté de jouer le son.
   const [son, setSon] = useState(false);
+  // L'écran n'a pas pu être gardé allumé (navigateur sans « wake lock », mode économie) : on le dit à l'équipe.
+  const [veilleRisque, setVeilleRisque] = useState(false);
   const [reglagesOuverts, setReglagesOuverts] = useState(false);
   // Retour du dernier geste. Un échec reste affiché jusqu'à « OK » : il ne doit pas passer inaperçu.
   const [message, setMessage] = useState<{ texte: string; echec: boolean } | null>(null);
@@ -260,7 +273,7 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
     return () => window.clearInterval(t);
   }, [son, listes.traiter.length, attenteLongue]);
 
-  async function demarrer() {
+  async function activerSon() {
     try {
       audio.current ??= new AudioContext();
       await audio.current.resume();
@@ -269,11 +282,23 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
     } catch {
       // Pas de son possible : la file et le bandeau restent visibles.
     }
+  }
+
+  async function garderEcranAllume() {
     try {
-      verrou.current = await navigator.wakeLock?.request("screen");
+      if (!navigator.wakeLock) throw new Error("wake lock absent");
+      verrou.current = await navigator.wakeLock.request("screen");
+      setVeilleRisque(false);
     } catch {
-      // Écran qui peut s'éteindre : rien de bloquant.
+      // Écran qui peut s'éteindre : pas bloquant, mais l'équipe doit le savoir (mise en situation du 13.11).
+      setVeilleRisque(true);
     }
+  }
+
+  // « Démarrer le service » : son et écran allumé. « Continuer sans son » garde aussi l'écran allumé.
+  async function demarrer(avecSon = true) {
+    if (avecSon) await activerSon();
+    await garderEcranAllume();
     setDemarre(true);
   }
 
@@ -283,11 +308,7 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
       if (demarre && document.visibilityState === "visible") {
         // La veille peut suspendre le son (iPad) : on le relance avec l'écran.
         await audio.current?.resume().catch(() => undefined);
-        try {
-          verrou.current = await navigator.wakeLock?.request("screen");
-        } catch {
-          // ignoré
-        }
+        await garderEcranAllume();
         charger();
       }
     };
@@ -514,11 +535,11 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
       {!demarre && (
         <div className="tab-demarrer">
           <p className="tab-demarrer-titre">Bonjour {nom}</p>
-          <button type="button" className="bouton-principal" onClick={demarrer}>
+          <button type="button" className="bouton-principal" onClick={() => demarrer()}>
             Démarrer le service
           </button>
           <p>Ce bouton active le son des nouvelles commandes et garde l&apos;écran allumé.</p>
-          <button type="button" className="lien" onClick={() => setDemarre(true)}>
+          <button type="button" className="lien" onClick={() => demarrer(false)}>
             Continuer sans son
           </button>
         </div>
@@ -534,6 +555,16 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
             {imprimantes.length === 0 ? "Pas d'imprimante." : imprimantesKo.length === 0 ? "Imprimantes en ligne." : ""}
           </span>
           {donnees?.reglages.raison_charge && <span className="tab-raison">{donnees.reglages.raison_charge}</span>}
+          {/* Son coupé (« Continuer sans son », ou son refusé) : on peut l'activer à tout moment, sans recharger. */}
+          {demarre && !son && (
+            <span className="tab-son">
+              Son coupé.{" "}
+              <button type="button" className="lien" onClick={activerSon}>
+                Activer le son
+              </button>
+            </span>
+          )}
+          {demarre && veilleRisque && <span className="tab-raison">Cet appareil peut éteindre l&apos;écran. Réglez sa mise en veille sur « Jamais ».</span>}
         </div>
         <div className="tab-recherche" role="search">
           <label htmlFor="tab-recherche" className="sr-only">
@@ -626,7 +657,7 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
         // Une ligne : les numéros du jour, le nombre des jours d'avant avec leurs dates, le détail au back-office.
         <p className="tab-alerte tab-alerte-courte" role="alert">
           {texteRemboursements(aRembourser, aujourdHui)}{" "}
-          <a href="/gestion/commandes?remboursement=echec">Voir au back-office</a>
+          {backOffice ? <a href="/gestion/commandes?remboursement=echec">Voir au back-office</a> : "Le gérant les reprend au back-office."}
         </p>
       )}
       {annulees.length > 0 && (
@@ -640,7 +671,8 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
       {imprimantesKo.length > 0 && (
         // Une seule ligne pour toutes les imprimantes : la file reste visible (vague 3, rush).
         <p className="tab-attente" role="alert">
-          {lignesImprimantes(imprimantesKo.map((i) => ({ nom: i.nom, etat: etatImprimante(i) })))}. Les tickets attendent leur retour, « Ticket » les affiche ici.
+          {lignesImprimantes(imprimantesKo.map((i) => ({ nom: i.nom, etat: etatImprimante(i) })))}. Les tickets attendent leur retour, « Ticket » les affiche ici. Vérifiez le
+          papier et le câble, puis éteignez et rallumez l&apos;imprimante.
         </p>
       )}
       {problemes.map((l) => (
@@ -674,7 +706,7 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
       {donnees === null ? (
         <p className="tab-vide">Chargement…</p>
       ) : !resultats && onglet === "livraisons" ? (
-        <OngletLivraisons commandes={donnees.commandes} plusTard={listes.plusTard} donnees={livraisons} agir={agirLivraison} />
+        <OngletLivraisons commandes={donnees.commandes} plusTard={listes.plusTard} donnees={livraisons} agir={agirLivraison} annulerPartie={gerant} />
       ) : enLignes ? (
         <div className={`tab-tableau${detail ? " tab-tableau-detail" : ""}`} onPointerDown={() => (dernierAppui.current = Date.now())}>
           {liste.length > 0 ? (

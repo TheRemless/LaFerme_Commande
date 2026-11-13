@@ -51,3 +51,9 @@
 .livreur:has(.liv-pouce) {
   padding-bottom: 104px;
 }
+/* Son des nouvelles livraisons : à activer une fois (le navigateur l'exige), en haut, pleine largeur. */
+.liv-son {
+  width: 100%;
+  min-height: 48px;
+  margin: 8px 0 12px;
+}
