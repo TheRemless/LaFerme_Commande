@@ -354,7 +354,8 @@ function SemainesTypes({ semaines, recharger }: { semaines: SemaineLivreur[]; re
           </thead>
           <tbody>
             {semaines.map((s) => (
-              <LigneSemaine key={s.id} semaine={s} recharger={recharger} />
+              // La clé suit la semaine enregistrée : changée ailleurs (autre gérant), la ligne repart de la base.
+              <LigneSemaine key={`${s.id}:${s.creneaux.map((c) => cle(c.jour, c.service)).join(",")}`} semaine={s} recharger={recharger} />
             ))}
           </tbody>
         </table>
