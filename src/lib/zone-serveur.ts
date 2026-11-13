@@ -1,6 +1,7 @@
 import "server-only";
 import { adresseOfficielle, retrouverAdresse } from "@/lib/adresse-serveur";
 import { zonePour, type ConfigService, type Zone } from "@/lib/service";
+import { MESSAGE_REGISTRE_EN_PANNE } from "@/lib/registre-panne";
 
 // Zone d'une adresse décidée par le serveur. Avec un identifiant du registre fédéral, l'adresse
 // officielle fait foi. Sans (saisie à la main), seul le NPA compte.
@@ -35,7 +36,7 @@ export async function zoneServeur(config: ConfigService, adresse: unknown, exige
     try {
       featureId = await retrouverAdresse({ rue, numero, npa, localite });
     } catch {
-      return { erreur: "Le service fédéral des adresses ne répond pas. Réessayez dans un instant.", code: 503 };
+      return { erreur: MESSAGE_REGISTRE_EN_PANNE, code: 503 };
     }
     if (!featureId) {
       return { erreur: "Nous ne trouvons pas cette adresse. Vérifiez\u2011la, ou appelez\u2011nous au 022\u00a0792\u00a016\u00a089.", code: 422 };
@@ -50,7 +51,7 @@ export async function zoneServeur(config: ConfigService, adresse: unknown, exige
     try {
       officielle = await adresseOfficielle(featureId);
     } catch {
-      return { erreur: "Le service fédéral des adresses ne répond pas. Réessayez dans un instant.", code: 503 };
+      return { erreur: MESSAGE_REGISTRE_EN_PANNE, code: 503 };
     }
     if (!officielle) return { erreur: "Adresse introuvable dans le registre fédéral.", code: 422 };
     if (officielle.canton !== "GE") return { statut: "hors-zone", verifiee: true };
