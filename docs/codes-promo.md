@@ -13,7 +13,7 @@ Migration `supabase/migrations/20261210120000_codes_promo.sql`. Tests : `tests/u
 
 ## Commande
 
-`commandes.code_promo` et `commandes.remise_centimes` (0 sans code, migration `20261210160000_codes_promo_commande.sql`) gardent le code et la remise avec la commande, pour le reçu, l'e-mail et l'export. Le total vaut plats + frais − remise. Une ligne de `utilisations_codes` relie la commande au code (chiffres par code, abus).
+`commandes.code_promo` et `commandes.remise_centimes` (0 sans code, migration `20261210180000_codes_promo_commande.sql`) gardent le code et la remise avec la commande, pour le reçu, l'e-mail et l'export. Le total vaut plats + frais − remise. Une ligne de `utilisations_codes` relie la commande au code (chiffres par code, abus).
 
 ## Contrôles (base, `evaluer_code`)
 
