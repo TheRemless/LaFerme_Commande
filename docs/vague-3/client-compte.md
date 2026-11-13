@@ -26,7 +26,7 @@ Le lien « Reçu avec TVA » est en bas de la page de suivi d'une commande payé
 Désactivé tant que Jérémy ne l'a pas décidé (réglage `annulation_client_active`). Activé, le bouton « Annuler ma commande » apparaît tant que la commande n'est pas acceptée, avec une confirmation. Le suivi dit ensuite « Vous avez annulé la commande. ».
 ## Ses données (nLPD)
 
-Le fichier « Télécharger mes données » du compte contient aussi les notes que l'équipe a écrites sur le client et sa marque (« à surveiller », « bloqué »). Une note écrite sur un client peut donc être lue par lui. À la suppression de son compte, ses notes sont effacées. La marque reste, pour qu'un blocage ne se lève pas en supprimant son compte : c'est une proposition qui attend la décision de Jérémy.
+Le fichier « Télécharger mes données » du compte contient aussi les notes que l'équipe a écrites sur le client et sa marque (« à surveiller », « bloqué »). Une note écrite sur un client peut donc être lue par lui. À la suppression de son compte, ses notes et sa marque sont effacées (décision de Jérémy, 13.11.2026).
 
 ## E-mails aux clients
 
