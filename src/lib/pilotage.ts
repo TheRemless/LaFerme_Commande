@@ -136,7 +136,9 @@ export function ecart(actuel: number, precedent: number): number | null {
 }
 
 // Analyses d'une période (pilotage_analyses). Aucune donnée personnelle : les clients ne sont que comptés.
+// livreurs : stats_livreurs de bo-operations, ajouté par la route (journée entière).
 export type Analyses = {
+  livreurs?: import("@/lib/planning-livreurs").StatsLivreur[];
   debut: string;
   fin: string;
   service: Service | null;

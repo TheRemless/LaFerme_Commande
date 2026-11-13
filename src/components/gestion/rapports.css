@@ -209,3 +209,81 @@
     transition: fill 0.15s ease;
   }
 }
+
+/* Analyses (onglets Plats, Heures, Zones et clients, Livreurs). */
+.bo .ana-pile {
+  display: grid;
+  gap: 24px;
+}
+.bo .ana-discret {
+  color: var(--bo-texte-doux);
+}
+.bo .ana-plus {
+  margin-top: 12px;
+}
+.bo .ana-chaleur-cadre {
+  overflow-x: auto;
+  background: var(--bo-surface);
+  border: 1px solid var(--bo-trait);
+  border-radius: var(--bo-rayon);
+  padding: 8px;
+}
+.bo .ana-chaleur {
+  border-collapse: separate;
+  border-spacing: 2px;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+}
+.bo .ana-chaleur th {
+  padding: 4px 6px;
+  font-weight: 600;
+  color: var(--bo-texte-doux);
+  text-align: left;
+  white-space: nowrap;
+}
+.bo .ana-chaleur td {
+  min-width: 40px;
+  height: 36px;
+  padding: 0 4px;
+  text-align: center;
+  border-radius: 2px;
+  background: var(--papier);
+}
+/* Une teinte, cinq marches : papier vers béton sombre. Le texte passe au blanc sur les deux plus sombres.
+   Sélecteurs plus précis que « .ana-chaleur td » (fond papier des cases vides). */
+.bo .ana-chaleur [data-marche="1"],
+.bo .ana-legende [data-marche="1"] {
+  background: color-mix(in srgb, var(--beton-sombre) 15%, var(--papier));
+}
+.bo .ana-chaleur [data-marche="2"],
+.bo .ana-legende [data-marche="2"] {
+  background: color-mix(in srgb, var(--beton-sombre) 32%, var(--papier));
+}
+.bo .ana-chaleur [data-marche="3"],
+.bo .ana-legende [data-marche="3"] {
+  background: color-mix(in srgb, var(--beton-sombre) 52%, var(--papier));
+}
+.bo .ana-chaleur [data-marche="4"],
+.bo .ana-legende [data-marche="4"] {
+  background: color-mix(in srgb, var(--beton-sombre) 88%, var(--papier));
+  color: var(--blanc);
+}
+.bo .ana-chaleur [data-marche="5"],
+.bo .ana-legende [data-marche="5"] {
+  background: var(--encre);
+  color: var(--blanc);
+}
+.bo .ana-legende {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 8px 0 0;
+  color: var(--bo-texte-doux);
+  font-size: 13px;
+}
+.bo .ana-legende span {
+  display: inline-block;
+  width: 20px;
+  height: 12px;
+  border-radius: 2px;
+}
