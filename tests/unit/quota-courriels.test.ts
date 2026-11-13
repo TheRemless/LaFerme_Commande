@@ -90,7 +90,7 @@ function message(type: import("@/lib/courriel/quota").TypeCourriel, commandeId: 
 }
 
 describe("quota d'envoi", () => {
-  it("les priorités basses s'arrêtent d'abord, les codes partent jusqu'au bout", async () => {
+  it("les priorités basses s'arrêtent d'abord, les confirmations partent jusqu'au bout", async () => {
     const { envoyerCourriel, envoyerCodeParCourriel } = await envoi();
     const plafond = await plafondAvecLibres(20);
     const c = await commande();
@@ -99,12 +99,15 @@ describe("quota d'envoi", () => {
     const jusqua85 = Math.floor(plafond * 0.85) - deja;
     for (let i = 0; i < jusqua85; i++) await envoyerCourriel(message("acceptation", c, i));
     await expect(envoyerCourriel(message("prete", c, 900))).rejects.toThrow(/limite d'envoi du jour atteinte/);
-    // Le suivi (95 %) passe encore, le code passe jusqu'au plafond.
+    // Codes et suivi passent jusqu'à 95 %, puis seules les confirmations.
     await envoyerCourriel(message("nouvelle_heure", c, 901));
-    while ((await (await quota()).etatQuotaCourriels()).restants > 0) {
+    while ((await (await quota()).etatQuotaCourriels()).envoyes < Math.floor(plafond * 0.95)) {
       await envoyerCodeParCourriel({ destinataire: "code@exemple.test", sujet: `Code ${Math.random()}`, texte: "x", html: "x" });
     }
     await expect(envoyerCodeParCourriel({ destinataire: "code@exemple.test", sujet: "Code fin", texte: "x", html: "x" })).rejects.toThrow(/limite/);
+    let n = 950;
+    while ((await (await quota()).etatQuotaCourriels()).restants > 0) await envoyerCourriel(message("confirmation", c, n++));
+    await expect(envoyerCourriel(message("confirmation", c, n))).rejects.toThrow(/limite/);
     expect(smtp.messages.some((m) => m.subject === "Sujet prete 900")).toBe(false);
   });
 

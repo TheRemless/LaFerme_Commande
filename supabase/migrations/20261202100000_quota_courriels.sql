@@ -20,8 +20,8 @@ alter table envois_courriel enable row level security;
 revoke all on envois_courriel from anon, authenticated;
 grant select, insert, update on envois_courriel to service_role;
 
--- Part du plafond que chaque priorité peut utiliser : 1 codes et confirmations, 2 acceptation, refus,
--- remboursement, nouvelle heure, manque, 3 prête et en route, 4 alertes au restaurant.
+-- Part du plafond que chaque priorité peut utiliser : 1 confirmations (et l'alerte du quota), 2 codes de
+-- connexion, acceptation, refus, remboursement, nouvelle heure, manque, 3 prête et en route, 4 alertes.
 create function part_quota_priorite(p_priorite smallint) returns numeric
 language sql immutable as $$
   select case p_priorite when 1 then 1.00 when 2 then 0.95 when 3 then 0.85 else 0.80 end;

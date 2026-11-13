@@ -74,7 +74,7 @@ function prevenirQuota(): void {
         "E-mails : 80 % de la limite du jour atteints",
         [
           `Le site a envoyé ${Math.ceil(plafond * 0.8)} e-mails sur les ${plafond} permis par 24 heures.`,
-          "Il garde la place pour les codes de connexion et les confirmations de commande. Les e-mails « prête » et « en route » s'arrêtent à 85 %.",
+          "Il garde la place pour les confirmations de commande, puis les codes de connexion. Les e-mails « prête » et « en route » s'arrêtent à 85 %.",
           "Pour relever la limite, il faut la demander à Infomaniak, puis changer COURRIELS_PLAFOND_JOUR dans Netlify.",
         ],
         "alerte_quota",

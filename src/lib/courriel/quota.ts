@@ -3,8 +3,8 @@ import { fonctionSql } from "@/lib/db/serveur";
 
 // Quota d'envoi de la boîte Infomaniak (500 e-mails par 24 heures, docs/comptes.md). Chaque envoi SMTP réserve
 // une place avant de partir (migration 20261202100000). Les types les moins utiles s'arrêtent d'abord :
-// à 80 % du plafond les alertes, à 85 % « prête » et « en route », à 95 % le reste du suivi. Les codes et les
-// confirmations partent jusqu'au bout. Plafond réglable : COURRIELS_PLAFOND_JOUR (Jérémy fait relever la limite).
+// à 80 % du plafond les alertes, à 85 % « prête » et « en route », à 95 % les codes et le reste du suivi.
+// Les confirmations de commande partent jusqu'au bout. Plafond réglable : COURRIELS_PLAFOND_JOUR (Jérémy fait relever la limite).
 
 export type TypeCourriel =
   | "code"
@@ -22,9 +22,11 @@ export type TypeCourriel =
   | "alerte"
   | "alerte_quota";
 
+// Les codes passent sous les confirmations : une demande de code se fabrique sans compte, une commande
+// payée non (revue de sécurité du quota). Un attaquant qui épuise les codes laisse partir les confirmations.
 export const PRIORITE_COURRIEL: Record<TypeCourriel, 1 | 2 | 3 | 4> = {
-  code: 1,
   confirmation: 1,
+  code: 2,
   // L'alerte « 80 % atteints » doit partir : sinon personne ne sait que les e-mails vont s'arrêter.
   alerte_quota: 1,
   acceptation: 2,
