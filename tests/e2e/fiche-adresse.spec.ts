@@ -10,8 +10,13 @@ test("/carte#slug ouvre la fiche du plat, la fermer retire l'ancre", async ({ pa
   await page.goto("/carte#pasta-alla-carbonara");
   const fiche = page.getByRole("dialog");
   await expect(fiche.getByRole("heading", { name: /carbonara/i })).toBeVisible();
-  await page.keyboard.press("Escape");
-  await expect(fiche).toBeHidden();
+  // La fiche écoute le clavier une fois le focus posé sur elle (effet après l'affichage) : sur la CI, un
+  // Échap envoyé entre les deux se perdait. On attend le focus, puis on renvoie Échap tant qu'elle est là.
+  await expect(fiche).toBeFocused();
+  await expect(async () => {
+    if (await fiche.isVisible()) await page.keyboard.press("Escape");
+    await expect(fiche).toBeHidden({ timeout: 2000 });
+  }).toPass({ timeout: 15_000 });
   await expect(page).toHaveURL((u) => u.pathname === "/carte" && u.hash === "");
 });
 
