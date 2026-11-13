@@ -25,7 +25,7 @@ const STATUTS: Record<string, string> = {
   prete: "Prête",
   partie: "En route",
   terminee: "Terminée",
-  refusee: "Refusée",
+  refusee: "Annulée",
 };
 
 function dateTexte(iso: string): string {

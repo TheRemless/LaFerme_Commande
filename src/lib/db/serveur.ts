@@ -169,6 +169,8 @@ export type Commande = {
   compte_demande: boolean;
   // Détachée par la suppression de son compte : jamais rangée de nouveau. Absent avant la migration 20261202110000.
   detachee_du_compte?: boolean;
+  // Annulée par le client depuis le suivi (bo-commandes, #70). Absent avant sa migration.
+  annulee_par_client_le?: string | null;
   origine: string;
   cree_le: string;
   lignes: LigneCommande[];

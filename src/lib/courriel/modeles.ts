@@ -34,6 +34,14 @@ export function detailsLigne(cat: Catalogue | null, l: { choix: Record<string, s
 
 export { MOTIF_DEMANDE_CLIENT };
 
+// Délais de remboursement selon le moyen de paiement (le site ne sait pas lequel le client a choisi chez
+// Stripe : on donne les deux). Sources lues le 13.11.2026 :
+// - TWINT : https://docs.stripe.com/payments/twint (« Refunds usually take a few minutes to complete »).
+// - Carte : https://support.stripe.com/questions/how-long-do-refunds-take-to-reach-my-customer (5 à 10 jours
+//   ouvrables ; Stripe donne ailleurs jusqu'à 14 jours, d'où « en général » et « selon votre banque »).
+export const DELAI_REMBOURSEMENT =
+  "Avec TWINT, la somme revient en général en quelques minutes. Avec une carte, en général de 5 à 10 jours ouvrables, selon votre banque.";
+
 function phraseAnnulation(c: Commande, motif: string): { texte: string; html: string } {
   if (motif === MOTIF_DEMANDE_CLIENT) {
     return {
@@ -151,7 +159,8 @@ export function courrielRemboursement(c: Commande, motif: string) {
     `Bonjour ${c.client_prenom},`,
     "",
     phraseAnnulation(c, motif).texte,
-    `Nous vous remboursons ${prixChf(c.total_centimes)} sur le moyen de paiement utilisé. Le délai dépend de votre banque.`,
+    `Nous vous remboursons ${prixChf(c.total_centimes)} sur le moyen de paiement utilisé.`,
+    DELAI_REMBOURSEMENT,
     "",
     `Une question ? ${TELEPHONE}`,
     "",
@@ -160,7 +169,8 @@ export function courrielRemboursement(c: Commande, motif: string) {
   const html = enveloppe(`
 <p>Bonjour ${echapper(c.client_prenom)},</p>
 <p>${phraseAnnulation(c, motif).html}</p>
-<p>Nous vous remboursons ${prixChf(c.total_centimes)} sur le moyen de paiement utilisé. Le délai dépend de votre banque.</p>
+<p>Nous vous remboursons ${prixChf(c.total_centimes)} sur le moyen de paiement utilisé.</p>
+<p>${DELAI_REMBOURSEMENT}</p>
 <p>Une question ? ${TELEPHONE}</p>`, c.origine);
   return { sujet, texte, html, type: "refus" as TypeCourriel };
 }
@@ -312,7 +322,8 @@ export function courrielRemboursementGeste(c: Commande, montantCentimes: number,
   return courrielType(c, "remboursement", `Remboursement de ${montant}, commande ${c.numero}, La Ferme`, [
     phrase,
     motif,
-    "La somme revient sur le moyen de paiement utilisé. Le délai dépend de votre banque.",
+    "La somme revient sur le moyen de paiement utilisé.",
+    DELAI_REMBOURSEMENT,
   ], false);
 }
 
@@ -323,7 +334,7 @@ export function courrielManque(c: Commande, description: string, montantCentimes
   const montant = prixChf(montantCentimes);
   const argent =
     moyen === "stripe"
-      ? [`Nous vous remboursons ${montant}.`, "La somme revient sur le moyen de paiement utilisé. Le délai dépend de votre banque."]
+      ? [`Nous vous remboursons ${montant}.`, "La somme revient sur le moyen de paiement utilisé.", DELAI_REMBOURSEMENT]
       : moyen === "deduction"
         ? [`Vous payez ${prixChf(resteCentimes)} au comptoir au lieu de ${prixChf(c.total_centimes)}.`]
         : [`Nous vous rendons ${montant} au comptoir.`];

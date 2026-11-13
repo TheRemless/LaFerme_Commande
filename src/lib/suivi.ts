@@ -3,6 +3,7 @@ import type { Commande } from "@/lib/db/serveur";
 import { fonctionSql } from "@/lib/db/serveur";
 import { prixChf } from "@/lib/prix";
 import { TELEPHONE_RESTAURANT } from "@/lib/livraisons-textes";
+import { DELAI_REMBOURSEMENT } from "@/lib/courriel/modeles";
 
 // Ce que la page de suivi dit des remboursements et du retard. Textes passés par redaction-fr (voix de La Ferme).
 
@@ -43,7 +44,7 @@ export function phraseRemboursement(r: RemboursementSuivi): PhraseRemboursement 
       : { etat: r.statut, texte: `${montant} à vous rendre au comptoir.` };
   }
   if (r.statut === "fait") {
-    return { etat: "fait", texte: `${montant} remboursés le ${jour(r.fait_le ?? r.cree_le)}. La somme revient sur le moyen de paiement utilisé. Le délai dépend de votre banque.` };
+    return { etat: "fait", texte: `${montant} remboursés le ${jour(r.fait_le ?? r.cree_le)}. La somme revient sur le moyen de paiement utilisé. ${DELAI_REMBOURSEMENT}` };
   }
   if (r.statut === "echec") {
     return { etat: "echec", texte: `Le remboursement de ${montant} n'a pas abouti. Le restaurant est prévenu. Appelez-nous au ${TELEPHONE_RESTAURANT}.` };

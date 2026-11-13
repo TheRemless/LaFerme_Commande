@@ -17,6 +17,7 @@ import { prixChf, prixCourt } from "@/lib/prix";
 import { PRIVE } from "@/lib/site";
 import { enRetard, libellePaiement, PHRASE_RETARD, phraseRemboursement, remboursementsSuivi, resteComptoir } from "@/lib/suivi";
 import { MOTIF_CLIENT_ABSENT } from "@/lib/livraisons-textes";
+import { MOTIF_DEMANDE_CLIENT } from "@/lib/motifs";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Suivi de commande, La Ferme", robots: PRIVE };
@@ -56,6 +57,7 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
   const paiement = libellePaiement(c, remboursements);
   const reste = resteComptoir(c, remboursements);
   const retard = enRetard(c);
+  const parClient = Boolean(c.annulee_par_client_le) || c.motif === MOTIF_DEMANDE_CLIENT;
   // Un remboursement attendu chez Stripe garde la page à jour, même commande terminée.
   const attente = remboursements.some((r) => r.moyen === "stripe" && r.statut === "en_cours");
 
@@ -82,9 +84,11 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
           )}
           {c.statut === "refusee" && (
             <>
-              <h1>Commande refusée</h1>
+              {/* Un seul mot pour le client, comme dans l'e-mail : « annulée ». Par le client lui-même (bouton du
+                  suivi ou appel au restaurant) ou par le restaurant. */}
+              <h1>{parClient ? "Commande annulée" : "Commande annulée par le restaurant"}</h1>
               <p className="suivi-change">
-                {c.motif ?? "Le restaurant ne peut pas préparer cette commande."}
+                {parClient ? "Vous avez annulé la commande." : (c.motif ?? "Le restaurant ne peut pas préparer cette commande.")}
                 {paiement === "Remboursée" ? " Le montant vous est remboursé." : ""}
               </p>
             </>
