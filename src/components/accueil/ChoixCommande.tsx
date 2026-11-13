@@ -211,7 +211,9 @@ export function ChoixCommande({
         fetch("/api/adresse", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(adresseRetenue.featureId ? { featureId: adresseRetenue.featureId } : adresseRetenue),
+          // L'adresse entière, identifiant compris : si le registre fédéral ne répond pas, le serveur peut
+          // l'accepter sur son NPA (C15).
+          body: JSON.stringify(adresseRetenue),
           signal: ctrl.signal,
         })
           .then(async (r) => ({ code: r.status, corps: (await r.json()) as { statut?: string; zone?: ZoneChoisie; verifiee?: boolean; adresse?: Adresse; erreur?: string; jusqua?: string } }))
