@@ -3,7 +3,7 @@ import { baseLocale } from "@/lib/db/locale";
 import { ticketsDeCommande, type CommandePourTicket, type LigneTicket } from "@/lib/impression/ticket";
 
 // Nouveautés de la commande client (vague 3, client-commande) lues par la tablette, les tickets, la vue par poste
-// et la page livreur : allergie, personne qui reçoit la commande, couverts, prénom par ligne. Migration 20261212090000.
+// et la page livreur : allergie, personne qui reçoit la commande, couverts, prénom par ligne. Migration 20261212110000.
 
 const textes = (l: LigneTicket[]) => l.map((x) => (x.t === "texte" ? x.texte : x.t === "deux" ? `${x.gauche} ${x.droite}` : "---")).join("\n");
 const base: CommandePourTicket = {

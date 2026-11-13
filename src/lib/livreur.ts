@@ -21,7 +21,7 @@ export type LivraisonLivreur = {
   zone: number | null;
   prenom: string;
   telephone: string;
-  // Personne qui reçoit la commande, si ce n'est pas celle qui a commandé (vague 3, migration 20261212090000).
+  // Personne qui reçoit la commande, si ce n'est pas celle qui a commandé (vague 3, migration 20261212110000).
   destinataire?: { nom: string; telephone: string } | null;
   articles: number;
   pizzas: number;

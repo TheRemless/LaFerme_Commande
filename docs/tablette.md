@@ -169,7 +169,7 @@ Un écran au poste pizza ou cuisine, **derrière un lien** : `/tablette/poste/pi
 
 ## Nouveautés de la commande client (vague 3, colonnes de client-commande)
 
-Migration `20261212090000_tablette_nouveautes_client.sql` (après les colonnes de client-commande, `20261210130000` à `20261210210000` : le préfixe `20261203` passerait avant elles). Elle recrée `file_tablette` (depuis `20261203090000`) et `livraisons_livreur` (depuis `20261119090000`) avec seulement les champs nouveaux. Le code les lit comme facultatifs.
+Migration `20261212110000_tablette_nouveautes_client.sql` (après les colonnes de client-commande, `20261210130000` à `20261210210000` : le préfixe `20261203` passerait avant elles). Elle recrée `file_tablette` (depuis `20261203090000`) et `livraisons_livreur` (depuis `20261119090000`) avec seulement les champs nouveaux. Le code les lit comme facultatifs.
 
 | Donnée | Tablette | Vue par poste | Ticket | Page livreur |
 |---|---|---|---|---|

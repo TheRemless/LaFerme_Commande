@@ -49,7 +49,7 @@ export type CommandeTablette = {
   attend_depuis: string;
   // pour : prénom de la personne à qui va le plat (client-commande, vide si le réglage est éteint).
   lignes: { nom: string; qte: number; station: "pizza" | "cuisine"; choix: Record<string, string[]>; retraits: string[]; note: string; details: string[]; pour?: string }[];
-  // Vague 3 (client-commande, migration 20261212090000) : facultatifs, absents avant la migration.
+  // Vague 3 (client-commande, migration 20261212110000) : facultatifs, absents avant la migration.
   allergie?: string;
   destinataire?: { nom: string; telephone: string } | null;
   couverts?: boolean;
