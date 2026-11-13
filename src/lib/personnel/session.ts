@@ -5,16 +5,19 @@ import { NextResponse } from "next/server";
 import { requeteDuSite } from "@/lib/comptes/origine-requete";
 import { empreinte } from "@/lib/comptes/securite";
 import { fonctionSql } from "@/lib/db/serveur";
+import type { ActionDroit } from "@/lib/personnel/droits";
 
 // Session du personnel, à part de celle des clients : autre cookie, autres empreintes, autre table.
 // SameSite=Strict : la tablette n'arrive jamais sur le site par un lien venu d'ailleurs. 60 jours.
 
-export type Role = "service" | "gerant" | "livreur";
+// « responsable » : rôle de la décision D1, attribuable seulement quand role_responsable_actif est à true.
+export type Role = "service" | "gerant" | "livreur" | "responsable";
 export type Personnel = { id: string; email: string; nom: string; role: Role };
 
 // La tablette et ses routes : service et gérant. Un livreur n'y entre pas (il ne voit que ses livraisons,
 // sur /livreur) : il faut le demander explicitement avec roles.
-const ROLES_TABLETTE: readonly Role[] = ["service", "gerant"];
+// Un responsable de service a tous les gestes de la tablette (D1).
+const ROLES_TABLETTE: readonly Role[] = ["service", "gerant", "responsable"];
 
 const DUREE_S = 60 * 24 * 60 * 60;
 // Livreur : téléphone personnel, souvent dans la poche ou perdu. Une soirée, pas 60 jours (audit de sécurité 2, S2-15).
@@ -69,6 +72,20 @@ export function exigerLivreur(requete: Request, options: { lecture?: boolean } =
 
 export function auteur(p: Personnel): string {
   return `${p.role === "livreur" ? "livreur" : "tablette"}:${p.nom}`;
+}
+
+// Une action du tableau D1 (src/lib/personnel/droits.ts) : le gérant, ou un responsable de service quand le
+// rôle est activé. La base revérifie avec auteur_droit dans la fonction qui écrit.
+export async function exigerDroit(
+  requete: Request,
+  action: ActionDroit,
+  options: { lecture?: boolean } = {},
+): Promise<{ personnel: Personnel } | { reponse: NextResponse }> {
+  const g = await exigerPersonnel(requete, options);
+  if ("reponse" in g) return g;
+  if (g.personnel.role === "gerant") return g;
+  if (g.personnel.role === "responsable" && (await fonctionSql<boolean>("droit_personnel", { p_personnel: g.personnel.id, p_action: action }))) return g;
+  return { reponse: refus("Réservé au gérant.", 403) };
 }
 
 // Back-office : même contrôle, et rôle gérant exigé.
