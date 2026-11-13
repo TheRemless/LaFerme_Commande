@@ -130,3 +130,12 @@ Bloc en tête de « Pause, délai, ruptures ». Mêmes fonctions que le back-off
 ## Numéro d'un autre jour (vague 3, relevé par qualite)
 
 Les numéros recommencent chaque jour. Une commande reçue un autre jour (refusée dont le remboursement n'est pas passé, commande à l'avance) porte sa date sous le numéro, « du 4 nov. », dans la liste comme dans le détail : on ne la confond plus avec le 130 du soir. Classe `tab-autre-jour` sur la ligne et la carte (les tests e2e visent `:not(.tab-autre-jour)`). Capture : `docs/rendus/vague-3/tablette/numero-autre-jour-paysage-1024.png` (`scripts/tablette/numero-autre-jour.mjs`, jeu de rush).
+
+## Ticket de test (vague 3, pour le back-office de bo-operations)
+
+Le gérant vérifie qu'une imprimante sort un ticket sans passer de vraie commande (`docs/impression.md`, S13). Migration `20261203110000_ticket_de_test.sql`, serveur `src/lib/impression/test.ts`.
+
+- `imprimerTicketTest(imprimanteId, personnel)` : `{ ok: true, tache }` ou `{ ok: false, erreur }` en français (« Réservé au gérant. », « Imprimante inconnue. », « Imprimante désactivée : réactivez-la avant le test. »). Le bouton est au back-office (bo-operations).
+- Base : `ticket_de_test(p_imprimante smallint, p_personnel uuid)`, gérant revérifié, imprimante active, journalisé (`journal_gestion`, objet `imprimante`, clé `ticket_de_test`). Tâche `essai` sans commande : `taches_impression.commande_id` devient nullable, contrainte « commande ou essai ».
+- Ticket : « TEST », poste et nom de l'imprimante, date et heure de Genève, qui l'a demandé, « Si ce ticket sort, l'imprimante est bien branchée. ». CloudPRNT l'envoie et le confirme comme les autres, fonctions inchangées.
+- La tablette ne montre pas les essais (la file ne garde que les tickets des commandes actives). Pour lire `taches_impression` ailleurs sans les compter : `commande_id is not null`.
