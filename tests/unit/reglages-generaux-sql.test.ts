@@ -28,6 +28,11 @@ describe("réglages généraux", () => {
       plats_populaires_actifs: false,
       suggestion_panier_active: false,
       rythme: { debit_pizza_quart_heure: 0, debit_cuisine_quart_heure: 0, allongement_max_minutes: 45, fourchette_livraison_minutes: 15, fourchette_retrait_minutes: 10 },
+      interrupteurs: expect.arrayContaining([
+        expect.objectContaining({ cle: "annulation_client_active", valeur: false }),
+        expect.objectContaining({ cle: "plats_populaires_actifs", valeur: false }),
+        expect.objectContaining({ cle: "suggestion_panier_active", valeur: false }),
+      ]),
     });
   });
 
@@ -58,16 +63,16 @@ describe("réglages généraux", () => {
   });
 
   it("annulation par le client : oui ou non, faux au départ", async () => {
-    expect(await regler("annulation_client_active", true)).toBe(true);
+    expect(await regler("annulation_client_active", true)).toEqual({ valeur: true, cache: "config-service" });
     expect((await generaux()).annulation_client_active).toBe(true);
     await expect(regler("annulation_client_active", "oui")).rejects.toThrow(/Oui ou non/);
     await expect(regler("annulation_client_active", false, ids.service)).rejects.toThrow(/gérant/);
-    expect(await regler("annulation_client_active", false)).toBe(false);
+    expect(await regler("annulation_client_active", false)).toEqual({ valeur: false, cache: "config-service" });
   });
 
   it("plats populaires et suggestion au panier : oui ou non, gérant seulement", async () => {
-    expect(await regler("plats_populaires_actifs", true)).toBe(true);
-    expect(await regler("suggestion_panier_active", true)).toBe(true);
+    expect(await regler("plats_populaires_actifs", true)).toEqual({ valeur: true, cache: "catalogue" });
+    expect(await regler("suggestion_panier_active", true)).toEqual({ valeur: true, cache: "catalogue" });
     expect(await generaux()).toMatchObject({ plats_populaires_actifs: true, suggestion_panier_active: true });
     // La fonction de client-commande suit.
     expect(await f<{ populaires_actifs: boolean; suggestion_active: boolean }>("plats_populaires()")).toMatchObject({ populaires_actifs: true, suggestion_active: true });
@@ -92,6 +97,16 @@ describe("réglages généraux", () => {
     await regler("fourchette_retrait_minutes", 10);
   });
 
+  it("un interrupteur déclaré par une autre session marche sans toucher à la fonction", async () => {
+    await db.query("insert into reglages (cle, valeur, proposition) values ('essai_interrupteur', 'false', true)");
+    await expect(regler("essai_interrupteur", true)).rejects.toThrow(/inconnu/);
+    await db.query("insert into interrupteurs_gestion (cle, libelle, aide, cache) values ('essai_interrupteur', 'Essai de libellé', null, 'aucun')");
+    expect(await regler("essai_interrupteur", true)).toEqual({ valeur: true, cache: "aucun" });
+    expect((await generaux()).interrupteurs).toEqual(expect.arrayContaining([{ cle: "essai_interrupteur", libelle: "Essai de libellé", aide: null, valeur: true }]));
+    await db.query("delete from interrupteurs_gestion where cle = 'essai_interrupteur'");
+    await db.query("delete from reglages where cle = 'essai_interrupteur'");
+  });
+
   it("e-mail des alertes : rangé à part, jamais recopié dans le journal", async () => {
     expect(await regler("alerte_email", " Cuisine@LaFerme.test ")).toBe("cuisine@laferme.test");
     expect((await generaux()).alerte_email).toBe("cuisine@laferme.test");
@@ -105,7 +120,7 @@ describe("réglages généraux", () => {
 
   it("la table privée et les fonctions sont fermées aux visiteurs", async () => {
     const t = await db.query<{ ok: boolean }>(
-      "select has_table_privilege('anon', 'reglages_prives', 'select') or has_table_privilege('authenticated', 'reglages_prives', 'select') as ok",
+      "select has_table_privilege('anon', 'reglages_prives', 'select') or has_table_privilege('authenticated', 'reglages_prives', 'select') or has_table_privilege('anon', 'interrupteurs_gestion', 'select') as ok",
     );
     expect(t.rows[0].ok).toBe(false);
     const r = await db.query<{ n: string }>(

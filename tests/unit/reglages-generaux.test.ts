@@ -10,6 +10,7 @@ describe("validerReglage", () => {
     expect(validerReglage("alerte_email", " Gerant@Exemple.ch ")).toEqual({ ok: true, cle: "alerte_email", valeur: "gerant@exemple.ch" });
     expect(validerReglage("alerte_email", "")).toEqual({ ok: true, cle: "alerte_email", valeur: null });
     expect(validerReglage("annulation_client_active", true)).toEqual({ ok: true, cle: "annulation_client_active", valeur: true });
+    expect(validerReglage("couverts_actifs", false)).toEqual({ ok: true, cle: "couverts_actifs", valeur: false });
     expect(validerReglage("debit_pizza_quart_heure", 8)).toEqual({ ok: true, cle: "debit_pizza_quart_heure", valeur: 8 });
   });
   it.each([
@@ -21,6 +22,7 @@ describe("validerReglage", () => {
     ["preparation_minutes", 20, /inconnu/],
     ["annulation_client_active", "true", /oui ou non/i],
     ["debit_pizza_quart_heure", 101, /0 à 100/],
+    ["Mauvaise clé!", true, /inconnu/],
     ["allongement_max_minutes", -1, /0 à 90/],
     ["fourchette_retrait_minutes", 2.5, /0 à 60/],
   ])("refuse %s = %j", (cle, valeur, erreur) => {

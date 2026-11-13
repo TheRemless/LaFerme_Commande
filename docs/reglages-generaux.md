@@ -32,6 +32,23 @@ Changer ce qu'il faut, puis « Enregistrer ». Seules les valeurs changées part
 
 Captures : `docs/rendus/vague-3/bo-operations/reglages-1024.png` et `reglages-375.png`.
 
+## Interrupteurs : déclarer le sien (pour les autres sessions)
+
+Un réglage oui ou non d'une autre rubrique (par exemple « Les plus commandés », couverts, prénom par plat) se règle ici sans toucher au code de bo-operations. Dans sa propre migration, après avoir créé la clé dans `reglages` :
+
+```sql
+insert into interrupteurs_gestion (cle, libelle, aide, cache, ordre) values
+  ('ma_cle', 'Ce que voit le gérant à côté de la case', 'Une phrase : effet, décision attendue.', 'catalogue', 100)
+  on conflict (cle) do nothing;
+```
+
+- `cache` dit quoi vider après un changement : `catalogue` (`/carte`, `/panier`), `config-service` (la config du service) ou `aucun` (page sans cache).
+- La fonction `regler_reglage_general` accepte alors oui ou non pour cette clé, gérant seulement, journalisé.
+- L'écran l'affiche dans « Ce que le site propose aux clients ».
+- Le libellé et l'aide sont lus par l'équipe, pas par les clients.
+
+Migration : `20261130190000_interrupteurs_gestion.sql`.
+
 ## Route
 
 - `POST /api/gestion/service`, `{ "type": "reglage-general", "cle": "alerte_email" | "plafond_codes_clients_jour" | "creneau_minutes" | "avance_jours" | "annulation_client_active", "valeur": … }`. Pour revenir à la variable, `valeur: null` sur l'e-mail.
