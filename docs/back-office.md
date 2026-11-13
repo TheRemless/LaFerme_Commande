@@ -34,7 +34,7 @@ Une page par rubrique, rangées par groupe dans le menu latéral. La liste uniqu
 | Équipe | Ajouter un membre (prénom, e-mail, accès « Tablette » ou « Tablette et back-office »), changer son accès, le déconnecter de tous ses appareils, le retirer (accès coupé tout de suite), remettre un ancien membre. Il reste toujours au moins un gérant |
 | Importer le tableau | `docs/validation-carte.xlsx` rempli : aperçu avant et après, avertissements (plat inconnu, valeur illisible), puis application d'un bloc |
 | Export comptable | CSV des ventes encaissées sur une période, puis les remboursements faits sur la période (en négatif, au jour du remboursement), puis le total net par taux de TVA, sans données personnelles |
-| Journal | Toutes les modifications : qui, quand, avant et après. « Annuler » remet l'ancienne valeur (prix, supplément, zone, commune, horaire, fermeture, ouverture, réglage) si rien n'a changé depuis |
+| Journal | Toutes les modifications : qui, quand, avant et après. « Annuler » remet l'ancienne valeur (prix, supplément, zone, commune, horaire, fermeture, ouverture, réglage) si rien n'a changé depuis. Filtres et recherche : [journal-gestion.md](journal-gestion.md) |
 
 ## Règles
 

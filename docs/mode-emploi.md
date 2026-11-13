@@ -205,6 +205,7 @@ Client absent à la livraison : la commande est close sans remboursement, avec l
 - Qui a changé quoi et quand, remboursements et équipe compris.
 - Une erreur de prix, de zone, d'horaire, de fermeture ou de commune. Toucher « Annuler » sur la ligne, puis « Oui, remettre l'ancienne valeur ». Si la valeur a changé depuis, le back-office refuse : corriger à la main.
 - L'équipe, les remboursements et l'import du tableau ne s'annulent pas depuis le journal.
+- Retrouver une modification : écrire un mot dans « Chercher » (plat, zone, montant, numéro), ou choisir « Quoi », « Qui », « Du » et « Au », puis « Filtrer ». « Tout afficher » enlève les filtres. Détail : [docs/journal-gestion.md](journal-gestion.md).
 
 ### Ce qui ne se fait pas ici (appeler le numéro ci-dessus)
 
