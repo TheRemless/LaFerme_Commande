@@ -76,7 +76,7 @@ describe("position du livreur en direct", () => {
     expect(await f<boolean>("position_livreur_active()")).toBe(true);
     for (const role of ["anon", "authenticated"]) {
       const r = await db.query<{ ok: boolean }>(
-        "select has_table_privilege($1, 'positions_livreur', 'select') or has_function_privilege($1, 'noter_position_livreur(uuid, double precision, double precision, integer)', 'execute') or has_function_privilege($1, 'position_pour_suivi(uuid)', 'execute') or has_function_privilege($1, 'effacer_position_livreur(uuid)', 'execute') as ok",
+        "select has_table_privilege($1, 'positions_livreur', 'select') or has_table_privilege($1, 'suites_livreur', 'select') or has_function_privilege($1, 'noter_position_livreur(uuid, double precision, double precision, integer)', 'execute') or has_function_privilege($1, 'position_pour_suivi(uuid)', 'execute') or has_function_privilege($1, 'effacer_position_livreur(uuid)', 'execute') as ok",
         [role],
       );
       expect(r.rows[0].ok).toBe(false);
@@ -106,11 +106,51 @@ describe("position du livreur en direct", () => {
     expect(await suivi(c1)).toBeNull();
     expect(await suivi(c2)).toBeNull();
     expect(await noter(marco, 46.19, 6.1)).toEqual({ statut: "ok", numero: await numero(c2) });
-    expect(await suivi(c2)).toMatchObject({ lat: 46.19, lon: 6.1 });
+    // Premier point après une livraison : point de masquage, rien tant qu'on en est à moins de 400 m.
+    expect(await suivi(c2)).toBeNull();
+    await db.query("update positions_livreur set le = now() - interval '11 seconds'");
+    await noter(marco, 46.2, 6.12);
+    expect(await suivi(c2)).toMatchObject({ lat: 46.2, lon: 6.12 });
     expect(await suivi(c1)).toBeNull();
     await geste(marco, c2, "livree");
     expect(await lignes()).toEqual([]);
     expect(await noter(marco)).toEqual({ statut: "pas_en_route" });
+  });
+
+  it("même point avant et après « Livrée » : le 2e client ne voit pas la porte du 1er (relecture de qualite)", async () => {
+    await geste(marco, c1, "partie");
+    await geste(marco, c2, "partie");
+    await noter(marco, 46.1843, 6.0921);
+    await geste(marco, c1, "livree");
+    // Encore sur le palier de c1 : écrit pour c2, mais rien au suivi.
+    expect(await noter(marco, 46.1843, 6.0921)).toEqual({ statut: "ok", numero: await numero(c2) });
+    expect(await suivi(c2)).toBeNull();
+    // À 200 m : toujours rien.
+    await db.query("update positions_livreur set le = now() - interval '11 seconds'");
+    await noter(marco, 46.1861, 6.0921);
+    expect(await suivi(c2)).toBeNull();
+    // À plus de 400 m de la porte de c1 : le trajet vers c2 se voit.
+    await db.query("update positions_livreur set le = now() - interval '11 seconds'");
+    await noter(marco, 46.19, 6.1);
+    expect(await suivi(c2)).toMatchObject({ lat: 46.19, lon: 6.1 });
+  });
+
+  it("annulée en route (adresse introuvable) : même masquage pour l'arrêt suivant ; départ du restaurant sans masque", async () => {
+    await geste(marco, c1, "partie");
+    await geste(marco, c2, "partie");
+    await noter(marco, 46.1843, 6.0921);
+    expect(await suivi(c1)).toMatchObject({ lat: 46.1843 });
+    await db.query("update commandes set statut = 'refusee' where id = $1", [c1]);
+    await noter(marco, 46.1843, 6.0921);
+    expect(await suivi(c2)).toBeNull();
+  });
+
+  it("livreur désactivé : plus rien au suivi", async () => {
+    await geste(marco, c1, "partie");
+    await noter(marco);
+    expect(await suivi(c1)).not.toBeNull();
+    await db.query("update personnel set actif = false where id = $1", [marco]);
+    expect(await suivi(c1)).toBeNull();
   });
 
   it("le 1er arrêt encore au restaurant : rien, même si le 2e est parti", async () => {

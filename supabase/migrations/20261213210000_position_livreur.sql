@@ -9,7 +9,10 @@
 --   une position de moins de 2 minutes ;
 -- - livrée, client absent, annulée, retirée ou donnée à un autre livreur : la position est effacée sur-le-champ
 --   (déclencheurs). Une position qui n'est plus envoyée est effacée au bout de 15 minutes.
--- - coordonnées arrondies à 4 décimales (une dizaine de mètres), sans historique ni journal.
+-- - coordonnées arrondies à 4 décimales (une dizaine de mètres), sans historique ni journal ;
+-- - point de masquage (relecture de qualite) : quand l'arrêt en cours suit une livraison (et non le départ du
+--   restaurant), le premier point reçu pour ce nouvel arrêt est souvent pris devant la porte du client d'avant. Il est
+--   gardé dans la même ligne, et le suivi ne montre rien tant que le livreur est à moins de 400 m de ce point.
 --
 -- Interrupteur : réglage position_livreur_en_direct (vrai, décision de Jérémy). Faux : plus rien n'est gardé ni lu.
 -- Aucune fonction partagée recréée.
@@ -23,13 +26,33 @@ create table positions_livreur (
   lat numeric(7, 4) not null,
   lon numeric(7, 4) not null,
   precision_m integer not null,
-  le timestamptz not null default now()
+  le timestamptz not null default now(),
+  -- Premier point reçu pour cet arrêt quand il suit une livraison : rien n'est montré à moins de 400 m.
+  masque_lat numeric(7, 4),
+  masque_lon numeric(7, 4)
 );
 create index positions_livreur_commande_idx on positions_livreur (commande_id);
 
 alter table positions_livreur enable row level security;
 revoke all on positions_livreur from anon, authenticated;
 grant select, insert, update, delete on positions_livreur to service_role;
+
+-- Un arrêt vient de se terminer (livré, client absent clos, annulé, retiré) : le prochain arrêt de ce livreur commence
+-- peut-être devant la porte du client d'avant. Marque lue et effacée au premier point du nouvel arrêt.
+create table suites_livreur (
+  livreur_id uuid primary key references personnel (id) on delete cascade,
+  le timestamptz not null default now()
+);
+alter table suites_livreur enable row level security;
+revoke all on suites_livreur from anon, authenticated;
+grant select, insert, update, delete on suites_livreur to service_role;
+
+-- Distance en mètres entre deux points proches (approximation plane, largement assez précise à Genève).
+create function distance_m(lat1 numeric, lon1 numeric, lat2 numeric, lon2 numeric) returns double precision
+language sql immutable as $$
+  select sqrt(power((lon2 - lon1)::double precision * cos(radians(((lat1 + lat2) / 2)::double precision)) * 111320, 2)
+            + power((lat2 - lat1)::double precision * 110574, 2));
+$$;
 
 create function position_livreur_active() returns boolean
 language sql stable as $$
@@ -58,8 +81,13 @@ language plpgsql as $$
 declare
   c uuid;
   n integer;
+  lat4 numeric := round(p_lat::numeric, 4);
+  lon4 numeric := round(p_lon::numeric, 4);
+  ligne positions_livreur%rowtype;
+  suite boolean;
 begin
   delete from positions_livreur where le < now() - interval '15 minutes';
+  delete from suites_livreur where le < now() - interval '1 hour';
   if not position_livreur_active() then
     delete from positions_livreur where livreur_id = p_livreur;
     return jsonb_build_object('statut', 'desactive');
@@ -77,14 +105,23 @@ begin
     return jsonb_build_object('statut', 'ignoree');
   end if;
   select numero into n from commandes where id = c;
-  -- Au plus une écriture toutes les 10 secondes pour le même arrêt.
-  if exists (select 1 from positions_livreur where livreur_id = p_livreur and commande_id = c and le > now() - interval '10 seconds') then
+  select * into ligne from positions_livreur where livreur_id = p_livreur for update;
+  if found and ligne.commande_id = c then
+    -- Même arrêt : au plus une écriture toutes les 10 secondes, le point de masquage reste.
+    if ligne.le > now() - interval '10 seconds' then
+      return jsonb_build_object('statut', 'ok', 'numero', n);
+    end if;
+    update positions_livreur set lat = lat4, lon = lon4, precision_m = p_precision, le = now() where livreur_id = p_livreur;
     return jsonb_build_object('statut', 'ok', 'numero', n);
   end if;
-  insert into positions_livreur (livreur_id, commande_id, lat, lon, precision_m, le)
-    values (p_livreur, c, round(p_lat::numeric, 4), round(p_lon::numeric, 4), p_precision, now())
+  -- Premier point pour cet arrêt. S'il suit une livraison, il devient le point de masquage.
+  suite := exists (select 1 from suites_livreur where livreur_id = p_livreur);
+  delete from suites_livreur where livreur_id = p_livreur;
+  insert into positions_livreur (livreur_id, commande_id, lat, lon, precision_m, le, masque_lat, masque_lon)
+    values (p_livreur, c, lat4, lon4, p_precision, now(), case when suite then lat4 end, case when suite then lon4 end)
     on conflict (livreur_id) do update
-      set commande_id = excluded.commande_id, lat = excluded.lat, lon = excluded.lon, precision_m = excluded.precision_m, le = excluded.le;
+      set commande_id = excluded.commande_id, lat = excluded.lat, lon = excluded.lon, precision_m = excluded.precision_m, le = excluded.le,
+          masque_lat = excluded.masque_lat, masque_lon = excluded.masque_lon;
   return jsonb_build_object('statut', 'ok', 'numero', n);
 end;
 $$;
@@ -95,14 +132,16 @@ language sql as $$
   delete from positions_livreur where livreur_id = p_livreur;
 $$;
 
--- Suivi d'une commande : la position de son livreur seulement si cette commande est son arrêt en cours.
--- Renvoie { lat, lon, precision, le } ou null.
+-- Suivi d'une commande : la position de son livreur seulement si cette commande est son arrêt en cours, si le livreur
+-- est encore actif, et s'il est à 400 m au moins du point de masquage. Renvoie { lat, lon, precision, le } ou null.
 create function position_pour_suivi(p_commande uuid) returns jsonb
 language sql stable as $$
   select jsonb_build_object('lat', p.lat, 'lon', p.lon, 'precision', p.precision_m, 'le', p.le)
   from positions_livreur p
+  join personnel pe on pe.id = p.livreur_id and pe.actif and pe.role = 'livreur'
   where p.commande_id = p_commande
     and p.le > now() - interval '2 minutes'
+    and (p.masque_lat is null or distance_m(p.masque_lat, p.masque_lon, p.lat, p.lon) >= 400)
     and position_livreur_active()
     and arret_en_cours(p.livreur_id) = p_commande;
 $$;
@@ -115,9 +154,19 @@ begin
   if tg_table_name = 'commandes' then
     if new.statut is distinct from 'partie' then
       delete from positions_livreur where commande_id = new.id;
+      -- Arrêt terminé (livré, client absent clos, annulé) : son livreur est peut-être encore devant la porte.
+      if old.statut = 'partie' then
+        insert into suites_livreur (livreur_id, le)
+          select l.livreur_id, now() from livraisons l where l.commande_id = new.id and l.retiree_le is null
+          on conflict (livreur_id) do update set le = excluded.le;
+      end if;
     end if;
   elsif new.retiree_le is not null or new.livreur_id is distinct from old.livreur_id then
     delete from positions_livreur where commande_id = new.commande_id;
+    if exists (select 1 from commandes where id = new.commande_id and statut = 'partie') then
+      insert into suites_livreur (livreur_id, le) values (old.livreur_id, now())
+        on conflict (livreur_id) do update set le = excluded.le;
+    end if;
   end if;
   return null;
 end;
@@ -128,7 +177,7 @@ create trigger commandes_effacer_position after update of statut on commandes
 create trigger livraisons_effacer_position after update of retiree_le, livreur_id on livraisons
   for each row execute function effacer_position_commande();
 
-revoke all on function position_livreur_active(), arret_en_cours(uuid), noter_position_livreur(uuid, double precision, double precision, integer),
+revoke all on function distance_m(numeric, numeric, numeric, numeric), position_livreur_active(), arret_en_cours(uuid), noter_position_livreur(uuid, double precision, double precision, integer),
   effacer_position_livreur(uuid), position_pour_suivi(uuid), effacer_position_commande() from public, anon, authenticated;
-grant execute on function position_livreur_active(), arret_en_cours(uuid), noter_position_livreur(uuid, double precision, double precision, integer),
+grant execute on function distance_m(numeric, numeric, numeric, numeric), position_livreur_active(), arret_en_cours(uuid), noter_position_livreur(uuid, double precision, double precision, integer),
   effacer_position_livreur(uuid), position_pour_suivi(uuid) to service_role;
