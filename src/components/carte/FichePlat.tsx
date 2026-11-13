@@ -234,7 +234,7 @@ export function FichePlat({
               onFermer();
             }}
           >
-            {ferme ? "Commande en ligne fermée" : epuisePlat ? epuisePlat : manquant ? `Choisissez vos ${manquant.nom.toLowerCase()}` : `${initiale ? "Valider" : "Ajouter"}, ${prixChf(total)}`}
+            {ferme ? "Commande en ligne fermée" : epuisePlat ? epuisePlat : manquant ? `Choisissez dans « ${manquant.nom} »` : `${initiale ? "Valider" : "Ajouter"}, ${prixChf(total)}`}
           </button>
         </div>
       </div>
