@@ -73,3 +73,15 @@ Fériés : la liste suit la loi genevoise (rsGE J 1 45, calculée dans `src/lib/
 - Ouvrir propose les heures du même service un autre jour, à vérifier, puis l'enregistre.
 - Gérant seulement, revérifié en base. Route `/api/gestion/service` (`semaine-fermer`, `semaine-ouvrir`, `semaine-commandes`).
 - Tests : `tests/unit/semaine-type-sql.test.ts`, `tests/e2e/gestion-service-v3.spec.ts` (ouvrir puis refermer le dimanche midi). Capture : `docs/rendus/vague-3/bo-operations/horaires-semaine-type-1024.png`.
+
+## Fermer le service du jour (rôle responsable de service)
+
+Une panne, un coup dur pendant le service : le gérant ou le responsable de service (droit `fermer_service` du tableau D1, quand `role_responsable_actif` est à true) ferme ce midi, ce soir ou toute la journée d'aujourd'hui, avec un motif lu par les clients. Migration `20261213130000_fermer_service_du_jour.sql`, serveur `src/lib/fermer-service.ts`.
+
+- **Aujourd'hui seulement** : la date vient de la base (heure de Genève), jamais de l'appelant. Les autres fermetures, les horaires et les zones restent au gérant.
+- **Déjà fermé** (toute la journée, ou ce service) : refusé, rien n'est ajouté.
+- **Après la fermeture**, la réponse donne les numéros des commandes déjà prises pour ce moment, à traiter sur la tablette, comme pour les autres fermetures. Les pages publiques se mettent à jour (cache de la config vidé), la tablette est prévenue.
+- **Contrôle** : `auteur_droit(p_personnel, 'fermer_service')` en base, journalisé (objet `fermeture`, au nom de l'auteur).
+- **Route du back-office** : `POST /api/gestion/fermer-jour { quoi: "midi" | "soir" | "journee", motif }`, derrière `exigerDroit(requete, "fermer_service")`. La tablette a son bouton, sur la même fonction `fermerServiceDuJour(personnel, quoi, motif)`.
+- Tests : `tests/unit/fermer-service-sql.test.ts` (responsable, gérant, refus de l'équipe, du livreur et du rôle éteint, déjà fermé, autres dates, horaires et zones refusés au responsable), `fermer-service.test.ts`.
+- E2e : `tests/e2e/fermer-service.spec.ts` (compte `responsable-operations-*` : la route et la base laissent passer le responsable, puis refusent un motif trop court ; une autre date, les horaires et les zones lui sont refusés ; l.équipe de service est refusée). Il ne ferme jamais le service du jour, car la base de test est commune.
