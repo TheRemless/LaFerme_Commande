@@ -1759,7 +1759,8 @@ body.fiche-ouverte {
 /* Chaque commande porte son numéro du jour en grand, celui du ticket et du téléphone. */
 .ancienne {
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr);
+  /* Le numéro prend sa largeur : à 300 commandes par jour, il a souvent trois chiffres (jeu de rush). */
+  grid-template-columns: minmax(40px, max-content) minmax(0, 1fr);
   gap: 10px;
   padding: 18px 0;
   border-top: 1px solid var(--filet);
@@ -3659,4 +3660,8 @@ body.fiche-ouverte {
   color: var(--encre);
   background: var(--papier);
   border-radius: 4px;
+}
+/* Historique du compte au-delà des 30 dernières commandes. */
+.espace-plus {
+  margin-top: 16px;
 }

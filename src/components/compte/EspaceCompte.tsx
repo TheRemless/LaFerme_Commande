@@ -116,7 +116,15 @@ function Recommander({ commandeId }: { commandeId: string }) {
   );
 }
 
-export function EspaceCompte({ donnees, preversion }: { donnees: DonneesEspace; preversion: boolean }) {
+export function EspaceCompte({
+  donnees,
+  historique,
+  preversion,
+}: {
+  donnees: DonneesEspace;
+  historique: { suite: boolean; total: number } | null;
+  preversion: boolean;
+}) {
   const router = useRouter();
   const ids = useId();
   const [profil, setProfil] = useState({ prenom: donnees.compte.prenom, nom: donnees.compte.nom, telephone: donnees.compte.telephone });
@@ -124,6 +132,23 @@ export function EspaceCompte({ donnees, preversion }: { donnees: DonneesEspace; 
   const [confirmer, setConfirmer] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState(false);
+  // Historique au-delà des 30 dernières commandes, chargé à la demande.
+  const [commandes, setCommandes] = useState(donnees.commandes);
+  const [suite, setSuite] = useState(historique?.suite ?? false);
+  const [plus, setPlus] = useState<"repos" | "envoi" | string>("repos");
+
+  async function plusAnciennes() {
+    const derniere = commandes[commandes.length - 1];
+    if (!derniere) return;
+    setPlus("envoi");
+    const r = await poster("/api/compte/commandes", { avant: derniere.cree_le });
+    if (r.statut === 401) return router.refresh();
+    if (!r.ok) return setPlus(String(r.donnees.erreur ?? "Impossible pour le moment. Réessayez."));
+    const page = r.donnees as unknown as { commandes: DonneesEspace["commandes"]; suite: boolean };
+    setCommandes((avant) => [...avant, ...page.commandes]);
+    setSuite(page.suite);
+    setPlus("repos");
+  }
 
   async function action(url: string, corps: unknown, ensuite: () => void) {
     setEnvoi(true);
@@ -184,7 +209,12 @@ export function EspaceCompte({ donnees, preversion }: { donnees: DonneesEspace; 
       <div className="espace-grille">
         <section className="espace-commandes" aria-labelledby={`${ids}-commandes`}>
           <h2 id={`${ids}-commandes`}>Vos commandes</h2>
-          {donnees.commandes.length === 0 ? (
+          {historique && historique.total > 0 && (
+            <p className="aide">
+              {historique.total} commande{historique.total > 1 ? "s" : ""} avec ce compte.
+            </p>
+          )}
+          {commandes.length === 0 ? (
             <div className="espace-vide">
               <p>Pas encore de commande avec ce compte.</p>
               <Link className="bouton-principal" href="/">
@@ -193,7 +223,7 @@ export function EspaceCompte({ donnees, preversion }: { donnees: DonneesEspace; 
             </div>
           ) : (
             <ol className="historique">
-              {donnees.commandes.map((c) => (
+              {commandes.map((c) => (
                 <li key={c.id} className="ancienne">
                   <p className="ancienne-num" aria-hidden="true">
                     {c.numero}
@@ -228,6 +258,18 @@ export function EspaceCompte({ donnees, preversion }: { donnees: DonneesEspace; 
                 </li>
               ))}
             </ol>
+          )}
+          {suite && (
+            <div className="espace-plus">
+              <button type="button" className="bouton-second" onClick={plusAnciennes} disabled={plus === "envoi"}>
+                {plus === "envoi" ? "Un instant…" : "Voir les commandes plus anciennes"}
+              </button>
+              {plus !== "repos" && plus !== "envoi" && (
+                <p className="panier-alerte" role="alert">
+                  {plus}
+                </p>
+              )}
+            </div>
           )}
         </section>
 
