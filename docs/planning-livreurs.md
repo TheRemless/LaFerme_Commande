@@ -50,3 +50,7 @@ Captures : `docs/rendus/vague-3/bo-operations/livreurs-*.png`.
 ## Avant et après la migration
 
 Avant la migration, la route répond une erreur (fonctions absentes). Aucun écran ne l'appelle encore. Après la migration, le planning est vide jusqu'à ce que le gérant règle une semaine type.
+
+## Livreurs homonymes
+
+Deux livreurs au même nom (« Nora » deux fois) se distinguent partout dans la rubrique (liste « Ajouter un livreur… », planning, semaine type, statistiques) par le début de leur e-mail : « Nora (nora.b) » et « Nora (nora.k) ». Un nom unique reste tel quel. La comparaison ignore les majuscules. Base : `noms_livreurs()` (migration `20261130270000_noms_livreurs.sql`). Serveur : `src/lib/livreurs-noms.ts`, appliqué par la route `/api/gestion/livreurs` (gérant). Tests : `tests/unit/livreurs-noms.test.ts`, `noms-livreurs-sql.test.ts`.
