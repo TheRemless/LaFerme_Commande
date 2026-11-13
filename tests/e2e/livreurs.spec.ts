@@ -167,6 +167,9 @@ test("tournée de deux livraisons, ordre proposé, Je pars, Livrée : plus rien 
   await marco.reload();
   await avant(marco.locator(".liv-arret"), "n°", a, b);
 
+  // Position en direct (décision de Jérémy du 13.11.2026) : partagée pendant le trajet vers l'arrêt en cours seulement.
+  await contexteMarco.grantPermissions(["geolocation"], { origin: BASE });
+  await contexteMarco.setGeolocation({ latitude: 46.1843, longitude: 6.0921, accuracy: 15 });
   await marco.getByRole("button", { name: /^Je pars avec les \d+$/ }).click();
   await expect(arret(marco, a)).toContainText("En route.");
   await expect(arret(marco, b)).toContainText("En route.");
@@ -176,8 +179,11 @@ test("tournée de deux livraisons, ordre proposé, Je pars, Livrée : plus rien 
   // D'une main (vague 3) : en route, l'arrêt en cours a « Livrée » sous le pouce, le suivant est replié.
   await expect(marco.locator(".liv-pouce")).toContainText(`Livrée, n° ${a}`);
   await expect(arret(marco, b)).toHaveClass(/liv-arret-replie/);
+  await expect(marco.locator(".liv-position")).toHaveText(`Le client du n° ${a} voit votre position jusqu'à «\u00a0Livrée\u00a0».`, { timeout: 15_000 });
+  await marco.screenshot({ path: "test-results/livreurs/livreur-375-position.png" });
   await arret(marco, a).getByRole("button", { name: "Livrée" }).click();
   await expect(arret(marco, a)).toHaveCount(0);
+  await expect(marco.locator(".liv-position")).toHaveText(`Le client du n° ${b} voit votre position jusqu'à «\u00a0Livrée\u00a0».`, { timeout: 15_000 });
   await arret(marco, b).getByRole("button", { name: "Livrée" }).click();
   await expect(arret(marco, b)).toHaveCount(0);
   await tablette.getByRole("button", { name: /^Terminées/ }).click();
@@ -239,9 +245,9 @@ test("réseau coupé : Je pars attend, repart seul, un seul e-mail au client", a
   const geste = () => marco.request.post("/api/livreur", { headers: ORIGINE, data: { cle, commande: id, geste: "livree" } });
   expect((await (await geste()).json()).ok).toBe(true);
   expect(await (await geste()).json()).toEqual({ ok: true, deja: true });
-  // Un seul e-mail « en route » pour cette commande (courriels de test de la base embarquée).
+  // Un seul e-mail à la commande (13.11.2026) : « en route » se lit au suivi, aucun e-mail ne part.
   const courriels = await (await request.get(`/dev/courriels?jeton=${jetons.get(c)}`)).text();
-  expect(courriels.match(new RegExp(`<h2>Commande ${c} en route`, "g"))?.length).toBe(1);
+  expect(courriels).not.toContain(`<h2>Commande ${c} en route`);
 });
 
 test("client absent : signalé par le livreur, clos sans remboursement par la tablette", async ({ request }) => {
@@ -308,7 +314,7 @@ test("commande annulée pendant la tournée (adresse introuvable) : remboursée,
   await expect(cours.locator(".tab-meta")).toContainText("Partie", { timeout: 10_000 });
   // Annuler une livraison partie rembourse tout : gérant seulement (audit de sécurité 2, S2-01).
   await expect(cours.getByRole("button", { name: "Annuler la commande" })).toHaveCount(0);
-  await expect(cours).toContainText("Seul le gérant peut annuler une livraison partie.");
+  await expect(cours).toContainText("Seul le gérant ou le responsable de service peut annuler une livraison partie.");
   const gerant = await (await browser.newContext({ baseURL: BASE, viewport: { width: 1024, height: 768 } })).newPage();
   await connecter(gerant, "/tablette", "gerant-livraison@laferme.test");
   await gerant.getByRole("button", { name: "Continuer sans son" }).click();

@@ -106,15 +106,16 @@ beforeEach(async () => {
 });
 
 describe("Acceptation d'une commande pour plus tard", () => {
-  it("accepte et confirme au client sans imprimer, et dit quand les tickets sortiront", async () => {
+  it("accepte sans imprimer et dit quand les tickets sortiront", async () => {
     const id = await nouvelle();
     const r = await agir(id, { action: "accepter", heure: dans(180) }, personnel);
     expect(r.ok).toBe(true);
     expect(r.message).toMatch(/^Acceptée\. Tickets prévus (le [^à]+ )?à \d\dh\d\d\.$/);
     expect(await taches(id)).toEqual([]);
     const db = await baseLocale();
+    // Un seul e-mail à la commande (13.11.2026) : l'acceptation se lit au suivi, aucun e-mail ne part.
     const mails = (await db.query<{ sujet: string }>("select sujet from courriels where commande_id = $1", [id])).rows;
-    expect(mails).toHaveLength(1);
+    expect(mails).toHaveLength(0);
   });
 
   it("une commande pour bientôt s'imprime tout de suite, comme avant", async () => {

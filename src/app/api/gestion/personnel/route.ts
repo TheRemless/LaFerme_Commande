@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import { corpsJson, refus } from "@/lib/comptes/api";
 import { fonctionSql } from "@/lib/db/serveur";
 import { emailNormalise, empreinte } from "@/lib/comptes/securite";
-import { exigerGerant, jetonPersonnel } from "@/lib/personnel/session";
+import { exigerDroit, jetonPersonnel } from "@/lib/personnel/session";
 
-// L'équipe (audit du gérant, G03) : liste, ajout, rôle, retrait, sessions coupées. Gérant seulement ;
-// chaque fonction SQL le vérifie encore et journalise.
+// L'équipe (audit du gérant, G03) : liste, ajout, rôle, retrait, sessions coupées. Gérant ; le responsable de
+// service (D1) voit la liste et déconnecte un appareil perdu, jamais celui d'un gérant. Chaque fonction SQL le
+// vérifie encore (gerant_nom, auteur_droit) et journalise.
 
 const ERREURS: Record<string, string> = {
   adresse_invalide: "Adresse e-mail invalide.",
@@ -27,7 +28,7 @@ const UUID = /^[0-9a-f-]{36}$/;
 const ROLE = (v: unknown) => (v === "service" || v === "gerant" || v === "livreur" || v === "responsable" ? v : null);
 
 export async function GET(requete: Request) {
-  const g = await exigerGerant(requete, { lecture: true });
+  const g = await exigerDroit(requete, "deconnecter_appareil", { lecture: true });
   if ("reponse" in g) return g.reponse;
   const [liste, responsable] = await Promise.all([
     fonctionSql("liste_personnel", { p_personnel: g.personnel.id }),
@@ -40,11 +41,13 @@ export async function GET(requete: Request) {
 // { action: "ajouter", email, nom, role } | { action: "modifier", id, nom?, role?, actif? } | { action: "couper", id }
 // | { action: "appareils", id } | { action: "couper_appareil", session }
 export async function POST(requete: Request) {
-  const g = await exigerGerant(requete);
+  const g = await exigerDroit(requete, "deconnecter_appareil");
   if ("reponse" in g) return g.reponse;
   const c = await corpsJson(requete);
   if (!c) return refus("Requête illisible.", 400);
   const qui = g.personnel.id;
+  // Ajouter, changer un accès, retirer, couper toutes les sessions : gérant seulement.
+  if (g.personnel.role !== "gerant" && c.action !== "appareils" && c.action !== "couper_appareil") return refus("Réservé au gérant.", 403);
   try {
     if (c.action === "ajouter") {
       const role = ROLE(c.role);
@@ -91,6 +94,8 @@ export async function POST(requete: Request) {
       return NextResponse.json({ enregistre: true, message: n ? `${n} session${n > 1 ? "s" : ""} coupée${n > 1 ? "s" : ""}.` : "Aucune session ouverte." });
     }
   } catch (e) {
+    // Responsable devant l'appareil d'un gérant (ou rôle coupé entre-temps) : refus net.
+    if (String(e instanceof Error ? e.message : e).includes("droit_refuse")) return refus("Réservé au gérant.", 403);
     const m = erreurConnue(e);
     if (m) return refus(m);
     throw e;

@@ -142,3 +142,25 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* Modèles de messages (vague 3) : boutons qui remplissent le champ. */
+.bo-msg-modeles {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.bo-msg-modeles legend {
+  margin-bottom: 4px;
+  padding: 0;
+  font-weight: 600;
+}
+.bo-msg-modeles .aide {
+  margin: 0;
+}
+.bo-msg-modeles-liste {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

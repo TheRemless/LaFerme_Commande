@@ -5,8 +5,7 @@ import { creerCommande } from "@/lib/db/serveur";
 import { exporterCompte, supprimerCompte } from "@/lib/comptes/donnees";
 
 // Vague 3, client-compte (nLPD) : l'export du compte donne aussi ce que le restaurant note sur le client
-// (notes internes, marque) ; la suppression du compte efface les notes. La marque reste (proposition de
-// bo-commandes, à valider par Jérémy) pour qu'un blocage ne se lève pas en supprimant son compte.
+// (notes internes, marque) ; la suppression du compte efface les notes et la marque (décision de Jérémy, 13.11.2026).
 
 async function compteAvecNotes() {
   const db = await baseLocale();
@@ -36,12 +35,12 @@ describe("données du restaurant sur le client", () => {
     expect(e.restaurant.marque).toMatchObject({ marque: "surveiller" });
   });
 
-  it("la suppression du compte efface les notes, garde la marque", async () => {
+  it("la suppression du compte efface les notes et la marque", async () => {
     const c = await compteAvecNotes();
     expect(await supprimerCompte(c)).toBe(true);
     const db = await baseLocale();
     expect((await db.query<{ n: number }>("select count(*)::int n from notes_client where email = $1", [c.email])).rows[0].n).toBe(0);
     expect((await db.query<{ n: number }>("select count(*)::int n from comptes where id = $1", [c.id])).rows[0].n).toBe(0);
-    expect((await db.query<{ n: number }>("select count(*)::int n from marques_client where email = $1", [c.email])).rows[0].n).toBe(1);
+    expect((await db.query<{ n: number }>("select count(*)::int n from marques_client where email = $1", [c.email])).rows[0].n).toBe(0);
   });
 });

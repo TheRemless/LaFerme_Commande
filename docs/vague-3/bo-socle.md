@@ -20,21 +20,24 @@ Le bouton « Recherche » de l'en-tête, ou ⌘K sur Mac et Ctrl+K sur PC. Il tr
 
 Les flèches choisissent, Entrée ouvre, Échap ferme. Le texte cherché part en POST (`/api/gestion/recherche`, gérant seulement) et n'apparaît jamais dans l'adresse. La recherche ne refait aucune requête : elle demande cinq résultats aux listes de `bo-commandes` (`liste_commandes_gestion`, `clients_gestion`) et au catalogue. La fiche visée s'ouvre en arrivant sur la rubrique par `useOuverture` (kit) : Commandes, Clients et Carte doivent l'appeler pour leurs fiches.
 
-## Droits fins : responsable de service (D1, désactivé)
+## Droits fins : responsable de service (D1)
 
-Le rôle « Responsable de service » de la décision D1 est construit, mais **désactivé** tant que Jérémy n'a pas tranché : le réglage `role_responsable_actif` est absent et personne ne peut recevoir ce rôle. Pour l'activer :
+Jérémy a dit oui le 13.11.2026. Le rôle agit dès que le réglage `role_responsable_actif` vaut `true` en base (posé par le chef sur la vraie base une fois toutes les PR de l'activation dans `main`) :
 `insert into reglages (cle, valeur, proposition) values ('role_responsable_actif', 'true', false) on conflict (cle) do update set valeur = excluded.valeur, proposition = false;`
-Le remettre à `false` coupe tout de suite les droits des responsables déjà nommés.
+Le remettre à `false` coupe tout de suite les droits des responsables déjà nommés. La base embarquée (`supabase/local/donnees-test.sql`) a le rôle activé, avec un compte responsable par fichier de test : `responsable-{socle,commandes,tablette,operations}-{bureau,mobile}@laferme.test`.
 
-- **Base.** Migration `20261210230000_droits_responsable.sql`. `droit_personnel(personnel, action)` porte le tableau D1, action par action : le gérant peut tout, le responsable seulement ses actions, l'équipe de service aucune. `auteur_droit(personnel, action)` fait comme `gerant_nom` pour une action précise et refuse avec `droit_refuse`. `ajouter_personnel` et `modifier_personnel` n'acceptent « responsable » que si le rôle est activé.
-- **Serveur.** `exigerDroit(requete, action)` (`src/lib/personnel/session.ts`) laisse passer le gérant et, quand le rôle est activé, le responsable pour ses actions. Les noms des actions sont dans `src/lib/personnel/droits.ts`.
-- **Écran.** Le back-office s'ouvre au responsable seulement quand le rôle est activé. Il ne voit que les rubriques qui portent un `droit` dans `navigation.ts` (Commandes seulement ; Clients reste au gérant, décision prise avec bo-commandes, à ouvrir avec ses routes le jour de l'activation). Il arrive sur Commandes : l'accueil montre les ventes, réservées au gérant. Une rubrique fermée tapée à la main affiche « Réservé ». Sur la tablette, il a les gestes de l'équipe. Il les garde même si le rôle est désactivé ensuite : le gérant lui rend alors un autre accès dans Équipe. L'écran Équipe ne propose ce rôle qu'une fois activé.
-- **À brancher par les propriétaires le jour de l'activation.** Il faut remplacer `exigerGerant` par `exigerDroit(…, action)` et `gerant_nom` par `auteur_droit(…, action)` dans :
-  - les routes et fonctions de remboursement, d'annulation, de client absent, de modification de commande et de liste des commandes (bo-commandes) ;
-  - l'annulation d'une livraison partie (`src/lib/tablette.ts`, tablette) ;
-  - la déconnexion d'un appareil (bo-socle) ;
-  - la fermeture du service (bo-operations).
-  Les fonctions `modifier_commande` et `coup_de_feu`, qui acceptent `role in ('service', 'gerant')`, doivent aussi accepter `responsable`.
+- **Base.** Migration `20261210230000_droits_responsable.sql`. `droit_personnel(personnel, action)` porte le tableau D1, action par action : le gérant peut tout, le responsable seulement ses sept actions, l'équipe de service aucune. `auteur_droit(personnel, action)` fait comme `gerant_nom` pour une action précise et refuse avec `droit_refuse`.
+- **Serveur.** `exigerDroit(requete, action)` (`src/lib/personnel/session.ts`) laisse passer le gérant et, quand le rôle est activé, le responsable pour ses actions. Les actions sont dans `src/lib/personnel/droits.ts`.
+- **Écran.** `useDroit(action)` et `useRoleGestion()` (`src/components/gestion/droits.tsx`, fournis par la coque) cachent les gestes qu'il n'a pas ; le serveur revérifie toujours. Le responsable arrive sur Commandes (l'accueil montre les ventes, réservées au gérant). Son menu : Commandes, Clients et Équipe. Une rubrique fermée tapée à la main affiche « Réservé ».
+- **bo-socle (fait).**
+  - Équipe réduite à « déconnecter un appareil perdu » : pas d'accès, d'ajout, de retrait ni de « Déconnecter partout ». Jamais les appareils d'un gérant (refus en base dans `appareils_personnel` et `couper_appareil_personnel`).
+  - Recherche ⌘K : commandes, clients et rubriques ouvertes, sans les plats.
+  - Routes `/api/gestion/personnel` et `/api/gestion/recherche` en `exigerDroit`.
+- **Chez les propriétaires (liste envoyée le 13.11).**
+  - bo-commandes : routes Commandes, Clients, Réclamations action par action (`voir_commandes`, `rembourser`, `modifier_commande`, `annuler_apres_prete`), `demander_remboursement` et `modifier_commande` en base.
+  - tablette : annulation d'une livraison partie, modification depuis la tablette, coup de feu.
+  - bo-operations : fermer le service du jour (`fermer_service`), avec le bouton sur la tablette.
+- Tests : `tests/unit/droits-responsable.test.ts`, `tests/unit/responsable-appareils-sql.test.ts`, `tests/e2e/gestion-responsable.spec.ts`.
 
 ## Appareils connectés de l'équipe
 
@@ -43,7 +46,7 @@ Dans Équipe, chaque membre connecté a un bouton « Appareils (n) ». Il ouvre 
 - Rien de personnel n'est gardé : ni adresse IP, ni empreinte du navigateur. Seulement un libellé court, calculé à la connexion, le même que pour les appareils du compte client (`src/lib/comptes/appareil.ts`).
 - La dernière activité est notée au plus une fois toutes les cinq minutes par appareil.
 - Migration `20261210250000_appareils_equipe.sql` : colonnes `appareil` et `vue_le` de `sessions_personnel`, fonctions `noter_appareil_personnel`, `voir_session_personnel`, `appareils_personnel` et `couper_appareil_personnel`. Ces deux dernières sont réservées au gérant et la coupure va au journal. Le code marche avant la migration : la connexion ignore l'échec de `noter_appareil_personnel`.
-- Le jour où D1 est activé, couper un appareil passe au droit `deconnecter_appareil` (responsable de service).
+- Le responsable de service coupe aussi un appareil (droit `deconnecter_appareil`), jamais celui d'un gérant.
 - Tests : `tests/unit/appareils-equipe.test.ts`, `tests/e2e/gestion-appareils.spec.ts`.
 
 ## Alertes (relance du chef de produit, 13.11)
@@ -63,3 +66,12 @@ L'accueil ne suffisait pas : Giuseppe en salle ne regarde pas l'accueil. Le cent
 - La liste d'accès de chaque membre a des libellés courts (« Livreur » au lieu de « Livreur (ses livraisons sur son téléphone) »), le détail est écrit sous le titre et sous le champ d'ajout. Elle ne déborde plus à 1280 px.
 - Chaque membre montre sa dernière activité (connexion ou passage sur un appareil), ou « Jamais connecté ». `liste_personnel` donne `derniere_activite` (migration `20261212140000_recherche_equipe.sql`).
 
+
+## Mise en route (13.11, demande de Jérémy)
+
+Rubrique `/gestion/mise-en-route`, pour lancer le service sans connaître le système. Elle est en tête du menu (« Avant le premier service ») tant qu'une étape reste, avec le nombre d'étapes à faire, puis rejoint « Réglages du restaurant ». Gérant seulement.
+
+- **Douze étapes, cochées d'après l'état réel, dans l'ordre du guide** : envoi des e-mails (en premier, sans lui aucun code de connexion n'arrive), équipe de la tablette, appareil qui a démarré le service, imprimante pizza, imprimante cuisine, horaires et zones validés, carte sans plat bloquant, livreurs (un connecté et un prévu au planning), connexion des livreurs par un code de la tablette, adresse des alertes, paiement en ligne, commande d'essai payée puis remboursée. Les deux imprimantes et le code des livreurs sont « Conseillées » : le service tourne sans elles (tickets sur la tablette), elles ne comptent pas pour « finie ». Une imprimante reste cochée une fois son ticket de test sorti, même éteinte ensuite : le menu ne bouge pas la nuit.
+- **Pas à pas** de chaque étape, tiré des guides (`docs/impression.md`, `docs/tablette.md`, `docs/livreurs.md`, `docs/mise-en-ligne.md`), avec le lien vers l'écran qui la règle. Imprimantes : les réglages CloudPRNT à faire sur l'imprimante elle-même et la règle de branchement (S13). Chaque étape renvoie à sa section du guide de mise en service (`docs/mise-en-service.md`, produit-gestion, PR #235) : `#avant`, `#equipe`, `#tablette`, `#imprimantes`, `#reglages`, `#livreurs`, `#essai-livraison`. Comptes externes (Infomaniak, Stripe, Netlify) : seulement le guide. Adresse IP de l'imprimante : la notice de l'imprimante.
+- **Données** : `etat_mise_en_route` (migration `20261213160000`), seulement des nombres et des dates. Le serveur y ajoute l'état des imprimantes et la seule présence des variables d'envoi et de paiement, jamais leur valeur. Relu toutes les minutes, toutes les dix minutes une fois tout fait.
+- Code : `src/lib/mise-en-route-etapes.ts` (étapes et textes, pur), `src/lib/mise-en-route.ts`, `src/components/gestion/MiseEnRoute.tsx`. Tests : `tests/unit/mise-en-route.test.ts`, `tests/unit/mise-en-route-sql.test.ts`, `tests/e2e/gestion-mise-en-route.spec.ts`. Captures : `docs/rendus/vague-3/bo-socle/mise-en-route-*.png`.

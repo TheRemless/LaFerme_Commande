@@ -179,8 +179,10 @@ export async function agir(commandeId: string, a: Action, p: Personnel): Promise
       break;
     case "refuser": {
       // Livraison partie (client absent, adresse introuvable) : fonction à part, le livreur le lit sur son téléphone.
-      // Annuler une livraison partie rembourse tout : gérant seulement, revérifié en base (audit de sécurité 2, S2-01).
-      if (avant.statut === "partie" && p.role !== "gerant") return { ok: false, message: "Seul le gérant peut annuler une livraison partie. Pour un client absent, passez par l'onglet Livraisons." };
+      // Annuler une livraison partie rembourse tout : gérant, ou responsable de service au rôle ouvert (droit
+      // « annuler_apres_prete », D1), revérifié en base par auteur_droit (audit de sécurité 2, S2-01).
+      if (avant.statut === "partie" && !(await fonctionSql<boolean>("droit_personnel", { p_personnel: p.id, p_action: "annuler_apres_prete" })))
+        return { ok: false, message: "Seul le gérant ou le responsable de service peut annuler une livraison partie. Pour un client absent, passez par l'onglet Livraisons." };
       ok =
         avant.statut === "partie"
           ? (a.de === undefined || a.de === "partie") &&

@@ -279,3 +279,36 @@ Mesure sur le jeu de rush de qualite (91 commandes en cours, `scripts/tablette/m
 - Ligne de 46 px au lieu de 68 : bouton de geste à 44 px (taille tactile minimale, aucune cible plus petite), interligne et marges réduits, retard marqué par un contour qui ne prend pas de place, « à encaisser » sur la ligne du client (deux lignes par commande au plus).
 - Bandeau des remboursements pas passés sur une ligne : les numéros du jour, puis le nombre des jours d'avant avec leurs dates, et « Voir au back-office » (`/gestion/commandes?remboursement=echec`). Avant : 18 numéros sans date, en permanence (les numéros recommencent chaque jour).
 - Captures : `docs/rendus/vague-3/tablette/compact-avant-*.png` et `compact-apres-*.png`, mesures `compact-mesures.json`.
+
+## Position du livreur en direct (décision de Jérémy du 13.11.2026)
+
+« Seulement s'il est en train de livrer sa commande. Le 2e client ne doit pas savoir où il livre au 1er client. » Toutes les règles sont en base, quel que soit le téléphone (migration `20261213210000_position_livreur.sql`).
+
+- **Arrêt en cours** (`arret_en_cours`) : la première livraison encore à faire du livreur, dans l'ordre de sa tournée (le même que sur son téléphone), si elle est partie. Avant le départ, ou si le premier arrêt est encore au restaurant, rien n'est gardé.
+- **Téléphone** (`src/components/livreur/partage-position.ts`) : pendant le trajet vers l'arrêt en cours, la page demande la localisation au navigateur et l'envoie toutes les 20 secondes au plus (`/api/livreur/position`, POST `{ lat, lon, precision }`). Sous le pouce : « Le client du n° 17 voit votre position jusqu'à « Livrée ». », ou « Localisation refusée sur ce téléphone. Le client ne voit pas où vous êtes. ». Plus en route ou page fermée : POST `{ fin: true }` efface la position.
+- **Base** (`noter_position_livreur`) : une ligne par livreur (`positions_livreur`), remplacée à chaque envoi, au plus une écriture toutes les 10 secondes, coordonnées arrondies à 4 décimales (une dizaine de mètres), sans historique ni journal. Signal hors de la région de Genève ou précision de plus d'un kilomètre : ignoré.
+- **Suivi** (`position_pour_suivi`, `src/lib/position-livreur.ts`) : la position n'est lue pour une commande que si cette commande est l'arrêt en cours de son livreur, et seulement si elle a moins de 2 minutes. Le 2e client ne voit rien tant que le 1er n'est pas livré.
+- **Point de masquage** (relecture de qualite) : quand l'arrêt en cours suit un arrêt terminé (livré, client absent clos, annulé, retiré), et non le départ du restaurant, le premier point reçu pour ce nouvel arrêt est souvent pris devant la porte du client d'avant. Il est gardé dans la même ligne (`masque_lat`, `masque_lon`, marque `suites_livreur`), et le suivi ne montre rien tant que le livreur est à moins de 400 m de ce point. Deux voisins à moins de 400 m : le 2e ne voit rien, c'est voulu.
+- **Course au moment de « Livrée »** (relecture BIS de qualite, migration `20261213230000_position_livreur_course.sql`) : la marque retient l'arrêt terminé (`apres_commande`) et ne s'applique qu'à un autre arrêt. Un point envoyé pendant le geste, encore compté pour l'arrêt qui se termine, ne la consomme donc pas. Un point de plus de 100 m de précision n'est pas pris comme point de masquage : rien n'est écrit, on attend le suivant.
+- **Limites acceptées** :
+  - le masque est posé au premier point reçu après l'arrêt terminé. Si le livreur touche « Livrée » en repartant, déjà à 150 m, le masque est à 150 m de la porte, et le client suivant peut voir un point à environ 250 m de cette porte, jamais plus près ;
+  - le client suivant ne voit son livreur qu'à partir de 400 m du point de masquage : un cercle de quartier, pas une adresse ;
+  - si l'arrêt précédent s'est terminé alors que le suivant était encore au restaurant, le masque tombe au restaurant, dont l'adresse est publique : le client ne voit son livreur qu'à 400 m du restaurant.
+- **Livreur désactivé** : plus rien au suivi, tout de suite.
+- **Effacement** : livrée, client absent clos, annulée, retirée ou donnée à un autre livreur, la position est effacée sur-le-champ (déclencheurs sur `commandes` et `livraisons`). Une position qui n'est plus envoyée est effacée au bout de 15 minutes.
+- **Capture** : `docs/rendus/vague-3/tablette/livreur-position-375.png` (e2e livreurs, téléphone en route).
+- **Interrupteur** : réglage `position_livreur_en_direct` (vrai). À faux, plus rien n'est gardé ni lu, et le téléphone arrête d'envoyer.
+- **En-tête** : `Permissions-Policy` ouvre la géolocalisation pour `/livreur` seulement (`next.config.ts`), elle reste fermée partout ailleurs.
+- **Limite connue** : un navigateur de téléphone n'envoie la position que tant que la page est à l'écran. Si le livreur passe sur l'appli de navigation, la position s'arrête et disparaît du suivi au bout de 2 minutes.
+- **Carte** : couche grise de swisstopo (`ch.swisstopo.pixelkarte-grau`, Web Mercator, `wmts.geo.admin.ch`), gratuite sans clé ni inscription, mention « © Data: swisstopo » (conditions générales de la IFDG, section 3.1 ; usage raisonnable admis jusqu'à environ 20 000 utilisateurs par jour, section 2.3). Pas de service américain.
+
+## Responsable de service sur la tablette (D1, oui de Jérémy le 13.11.2026)
+
+Liste de bo-socle. Le responsable n'agit qu'avec le réglage `role_responsable_actif` à vrai (posé par le chef sur la vraie base) : sans lui, rien ne change, et un responsable reste un membre de l'équipe de service. Migration `20261213220000_tablette_responsable.sql`.
+
+- **Annuler une livraison partie** : gérant ou responsable (droit « annuler_apres_prete »). La tablette lit le droit pour montrer « Annuler la commande » (`droit_personnel`), la route le revérifie, et la base aussi (`annuler_commande_partie` passe de `gerant_nom` à `auteur_droit`).
+- **Modifier une commande** : le responsable a le droit « modifier_commande », comme le gérant, sans le réglage `modification_par_equipe` et même quand la commande est prête ou partie. Route `/api/tablette/modifier` et base (`modifier_commande` accepte le rôle responsable). Rôle éteint : la règle de l'équipe.
+- **Coup de feu** : le responsable au rôle ouvert peut toujours, comme le chef d'équipe d'un soir. Rôle éteint : la règle de l'équipe (`coup_de_feu_par_equipe`).
+- **Fermer le service du jour** (contrat de bo-operations, `src/lib/fermer-service.ts`) : bloc dans « Pause, délai, ruptures », visible pour le droit « fermer_service ». Quand fermer (ce midi, ce soir, toute la journée), puis le motif, lu par les clients et jamais un nom. Une confirmation dit la suite (« Les clients ne pourront plus commander pour ce soir. »). Après la fermeture : « Fermé pour ce soir. Commandes déjà prises : n° 12, 15. Traitez-les dans « En cours ». ». Seul le gérant rouvre, au back-office. Route `/api/tablette/fermer-service` (GET `{ autorise }`, POST `{ quoi, motif }` derrière `exigerDroit(requete, "fermer_service")`, la date vient de la base).
+- Capture : `docs/rendus/vague-3/tablette/responsable-fermer-service.png` (responsable, jusqu'à la confirmation).
+- Tests : `tests/unit/tablette-responsable-sql.test.ts` (annuler et modifier, équipe refusée, rôle éteint), e2e `tablette.spec.ts` (bloc jusqu'à la confirmation sans fermer, l'équipe sans bloc et refusée en 403).

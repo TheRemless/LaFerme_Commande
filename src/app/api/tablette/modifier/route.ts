@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { corpsJson, refus } from "@/lib/comptes/api";
 import { lirePublic } from "@/lib/db/lecture";
+import { fonctionSql } from "@/lib/db/serveur";
 import { modifierCommande } from "@/lib/modifier-commande";
 import { exigerPersonnel, type Personnel } from "@/lib/personnel/session";
 
@@ -13,6 +14,8 @@ const SANS_CACHE = { "Cache-Control": "no-store" };
 
 async function autorise(p: Personnel): Promise<boolean> {
   if (p.role === "gerant") return true;
+  // Responsable de service au rôle ouvert (D1) : droit « modifier_commande », sans le réglage de l'équipe.
+  if (p.role === "responsable" && (await fonctionSql<boolean>("droit_personnel", { p_personnel: p.id, p_action: "modifier_commande" }))) return true;
   const reglages = await lirePublic<{ cle: string; valeur: unknown }>("reglages").catch(() => []);
   return reglages.find((r) => r.cle === "modification_par_equipe")?.valeur === true;
 }

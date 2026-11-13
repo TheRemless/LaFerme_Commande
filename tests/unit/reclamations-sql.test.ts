@@ -129,6 +129,54 @@ describe("suivre, geste, clore", () => {
     expect(await erreur("appliquer_geste($1, $2, $3)", [attente[0].id, suivante.id, service])).toContain("gestes_desactives");
   });
 
+  it("réduction : éteinte sans les deux réglages ; allumée, un code personnel, une fois, pour ce client seul", async () => {
+    const c = await commande("reduc@exemple.ch");
+    const r = await ouvrir({ commande_id: c.id, source: "telephone", type: "froid", description: "Pizza arrivée froide." }, service);
+    const geste = (p: Record<string, unknown>) => f<Rec & { code_id: string | null }>("noter_geste_reclamation($1, $2, $3)", [r.id, { geste: "reduction", ...p }, gerant]);
+    expect(await erreur("noter_geste_reclamation($1, $2, $3)", [r.id, { geste: "reduction", type: "pourcentage", valeur: 10 }, gerant])).toContain("gestes_desactives");
+    await db.query("update reglages set valeur = 'true' where cle = 'gestes_commerciaux_actifs'");
+    expect(await erreur("noter_geste_reclamation($1, $2, $3)", [r.id, { geste: "reduction", type: "pourcentage", valeur: 10 }, gerant])).toContain("codes_desactives");
+    await db.query("insert into reglages (cle, valeur) values ('codes_promo_actifs', 'true') on conflict (cle) do update set valeur = 'true'");
+    for (const p of [{ type: "pourcentage", valeur: 0 }, { type: "pourcentage", valeur: 101 }, { type: "montant", valeur: 0 }, { type: "montant" }, { type: "cadeau", valeur: 5 }, { type: "montant", valeur: "500" }])
+      expect(await erreur("noter_geste_reclamation($1, $2, $3)", [r.id, { geste: "reduction", ...p }, gerant])).toContain("reduction_invalide");
+    const rec = await geste({ type: "pourcentage", valeur: 15 });
+    expect(rec).toMatchObject({ geste: "reduction", statut: "en_cours" });
+    expect(rec.geste_detail).toMatch(/^15 % sur la prochaine commande, code LAFERME-[0-9A-F]{8}$/);
+    const fiche = await f<{ code: { code: string; type: string; valeur: number; utilise_commande: number | null }; codes_actifs: boolean }>("fiche_reclamation_gestion($1)", [r.id]);
+    expect(fiche.codes_actifs).toBe(true);
+    expect(fiche.code).toMatchObject({ type: "pourcentage", valeur: 15, utilise_commande: null });
+    const code = fiche.code.code;
+    const evaluer = (email: string, telephone: string | null) =>
+      f<{ ok: boolean; raison?: string; remise_centimes?: number }>("evaluer_code($1)", [{ code, email, telephone, mode: "retrait", sous_total_centimes: 4000, frais_centimes: 0 }]);
+    // Un autre client : le code « n'existe pas » ; le client, par son e-mail (avec +étiquette) ou son téléphone : 15 %.
+    expect(await evaluer("autre@exemple.ch", "079 000 00 00")).toMatchObject({ ok: false, raison: "inconnu" });
+    expect(await evaluer("reduc+promo@exemple.ch", null)).toMatchObject({ ok: true, remise_centimes: 600 });
+    expect(await evaluer("nouvelle@exemple.ch", "+41 79 555 12 34")).toMatchObject({ ok: true, remise_centimes: 600 });
+    expect(await erreur("noter_geste_reclamation($1, $2, $3)", [r.id, { geste: "plat_offert", detail: "Un dessert" }, gerant])).toContain("geste_deja_note");
+    // Promotions : modifier un code personnel ne met au journal ni l'e-mail ni le téléphone du client.
+    await f("modifier_code($1, $2, $3)", [code, { minimum_centimes: 1000 }, gerant]);
+    const journal = JSON.stringify((await db.query("select avant, apres from journal_gestion where objet = 'code_promo' and cle = $1", [code])).rows);
+    expect(journal).toContain(code);
+    expect(journal).not.toContain("reduc@exemple.ch");
+    expect(journal).not.toContain("41795551234");
+    // Journal et fil du dossier disent le geste.
+    const suivis = (await f<{ suivis: { texte: string }[] }>("fiche_reclamation_gestion($1)", [r.id])).suivis.map((x) => x.texte);
+    expect(suivis.at(-1)).toBe(`Geste : réduction de 15 % sur la prochaine commande, code ${code}`);
+  });
+
+  it("réduction en francs ; à la suppression du compte, le code pas encore utilisé part", async () => {
+    await db.query("update reglages set valeur = 'true' where cle = 'gestes_commerciaux_actifs'");
+    await db.query("insert into reglages (cle, valeur) values ('codes_promo_actifs', 'true') on conflict (cle) do update set valeur = 'true'");
+    const c = await commande("partant@exemple.ch");
+    const r = await ouvrir({ commande_id: c.id, source: "email", type: "manquant", description: "Il manquait la boisson." }, service);
+    const rec = await f<Rec>("noter_geste_reclamation($1, $2, $3)", [r.id, { geste: "reduction", type: "montant", valeur: 500 }, gerant]);
+    expect(rec.geste_detail).toMatch(/^CHF 5\.00 sur la prochaine commande, code LAFERME-/);
+    expect(await f<{ codes: { valeur: number }[] }>("donnees_gestion_client('partant@exemple.ch')")).toMatchObject({ codes: [{ type: "montant", valeur: 500 }] });
+    await f("effacer_notes_client('partant@exemple.ch')");
+    expect((await db.query("select 1 from codes_promo where client_email = 'partant@exemple.ch'")).rows).toHaveLength(0);
+    expect(await f<{ code: unknown }>("fiche_reclamation_gestion($1)", [r.id])).toMatchObject({ code: null });
+  });
+
   it("liste : ouvertes d'abord, filtres, compteurs ; aucun droit direct pour un visiteur", async () => {
     const c = await commande();
     const a = await ouvrir({ commande_id: c.id, source: "telephone", type: "froid", description: "Froid." }, service);
