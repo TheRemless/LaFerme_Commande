@@ -65,3 +65,10 @@ export function rubriqueDe(chemin: string): { rubrique: Rubrique; groupe: Groupe
   }
   return meilleure;
 }
+
+/** Titre d'une rubrique pour les métadonnées de sa page : le même que dans le menu et le h1. */
+export function titreRubrique(href: string): string {
+  const r = RUBRIQUES.find((x) => x.href === href);
+  if (!r) throw new Error(`Rubrique inconnue : ${href}`);
+  return r.titre;
+}

@@ -72,7 +72,13 @@ test("la carte dit dans le menu combien de plats bloquent la mise en ligne", asy
   await gestion.goto("/gestion/carte");
   await ouvrirMenuSiTelephone(gestion);
   const lien = menu(gestion).getByRole("link", { name: "Carte", exact: true });
-  await expect(lien).toHaveAccessibleDescription(/^\d+ plats? bloquen?t? la mise en ligne$/);
+  // Le nombre vient de la même source que l'accueil : badge et description seulement s'il y a des bloquants.
+  const n = Number((await (await gestion.request.get("/api/gestion/carte")).json()).bloquants);
+  if (n === 0) await expect(lien.locator(".bo-badge")).toHaveCount(0);
+  else {
+    await expect(lien.locator(".bo-badge")).toHaveText(String(n));
+    await expect(lien).toHaveAccessibleDescription(`${n} ${n > 1 ? "plats bloquent" : "plat bloque"} la mise en ligne`);
+  }
 });
 
 test("une adresse inconnue du back-office donne la page introuvable", async () => {
@@ -89,6 +95,8 @@ test("sur téléphone, le menu s'ouvre en tiroir et se ferme avec Échap ou en c
   await expect(bouton).toHaveAttribute("aria-expanded", "true");
   await expect(menu(gestion)).toBeVisible();
   await expect(gestion.getByRole("button", { name: "Fermer le menu" })).toBeFocused();
+  // Derrière le tiroir, la page est inerte : ni clic ni Tab.
+  await expect(gestion.locator(".bo-corps")).toHaveAttribute("inert", "");
   const r = await new AxeBuilder({ page: gestion }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
   expect(r.violations.map((v) => v.id)).toEqual([]);
   await gestion.keyboard.press("Escape");
@@ -98,6 +106,18 @@ test("sur téléphone, le menu s'ouvre en tiroir et se ferme avec Échap ou en c
   await menu(gestion).getByRole("link", { name: "Commandes", exact: true }).click();
   await titre(gestion, "Commandes");
   await expect(menu(gestion)).toBeHidden();
+  await expect(gestion.getByRole("heading", { level: 1, name: "Commandes" })).toBeFocused();
+  await expect(gestion.locator(".bo-corps")).not.toHaveAttribute("inert");
+});
+
+test("une coupure au chargement de la carte se dit et se réessaie", async () => {
+  await gestion.route("**/api/gestion/carte", (r) => r.abort());
+  await gestion.goto("/gestion/plat-du-jour");
+  const alerte = gestion.getByRole("alert").filter({ hasText: "Pas de connexion" });
+  await expect(alerte).toBeVisible();
+  await gestion.unroute("**/api/gestion/carte");
+  await alerte.getByRole("button", { name: "Réessayer" }).click();
+  await expect(gestion.getByRole("heading", { name: "Nouveau plat du jour" })).toBeVisible();
 });
 
 test("sur ordinateur, le menu se réduit aux icônes et garde ce choix", async ({}, info) => {
@@ -131,6 +151,11 @@ test("le personnel de service voit « Réservé au gérant » sur toutes les rub
 test("se déconnecter ramène à l'écran de connexion sur la même adresse", async () => {
   await gestion.goto("/gestion/horaires");
   await ouvrirMenuSiTelephone(gestion);
+  // Sans réseau, la déconnexion échoue et le dit.
+  await gestion.route("**/api/personnel/deconnexion", (r) => r.abort());
+  await gestion.getByRole("button", { name: /^Se déconnecter/ }).click();
+  await expect(gestion.getByRole("alert").filter({ hasText: "Pas de connexion" })).toBeVisible();
+  await gestion.unroute("**/api/personnel/deconnexion");
   await gestion.getByRole("button", { name: /^Se déconnecter/ }).click();
   await expect(gestion.getByRole("button", { name: "Recevoir un code" })).toBeVisible();
   await expect(gestion).toHaveURL(/\/gestion\/horaires$/);

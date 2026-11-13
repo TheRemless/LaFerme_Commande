@@ -34,6 +34,9 @@ function Coque({ nom, children }: { nom: string; children: React.ReactNode }) {
   const large = menu === "auto" ? ordinateur : menu === "large";
   const boutonMenu = useRef<HTMLButtonElement>(null);
   const fermerTiroir = useRef<HTMLButtonElement>(null);
+  const titre = useRef<HTMLHeadingElement>(null);
+  const focusApres = useRef<"tiroir" | "menu" | "titre" | null>(null);
+  const [erreurSortie, setErreurSortie] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -50,21 +53,27 @@ function Coque({ nom, children }: { nom: string; children: React.ReactNode }) {
     return () => m.removeEventListener("change", suivre);
   }, []);
 
-  // Le tiroir se referme à chaque changement de rubrique.
+  // Le tiroir se referme à chaque changement de rubrique ; le focus passe au titre de la nouvelle rubrique.
+  const tiroirOuvert = useRef(false);
+  tiroirOuvert.current = tiroir;
   useEffect(() => {
+    if (!tiroirOuvert.current) return;
+    focusApres.current = "titre";
     setTiroir(false);
   }, [chemin]);
 
-  // Le focus suit le tiroir : dedans à l'ouverture, sur « Menu » à la fermeture (pas au premier rendu).
-  const aBascule = useRef(false);
+  // Le focus suit le tiroir, une fois le rendu fait (le contenu n'est plus inerte) : dedans à l'ouverture,
+  // sur « Menu » à la fermeture, sur le titre de la rubrique si on vient d'en changer. Rien au premier rendu.
   const basculerTiroir = useCallback((ouvrir: boolean) => {
-    aBascule.current = true;
+    focusApres.current = ouvrir ? "tiroir" : "menu";
     setTiroir(ouvrir);
   }, []);
   useEffect(() => {
-    if (!aBascule.current) return;
-    aBascule.current = false;
-    (tiroir ? fermerTiroir.current : boutonMenu.current)?.focus();
+    const cible = focusApres.current;
+    focusApres.current = null;
+    if (cible === "tiroir") fermerTiroir.current?.focus();
+    else if (cible === "menu") boutonMenu.current?.focus();
+    else if (cible === "titre") titre.current?.focus();
   }, [tiroir]);
 
   useEffect(() => {
@@ -83,7 +92,9 @@ function Coque({ nom, children }: { nom: string; children: React.ReactNode }) {
   }
 
   async function deconnecter() {
-    await poster("/api/personnel/deconnexion", {});
+    setErreurSortie(null);
+    const r = await poster("/api/personnel/deconnexion", {});
+    if (!r.ok) return setErreurSortie(String(r.donnees.erreur ?? "Déconnexion impossible. Réessayez."));
     router.refresh();
   }
 
@@ -120,6 +131,11 @@ function Coque({ nom, children }: { nom: string; children: React.ReactNode }) {
               Se déconnecter <span className="bo-qui">{nom}</span>
             </span>
           </button>
+          {erreurSortie && (
+            <p className="bo-erreur-pied" role="alert">
+              {erreurSortie}
+            </p>
+          )}
           <button type="button" className="bo-lien bo-replier" onClick={changerMenu} title={large ? "Réduire le menu" : "Agrandir le menu"}>
             <IconeGestion nom={large ? "replier" : "deplier"} />
             <span className="bo-libelle">{large ? "Réduire le menu" : "Agrandir le menu"}</span>
@@ -127,7 +143,8 @@ function Coque({ nom, children }: { nom: string; children: React.ReactNode }) {
         </div>
       </aside>
       <button type="button" className="bo-voile" tabIndex={-1} aria-hidden="true" onClick={() => basculerTiroir(false)} />
-      <div className="bo-corps">
+      {/* Tiroir ouvert : le reste de la page est inerte (ni clic ni Tab), comme derrière une fenêtre. */}
+      <div className="bo-corps" inert={tiroir || undefined}>
         <header className="bo-tete">
           <button ref={boutonMenu} type="button" className="bo-bouton-menu" aria-controls="bo-menu" aria-expanded={tiroir} onClick={() => basculerTiroir(true)}>
             <IconeGestion nom="menu" />
@@ -135,7 +152,9 @@ function Coque({ nom, children }: { nom: string; children: React.ReactNode }) {
           </button>
           <div className="bo-titre">
             <p className="bo-titre-groupe">{groupe.titre}</p>
-            <h1>{rubrique.titre}</h1>
+            <h1 ref={titre} tabIndex={-1}>
+              {rubrique.titre}
+            </h1>
           </div>
         </header>
         <main id="contenu" className="gestion bo-contenu">

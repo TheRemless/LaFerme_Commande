@@ -165,6 +165,15 @@
   display: none;
 }
 
+.bo-erreur-pied {
+  margin: 4px 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  color: var(--bo-texte);
+  background: var(--bo-surface);
+  border-radius: var(--bo-rayon);
+}
+
 /* ---------- En-tête de la rubrique et contenu ---------- */
 .bo-corps {
   min-width: 0;
@@ -191,6 +200,9 @@
 }
 .bo-titre h1 {
   font-size: 32px;
+}
+.bo-titre h1:focus {
+  outline: none;
 }
 .bo .bo-contenu {
   max-width: 1240px;

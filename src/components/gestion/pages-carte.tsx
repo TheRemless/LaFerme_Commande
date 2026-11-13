@@ -5,7 +5,18 @@ import { GestionImport } from "@/components/gestion/GestionImport";
 import { useCarte } from "@/components/gestion/contexte-carte";
 
 // Les rubriques qui lisent la carte chargée par la coque (contexte-carte.tsx).
-const Chargement = () => <p className="aide">Chargement…</p>;
+function Chargement() {
+  const { erreur, recharger } = useCarte();
+  if (!erreur) return <p className="aide">Chargement…</p>;
+  return (
+    <div className="panier-alerte" role="alert">
+      <p>{erreur}</p>
+      <button type="button" className="bouton-second" onClick={() => recharger()}>
+        Réessayer
+      </button>
+    </div>
+  );
+}
 
 export function PageCarte() {
   const { carte, recharger, version } = useCarte();
