@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { GROUPES_VISIBLES, RUBRIQUES, type Rubrique } from "@/components/gestion/navigation";
+import { useRoleGestion } from "@/components/gestion/droits";
+import { GROUPES_VISIBLES, RUBRIQUES, rubriqueOuverte, type Rubrique } from "@/components/gestion/navigation";
 import { IconeGestion, montant, Touches, useDiffere, useRaccourci } from "@/components/gestion/ui";
 import { demanderOuverture, type CibleOuverture } from "@/components/gestion/ui/ouverture";
 import { heureDe, jourGeneveDe } from "@/lib/heures";
@@ -44,6 +45,7 @@ export function RechercheGlobale() {
 
 function Fenetre({ fermer }: { fermer: () => void }) {
   const router = useRouter();
+  const role = useRoleGestion();
   const id = useId();
   const boite = useRef<HTMLDialogElement>(null);
   const champ = useRef<HTMLInputElement>(null);
@@ -92,7 +94,7 @@ function Fenetre({ fermer }: { fermer: () => void }) {
   const choix = useMemo<Choix[]>(() => {
     const l: Choix[] = [];
     const n = normaliser(q.trim());
-    const rubriques: Rubrique[] = n ? GROUPES_VISIBLES.flatMap((g) => g.rubriques).filter((r) => normaliser(`${r.titre} ${r.resume}`).includes(n)) : [];
+    const rubriques: Rubrique[] = n ? GROUPES_VISIBLES.flatMap((g) => g.rubriques).filter((r) => rubriqueOuverte(r, role) && normaliser(`${r.titre} ${r.resume}`).includes(n)) : [];
     for (const c of res?.commandes ?? [])
       l.push({
         id: `c-${c.id}`,
@@ -116,7 +118,7 @@ function Fenetre({ fermer }: { fermer: () => void }) {
     for (const r of rubriques.slice(0, 5)) l.push({ id: `r-${r.href}`, groupe: "Rubriques", titre: r.titre, detail: r.resume, aller: aller(r.href) });
     return l;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [res, q]);
+  }, [res, q, role]);
 
   const actifSur = Math.min(actif, Math.max(choix.length - 1, 0));
   const groupes = [...new Set(choix.map((c) => c.groupe))];
