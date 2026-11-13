@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { creerBaseLocale } from "@/lib/db/locale";
 import type { Analyses } from "@/lib/pilotage";
 
-// Analyses d'une période (migration 20261129110000_pilotage_analyses.sql).
+// Analyses d'une période (migration 20261210200000_pilotage_analyses.sql).
 
 let db: PGlite;
 let n = 0;

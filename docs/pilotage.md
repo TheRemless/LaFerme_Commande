@@ -36,7 +36,7 @@ Migration `supabase/migrations/20261210190000_cloture_jour.sql`, module `src/lib
 
 ## Analyses
 
-Migration `supabase/migrations/20261129110000_pilotage_analyses.sql`, route `GET /api/gestion/pilotage/analyses` (mêmes paramètres que les ventes, sans comparaison). Tests : `tests/unit/pilotage-analyses-sql.test.ts`.
+Migration `supabase/migrations/20261210200000_pilotage_analyses.sql`, route `GET /api/gestion/pilotage/analyses` (mêmes paramètres que les ventes, sans comparaison). Tests : `tests/unit/pilotage-analyses-sql.test.ts`.
 
 - Plats : quantité et montant TTC des lignes (suppléments compris, frais de livraison non), sous le nom actuel de la carte. Un plat qui n'est plus à la carte garde son dernier nom vendu, dans « Hors carte ».
 - Catégories : la même chose par catégorie de la carte.
