@@ -73,6 +73,9 @@ describe("texte d'une note", () => {
     expect(texteNote(" ")).toBeNull();
     expect(texteNote("x".repeat(501))).toBeNull();
     expect(texteNote(42)).toBeNull();
+    // Un emoji seul : un caractère pour Postgres, refusé ici plutôt qu'en erreur 500 par la base.
+    expect(texteNote("👍")).toBeNull();
+    expect(texteNote("ok 👍")).toBe("ok 👍");
   });
 });
 
@@ -115,6 +118,7 @@ describe("route /api/gestion/commandes, nouvelles actions", () => {
     expect((await appel({ action: "noter", id: commande, texte: "" })).status).toBe(422);
     expect((await appel({ action: "noter", id: "00000000-0000-0000-0000-000000000000", texte: "Note" })).status).toBe(404);
     expect((await appel({ action: "fiche_complete", id: "00000000-0000-0000-0000-000000000000" })).status).toBe(404);
+    expect((await appel({ action: "fiche_complete", id: "------------------------------------" })).status).toBe(404);
     expect((await appel({ action: "courriel", id: commande, courriel: "00000000-0000-0000-0000-000000000000" })).status).toBe(404);
   });
 

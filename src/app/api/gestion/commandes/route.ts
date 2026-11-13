@@ -3,7 +3,7 @@ import { corpsJson, refus } from "@/lib/comptes/api";
 import { rembourserApresCoup } from "@/lib/commandes";
 import { fonctionSql } from "@/lib/db/serveur";
 import { centimes, dateValide } from "@/lib/gestion";
-import { filtresListe, texteNote } from "@/lib/gestion-commandes";
+import { filtresListe, texteNote, UUID } from "@/lib/gestion-commandes";
 import { exigerGerant } from "@/lib/personnel/session";
 
 // Commandes passées et remboursement après coup (audit du gérant, G02 et G04). Tout passe en POST :
@@ -12,7 +12,6 @@ import { exigerGerant } from "@/lib/personnel/session";
 // | { action: "rembourser", id, montant, motif, cle }
 // Vague 3 (bo-commandes) : { action: "liste_page", ...filtres (src/lib/gestion-commandes.ts) }
 // | { action: "fiche_complete", id } | { action: "courriel", id, courriel } | { action: "noter", id, texte }
-const UUID = /^[0-9a-f-]{36}$/;
 
 export async function POST(requete: Request) {
   const g = await exigerGerant(requete);

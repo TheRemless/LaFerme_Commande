@@ -7,7 +7,7 @@ export const STATUTS_COMMANDE = ["nouvelle", "acceptee", "en_preparation", "pret
 export const STATUTS_PAIEMENT = ["paye", "encaisse", "a_encaisser_retrait", "rembourse", "echec", "en_attente"] as const;
 export const TRIS = ["recent", "ancien", "heure", "montant", "numero"] as const;
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const vide = (v: unknown) => v === undefined || v === null || v === "";
 
 function liste<T extends string>(v: unknown, permis: readonly T[]): T[] | null {
@@ -93,5 +93,7 @@ export function texteNote(v: unknown): string | null {
     .replace(/[ \t]+/g, " ")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
-  return t.length >= 2 && t.length <= 500 ? t : null;
+  // Compté en caractères comme Postgres (un emoji vaut 1), pas en unités UTF-16 de JavaScript.
+  const n = Array.from(t).length;
+  return n >= 2 && n <= 500 ? t : null;
 }
