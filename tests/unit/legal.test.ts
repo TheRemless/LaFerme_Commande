@@ -34,8 +34,15 @@ describe("ébauches légales", () => {
         expect(texte).not.toContain(interdit);
       }
     }
-    // L'identité du vendeur et l'e-mail (LCD art. 3 al. 1 let. s) sont demandés, pas devinés.
-    expect(JSON.stringify(MENTIONS)).toContain("[Raison sociale");
+    // Identité du vendeur (LCD art. 3 al. 1 let. s) : fournie par Jérémy le 13.11.2026 (extrait du registre du
+    // commerce, registre IDE fédéral pour la TVA). La même raison sociale dans les trois pages.
+    for (const p of [MENTIONS, CGV, CONFIDENTIALITE]) {
+      expect(JSON.stringify(p)).toContain("Restaurant La Ferme Sàrl");
+      expect(JSON.stringify(p).toLowerCase()).not.toContain("[raison sociale");
+    }
+    expect(JSON.stringify(MENTIONS)).toContain("société à responsabilité limitée");
+    expect(JSON.stringify(MENTIONS)).toContain("Numéro IDE CHE-103.250.692. Numéro TVA CHE-103.250.692 TVA.");
+    // L'e-mail reste demandé, pas deviné.
     expect(JSON.stringify(MENTIONS)).toContain("[adresse e-mail du restaurant]");
   });
 });

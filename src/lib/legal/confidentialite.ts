@@ -9,7 +9,7 @@ export const CONFIDENTIALITE: PageLegale = {
   sections: [
     {
       titre: "Responsable",
-      contenu: ["[Raison sociale], Restaurant La Ferme, Route de Chancy 132, 1213 Onex. Téléphone 022 792 16 89. E-mail [adresse e-mail du restaurant]."],
+      contenu: ["Restaurant La Ferme Sàrl, Route de Chancy 132, 1213 Onex. Téléphone 022 792 16 89. E-mail [adresse e-mail du restaurant]."],
     },
     {
       titre: "Ce que nous enregistrons",
