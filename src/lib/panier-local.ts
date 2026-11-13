@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { lireChoix } from "@/lib/choix";
+import type { Mode, Quand } from "@/lib/service";
 import { LIMITES, memeLigne, type LignePanier, type Totaux } from "@/lib/panier";
 
 // Panier gardé dans le navigateur (localStorage), comme le choix du mode : rien dans l'URL.
@@ -124,6 +125,28 @@ export type CalculPanier = { reponse: ReponsePanier | null; lent: boolean; echec
 
 const DELAI_LENT_MS = 1200;
 
+// Créneau pour lequel ce navigateur a déjà envoyé une commande (onglet seulement) : voir /api/panier.
+const CLE_PLACE = "laferme.place-envoyee";
+const place = (mode: Mode, quand: Quand) => (quand.type === "creneau" ? `${mode} ${quand.date} ${quand.minutes}` : null);
+
+export function noterPlaceEnvoyee(mode: Mode, quand: Quand): void {
+  const p = place(mode, quand);
+  try {
+    if (p) window.sessionStorage.setItem(CLE_PLACE, p);
+  } catch {
+    // Stockage bloqué : au pire, le créneau paraît complet et le client en choisit un autre.
+  }
+}
+
+function placeEnvoyee(mode: Mode, quand: Quand): boolean {
+  const p = place(mode, quand);
+  try {
+    return p !== null && window.sessionStorage.getItem(CLE_PLACE) === p;
+  } catch {
+    return false;
+  }
+}
+
 // Montants calculés par le serveur, redemandés 300 ms après chaque changement du panier.
 // Une réponse ne sert que pour le contenu exact qu'elle a calculé : sinon le navigateur affiche son propre calcul.
 // relance : un nombre qui change pour redemander le calcul sans changement du panier (plat épuisé
@@ -161,7 +184,14 @@ export function useCalculPanier(lignes: LignePanier[], actif: boolean, relance =
       fetch("/api/panier", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lignes, mode: choix.mode, adresse: choix.adresse, quand: choix.quand, heure: choix.heureSimulee }),
+        body: JSON.stringify({
+          lignes,
+          mode: choix.mode,
+          adresse: choix.adresse,
+          quand: choix.quand,
+          heure: choix.heureSimulee,
+          placeTenue: placeEnvoyee(choix.mode, choix.quand),
+        }),
         signal: ctrl.signal,
       })
         .then((r) => r.json())
@@ -195,6 +225,7 @@ export function viderPanier(): void {
     if (!window.sessionStorage.getItem("laferme.cle-commande")) return;
     window.localStorage.removeItem(CLE);
     window.sessionStorage.removeItem("laferme.cle-commande");
+    window.sessionStorage.removeItem(CLE_PLACE);
   } catch {
     // Stockage bloqué : rien à vider.
   }

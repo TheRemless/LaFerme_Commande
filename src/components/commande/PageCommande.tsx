@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 import { lireChoix, type Choix } from "@/lib/choix";
 import { platDe, type Catalogue } from "@/lib/panier";
-import { useCalculPanier, usePanier, type ReponsePanier } from "@/lib/panier-local";
+import { noterPlaceEnvoyee, useCalculPanier, usePanier, type ReponsePanier } from "@/lib/panier-local";
 import { comptoirPermis } from "@/lib/plafond-comptoir";
 import { prixChf, prixCourt, prixPhrase } from "@/lib/prix";
 import { heureTexte, jourTexte } from "@/lib/service";
@@ -134,6 +134,7 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
       return;
     }
     setEnvoi(true);
+    noterPlaceEnvoyee(choix.mode, choix.quand);
     setErreur(null);
     setCreneauComplet(false);
     try {

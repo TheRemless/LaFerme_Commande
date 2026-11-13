@@ -23,7 +23,7 @@ afterAll(async () => {
   await db.query("update reglages set valeur = $1::jsonb where cle = 'capacite_retraits_par_creneau'", [avant]);
 });
 
-function panier(quand: unknown) {
+function panier(quand: unknown, placeTenue = false) {
   return POST(
     new Request("http://localhost/api/panier", {
       method: "POST",
@@ -33,6 +33,7 @@ function panier(quand: unknown) {
         mode: "retrait",
         quand,
         heure: `${DATE}T19:05`,
+        placeTenue,
       }),
     }),
   );
@@ -78,6 +79,12 @@ describe("créneau complet vu dès le panier", () => {
     expect(r.valide).toBe(false);
     expect(r.message_quand).toMatch(/^Ce créneau est complet\./);
     expect(r.creneau_complet).toBe(true);
+  });
+
+  it("le client dont la commande en attente tient la place n'est pas bloqué par sa propre commande", async () => {
+    const r = await (await panier({ type: "creneau", date: DATE, minutes: MINUTES }, true)).json();
+    expect(r.valide).toBe(true);
+    expect(r.creneau_complet).toBe(false);
   });
 
   it("le créneau voisin, lui, reste libre", async () => {

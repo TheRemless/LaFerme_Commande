@@ -5,7 +5,7 @@ import { fonctionSql } from "@/lib/db/serveur";
 import { calculerPanier } from "@/lib/panier";
 import { erreurPlatsDuJour, momentDe } from "@/lib/plat-du-jour";
 import { lignesValides, quandValide } from "@/lib/validation";
-import { depuisHeureGeneve, enMinutes, heureTexte, instantGeneve, jourIso, quandPossible, type CreneauPlein, type Zone, messagePause, messageSansCreneau, pauseEnCours } from "@/lib/service";
+import { depuisHeureGeneve, enMinutes, heureTexte, instantGeneve, jourIso, MESSAGE_CRENEAU_COMPLET, quandPossible, type CreneauPlein, type Zone, messagePause, messageSansCreneau, pauseEnCours } from "@/lib/service";
 import { zoneServeur } from "@/lib/zone-serveur";
 
 // Prix du panier calculé par le serveur à partir de la base : options, frais de zone, minimum, TVA,
@@ -66,11 +66,14 @@ export async function POST(requete: Request) {
 
   // Créneau rempli par d'autres clients depuis le choix de l'heure : annoncé dès le panier, avec le même
   // texte que le refus au paiement (creer_commande le revérifie sous verrou). Base muette : on laisse passer.
+  // placeTenue : ce navigateur a déjà envoyé une commande pour ce créneau (paiement annulé, retour arrière).
+  // Sa commande en attente compte dans la capacité : sans ce signal, il se verrait refuser sa propre place.
+  // Simple indication d'affichage, le serveur retranche tout au paiement.
   let creneauComplet = false;
-  if (messageQuand === null && lignes.length > 0 && quand.type === "creneau") {
+  if (messageQuand === null && lignes.length > 0 && quand.type === "creneau" && corps.placeTenue !== true) {
     const pleins = await fonctionSql<CreneauPlein[]>("creneaux_pleins", { p_debut: quand.date, p_fin: quand.date }).catch(() => [] as CreneauPlein[]);
     creneauComplet = pleins.some((p) => p.mode === mode && p.minutes === quand.minutes);
-    if (creneauComplet) messageQuand = "Ce créneau est complet. Choisissez une autre heure ou appelez-nous au 022\u00a0792\u00a016\u00a089.";
+    if (creneauComplet) messageQuand = MESSAGE_CRENEAU_COMPLET;
   }
 
   if (messageQuand === null && lignes.length > 0) {

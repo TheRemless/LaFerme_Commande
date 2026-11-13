@@ -93,3 +93,15 @@ test("double clic sur « Payer » : une seule commande", async ({ page }) => {
   // Deux envois au plus, avec la même clé : le serveur n'en garde qu'une commande.
   expect(new Set(envois).size).toBe(1);
 });
+
+test("paiement annulé sur un créneau : la place tenue par sa propre commande ne le bloque pas", async ({ page }) => {
+  await poser(page, { ...retrait, quand: { type: "creneau", date: "2026-11-10", minutes: 1245 } }, [L("pizza-margherita", 2)]);
+  await page.goto("/commande");
+  await remplir(page, "Annule");
+  await page.getByRole("button", { name: /^Payer CHF/ }).click();
+  await expect(page).toHaveURL(/paiement-test/);
+  const recalcul = page.waitForRequest((r) => r.url().endsWith("/api/panier"));
+  await page.goto("/commande?annule=1");
+  expect(JSON.parse((await recalcul).postData() ?? "{}").placeTenue).toBe(true);
+  await expect(page.getByRole("button", { name: /^Payer CHF/ })).toBeEnabled();
+});
