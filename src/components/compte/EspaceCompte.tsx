@@ -321,7 +321,7 @@ export function EspaceCompte({ donnees, preversion }: { donnees: DonneesEspace; 
             <div className="zone-suppression">
               <h3>Supprimer mon compte</h3>
               <p className="aide">
-                Votre profil, vos adresses et vos connexions sont effacés. Les commandes déjà passées restent dans la comptabilité du restaurant, sans
+                Votre profil, vos adresses, vos connexions et les notes du restaurant à votre sujet sont effacés. Les commandes déjà passées restent dans la comptabilité du restaurant, sans
                 lien avec un compte.
               </p>
               <label className="option">
