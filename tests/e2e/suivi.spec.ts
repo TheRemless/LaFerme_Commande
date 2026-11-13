@@ -6,7 +6,9 @@ import { SITE } from "./site";
 test.describe.configure({ mode: "serial" });
 
 const ORIGINE = { Origin: SITE };
-const RENDUS = "docs/rendus/vague-3/client-compte";
+// Captures pour le bilan : dans docs/rendus seulement avec RENDUS=1, sinon avec les résultats du test.
+// Écrire à chaque passage dans des fichiers suivis par git salissait le worktree de toutes les sessions.
+const capture = (nom: string) => (process.env.RENDUS === "1" ? `docs/rendus/vague-3/client-compte/${nom}` : test.info().outputPath(nom));
 let gestion: Page;
 
 test.beforeAll(async ({ browser }, info) => {
@@ -77,7 +79,7 @@ test("remboursement partiel : visible au suivi, puis son échec chez Stripe", as
   await expect(client.locator("main")).not.toContainText("Geste pour le retard");
   await expect(client.locator(".somme-totale dt")).toHaveText("Payée en ligne");
   await bloc.scrollIntoViewIfNeeded();
-  await client.screenshot({ path: `${RENDUS}/suivi-rembourse-375.png`, fullPage: true });
+  await client.screenshot({ path: capture("suivi-rembourse-375.png"), fullPage: true });
 
   // Stripe annonce l'échec (doublure) : la page le dit, avec le numéro à appeler.
   const echec = await gestion.request.post("/api/paiement-test", { data: { remboursement: `re_doublure_${cle}`, issue: "echec" } });
@@ -88,7 +90,7 @@ test("remboursement partiel : visible au suivi, puis son échec chez Stripe", as
   await expect(petit.locator(".suivi-remboursements .remb-echec")).toHaveText(
     "Le remboursement de CHF 5.00 n'a pas abouti. Le restaurant est prévenu. Appelez-nous au 022 792 16 89.",
   );
-  await petit.screenshot({ path: `${RENDUS}/suivi-echec-320.png`, fullPage: true });
+  await petit.screenshot({ path: capture("suivi-echec-320.png"), fullPage: true });
   // Rien ne déborde à 320 px.
   expect(await petit.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
   await petit.close();
