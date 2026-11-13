@@ -20,6 +20,7 @@ import { messageZoneFermee, SUITE_ZONE_FERMEE } from "@/lib/zone-fermee";
 import { zoneServeur, type AdresseRetenue } from "@/lib/zone-serveur";
 import { nomClient } from "@/lib/nom-plat";
 import { chargerOptionsCommande } from "@/lib/options-commande";
+import { appliquerRemise, codeTape, evaluerCode, messageCode } from "@/lib/code-promo";
 
 // Passage de la commande. Le serveur refait tous les contrôles avec la base : contenu et prix, adresse
 // retrouvée dans le registre fédéral, zone, minimum, heure. Il enregistre la commande, puis renvoie
@@ -93,8 +94,27 @@ export async function POST(requete: Request) {
   const erreurLigne = totaux.lignes.find((l) => l.erreur);
   if (erreurLigne) return refus(`${nomClient(erreurLigne.nom, platDe(catalogue, erreurLigne.slug)?.categorie_slug === "pizzas")} : ${erreurLigne.erreur}`);
   if (totaux.manque_minimum_centimes > 0) return refus("Le minimum de livraison n'est pas atteint.");
+  // Code promo (moteur de bo-carte, éteint par défaut) : la remise vient de la base, jamais du navigateur.
+  // Éteint, un code resté dans le navigateur est ignoré. Allumé, un code refusé l'est avec sa raison.
+  const code = codeTape(corps.code);
+  let remise = 0;
+  if (code) {
+    const ev = await evaluerCode({
+      code,
+      email: client.email,
+      telephone: client.telephone,
+      adresse,
+      mode,
+      sous_total_centimes: totaux.sous_total_centimes,
+      frais_centimes: totaux.frais_centimes,
+    });
+    if (ev.ok) remise = ev.remise_centimes;
+    else if (ev.raison !== "desactive") return refus(messageCode(ev));
+  }
+  const aPayer = appliquerRemise(totaux, remise, catalogue.tauxTvaPourcent);
+  if (remise > 0 && aPayer.total_centimes === 0) return refus("Ce code ne peut pas couvrir toute la commande. Appelez-nous au 022\u00a0792\u00a016\u00a089.");
   // Au comptoir, rien n'est payé avant le retrait : au-delà du plafond (réglage en base), en ligne seulement.
-  if (moyen === "comptoir" && !comptoirPermis(totaux.total_centimes, config.plafondComptoirCentimes)) {
+  if (moyen === "comptoir" && !comptoirPermis(aPayer.total_centimes, config.plafondComptoirCentimes)) {
     return refus(refusPlafond(config.plafondComptoirCentimes));
   }
 
@@ -148,8 +168,9 @@ export async function POST(requete: Request) {
       pizzas_seulement: totaux.pizzas_seulement,
       sous_total_centimes: totaux.sous_total_centimes,
       frais_centimes: totaux.frais_centimes,
-      total_centimes: totaux.total_centimes,
-      tva_centimes: totaux.tva_centimes,
+      // Après remise : c'est ce montant que Stripe encaisse et qui plafonne les remboursements.
+      total_centimes: aPayer.total_centimes,
+      tva_centimes: aPayer.tva_centimes,
       taux_tva_pourcent: catalogue.tauxTvaPourcent,
       origine,
       compte_id: compte?.id ?? null,
@@ -182,6 +203,11 @@ export async function POST(requete: Request) {
     }
     throw e;
   }
+  if (code && remise > 0 && !creee.deja) {
+    await fonctionSql<boolean>("noter_utilisation_code", { p_code: code, p_commande: creee.id, p_remise: remise }).catch((e) =>
+      console.error(`Code ${code} non noté pour la commande ${creee.numero} : ${e instanceof Error ? e.message : e}`),
+    );
+  }
   const suivi = `${origine}/suivi/${creee.jeton_suivi}`;
   const existante = creee.deja ? await commandeParId(creee.id) : null;
   if (existante && existante.statut_paiement !== "en_attente") return NextResponse.json({ redirection: suivi });
@@ -205,6 +231,12 @@ export async function POST(requete: Request) {
     return { libelle: options.length ? `${l.nom} (${options.join(", ")})` : l.nom, qte: l.qte, unitaire_centimes: l.unitaire_centimes };
   });
   if (aFacturer.frais > 0) factures.push({ libelle: "Livraison", qte: 1, unitaire_centimes: aFacturer.frais });
+  // Remise d'un code : Stripe n'accepte pas de ligne négative. Une seule ligne au montant exact de la
+  // commande, que le webhook compare au total enregistré.
+  const aEncaisser = existante?.total_centimes ?? aPayer.total_centimes;
+  if (factures.reduce((s, f) => s + f.qte * f.unitaire_centimes, 0) !== aEncaisser) {
+    factures.splice(0, factures.length, { libelle: `La Ferme, commande ${creee.numero}`, qte: 1, unitaire_centimes: aEncaisser });
+  }
   try {
     const session = await p.creerSession({
       commandeId: creee.id,

@@ -7,6 +7,7 @@ import { lireChoix, type Choix } from "@/lib/choix";
 import { platDe, type Catalogue } from "@/lib/panier";
 import { CLE_DESTINATAIRE, lireAllergie, noterAllergie, noterPlaceEnvoyee, useCalculPanier, usePanier, type ReponsePanier } from "@/lib/panier-local";
 import { comptoirPermis } from "@/lib/plafond-comptoir";
+import { lireCode, noterCode, retenirCodeDeLUrl } from "@/lib/code-client";
 import { prixChf, prixCourt, prixPhrase } from "@/lib/prix";
 import { heureTexte, jourTexte } from "@/lib/service";
 import { plageTexte } from "@/lib/plage-heure";
@@ -65,12 +66,15 @@ export function PageCommande({
   preversion,
   compte,
   couvertsActifs = false,
+  codesActifs = false,
 }: {
   catalogue: Catalogue;
   preversion: boolean;
   compte: CompteConnu;
   // Case « couverts et serviettes », décochée par défaut, montrée seulement si le restaurant l'active (C8).
   couvertsActifs?: boolean;
+  // Champ « Code » : seulement quand les codes promo sont allumés (décision C2 de Jérémy).
+  codesActifs?: boolean;
 }) {
   const ids = useId();
   const annule = useSearchParams().get("annule") === "1";
@@ -85,15 +89,19 @@ export function PageCommande({
     const t = window.setInterval(() => setRelance((n) => n + 1), 60_000);
     return () => window.clearInterval(t);
   }, []);
-  const calcul = useCalculPanier(lignes, charge, relance);
-  const { reponse } = calcul;
-  const [choix, setChoix] = useState<Choix | null>(null);
   const [client, setClient] = useState({
     prenom: compte?.prenom ?? "",
     nom: compte?.nom ?? "",
     telephone: compte?.telephone ?? "",
     email: compte?.email ?? "",
   });
+  // Code promo appliqué (gardé dans l'onglet) et saisie en cours.
+  const [code, setCode] = useState<string | null>(null);
+  // null : rien tapé, le champ montre le code gardé.
+  const [saisieCode, setSaisieCode] = useState<string | null>(null);
+  const calcul = useCalculPanier(lignes, charge, relance, code ? { email: client.email, telephone: client.telephone } : undefined);
+  const { reponse } = calcul;
+  const [choix, setChoix] = useState<Choix | null>(null);
   const [creerCompte, setCreerCompte] = useState(false);
   // Allergie ou intolérance pour toute la commande, transmise à la cuisine (vague 3, P0).
   const [allergie, setAllergie] = useState("");
@@ -131,6 +139,16 @@ export function PageCommande({
     } catch {
       // Stockage bloqué : les champs restent remplis à l'écran.
     }
+  }
+  useEffect(() => {
+    retenirCodeDeLUrl();
+    if (codesActifs) setCode(lireCode());
+  }, [codesActifs]);
+  function appliquerCode(c: string | null) {
+    noterCode(c);
+    setCode(c);
+    setSaisieCode(null);
+    setRelance((n) => n + 1);
   }
 
   // Coordonnées gardées dans l'onglet : un paiement refusé ou un rechargement ne les efface plus (CM-04).
@@ -195,8 +213,8 @@ export function PageCommande({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          // L'allergie fait partie du contenu : la corriger après un refus donne une nouvelle commande.
-          cle: cleCommande(JSON.stringify([lignes, choix, auComptoir, client, allergie.trim(), pour, couvertsActifs && couverts])),
+          // L'allergie, la personne qui reçoit, les couverts et le code font partie du contenu : les changer donne une nouvelle commande.
+          cle: cleCommande(JSON.stringify([lignes, choix, auComptoir, client, allergie.trim(), pour, couvertsActifs && couverts, code])),
           lignes,
           mode: choix.mode,
           adresse: choix.adresse,
@@ -207,6 +225,7 @@ export function PageCommande({
           allergie,
           destinataire: pour,
           couverts: couvertsActifs && couverts,
+          code: codesActifs && code ? code : undefined,
           moyen: auComptoir ? "comptoir" : "en_ligne",
           creerCompte: !compte && creerCompte,
         }),
@@ -443,6 +462,40 @@ export function PageCommande({
                   ? "Le paiement au comptoir est indisponible pour le moment. Payez en ligne ou appelez-nous au 022 792 16 89."
                   : `Le paiement au comptoir est possible jusqu'à ${prixPhrase(plafond)}. Pour cette commande, payez en ligne.`}
               </p>
+            )}
+            {codesActifs && (
+              <div className="champ">
+                {code && reponse?.code?.ok ? (
+                  <p className="aide">
+                    Code {code} : − {prixChf(reponse.remise_centimes ?? 0)}.{" "}
+                    <button type="button" className="lien" onClick={() => appliquerCode(null)}>
+                      Retirer
+                    </button>
+                  </p>
+                ) : (
+                  <>
+                    <label htmlFor={`${ids}-code`}>
+                      Code <span className="facultatif">facultatif</span>
+                    </label>
+                    <input
+                      id={`${ids}-code`}
+                      value={saisieCode ?? code ?? ""}
+                      maxLength={20}
+                      autoComplete="off"
+                      autoCapitalize="characters"
+                      onChange={(e) => setSaisieCode(e.target.value.toUpperCase())}
+                    />
+                    {code && reponse?.code && !reponse.code.ok && (
+                      <p className="aide aide-erreur" role="alert">
+                        {reponse.code.message}
+                      </p>
+                    )}
+                    <button type="button" className="bouton-second" onClick={() => appliquerCode((saisieCode ?? code ?? "").trim() || null)}>
+                      Appliquer
+                    </button>
+                  </>
+                )}
+              </div>
             )}
             <fieldset className="paiements">
               <legend className="sr-only">Moyen de paiement</legend>

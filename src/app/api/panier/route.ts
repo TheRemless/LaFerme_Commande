@@ -8,6 +8,7 @@ import { lignesValides, quandValide } from "@/lib/validation";
 import { depuisHeureGeneve, enMinutes, heureTexte, instantGeneve, jourIso, MESSAGE_CRENEAU_COMPLET, quandPossible, type CreneauPlein, type Zone, messagePause, messageSansCreneau, pauseEnCours } from "@/lib/service";
 import { messageZoneFermee, SUITE_ZONE_FERMEE } from "@/lib/zone-fermee";
 import { zoneServeur } from "@/lib/zone-serveur";
+import { appliquerRemise, codeTape, evaluerCode, messageCode } from "@/lib/code-promo";
 
 // Prix du panier calculé par le serveur à partir de la base : options, frais de zone, minimum, TVA,
 // et contrôle que le moment demandé reste possible pour ce contenu. Rien n'est enregistré.
@@ -83,8 +84,33 @@ export async function POST(requete: Request) {
     if (jourRefuse) messageQuand = `${jourRefuse} Retirez-le du panier ou changez de créneau.`;
   }
 
+  // Code promo (éteint par défaut) : remise calculée en base et montrée avant le paiement. Le client n'est
+  // peut-être pas encore connu (e-mail, téléphone) : le paiement revérifie tout.
+  const code = codeTape(corps.code);
+  let resultatCode: { code: string; ok: boolean; remise_centimes?: number; message?: string } | null = null;
+  let aPayer = totaux;
+  if (code && lignes.length > 0) {
+    const client = (corps.client && typeof corps.client === "object" ? corps.client : {}) as Record<string, unknown>;
+    const ev = await evaluerCode({
+      code,
+      email: typeof client.email === "string" ? client.email : null,
+      telephone: typeof client.telephone === "string" ? client.telephone : null,
+      adresse: corps.adresse,
+      mode,
+      sous_total_centimes: totaux.sous_total_centimes,
+      frais_centimes: totaux.frais_centimes,
+    });
+    if (ev.ok) {
+      aPayer = appliquerRemise(totaux, ev.remise_centimes, catalogue.tauxTvaPourcent);
+      resultatCode = { code, ok: true, remise_centimes: ev.remise_centimes };
+    } else if (ev.raison !== "desactive") {
+      resultatCode = { code, ok: false, message: messageCode(ev) };
+    }
+  }
+
   return NextResponse.json({
-    ...totaux,
+    ...aPayer,
+    code: resultatCode,
     valide: totaux.valide && messageQuand === null,
     message_quand: messageQuand,
     creneau_complet: creneauComplet,

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { lireChoix } from "@/lib/choix";
+import { lireCode } from "@/lib/code-client";
 import type { Mode, Quand } from "@/lib/service";
 import { LIMITES, memeLigne, type LignePanier, type Totaux } from "@/lib/panier";
 
@@ -131,6 +132,9 @@ export type ReponsePanier = Totaux & {
   plafond_comptoir_centimes?: number | null;
   // Créneau rempli par d'autres clients depuis le choix de l'heure (vague 3).
   creneau_complet?: boolean;
+  // Code promo (éteint par défaut) : remise accordée par la base, ou raison du refus.
+  code?: { code: string; ok: boolean; remise_centimes?: number; message?: string } | null;
+  remise_centimes?: number;
 };
 
 // État du calcul pour l'écran : rien n'est laissé gris sans raison (vague 3, client-commande).
@@ -193,7 +197,8 @@ function placeEnvoyee(mode: Mode, quand: Quand): boolean {
 // relance : un nombre qui change pour redemander le calcul sans changement du panier (plat épuisé
 // entre-temps, refusé au paiement). Redemandé aussi quand le client revient sur l'onglet ou que le réseau
 // revient : entre-temps, un plat a pu s'épuiser, le restaurant se mettre en pause ou le créneau se remplir.
-export function useCalculPanier(lignes: LignePanier[], actif: boolean, relance = 0): CalculPanier {
+// client : e-mail et téléphone, pour qu'un code « une fois par client » puisse se vérifier avant le paiement.
+export function useCalculPanier(lignes: LignePanier[], actif: boolean, relance = 0, client?: { email: string; telephone: string }): CalculPanier {
   const [etat, setEtat] = useState<{ cle: string; reponse: ReponsePanier } | null>(null);
   const [attente, setAttente] = useState<{ numero: number; lent: boolean; echec: boolean } | null>(null);
   const [retour, setRetour] = useState(0);
@@ -232,6 +237,8 @@ export function useCalculPanier(lignes: LignePanier[], actif: boolean, relance =
           quand: choix.quand,
           heure: choix.heureSimulee,
           placeTenue: placeEnvoyee(choix.mode, choix.quand),
+          code: lireCode() ?? undefined,
+          client: lireCode() ? client : undefined,
         }),
         signal: ctrl.signal,
       })
@@ -253,7 +260,8 @@ export function useCalculPanier(lignes: LignePanier[], actif: boolean, relance =
       window.clearTimeout(t);
       window.clearTimeout(lent);
     };
-  }, [lignes, actif, relance, retour]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- le client compte par sa valeur, pas son objet.
+  }, [lignes, actif, relance, retour, JSON.stringify(client ?? null)]);
 
   const reponse = etat && etat.cle === cle ? etat.reponse : null;
   return { reponse, lent: !reponse && Boolean(attente?.lent), echec: !reponse && Boolean(attente?.echec), relancer };

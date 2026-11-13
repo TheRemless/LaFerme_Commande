@@ -16,6 +16,7 @@ import { Icone } from "@/components/Icone";
 import { FichePlat } from "@/components/carte/FichePlat";
 import { ContenuPanier } from "@/components/panier/ContenuPanier";
 import { platsPopulaires, suggestionPanier, type DonneesPopulaires } from "@/lib/suggestion";
+import { retenirCodeDeLUrl } from "@/lib/code-client";
 
 export function CarteCommande({
   categories,
@@ -59,7 +60,11 @@ export function CarteCommande({
   const [recherche, setRecherche] = useState("");
   const [seulementVege, setSeulementVege] = useState(false);
 
-  useEffect(() => setChoix(lireChoix()), []);
+  // Code apporté par un QR (?code=) : gardé dans l'onglet, retiré de l'adresse.
+  useEffect(() => {
+    setChoix(lireChoix());
+    retenirCodeDeLUrl();
+  }, []);
 
   // Après la dernière commande de la carte, seules les pizzas restent commandables pour l'heure choisie.
   const seulementPizzas = Boolean(choix?.pizzasSeulement);
