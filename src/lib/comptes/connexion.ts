@@ -81,7 +81,7 @@ export async function verifierCode(
 ): Promise<ResultatVerification> {
   // Jeton neuf à chaque connexion : un jeton posé avant (par un tiers, ou une ancienne session) ne sert plus.
   const jeton = nouveauJeton();
-  const r = await fonctionSql<{ statut: string; attente?: number }>("verifier_code_limite", {
+  const r = await fonctionSql<{ statut: string; attente?: number; compte_id?: string }>("verifier_code_limite", {
     p_email: email,
     p_cle_email: empreinte("email", email),
     p_cle_ip: empreinte("ip", ip),
@@ -91,7 +91,16 @@ export async function verifierCode(
     p_ancienne_session_hache: ancienJeton ? empreinte("session", ancienJeton) : null,
     p_jeton_commande: jetonCommande,
   });
-  if (r.statut === "ok") return { statut: "ok", jeton };
+  if (r.statut === "ok") {
+    // Le code prouve l'adresse : les commandes passées en invité avec elle rejoignent le compte. Sans la
+    // migration 20261202110000 (ou sur une erreur), la connexion réussit quand même.
+    if (r.compte_id) {
+      await fonctionSql<number>("rattacher_commandes_email", { p_compte: r.compte_id }).catch((e) =>
+        console.error(`Commandes non rangées dans le compte : ${e instanceof Error ? e.message : e}`),
+      );
+    }
+    return { statut: "ok", jeton };
+  }
   if (r.statut === "attente") return { statut: "attente", attente: r.attente ?? 60 };
   return { statut: "invalide" };
 }
@@ -102,5 +111,5 @@ export async function verifierCode(
 export async function commandeACompte(jeton: unknown): Promise<{ email: string; jeton: string } | null> {
   if (typeof jeton !== "string" || !/^[A-Za-z0-9_-]{20,64}$/.test(jeton)) return null;
   const c = await commandeParJeton(jeton);
-  return c && c.compte_demande && !c.compte_id ? { email: c.client_email, jeton: c.jeton_suivi } : null;
+  return c && c.compte_demande && !c.compte_id && !c.detachee_du_compte ? { email: c.client_email, jeton: c.jeton_suivi } : null;
 }

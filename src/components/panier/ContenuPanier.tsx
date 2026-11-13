@@ -19,6 +19,7 @@ export function ContenuPanier({
   sansBouton = false,
   suivi,
   calcul,
+  onModifier,
 }: {
   lignes: LignePanier[];
   quantite: (i: number, delta: number) => void;
@@ -29,6 +30,8 @@ export function ContenuPanier({
   sansBouton?: boolean;
   suivi?: SuiviPanier;
   calcul?: CalculPanier;
+  // Rouvre la fiche du plat avec les choix de la ligne (absent : pas de bouton « Modifier »).
+  onModifier?: (i: number) => void;
 }) {
   const local = calculerPanier(catalogue, lignes, choix?.mode === "livraison" && choix.zone ? choix.zone : null);
   const t = reponse && !reponse.erreur ? reponse : local;
@@ -80,6 +83,16 @@ export function ContenuPanier({
                   ))}
                   {l.note && <li className="opt-note">« {l.note} »</li>}
                 </ul>
+              )}
+              {onModifier && plat && (
+                <button
+                  type="button"
+                  className="lien ligne-modifier"
+                  onClick={() => onModifier(i)}
+                  aria-label={`Modifier ${nomAffiche({ nom: plat.nom, categorie_slug: plat.categorie_slug })}`}
+                >
+                  Modifier
+                </button>
               )}
               {calcul?.erreur && (
                 <p className="ligne-erreur" role="alert">
