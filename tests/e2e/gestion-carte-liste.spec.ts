@@ -1,7 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
-import { codeDuPersonnel } from "./site";
-
 import sharp from "sharp";
+import { codeDuPersonnel } from "./site";
 
 // Carte du back-office en liste (vague 3) : filtres de qualité, fiche dans le panneau, rupture jusqu'à une
 // date, prix en lot (aperçu seulement : aucun prix de la carte n'est changé pour les autres tests).
