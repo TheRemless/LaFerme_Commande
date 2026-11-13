@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { corpsJson, refus } from "@/lib/comptes/api";
 import { fonctionSql } from "@/lib/db/serveur";
 import { exigerGerant } from "@/lib/personnel/session";
-import { POIDS_MAX, preparerPhoto } from "@/lib/photo-envoi";
+import { POIDS_MAX, estCadrage, preparerPhoto } from "@/lib/photo-envoi";
 import { rafraichirCaches } from "@/lib/tablette";
 
 // Photo d'un plat envoyée depuis le back-office (gérant seulement) : contrôlée, redimensionnée et
@@ -42,7 +42,8 @@ export async function POST(requete: Request) {
   if (!(fichier instanceof Blob)) return refus("Choisissez une photo.");
   if (fichier.size > POIDS_MAX) return refus("Photo trop lourde : 5 Mo au plus.", 413);
 
-  const r = await preparerPhoto(new Uint8Array(await fichier.arrayBuffer()));
+  const cadrage = formulaire.get("cadrage");
+  const r = await preparerPhoto(new Uint8Array(await fichier.arrayBuffer()), estCadrage(cadrage) ? cadrage : "centre");
   if (!r.ok) return refus(r.erreur);
   let nom: string | null;
   try {
