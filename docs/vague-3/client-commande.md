@@ -30,6 +30,10 @@ Une case au paiement, « Je commande pour quelqu'un d'autre », ouvre « Son nom
 
 Quand le gérant ferme une zone jusqu'à une heure (neige, livreur malade), le client de cette zone lit « La livraison reprend à 21h00 dans votre quartier. » au lieu de « hors zone », avec le bouton « Commander à emporter ». Le même texte revient au panier et au paiement. Le motif saisi au back-office n'est pas montré au client.
 
+## Service fédéral des adresses en panne
+
+Le panier et le paiement revérifient l'adresse de livraison auprès du registre fédéral (geo.admin.ch). S'il ne répond pas, le client lit « Le service fédéral des adresses ne répond pas. Nous ne pouvons pas vérifier votre adresse de livraison pour le moment. Commandez à emporter, ou appelez-nous au 022 792 16 89. ». Le numéro se touche pour appeler. « Commander à emporter » passe le choix à emporter en gardant le panier, puis l'accueil montre l'heure du retrait. Texte dans `src/lib/registre-panne.ts`, affichage `src/components/PanneRegistre.tsx`, tests `tests/unit/registre-panne.test.ts` et `tests/e2e/registre-panne.spec.ts`. Accepter l'adresse sur son seul NPA pendant la panne reste une décision de Jérémy (C15).
+
 ## Heure annoncée en fourchette (#103)
 
 « Dès que possible, entre 19h35 et 19h50 » à l'accueil, rappelé au paiement. La largeur se règle au back-office (`fourchette_livraison_minutes`, `fourchette_retrait_minutes`) ; à 0, on revient à « vers 19h40 ». Les cases de chiffres et l'en-tête gardent l'heure unique.

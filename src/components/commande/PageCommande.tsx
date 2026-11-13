@@ -9,6 +9,8 @@ import { CLE_DESTINATAIRE, lireAllergie, noterAllergie, noterPlaceEnvoyee, useCa
 import { comptoirPermis } from "@/lib/plafond-comptoir";
 import { lireCode, noterCode, retenirCodeDeLUrl } from "@/lib/code-client";
 import { prixChf, prixCourt, prixPhrase } from "@/lib/prix";
+import { estPanneRegistre } from "@/lib/registre-panne";
+import { PanneRegistre } from "@/components/PanneRegistre";
 import { heureTexte, jourTexte } from "@/lib/service";
 import { plageTexte } from "@/lib/plage-heure";
 import { ContenuPanier, EtatCalcul } from "@/components/panier/ContenuPanier";
@@ -36,8 +38,9 @@ function raisonBlocage(
   reponse: ReponsePanier | null,
   catalogue: Catalogue,
   choix: Choix | null,
-): { texte: string; lien: string; action: string } | null {
+): { texte: string; lien: string; action: string; panne?: boolean } | null {
   if (!reponse || reponse.valide) return null;
+  if (estPanneRegistre(reponse.erreur)) return { texte: reponse.erreur!, lien: "/", action: "Commander à emporter", panne: true };
   if (reponse.erreur) return { texte: reponse.erreur, lien: "/", action: "Modifier" };
   if (reponse.message_quand) return { texte: reponse.message_quand, lien: "/", action: "Changer l'heure" };
   const ligne = reponse.lignes.find((l) => l.erreur);
@@ -536,7 +539,7 @@ export function PageCommande({
           {/* Après un refus, le panier recalculé peut donner la vraie raison, avec son lien : elle passe devant. */}
           {erreur && !raison && (
             <p className="panier-alerte" role="alert">
-              {erreur}
+              {estPanneRegistre(erreur) ? <PanneRegistre choix={choix} /> : erreur}
               {creneauComplet && (
                 <>
                   {" "}
@@ -548,7 +551,13 @@ export function PageCommande({
           {!erreur && <EtatCalcul calcul={calcul} />}
           {raison && (
             <p className="panier-alerte" role="status">
-              {raison.texte} <Link href={raison.lien}>{raison.action}</Link>
+              {raison.panne ? (
+                <PanneRegistre choix={choix} />
+              ) : (
+                <>
+                  {raison.texte} <Link href={raison.lien}>{raison.action}</Link>
+                </>
+              )}
             </p>
           )}
           <button type="submit" className="bouton-principal" disabled={!pret}>

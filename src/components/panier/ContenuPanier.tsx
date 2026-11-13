@@ -6,6 +6,8 @@ import { calculerPanier, platDe, type Catalogue, type LignePanier } from "@/lib/
 import type { CalculPanier, ReponsePanier, SuiviPanier } from "@/lib/panier-local";
 import type { Choix } from "@/lib/choix";
 import { prixChf, prixCourt } from "@/lib/prix";
+import { estPanneRegistre } from "@/lib/registre-panne";
+import { PanneRegistre } from "@/components/PanneRegistre";
 import { nomAffiche } from "@/components/Plat";
 import type { Suggestion } from "@/lib/suggestion";
 
@@ -179,7 +181,13 @@ export function ContenuPanier({
       )}
       {reponse?.erreur && (
         <p className="panier-alerte" role="alert">
-          {reponse.erreur} <Link href="/">Modifier</Link>
+          {estPanneRegistre(reponse.erreur) ? (
+            <PanneRegistre choix={choix} />
+          ) : (
+            <>
+              {reponse.erreur} <Link href="/">Modifier</Link>
+            </>
+          )}
         </p>
       )}
 
