@@ -108,3 +108,13 @@ describe("Tableau par urgence", () => {
     expect(ordreStable(["c", "a", "d"], ["a", "b", "c"], false)).toEqual(["c", "a", "d"]);
   });
 });
+
+describe("Numéro d'un autre jour", () => {
+  it("le 130 du 4 novembre porte sa date ; celui du soir, rien", async () => {
+    const { jourDuNumero } = await import("@/components/tablette/rush");
+    expect(jourDuNumero("2026-11-04T18:30:00Z", "2026-11-13")).toBe("du 4 nov.");
+    expect(jourDuNumero("2026-11-13T18:30:00Z", "2026-11-13")).toBeNull();
+    // 22h30 UTC le 12, soit 23h30 à Genève : le jour de Genève compte.
+    expect(jourDuNumero("2026-11-12T22:30:00Z", "2026-11-13")).toBe("du 12 nov.");
+  });
+});

@@ -72,7 +72,8 @@ async function livraison(request: APIRequestContext, adresse: { rue: string; num
 // Tableau (vague 3) : « En cours », « À l'avance », « Terminées » et la recherche affichent une ligne par
 // commande ; toucher la ligne ouvre son détail (la carte complète) à côté. Sans effet si elle est déjà ouverte.
 async function ouvrirCommande(page: Page, numero: string) {
-  const ligne = page.locator(".tab-ligne", { has: page.locator(".tab-ligne-num", { hasText: new RegExp(`^${numero}$`) }) });
+  // Celle du jour : un même numéro reçu un autre jour porte « tab-autre-jour » (les numéros recommencent chaque jour).
+  const ligne = page.locator(".tab-ligne:not(.tab-autre-jour)", { has: page.locator(".tab-ligne-num", { hasText: new RegExp(`^${numero}$`) }) });
   const corps = ligne.locator(".tab-ligne-corps");
   await expect(corps).toBeVisible({ timeout: 15_000 });
   if ((await corps.getAttribute("aria-expanded")) !== "true") await corps.click();
@@ -181,7 +182,9 @@ test("tournée de deux livraisons, ordre proposé, Je pars, Livrée : plus rien 
   await expect(arret(marco, b)).toHaveCount(0);
   await tablette.getByRole("button", { name: /^Terminées/ }).click();
   await ouvrirCommande(tablette, a);
-  await expect(tablette.locator(".tab-commande", { has: tablette.locator(".tab-num", { hasText: new RegExp(`^${a}$`) }) })).toContainText(/Livrée/, { timeout: 15_000 });
+  // La commande de ce test : une « N° a » d'un autre jour peut rester dans « Terminées » (remboursement échoué, SS-04).
+  const carte = tablette.locator(".tab-commande:not(.tab-autre-jour)", { has: tablette.locator(".tab-num", { hasText: new RegExp(`^${a}$`) }) });
+  await expect(carte).toContainText(/Livrée/, { timeout: 15_000 });
 });
 
 test("deux livreurs et réattribution : l'ancien ne voit plus l'adresse", async ({ request }) => {
