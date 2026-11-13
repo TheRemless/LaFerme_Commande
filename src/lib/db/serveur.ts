@@ -172,6 +172,8 @@ export type Commande = {
   detachee_du_compte?: boolean;
   // Annulée par le client depuis le suivi (bo-commandes, #70). Absent avant sa migration.
   annulee_par_client_le?: string | null;
+  // Allergie ou intolérance pour toute la commande (client-commande, #71). Absente avant sa migration.
+  allergie?: string;
   origine: string;
   cree_le: string;
   lignes: LigneCommande[];
