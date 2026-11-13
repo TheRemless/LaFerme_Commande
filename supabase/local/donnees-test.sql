@@ -33,7 +33,12 @@ insert into personnel (email, nom, role) values
   ('accueil-service-mobile@laferme.test', 'Accueil service mobile', 'service'),
   -- Recherche globale du back-office (tests/e2e/gestion-recherche.spec.ts).
   ('recherche-bureau@laferme.test', 'Recherche bureau', 'gerant'),
-  ('recherche-mobile@laferme.test', 'Recherche mobile', 'gerant');
+  ('recherche-mobile@laferme.test', 'Recherche mobile', 'gerant'),
+  -- Appareils de l'équipe (tests/e2e/gestion-appareils.spec.ts).
+  ('appareils-bureau@laferme.test', 'Appareils bureau', 'gerant'),
+  ('appareils-mobile@laferme.test', 'Appareils mobile', 'gerant'),
+  ('appareils-service-bureau@laferme.test', 'Téléphone bureau', 'service'),
+  ('appareils-service-mobile@laferme.test', 'Téléphone mobile', 'service');
 
 -- Livreurs des essais (tests/e2e/livreurs.spec.ts) et la tablette qui leur donne les commandes.
 insert into personnel (email, nom, role) values
@@ -68,6 +73,9 @@ insert into personnel (email, nom, role) values
   ('planning-bureau@laferme.test', 'Planning bureau', 'gerant'),
   ('planning-livreur@laferme.test', 'Livreur planning', 'livreur');
 
+-- Messages aux clients (tests/e2e/messages-clients.spec.ts, vague 3).
+insert into personnel (email, nom, role) values ('messages-bureau@laferme.test', 'Messages bureau', 'gerant');
+
 -- Réglages généraux (tests/e2e/reglages-generaux.spec.ts, vague 3).
 insert into personnel (email, nom, role) values ('reglages-bureau@laferme.test', 'Réglages bureau', 'gerant');
 
@@ -76,6 +84,9 @@ insert into personnel (email, nom, role) values
   ('ecran-livreurs@laferme.test', 'Écran livreurs', 'gerant'),
   ('sami@laferme.test', 'Sami', 'livreur'),
   ('nora@laferme.test', 'Nora', 'livreur');
+
+-- Écran Réglages généraux (tests/e2e/gestion-reglages.spec.ts, vague 3).
+insert into personnel (email, nom, role) values ('ecran-reglages@laferme.test', 'Écran réglages', 'gerant');
 
 -- Commandes et clients du back-office (vague 3, bo-commandes, tests/e2e/gestion-commandes.spec.ts).
 insert into personnel (email, nom, role) values
@@ -88,7 +99,11 @@ insert into personnel (email, nom, role) values
   ('liste-bureau@laferme.test', 'Liste bureau', 'gerant'),
   ('liste-mobile@laferme.test', 'Liste mobile', 'gerant'),
   ('groupes-bureau@laferme.test', 'Groupes bureau', 'gerant'),
-  ('groupes-mobile@laferme.test', 'Groupes mobile', 'gerant');
+  ('groupes-mobile@laferme.test', 'Groupes mobile', 'gerant'),
+  ('promos-bureau@laferme.test', 'Promos bureau', 'gerant'),
+  ('promos-mobile@laferme.test', 'Promos mobile', 'gerant'),
+  ('menus-bureau@laferme.test', 'Menus bureau', 'gerant'),
+  ('menus-mobile@laferme.test', 'Menus mobile', 'gerant');
 
 -- Rubrique Clients du back-office (vague 3, bo-commandes, tests/e2e/gestion-clients.spec.ts).
 insert into personnel (email, nom, role) values
@@ -97,3 +112,20 @@ insert into personnel (email, nom, role) values
 
 -- Écran Livraison et horaires, parties de la vague 3 (tests/e2e/gestion-service-v3.spec.ts).
 insert into personnel (email, nom, role) values ('ecran-service@laferme.test', 'Écran service', 'gerant');
+
+-- Rapports (bo-pilotage, tests/e2e/gestion-rapports.spec.ts, vague 3) : un compte par projet Playwright.
+insert into personnel (email, nom, role) values
+  ('rapports-bureau@laferme.test', 'Rapports bureau', 'gerant'),
+  ('rapports-mobile@laferme.test', 'Rapports mobile', 'gerant');
+
+-- Clôture du jour (bo-pilotage, tests/e2e/gestion-cloture.spec.ts, vague 3) : un compte par projet Playwright.
+insert into personnel (email, nom, role) values
+  ('cloture-bureau@laferme.test', 'Clôture bureau', 'gerant'),
+  ('cloture-mobile@laferme.test', 'Clôture mobile', 'gerant');
+
+-- bo-operations, écrans de la vague 3 : un compte par écran (gestion-calendrier, gestion-imprimantes et
+-- gestion-messages.spec.ts). Bloc identique dans chacune de mes PR : elles fusionnent sans conflit entre elles.
+insert into personnel (email, nom, role) values
+  ('ecran-calendrier@laferme.test', 'Écran calendrier', 'gerant'),
+  ('ecran-imprimantes@laferme.test', 'Écran imprimantes', 'gerant'),
+  ('ecran-messages@laferme.test', 'Écran messages', 'gerant');

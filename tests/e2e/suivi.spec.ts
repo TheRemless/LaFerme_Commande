@@ -1,12 +1,14 @@
 import { expect, test, type Page } from "@playwright/test";
-import { adresseDuCompte, SITE } from "./site";
+import { adresseDuCompte, codeDuPersonnel, passage, SITE } from "./site";
 
 // Vague 3, client-compte : la page de suivi dit ce qui est rendu au client et dans quel état (S2-03).
 // Un remboursement partiel du gérant apparaît « remboursé », puis « n'a pas abouti » si Stripe l'annonce en échec.
 test.describe.configure({ mode: "serial" });
 
 const ORIGINE = { Origin: SITE };
-const RENDUS = "docs/rendus/vague-3/client-compte";
+// Captures pour le bilan : dans docs/rendus seulement avec RENDUS=1, sinon avec les résultats du test.
+// Écrire à chaque passage dans des fichiers suivis par git salissait le worktree de toutes les sessions.
+const capture = (nom: string) => (process.env.RENDUS === "1" ? `docs/rendus/vague-3/client-compte/${nom}` : test.info().outputPath(nom));
 let gestion: Page;
 
 test.beforeAll(async ({ browser }, info) => {
@@ -15,10 +17,7 @@ test.beforeAll(async ({ browser }, info) => {
   await adresseDuCompte(gestion, `suivi-${info.project.name}@laferme.test`);
   await gestion.goto("/gestion");
   await gestion.getByLabel("E-mail", { exact: true }).fill(`suivi-${info.project.name}@laferme.test`);
-  await gestion.getByRole("button", { name: "Recevoir un code" }).click();
-  const code = gestion.locator(".note-preversion strong");
-  await expect(code).toHaveText(/^\d{8}$/);
-  await gestion.getByLabel("Code à 8 chiffres").fill(await code.innerText());
+  await gestion.getByLabel("Code à 8 chiffres").fill(await codeDuPersonnel(gestion));
   await gestion.getByRole("button", { name: "Me connecter" }).click();
   await expect(gestion.getByRole("heading", { name: "Back-office" })).toBeVisible();
 });
@@ -58,7 +57,7 @@ async function commandeRetireePayee(prenom: string): Promise<{ id: string; jeton
 }
 
 test("remboursement partiel : visible au suivi, puis son échec chez Stripe", async ({ browser }, info) => {
-  const prenom = `Suivi${info.project.name}`;
+  const prenom = `Suivi${info.project.name}${passage()}`;
   const { id, jeton } = await commandeRetireePayee(prenom);
   const cle = `suivi-geste-${info.project.name}-${Date.now()}`;
   const remb = await gestion.request.post("/api/gestion/commandes", {
@@ -76,7 +75,7 @@ test("remboursement partiel : visible au suivi, puis son échec chez Stripe", as
   await expect(client.locator("main")).not.toContainText("Geste pour le retard");
   await expect(client.locator(".somme-totale dt")).toHaveText("Payée en ligne");
   await bloc.scrollIntoViewIfNeeded();
-  await client.screenshot({ path: `${RENDUS}/suivi-rembourse-375.png`, fullPage: true });
+  await client.screenshot({ path: capture("suivi-rembourse-375.png"), fullPage: true });
 
   // Stripe annonce l'échec (doublure) : la page le dit, avec le numéro à appeler.
   const echec = await gestion.request.post("/api/paiement-test", { data: { remboursement: `re_doublure_${cle}`, issue: "echec" } });
@@ -87,14 +86,14 @@ test("remboursement partiel : visible au suivi, puis son échec chez Stripe", as
   await expect(petit.locator(".suivi-remboursements .remb-echec")).toHaveText(
     "Le remboursement de CHF 5.00 n'a pas abouti. Le restaurant est prévenu. Appelez-nous au 022 792 16 89.",
   );
-  await petit.screenshot({ path: `${RENDUS}/suivi-echec-320.png`, fullPage: true });
+  await petit.screenshot({ path: capture("suivi-echec-320.png"), fullPage: true });
   // Rien ne déborde à 320 px.
   expect(await petit.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
   await petit.close();
 });
 
 test("reçu avec TVA : vendeur, numéro de TVA, plats et TVA, sans données du client", async ({ browser }, info) => {
-  const prenom = `Recu${info.project.name}`;
+  const prenom = `Recu${info.project.name}${passage()}`;
   const { jeton } = await commandeRetireePayee(prenom);
   const client = await browser.newPage({ baseURL: SITE, viewport: { width: 375, height: 812 } });
   await client.goto(`/suivi/${jeton}`);
@@ -112,13 +111,13 @@ test("reçu avec TVA : vendeur, numéro de TVA, plats et TVA, sans données du c
   await expect(recu).not.toContainText("079 000 00 00");
   await expect(recu).not.toContainText(`${prenom.toLowerCase()}@laferme.test`);
   await expect(recu).not.toContainText("Test");
-  await client.screenshot({ path: `${RENDUS}/recu-375.png`, fullPage: true });
+  await client.screenshot({ path: capture("recu-375.png"), fullPage: true });
   await client.close();
   const petit = await browser.newPage({ baseURL: SITE, viewport: { width: 320, height: 700 } });
   await petit.goto(`/suivi/${jeton}/recu`);
   await expect(petit.locator(".recu h1")).toBeVisible();
   expect(await petit.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
-  await petit.screenshot({ path: `${RENDUS}/recu-320.png`, fullPage: true });
+  await petit.screenshot({ path: capture("recu-320.png"), fullPage: true });
   await petit.close();
 });
 
@@ -160,11 +159,11 @@ test("annulation par le client : absente par défaut, puis activée, la commande
     await client.reload();
     await client.getByRole("button", { name: "Annuler ma commande" }).click();
     await expect(client.getByText(/^Annuler la commande n° \d+ \? Le restaurant ne la préparera pas\. Le montant vous est remboursé\.$/)).toBeVisible();
-    await client.screenshot({ path: `${RENDUS}/suivi-annuler-375.png`, fullPage: true });
+    await client.screenshot({ path: capture("suivi-annuler-375.png"), fullPage: true });
     await client.getByRole("button", { name: "Oui, annuler" }).click();
     await expect(client.getByRole("heading", { name: "Commande annulée" })).toBeVisible();
     await expect(client.locator(".suivi-change")).toContainText("Vous avez annulé la commande.");
-    await client.screenshot({ path: `${RENDUS}/suivi-annulee-375.png`, fullPage: true });
+    await client.screenshot({ path: capture("suivi-annulee-375.png"), fullPage: true });
   } finally {
     await reglerAnnulation(false);
     await client.close();
@@ -183,14 +182,14 @@ test("réclamation depuis le suivi : le client dit ce qui manque, le restaurant 
   await bloc.getByLabel("Il manquait quelque chose").check();
   await bloc.getByLabel("Dites-nous ce qui s'est passé").fill("Il manquait la deuxième pizza.");
   await expect(bloc).toContainText("30 / 500");
-  await client.screenshot({ path: `${RENDUS}/suivi-reclamation-375.png`, fullPage: true });
+  await client.screenshot({ path: capture("suivi-reclamation-375.png"), fullPage: true });
   await bloc.getByRole("button", { name: "Envoyer au restaurant" }).click();
   await expect(bloc.getByRole("status")).toHaveText("Merci, le restaurant a reçu votre message.");
   await client.close();
 });
 
 test("allergie rappelée au suivi, heure confirmée en fourchette comme à l'accueil", async ({ browser }, info) => {
-  const prenom = `Allerg${info.project.name}`;
+  const prenom = `Allerg${info.project.name}${passage()}`;
   const rep = await gestion.request.post("/api/commandes", {
     headers: ORIGINE,
     data: {
@@ -218,7 +217,7 @@ test("allergie rappelée au suivi, heure confirmée en fourchette comme à l'acc
   await expect(client.locator(".suivi-allergie")).toContainText("Arachides, allergie sévère");
   // Largeur par défaut à emporter : 10 minutes, « Prête entre … et … ».
   await expect(client.getByRole("heading", { level: 1 })).toContainText(/Prête entre \d{1,2}h\d{2}\s*et \d{1,2}h\d{2}/);
-  await client.screenshot({ path: `${RENDUS}/suivi-fourchette-allergie-375.png`, fullPage: true });
+  await client.screenshot({ path: capture("suivi-fourchette-allergie-375.png"), fullPage: true });
   // L'e-mail de confirmation mentionne l'allergie sans recopier le texte.
   const jeton = lien.match(/suivi\/([A-Za-z0-9_-]+)/)![1];
   const courriels = await (await client.request.get(`/dev/courriels?jeton=${jeton}`)).text();

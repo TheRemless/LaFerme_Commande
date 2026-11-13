@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { adresseDuCompte, SITE } from "./site";
+import { adresseDuCompte, codeDuPersonnel, SITE } from "./site";
 import { expect, test, type APIRequestContext, type Browser, type BrowserContext, type Page } from "@playwright/test";
 
 // Livreurs : la tablette (1024 px) donne les commandes, deux téléphones (375 px tactiles) les livrent.
@@ -21,10 +21,7 @@ async function connecter(page: Page, url: string, email: string) {
   await adresseDuCompte(page, email);
   await page.goto(url);
   await page.getByLabel("E-mail", { exact: true }).fill(email);
-  await page.getByRole("button", { name: "Recevoir un code" }).click();
-  const code = page.locator(".note-preversion strong");
-  await expect(code).toHaveText(/^\d{8}$/);
-  await page.getByLabel("Code à 8 chiffres").fill(await code.innerText());
+  await page.getByLabel("Code à 8 chiffres").fill(await codeDuPersonnel(page));
   await page.getByRole("button", { name: "Me connecter" }).click();
 }
 
@@ -72,7 +69,8 @@ async function livraison(request: APIRequestContext, adresse: { rue: string; num
 // Tableau (vague 3) : « En cours », « À l'avance », « Terminées » et la recherche affichent une ligne par
 // commande ; toucher la ligne ouvre son détail (la carte complète) à côté. Sans effet si elle est déjà ouverte.
 async function ouvrirCommande(page: Page, numero: string) {
-  const ligne = page.locator(".tab-ligne", { has: page.locator(".tab-ligne-num", { hasText: new RegExp(`^${numero}$`) }) });
+  // Celle du jour : un même numéro reçu un autre jour porte « tab-autre-jour » (les numéros recommencent chaque jour).
+  const ligne = page.locator(".tab-ligne:not(.tab-autre-jour)", { has: page.locator(".tab-ligne-num", { hasText: new RegExp(`^${numero}$`) }) });
   const corps = ligne.locator(".tab-ligne-corps");
   await expect(corps).toBeVisible({ timeout: 15_000 });
   if ((await corps.getAttribute("aria-expanded")) !== "true") await corps.click();
@@ -181,7 +179,9 @@ test("tournée de deux livraisons, ordre proposé, Je pars, Livrée : plus rien 
   await expect(arret(marco, b)).toHaveCount(0);
   await tablette.getByRole("button", { name: /^Terminées/ }).click();
   await ouvrirCommande(tablette, a);
-  await expect(tablette.locator(".tab-commande", { has: tablette.locator(".tab-num", { hasText: new RegExp(`^${a}$`) }) })).toContainText(/Livrée/, { timeout: 15_000 });
+  // La commande de ce test : une « N° a » d'un autre jour peut rester dans « Terminées » (remboursement échoué, SS-04).
+  const carte = tablette.locator(".tab-commande:not(.tab-autre-jour)", { has: tablette.locator(".tab-num", { hasText: new RegExp(`^${a}$`) }) });
+  await expect(carte).toContainText(/Livrée/, { timeout: 15_000 });
 });
 
 test("deux livreurs et réattribution : l'ancien ne voit plus l'adresse", async ({ request }) => {
@@ -194,7 +194,8 @@ test("deux livreurs et réattribution : l'ancien ne voit plus l'adresse", async 
   await ines.reload();
   await expect(arret(ines, c)).toHaveCount(0);
 
-  await tournee("Marco").getByRole("button", { name: "Donner à Inès" }).click();
+  // La ligne de cette commande : au réessai, la tournée de Marco garde celles du premier passage.
+  await tournee("Marco").locator("li.liv-arret-tab", { has: tablette.getByText(`N° ${c}`, { exact: true }) }).getByRole("button", { name: "Donner à Inès" }).click();
   await marco.reload();
   await expect(arret(marco, c)).toHaveCount(0);
   await expect(marco.locator(".liv-retiree")).toContainText(`N° ${c} donnée à un autre livreur. Si vous avez le sac, appelez le restaurant.`);

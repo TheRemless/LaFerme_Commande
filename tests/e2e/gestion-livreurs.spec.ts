@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { SITE, adresseDuCompte } from "./site";
+import { adresseDuCompte, codeDuPersonnel, SITE } from "./site";
 import { expect, test, type Page } from "@playwright/test";
 
 // Rubrique Livreurs du back-office (vague 3, bo-operations) : semaine type, absence et renfort du jour,
@@ -13,11 +13,7 @@ async function connecter(page: Page, email: string) {
   await adresseDuCompte(page, email);
   await page.goto("/gestion/livreurs");
   await page.getByLabel("E-mail", { exact: true }).fill(email);
-  await page.getByRole("button", { name: "Recevoir un code" }).click();
-  const code = page.locator(".note-preversion strong");
-  // Premier appel après le démarrage du serveur : la page compile, d'où un délai plus large.
-  await expect(code).toHaveText(/^\d{8}$/, { timeout: 20_000 });
-  await page.getByLabel("Code à 8 chiffres").fill(await code.innerText());
+  await page.getByLabel("Code à 8 chiffres").fill(await codeDuPersonnel(page));
   await page.getByRole("button", { name: "Me connecter" }).click();
   await expect(page.getByLabel("Code à 8 chiffres")).toHaveCount(0);
 }
@@ -41,7 +37,8 @@ test("semaine type, absence, renfort, statistiques", async ({ page }, info) => {
       await page.getByRole("button", { name: `Sami, ${jour} soir` }).click();
     }
     await expect(page.getByRole("button", { name: "Sami, vendredi soir" })).toHaveAttribute("aria-pressed", "true");
-    const ligneSami = page.getByRole("row", { name: /^Sami/ });
+    // Prénom exact : le jeu de rush a aussi « Samir ».
+    const ligneSami = page.getByRole("row").filter({ has: page.getByRole("rowheader", { name: "Sami", exact: true }) });
     await ligneSami.getByRole("button", { name: "Enregistrer" }).click();
     await expect(page.getByText("Semaine de Sami enregistrée.")).toBeVisible();
     await expect(ligneSami.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
@@ -52,8 +49,8 @@ test("semaine type, absence, renfort, statistiques", async ({ page }, info) => {
     jourTest = ((await jour.locator("h2").getAttribute("id")) ?? "").replace("liv-", "");
     expect(jourTest).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     const soir = jour.locator(".bo-liv-service").nth(1);
-    await expect(soir.getByText("Sami")).toBeVisible();
-    await soir.locator(".bo-liv-ligne", { hasText: "Sami" }).getByRole("button", { name: "Absent" }).click();
+    await expect(soir.getByText("Sami", { exact: true })).toBeVisible();
+    await soir.locator(".bo-liv-ligne").filter({ has: page.getByText("Sami", { exact: true }) }).getByRole("button", { name: "Absent" }).click();
     await page.getByLabel("Motif").fill("Malade");
     await page.getByRole("button", { name: "Noter l'absence" }).click();
     await expect(soir.getByText("absence : Malade")).toBeVisible();
@@ -79,7 +76,7 @@ test("semaine type, absence, renfort, statistiques", async ({ page }, info) => {
 
     // Retour à la semaine type.
     await page.setViewportSize({ width: 1024, height: 900 });
-    await soir.locator(".bo-liv-ligne", { hasText: "Sami" }).getByRole("button", { name: "Comme d'habitude" }).click();
+    await soir.locator(".bo-liv-ligne").filter({ has: page.getByText("Sami", { exact: true }) }).getByRole("button", { name: "Comme d'habitude" }).click();
     await expect(soir.getByText("semaine type")).toBeVisible();
   } finally {
     const poster = (data: Record<string, unknown>) => page.request.post("/api/gestion/livreurs", { headers: ORIGINE, data });

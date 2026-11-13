@@ -126,3 +126,43 @@ Bloc en tête de « Pause, délai, ruptures ». Mêmes fonctions que le back-off
 - Qui : le gérant toujours. L'équipe de service seulement si le réglage `coup_de_feu_par_equipe` est vrai. **Construit désactivé** (migration `20261203100000_tablette_coup_de_feu.sql`, décision de Jérémy). Le réglage est relu à chaque requête : le couper agit tout de suite. Pour l'ouvrir : `update reglages set valeur = 'true', proposition = false where cle = 'coup_de_feu_par_equipe';`
 - Réglage faux : l'équipe de service ne voit pas le bloc, sauf pour lire qu'un coup de feu lancé par le gérant est en cours (sans bouton). Le rôle « responsable » n'y a pas accès (la base le refuse, `equipe_nom`).
 - Captures : `docs/rendus/vague-3/tablette/coup-de-feu-*.png` (`scripts/tablette/coup-de-feu.mjs`, compte gérant de test). Tests : `tests/unit/tablette-coup-de-feu.test.ts`.
+
+## Numéro d'un autre jour (vague 3, relevé par qualite)
+
+Les numéros recommencent chaque jour. Une commande reçue un autre jour (refusée dont le remboursement n'est pas passé, commande à l'avance) porte sa date sous le numéro, « du 4 nov. », dans la liste comme dans le détail : on ne la confond plus avec le 130 du soir. Classe `tab-autre-jour` sur la ligne et la carte (les tests e2e visent `:not(.tab-autre-jour)`). Capture : `docs/rendus/vague-3/tablette/numero-autre-jour-paysage-1024.png` (`scripts/tablette/numero-autre-jour.mjs`, jeu de rush).
+
+## Horodatage par poste : `commande_postes` (vague 3)
+
+Accords de bo-pilotage (temps réels contre promis) et de bo-operations (file réelle de `charge_cuisine()`). Migration `20261203120000_commande_postes.sql`, aucune fonction partagée recréée : deux déclencheurs sur `commandes`.
+
+| Colonne | Rempli quand |
+|---|---|
+| `a_faire_le` | Premiers tickets (`tickets_le`, `premiers_tickets`). Une seule fois : une réimpression ne le change pas. Commande à l'avance : à la sortie de ses tickets (60 ou 30 min avant), pas à l'acceptation. |
+| `lance_le` | Le poste touche « Lancée » sur la vue par poste (facultatif). |
+| `pret_le`, `pret_par` | Le poste touche « Prête » (`tablette:Prénom`), sinon la commande passe prête, partie ou terminée (`statut`, heure déduite). |
+
+- Une ligne par poste présent dans les lignes de la commande. Refusée ou annulée : `pret_le` reste vide.
+- Index partiel `(station) where pret_le is null`. RLS activée, aucun droit pour `anon` ni `authenticated`, `service_role` seulement.
+- `postes_actifs()` : postes des commandes en cuisine ou sorties depuis moins de 30 minutes (pour la tablette). `marquer_poste(commande, station, 'lancer' | 'pret' | 'rouvrir', personnel)` : équipe du restaurant seulement, commande encore en cuisine.
+- Commandes en cuisine au moment de la migration : ajoutées avec leur `tickets_le`.
+
+## Ticket de test (vague 3, pour le back-office de bo-operations)
+
+Le gérant vérifie qu'une imprimante sort un ticket sans passer de vraie commande (`docs/impression.md`, S13). Migration `20261203110000_ticket_de_test.sql`, serveur `src/lib/impression/test.ts`.
+
+- `imprimerTicketTest(imprimanteId, personnel)` : `{ ok: true, tache }` ou `{ ok: false, erreur }` en français (« Réservé au gérant. », « Imprimante inconnue. », « Imprimante désactivée : réactivez-la avant le test. »). Le bouton est au back-office (bo-operations).
+- Base : `ticket_de_test(p_imprimante smallint, p_personnel uuid)`, gérant revérifié, imprimante active, journalisé (`journal_gestion`, objet `imprimante`, clé `ticket_de_test`). Tâche `essai` sans commande : `taches_impression.commande_id` devient nullable, contrainte « commande ou essai ».
+- Ticket : « TEST », poste et nom de l'imprimante, date et heure de Genève, qui l'a demandé, « Si ce ticket sort, l'imprimante est bien branchée. ». CloudPRNT l'envoie et le confirme comme les autres, fonctions inchangées.
+- Imprimante désactivée ou supprimée avant que l'essai sorte : l'essai est annulé, jamais renvoyé vers une autre imprimante du poste (déclencheur `essai_jamais_deplace`, migration `20261203130000`, relevé par bo-operations).
+- La tablette ne montre pas les essais (la file ne garde que les tickets des commandes actives). Pour lire `taches_impression` ailleurs sans les compter : `commande_id is not null`.
+
+## Vue par poste (vague 3, décision D12 à l'essai)
+
+Un écran au poste pizza ou cuisine, **derrière un lien** : `/tablette/poste/pizza` et `/tablette/poste/cuisine`, même connexion que la tablette, pas d'entrée dans le menu tant que Jérémy n'a pas tranché D12 (recommandé : à l'essai au poste pizza, tickets gardés). Route `/api/tablette/poste`, logique pure dans `src/components/tablette/poste.ts`, base `commande_postes` (section « Horodatage par poste »).
+
+- En haut : « Reste à sortir », la somme par plat des commandes en cours du poste (« 12 Margherita »). Au poste pizza, le mot « Pizza » est retiré des noms.
+- Au milieu : une fiche par commande, dans l'ordre des tickets. Numéro, mode et heure promise, « Reçue il y a N min » ou « En retard », seulement les lignes du poste avec CHOIX, +, SANS et la note du client en négatif. « Lancée » (facultatif) puis « Prête ».
+- En bas : les six dernières sorties (30 minutes), « Rouvrir » en cas d'erreur de doigt tant que la commande est en cuisine.
+- « Prête » sur un poste ne change pas le statut de la commande : le comptoir garde « Prête au comptoir ». Les tickets papier continuent de sortir.
+- Relecture toutes les 5 s. Hors connexion : « Les tickets papier restent la référence. »
+- Captures : `docs/rendus/vague-3/tablette/poste-*.png` (`scripts/tablette/vue-poste.mjs` après `scripts/tablette/rush.mjs`).

@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { adresseDuCompte, SITE } from "./site";
+import { adresseDuCompte, codeDuPersonnel, passage, SITE } from "./site";
 
 // Vague 3, bo-commandes : rubrique Clients (invités compris) et réclamations suivies comme des dossiers.
 test.describe.configure({ mode: "serial" });
@@ -13,10 +13,7 @@ async function connecter(page: Page, adresse: string) {
   await adresseDuCompte(page, adresse);
   await page.goto("/gestion/clients");
   await page.getByLabel("E-mail", { exact: true }).fill(adresse);
-  await page.getByRole("button", { name: "Recevoir un code" }).click();
-  const code = page.locator(".note-preversion strong");
-  await expect(code).toHaveText(/^\d{8}$/);
-  await page.getByLabel("Code à 8 chiffres").fill(await code.innerText());
+  await page.getByLabel("Code à 8 chiffres").fill(await codeDuPersonnel(page));
   await page.getByRole("button", { name: "Me connecter" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Clients" })).toBeVisible();
 }
@@ -24,12 +21,12 @@ async function connecter(page: Page, adresse: string) {
 test.beforeAll(async ({ browser }, info) => {
   gestion = await (await browser.newContext({ baseURL: SITE })).newPage();
   await connecter(gestion, `clients-${info.project.name}@laferme.test`);
-  const prenom = `Bocli${info.project.name}${Date.now() % 100000}`;
+  const prenom = `Bocli${info.project.name}${passage()}`;
   email = `${prenom.toLowerCase()}@laferme.test`;
   const rep = await gestion.request.post("/api/commandes", {
     headers: { Origin: SITE },
     data: {
-      cle: `bo-cli-${info.project.name}-${Date.now()}`,
+      cle: `bo-cli-${info.project.name}-${passage()}`,
       mode: "retrait",
       moyen: "comptoir",
       quand: { type: "asap" },

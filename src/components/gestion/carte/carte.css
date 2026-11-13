@@ -164,3 +164,40 @@
 .bo-ligne-champs-haut .bo-champ {
   max-width: 28ch;
 }
+
+/* Promotions : l'état de l'interrupteur général, en tête, cadre d'encre (pas de couleur). */
+.bo-promo-interrupteur {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bo-surface);
+  border: 2px solid var(--bo-texte);
+  border-radius: var(--bo-rayon);
+}
+.bo-promo-interrupteur p {
+  margin: 0;
+}
+
+/* Menus : une étape par cadre. */
+.bo-etape {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--bo-trait);
+  border-radius: var(--bo-rayon);
+}
+.bo-etape legend {
+  padding: 0 4px;
+  font-weight: 700;
+}
+.bo-etape summary {
+  min-height: var(--bo-cible);
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}

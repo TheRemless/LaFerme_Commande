@@ -146,6 +146,12 @@ export function ContenuPanier({
             <dd>{prixChf(t.frais_centimes)}</dd>
           </div>
         )}
+        {reponse?.code?.ok && (reponse.remise_centimes ?? 0) > 0 && (
+          <div>
+            <dt>Code {reponse.code.code}</dt>
+            <dd>− {prixChf(reponse.remise_centimes ?? 0)}</dd>
+          </div>
+        )}
         <div className="somme-totale">
           <dt>Total</dt>
           <dd>{prixChf(t.total_centimes)}</dd>

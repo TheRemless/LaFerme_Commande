@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { adresseDuCompte } from "./site";
+import { adresseDuCompte, codeDuPersonnel } from "./site";
 
 // Lot 8d : contrôle automatique d'accessibilité (axe-core, règles WCAG 2.1 A et AA) sur chaque écran,
 // en bureau et en mobile. Ce que l'outil ne voit pas (clavier, focus, annonces) est testé à la main
@@ -135,10 +135,7 @@ async function connecterPersonnel(page: Page, email: string) {
   await adresseDuCompte(page, email);
   await page.goto("/tablette");
   await page.getByLabel("E-mail", { exact: true }).fill(email);
-  await page.getByRole("button", { name: "Recevoir un code" }).click();
-  const code = page.locator(".note-preversion strong");
-  await expect(code).toHaveText(/^\d{8}$/);
-  await page.getByLabel("Code à 8 chiffres").fill(await code.innerText());
+  await page.getByLabel("Code à 8 chiffres").fill(await codeDuPersonnel(page));
   await page.getByRole("button", { name: "Me connecter" }).click();
 }
 
@@ -155,6 +152,10 @@ test("axe : tablette et back-office connectés", async ({ page }, info) => {
   await controler(page, "tablette-reglages");
   await page.getByRole("button", { name: /^Livraisons/ }).click();
   await controler(page, "tablette-livraisons");
+  // Vue par poste (vague 3, D12 à l'essai, derrière un lien).
+  await page.goto("/tablette/poste/pizza");
+  await expect(page.locator(".poste-tete p")).not.toHaveText("Chargement…");
+  await controler(page, "tablette-poste");
   await page.goto("/gestion");
   await expect(page.locator("h1").first()).toBeVisible();
   await controler(page, "gestion");

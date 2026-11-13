@@ -44,6 +44,10 @@ export function filtresListe(c: Record<string, unknown>): Resultat<Record<string
     if (c.mode !== "livraison" && c.mode !== "retrait") return { ok: false, erreur: "Mode inconnu." };
     p.mode = c.mode;
   }
+  if (!vide(c.service)) {
+    if (c.service !== "midi" && c.service !== "soir") return { ok: false, erreur: "Service inconnu." };
+    p.service = c.service;
+  }
   if (!vide(c.moyen)) {
     if (c.moyen !== "en_ligne" && c.moyen !== "comptoir") return { ok: false, erreur: "Moyen de paiement inconnu." };
     p.moyen = c.moyen;
@@ -66,7 +70,7 @@ export function filtresListe(c: Record<string, unknown>): Resultat<Record<string
   if (typeof p.montant_min === "number" && typeof p.montant_max === "number" && p.montant_max < p.montant_min) {
     return { ok: false, erreur: "Le montant maximum est plus petit que le minimum." };
   }
-  for (const cle of ["remboursee", "en_retard", "avec_note"] as const) {
+  for (const cle of ["remboursee", "en_retard", "avec_note", "avec_reclamation"] as const) {
     if (vide(c[cle]) || c[cle] === false) continue;
     if (c[cle] !== true) return { ok: false, erreur: "Filtre illisible." };
     p[cle] = true;

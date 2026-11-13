@@ -4,7 +4,7 @@ import { chargerCatalogue } from "@/lib/catalogue";
 import { confirmerCommandeComptoir } from "@/lib/commandes";
 import { chargerConfigService } from "@/lib/config-service";
 import { detailsLigne } from "@/lib/courriel/modeles";
-import { commandeParId, ConfigurationManquante, creerCommande, fonctionSql, lierSessionPaiement } from "@/lib/db/serveur";
+import { commandeParId, ConfigurationManquante, creerCommande, fonctionSql, lierSessionPaiement, type CommandeCreee } from "@/lib/db/serveur";
 import { origineSure } from "@/lib/origine";
 import { calculerPanier, platDe, prixChoix } from "@/lib/panier";
 import { erreurPlatsDuJour, momentDe } from "@/lib/plat-du-jour";
@@ -20,6 +20,7 @@ import { messageZoneFermee, SUITE_ZONE_FERMEE } from "@/lib/zone-fermee";
 import { zoneServeur, type AdresseRetenue } from "@/lib/zone-serveur";
 import { nomClient } from "@/lib/nom-plat";
 import { chargerOptionsCommande } from "@/lib/options-commande";
+import { codeTape, messageCode } from "@/lib/code-promo";
 
 // Passage de la commande. Le serveur refait tous les contrôles avec la base : contenu et prix, adresse
 // retrouvée dans le registre fédéral, zone, minimum, heure. Il enregistre la commande, puis renvoie
@@ -93,6 +94,9 @@ export async function POST(requete: Request) {
   const erreurLigne = totaux.lignes.find((l) => l.erreur);
   if (erreurLigne) return refus(`${nomClient(erreurLigne.nom, platDe(catalogue, erreurLigne.slug)?.categorie_slug === "pizzas")} : ${erreurLigne.erreur}`);
   if (totaux.manque_minimum_centimes > 0) return refus("Le minimum de livraison n'est pas atteint.");
+  // Code promo (moteur de bo-carte, éteint par défaut) : vérifié, appliqué et noté par la base dans la même
+  // transaction que la commande, sous verrou (creer_commande_code). Éteint, un code envoyé est ignoré.
+  const code = codeTape(corps.code);
   // Au comptoir, rien n'est payé avant le retrait : au-delà du plafond (réglage en base), en ligne seulement.
   if (moyen === "comptoir" && !comptoirPermis(totaux.total_centimes, config.plafondComptoirCentimes)) {
     return refus(refusPlafond(config.plafondComptoirCentimes));
@@ -126,9 +130,9 @@ export async function POST(requete: Request) {
     if (limite === "ip") return refus("Trop de commandes à payer au comptoir depuis cette connexion. Payez en ligne ou appelez-nous au 022 792 16 89.", 429);
   }
 
-  let creee;
+  let creee: CommandeCreee & { total_centimes?: number };
   try {
-    creee = await creerCommande({
+    const donnees = {
       jeton_suivi: randomBytes(24).toString("base64url"),
       cle_idempotence: cle,
       mode,
@@ -148,6 +152,8 @@ export async function POST(requete: Request) {
       pizzas_seulement: totaux.pizzas_seulement,
       sous_total_centimes: totaux.sous_total_centimes,
       frais_centimes: totaux.frais_centimes,
+      // Après remise : c'est ce montant que Stripe encaisse et qui plafonne les remboursements.
+      // Avant remise : avec un code, creer_commande_code recalcule total et TVA en base.
       total_centimes: totaux.total_centimes,
       tva_centimes: totaux.tva_centimes,
       taux_tva_pourcent: catalogue.tauxTvaPourcent,
@@ -171,8 +177,17 @@ export async function POST(requete: Request) {
         note: l.note.trim(),
         pour: options.prenom_par_ligne_actif ? (l.pour ?? "") : "",
       })),
-    });
+    };
+    creee = code
+      ? await fonctionSql<CommandeCreee & { total_centimes: number }>("creer_commande_code", { p: donnees, p_code: code })
+      : await creerCommande(donnees);
   } catch (e) {
+    // Code refusé par la base, sous verrou : « code_refuse:<raison>:<minimum> ».
+    const refuse = e instanceof Error ? /code_refuse:([a-z_]+):?(\d*)/.exec(e.message) : null;
+    if (refuse) {
+      if (refuse[1] === "total_nul") return refus("Ce code ne peut pas couvrir toute la commande. Appelez-nous au 022\u00a0792\u00a016\u00a089.");
+      return refus(messageCode({ ok: false, raison: refuse[1], minimum_centimes: refuse[2] ? Number(refuse[2]) : undefined }));
+    }
     if (e instanceof ConfigurationManquante) return refus(e.message, 503);
     // Capacité du créneau atteinte, contrôlée en base sous verrou (audit « samedi soir », SS-02).
     if (e instanceof Error && e.message.includes("creneau_complet")) return refus(MESSAGE_CRENEAU_COMPLET, 409);
@@ -205,6 +220,12 @@ export async function POST(requete: Request) {
     return { libelle: options.length ? `${l.nom} (${options.join(", ")})` : l.nom, qte: l.qte, unitaire_centimes: l.unitaire_centimes };
   });
   if (aFacturer.frais > 0) factures.push({ libelle: "Livraison", qte: 1, unitaire_centimes: aFacturer.frais });
+  // Remise d'un code : Stripe n'accepte pas de ligne négative. Une seule ligne au montant exact de la
+  // commande, que le webhook compare au total enregistré.
+  const aEncaisser = existante?.total_centimes ?? creee.total_centimes ?? totaux.total_centimes;
+  if (factures.reduce((s, f) => s + f.qte * f.unitaire_centimes, 0) !== aEncaisser) {
+    factures.splice(0, factures.length, { libelle: `La Ferme, commande ${creee.numero}`, qte: 1, unitaire_centimes: aEncaisser });
+  }
   try {
     const session = await p.creerSession({
       commandeId: creee.id,

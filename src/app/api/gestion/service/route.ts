@@ -4,18 +4,23 @@ import { lirePublic } from "@/lib/db/lecture";
 import { fonctionSql } from "@/lib/db/serveur";
 import { centimes, champsHoraire, champsZone, dateValide } from "@/lib/gestion";
 import { exigerGerant } from "@/lib/personnel/session";
+import { raisonCharge } from "@/lib/heure-reelle";
+import { chargeDuMoment } from "@/lib/heure-reelle-serveur";
 import { lireReglagesGeneraux, reglerReglageGeneral } from "@/lib/reglages-generaux";
+import { simulerAdresse } from "@/lib/simulateur-adresse";
 import { rafraichirCaches } from "@/lib/tablette";
 import { fermerZone, reglerServicesZone, rouvrirZone } from "@/lib/zones-operations";
 
 export async function GET(requete: Request) {
   const g = await exigerGerant(requete, { lecture: true });
   if ("reponse" in g) return g.reponse;
-  const [service, reglages, generaux] = await Promise.all([
+  const [service, reglages, generaux, charge] = await Promise.all([
     fonctionSql<Record<string, unknown>>("gestion_service", {}),
     lirePublic<{ cle: string; valeur: unknown; proposition: boolean }>("reglages"),
     // Réglages généraux (vague 3). Absents tant que la base n'est pas migrée.
     lireReglagesGeneraux().catch(() => null),
+    // File de la cuisine en ce moment (heure promise réaliste) : gérant seulement, jamais une page publique.
+    chargeDuMoment(),
   ]);
   const cap = (cle: string) => reglages.find((r) => r.cle === cle);
   const capacites = {
@@ -32,12 +37,12 @@ export async function GET(requete: Request) {
   const avR = cap("impression_avance_retrait_minutes");
   const impressionAvance = avL && avR ? { livraison: Number(avL.valeur), retrait: Number(avR.valeur), proposition: avL.proposition || avR.proposition } : null;
   return NextResponse.json(
-    { ouvertures: [], ...service, capacites, preparation, plafond_comptoir_centimes: typeof plafond === "number" ? plafond : null, impressionAvance, generaux },
+    { ouvertures: [], ...service, capacites, preparation, plafond_comptoir_centimes: typeof plafond === "number" ? plafond : null, impressionAvance, generaux, charge: charge ? { ...charge, raison: raisonCharge(charge) } : null },
     { headers: { "Cache-Control": "no-store" } },
   );
 }
 
-// { type: "zone", numero, champs } | { type: "horaire", id, champs }
+// { type: "zone", numero, champs } | { type: "horaire", id, champs } | { type: "simuler-adresse", adresse }
 // | { type: "fermeture", debut, fin, motif } | { type: "fermeture-suppr", id }
 export async function POST(requete: Request) {
   const g = await exigerGerant(requete);
@@ -46,6 +51,12 @@ export async function POST(requete: Request) {
   if (!c) return refus("Requête illisible.", 400);
   const qui = g.personnel.id;
   const entier = (v: unknown) => (Number.isInteger(v) && (v as number) > 0 && (v as number) < 10_000 ? (v as number) : null);
+  // Tester une adresse (vague 3) : lecture seule, rien n'est enregistré. Adresse dans le corps, jamais dans l'URL.
+  if (c.type === "simuler-adresse") {
+    const r = await simulerAdresse(c.adresse);
+    if ("erreur" in r) return refus(r.erreur, r.code);
+    return NextResponse.json(r, { headers: { "Cache-Control": "no-store, private" } });
+  }
   let ok = true;
   if (c.type === "zone") {
     const n = entier(c.numero);

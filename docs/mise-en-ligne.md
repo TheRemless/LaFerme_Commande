@@ -121,6 +121,8 @@ Avant la recette, et pas le jour de la bascule :
 
 Hors des heures de service, avec Giuseppe ou l'équipe au comptoir, sur la préversion finale (branchée sur le projet de test) et avec Stripe en mode test.
 
+Nouveautés de la vague 3 à jouer en plus : [recette-vague-3.md](recette-vague-3.md).
+
 - [ ] Équipe et Claude : une livraison payée par TWINT, une par carte, un retrait payé au comptoir. Pour chacune : ticket aux deux postes, e-mails au client, suivi à jour, statuts jusqu'à « terminée ».
 - [ ] Équipe et Claude : un refus avec remboursement, un changement d'heure, une rupture du jour, une pause des commandes puis la reprise.
 - [ ] Équipe et Claude : tablette éteinte trois minutes pendant un « service », ce qui doit mettre les commandes en pause et envoyer l'alerte à `ALERTE_EMAIL`. Commande laissée sans réponse : alerte après le délai réglé. Détail : [impression.md](impression.md).

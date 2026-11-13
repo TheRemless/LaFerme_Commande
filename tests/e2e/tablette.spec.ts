@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
-import { adresseDuCompte, SITE } from "./site";
+import { adresseDuCompte, codeDuPersonnel, SITE } from "./site";
 
 // Tablette du restaurant : connexion du personnel, file, accepter, statuts, refus et remboursement, rupture.
 // Un membre d'équipe par projet (supabase/local/donnees-test.sql) : un seul code par e-mail toutes les 30 s.
@@ -56,7 +56,8 @@ async function commander(request: APIRequestContext, prenom: string, moyen: "com
 // Tableau (vague 3) : « En cours », « À l'avance », « Terminées » et la recherche affichent une ligne par
 // commande ; toucher la ligne ouvre son détail (la carte complète) à côté. Sans effet si elle est déjà ouverte.
 async function ouvrirCommande(page: Page, numero: string) {
-  const ligne = page.locator(".tab-ligne", { has: page.locator(".tab-ligne-num", { hasText: new RegExp(`^${numero}$`) }) });
+  // Celle du jour : un même numéro reçu un autre jour porte « tab-autre-jour » (les numéros recommencent chaque jour).
+  const ligne = page.locator(".tab-ligne:not(.tab-autre-jour)", { has: page.locator(".tab-ligne-num", { hasText: new RegExp(`^${numero}$`) }) });
   const corps = ligne.locator(".tab-ligne-corps");
   await expect(corps).toBeVisible({ timeout: 15_000 });
   if ((await corps.getAttribute("aria-expanded")) !== "true") await corps.click();
@@ -67,10 +68,7 @@ test.beforeAll(async ({ browser }, info) => {
   await adresseDuCompte(tablette, `equipe-${info.project.name}@laferme.test`);
   await tablette.goto("/tablette");
   await tablette.getByLabel("E-mail", { exact: true }).fill(`equipe-${info.project.name}@laferme.test`);
-  await tablette.getByRole("button", { name: "Recevoir un code" }).click();
-  const code = tablette.locator(".note-preversion strong");
-  await expect(code).toHaveText(/^\d{8}$/);
-  await tablette.getByLabel("Code à 8 chiffres").fill(await code.innerText());
+  await tablette.getByLabel("Code à 8 chiffres").fill(await codeDuPersonnel(tablette));
   await tablette.getByRole("button", { name: "Me connecter" }).click();
   await tablette.getByRole("button", { name: "Continuer sans son" }).click();
   await expect(tablette.getByRole("button", { name: /^À accepter/ })).toBeVisible();
@@ -294,5 +292,41 @@ test("204 sans changement : l'attente monte et l'avance passe en cours à l'heur
   } finally {
     // Relectures normales de nouveau : l'heure revient à celle du serveur dès la suivante.
     await page.unroute("**/api/tablette/file*");
+  }
+});
+
+// Vue par poste (vague 3, D12 à l'essai, derrière le lien /tablette/poste/pizza) : la commande acceptée y arrive
+// avec ses tickets, seulement les lignes du poste ; « Lancée », « Prête », puis « Rouvrir » en cas d'erreur.
+test("vue par poste : lancée, prête, rouverte ; chaque poste ses lignes", async ({ browser, request }) => {
+  const { numero } = await commander(request, "Poste", "en_ligne");
+  const carte = tablette.locator(".tab-commande", { has: tablette.locator(".tab-num", { hasText: new RegExp(`^${numero}$`) }) });
+  await tablette.getByRole("button", { name: /^À accepter/ }).click();
+  await expect(carte).toBeVisible({ timeout: 15_000 });
+  await carte.getByRole("button", { name: /^Accepter pour/ }).click();
+  await expect(carte).toBeHidden({ timeout: 15_000 });
+
+  // Même session que la tablette, dans un écran à part (le poste).
+  const ecran = await browser.newContext({ baseURL: SITE, storageState: await tablette.context().storageState() });
+  try {
+    const poste = await ecran.newPage();
+    await poste.goto("/tablette/poste/pizza");
+    const fiche = poste.locator(".poste-commande", { has: poste.locator(".poste-num", { hasText: new RegExp(`^${numero}$`) }) });
+    await expect(fiche).toBeVisible({ timeout: 15_000 });
+    await expect(fiche).toContainText("Margherita");
+    await expect(fiche).not.toContainText("carbonara");
+    await fiche.getByRole("button", { name: "Lancée" }).click();
+    await expect(fiche).toContainText(/Lancée à \d{2}h\d{2}/);
+    await fiche.getByRole("button", { name: "Prête" }).click();
+    await expect(fiche).toBeHidden();
+    const sortie = poste.locator(".poste-sorties li", { hasText: new RegExp(`^${numero} à`) });
+    await sortie.getByRole("button", { name: "Rouvrir" }).click();
+    await expect(fiche).toBeVisible();
+
+    await poste.goto("/tablette/poste/cuisine");
+    const ficheCuisine = poste.locator(".poste-commande", { has: poste.locator(".poste-num", { hasText: new RegExp(`^${numero}$`) }) });
+    await expect(ficheCuisine).toContainText("Pasta alla carbonara");
+    await expect(ficheCuisine).not.toContainText("Margherita");
+  } finally {
+    await ecran.close();
   }
 });

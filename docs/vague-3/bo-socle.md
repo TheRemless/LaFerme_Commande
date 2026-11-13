@@ -27,10 +27,20 @@ Le remettre à `false` coupe tout de suite les droits des responsables déjà no
 
 - **Base.** Migration `20261210230000_droits_responsable.sql`. `droit_personnel(personnel, action)` porte le tableau D1, action par action : le gérant peut tout, le responsable seulement ses actions, l'équipe de service aucune. `auteur_droit(personnel, action)` fait comme `gerant_nom` pour une action précise et refuse avec `droit_refuse`. `ajouter_personnel` et `modifier_personnel` n'acceptent « responsable » que si le rôle est activé.
 - **Serveur.** `exigerDroit(requete, action)` (`src/lib/personnel/session.ts`) laisse passer le gérant et, quand le rôle est activé, le responsable pour ses actions. Les noms des actions sont dans `src/lib/personnel/droits.ts`.
-- **Écran.** Le back-office s'ouvre au responsable seulement quand le rôle est activé. Il ne voit que les rubriques qui portent un `droit` dans `navigation.ts` (Commandes, et Clients à venir). Il arrive sur Commandes : l'accueil montre les ventes, réservées au gérant. Une rubrique fermée tapée à la main affiche « Réservé ». Sur la tablette, il a les gestes de l'équipe. Il les garde même si le rôle est désactivé ensuite : le gérant lui rend alors un autre accès dans Équipe. L'écran Équipe ne propose ce rôle qu'une fois activé.
+- **Écran.** Le back-office s'ouvre au responsable seulement quand le rôle est activé. Il ne voit que les rubriques qui portent un `droit` dans `navigation.ts` (Commandes seulement ; Clients reste au gérant, décision prise avec bo-commandes, à ouvrir avec ses routes le jour de l'activation). Il arrive sur Commandes : l'accueil montre les ventes, réservées au gérant. Une rubrique fermée tapée à la main affiche « Réservé ». Sur la tablette, il a les gestes de l'équipe. Il les garde même si le rôle est désactivé ensuite : le gérant lui rend alors un autre accès dans Équipe. L'écran Équipe ne propose ce rôle qu'une fois activé.
 - **À brancher par les propriétaires le jour de l'activation.** Il faut remplacer `exigerGerant` par `exigerDroit(…, action)` et `gerant_nom` par `auteur_droit(…, action)` dans :
   - les routes et fonctions de remboursement, d'annulation, de client absent, de modification de commande et de liste des commandes (bo-commandes) ;
   - l'annulation d'une livraison partie (`src/lib/tablette.ts`, tablette) ;
   - la déconnexion d'un appareil (bo-socle) ;
   - la fermeture du service (bo-operations).
   Les fonctions `modifier_commande` et `coup_de_feu`, qui acceptent `role in ('service', 'gerant')`, doivent aussi accepter `responsable`.
+
+## Appareils connectés de l'équipe
+
+Dans Équipe, chaque membre connecté a un bouton « Appareils (n) ». Il ouvre la liste de ses appareils : le navigateur et l'appareil (« Safari sur iPad », « Chrome sur Android »), la date de connexion et la dernière activité. « Déconnecter » coupe un seul appareil, après confirmation : une tablette volée ou le téléphone perdu d'un livreur, sans déconnecter les autres. « Déconnecter partout » reste à côté.
+
+- Rien de personnel n'est gardé : ni adresse IP, ni empreinte du navigateur. Seulement un libellé court, calculé à la connexion, le même que pour les appareils du compte client (`src/lib/comptes/appareil.ts`).
+- La dernière activité est notée au plus une fois toutes les cinq minutes par appareil.
+- Migration `20261210250000_appareils_equipe.sql` : colonnes `appareil` et `vue_le` de `sessions_personnel`, fonctions `noter_appareil_personnel`, `voir_session_personnel`, `appareils_personnel` et `couper_appareil_personnel`. Ces deux dernières sont réservées au gérant et la coupure va au journal. Le code marche avant la migration : la connexion ignore l'échec de `noter_appareil_personnel`.
+- Le jour où D1 est activé, couper un appareil passe au droit `deconnecter_appareil` (responsable de service).
+- Tests : `tests/unit/appareils-equipe.test.ts`, `tests/e2e/gestion-appareils.spec.ts`.

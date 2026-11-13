@@ -1,0 +1,41 @@
+/* Rubrique Réglages généraux du back-office (vague 3, bo-operations). Jetons du kit seulement. */
+.bo-reg {
+  display: grid;
+  gap: 16px;
+  max-width: 44rem;
+}
+.bo-reg-groupe {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 16px;
+  background: var(--bo-surface);
+  border: 1px solid var(--bo-trait);
+  border-radius: var(--bo-rayon);
+}
+.bo-reg-groupe legend {
+  padding: 0 4px;
+  font-weight: 700;
+}
+.bo-reg-case label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--bo-cible);
+  font-weight: 600;
+  cursor: pointer;
+}
+.bo-reg-case input {
+  width: 22px;
+  height: 22px;
+}
+.bo-reg-case .aide {
+  margin: 0 0 0 32px;
+}
+.bo-reg-maintenant {
+  margin: 0;
+  padding: 8px 10px;
+  font-weight: 600;
+  border: 1px solid var(--bo-trait);
+  border-radius: var(--bo-rayon);
+}

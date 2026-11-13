@@ -6,6 +6,7 @@ import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "re
 import { adresseTexte, chercherAdresses, numeroTape, type Adresse, type Details } from "@/lib/adresse";
 import { ecrireChoix, lireChoix, type Quand, type ZoneChoisie } from "@/lib/choix";
 import { prixCourt } from "@/lib/prix";
+import { retenirCodeDeLUrl } from "@/lib/code-client";
 import { ancrePlat } from "@/lib/plat-adresse";
 import { messageZoneFermee } from "@/lib/zone-fermee";
 import { fourchette } from "@/lib/heure-reelle";
@@ -128,6 +129,9 @@ export function ChoixCommande({
       window.clearInterval(tic);
     };
   }, [preversion]);
+
+  // Code apporté par un QR (/?code=FLYER) : gardé dans l'onglet, retiré de l'adresse.
+  useEffect(() => retenirCodeDeLUrl(), []);
 
   // Reprendre le choix précédent (retour depuis la carte avec « Modifier »).
   useEffect(() => {

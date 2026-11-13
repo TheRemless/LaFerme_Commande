@@ -5,6 +5,7 @@ import { enregistrer } from "@/components/gestion/enregistrer";
 import { poster } from "@/lib/requete-client";
 import { jourTexte } from "@/lib/service";
 import { CoupDeFeu } from "@/components/gestion/CoupDeFeu";
+import { TesterAdresse } from "@/components/gestion/TesterAdresse";
 import { ZoneOperations } from "@/components/gestion/ZoneOperations";
 import "./service.css";
 
@@ -73,6 +74,7 @@ export function GestionService() {
           ))}
         </div>
       </section>
+      <TesterAdresse />
       <section className="ges-bloc">
         <h2>Horaires de livraison et de retrait</h2>
         <p className="aide">Les jours absents sont fermés (dimanche et lundi). Heures de Genève.</p>

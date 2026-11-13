@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { adresseDuCompte, SITE } from "./site";
+import { adresseDuCompte, codeDuPersonnel, passage, SITE } from "./site";
 
 // Vague 3, bo-commandes : rubrique Commandes sur le kit du back-office. Liste paginée côté serveur avec
 // pastilles de statut et recherche, fiche en panneau (onglets), note interne, modification d'une commande,
@@ -14,10 +14,7 @@ async function connecter(page: Page, email: string) {
   await adresseDuCompte(page, email);
   await page.goto("/gestion/commandes");
   await page.getByLabel("E-mail", { exact: true }).fill(email);
-  await page.getByRole("button", { name: "Recevoir un code" }).click();
-  const code = page.locator(".note-preversion strong");
-  await expect(code).toHaveText(/^\d{8}$/);
-  await page.getByLabel("Code à 8 chiffres").fill(await code.innerText());
+  await page.getByLabel("Code à 8 chiffres").fill(await codeDuPersonnel(page));
   await page.getByRole("button", { name: "Me connecter" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Commandes" })).toBeVisible();
 }
@@ -26,11 +23,11 @@ test.beforeAll(async ({ browser }, info) => {
   // Axe demande une page ouverte dans un contexte (browser.newContext()).
   gestion = await (await browser.newContext({ baseURL: SITE })).newPage();
   await connecter(gestion, `commandes-${info.project.name}@laferme.test`);
-  prenom = `Bocmd${info.project.name}${Date.now() % 100000}`;
+  prenom = `Bocmd${info.project.name}${passage()}`;
   const rep = await gestion.request.post("/api/commandes", {
     headers: { Origin: SITE },
     data: {
-      cle: `bo-cmd-${info.project.name}-${Date.now()}`,
+      cle: `bo-cmd-${info.project.name}-${passage()}`,
       mode: "retrait",
       moyen: "comptoir",
       quand: { type: "asap" },
@@ -74,6 +71,10 @@ test("la fiche montre la commande, garde une note et enregistre un changement de
   await fiche.getByLabel("Téléphone").fill("079 765 43 21");
   await fiche.getByRole("button", { name: "Enregistrer les changements" }).click();
   await expect(gestion.getByText(/Commande modifiée/)).toBeVisible();
+  // « La même que vendredi » : construit, mais désactivé tant que le restaurant ne l'a pas décidé.
+  await fiche.getByRole("button", { name: "Recréer cette commande" }).click();
+  await gestion.getByRole("button", { name: "Recréer la commande" }).click();
+  await expect(gestion.getByText("Recréer une commande au téléphone n'est pas encore activé.")).toBeVisible();
 
   // « Il manque le tiramisù » : la réclamation se note depuis la commande.
   await fiche.getByRole("tab", { name: "Réclamations" }).click();
@@ -90,4 +91,35 @@ test("la fiche montre la commande, garde une note et enregistre un changement de
   expect(r.violations.map((v) => v.id)).toEqual([]);
   await gestion.keyboard.press("Escape");
   await expect(fiche).toHaveCount(0);
+});
+
+test("« on ferme plus tôt » : deux commandes s'annulent d'un geste, avec un seul motif", async ({}, info) => {
+  const nom = `Lot${info.project.name}${passage()}`;
+  for (const i of [1, 2]) {
+    const rep = await gestion.request.post("/api/commandes", {
+      headers: { Origin: SITE },
+      data: {
+        cle: `bo-lot-${info.project.name}-${i}-${passage()}`,
+        mode: "retrait",
+        moyen: "comptoir",
+        quand: { type: "asap" },
+        heure: "2026-11-10T19:05",
+        client: { prenom: `P${i}`, nom, telephone: "079 123 45 67", email: `lot${i}-${info.project.name}@laferme.test` },
+        lignes: [{ slug: "pizza-margherita", qte: 1, choix: {}, retraits: [], note: "" }],
+      },
+    });
+    expect(rep.ok()).toBe(true);
+  }
+  await gestion.getByLabel("Numéro, nom, téléphone ou e-mail").fill(nom);
+  await expect(gestion.getByRole("row", { name: new RegExp(nom) })).toHaveCount(2);
+  await gestion.getByRole("checkbox", { name: "Tout sélectionner sur cette page" }).check();
+  await gestion.getByRole("region", { name: "Actions sur la sélection" }).getByRole("button", { name: "Annuler… (2)" }).click();
+  const panneau = gestion.getByRole("dialog");
+  await panneau.getByLabel("Motif d'annulation").fill("Nous fermons plus tôt ce soir");
+  await panneau.getByRole("button", { name: "Annuler ces commandes" }).click();
+  await gestion.getByRole("button", { name: "Annuler 2 commandes" }).click();
+  await expect(gestion.getByText("2 commandes annulées.")).toBeVisible();
+  // La pastille « À accepter » du premier test filtre encore : on l'efface pour revoir les deux commandes.
+  await gestion.getByRole("button", { name: "Effacer les filtres" }).click();
+  await expect(gestion.getByRole("row", { name: new RegExp(nom) }).filter({ hasText: "Refusée ou annulée" })).toHaveCount(2);
 });

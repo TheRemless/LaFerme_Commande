@@ -76,7 +76,7 @@ describe("G07 : manque signalé depuis la tablette", () => {
     stripe.appels.length = 0;
     const r = await signalerManque(c.id, [{ ligne: 1, qte: 1 }], "manque-test-0001", service, true);
     expect(r).toMatchObject({ ok: true, montant_centimes: 1800 });
-    expect(stripe.appels).toEqual([{ pi: `pi_vrai_gv2_${n}`, montantCentimes: 1800, cle: "manque-test-0001" }]);
+    expect(stripe.appels).toEqual([{ pi: `pi_vrai_gv2_${n}`, montantCentimes: 1800, cle: "manque-test-0001", remboursementId: expect.any(String) }]);
     const db = await baseLocale();
     const m = (await db.query<{ sujet: string; texte: string }>("select sujet, texte from courriels where commande_id = $1 and sujet like 'Il manque%'", [c.id])).rows;
     expect(m).toHaveLength(1);
