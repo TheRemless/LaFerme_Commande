@@ -1,9 +1,10 @@
 import "server-only";
 import { chargerConfigService } from "@/lib/config-service";
+import { reconcilier } from "@/lib/commandes";
 import { finCoupDeFeuEchue } from "@/lib/coup-de-feu";
 import { courrielConfigure, envoyerParSmtp } from "@/lib/courriel/envoi";
 import { QuotaAtteint, type TypeCourriel } from "@/lib/courriel/quota";
-import { enregistrerCourriel, fonctionSql } from "@/lib/db/serveur";
+import { commandeParId, enregistrerCourriel, fonctionSql } from "@/lib/db/serveur";
 import { imprimerCommandesDues } from "@/lib/impression/service";
 import { destinataireAlertes } from "@/lib/reglages-generaux";
 import { etatService, type ConfigService } from "@/lib/service";
@@ -17,6 +18,8 @@ import { rafraichirCaches } from "@/lib/tablette";
 // 4. Les commandes acceptées à l'avance reçoivent leurs tickets à l'heure prévue (SS-11), pause ou non :
 //    une commande acceptée doit être préparée.
 // 5. Un coup de feu dont l'heure est passée prend fin (retard, capacité, livraison rendus).
+// 6. Un paiement en ligne dont la confirmation de Stripe n'est jamais arrivée est relu chez Stripe : la
+//    commande payée apparaît sur la tablette même si le webhook s'est perdu et que le client est parti.
 
 const TABLETTE_MUETTE_S = 180;
 
@@ -66,14 +69,45 @@ export function dansUnService(config: ConfigService, maintenant: Date): boolean 
   return etatService({ ...config, pause: undefined }, maintenant, "retrait").etat === "ouvert";
 }
 
-export async function executerSurveillance(maintenant = new Date()): Promise<{ fait: boolean; retards: number; pause: boolean; imprimees: number }> {
-  if (!(await fonctionSql<boolean>("tour_de_surveillance", {}))) return { fait: false, retards: 0, pause: false, imprimees: 0 };
+// Paiements dont Stripe n'a pas confirmé l'issue au site (6). Avant la migration 20261204090000, la fonction
+// n'existe pas : rien à rattraper.
+export async function rattraperPaiements(): Promise<number> {
+  let ids: string[];
+  try {
+    ids = (await fonctionSql<string[] | null>("paiements_a_rattraper", {})) ?? [];
+  } catch (e) {
+    const m = e instanceof Error ? e.message : String(e);
+    if (!/does not exist|Could not find the function/i.test(m)) console.error(`Paiements à rattraper : ${m}`);
+    return 0;
+  }
+  let rattrapes = 0;
+  for (const id of ids) {
+    try {
+      const c = await commandeParId(id);
+      if (!c) continue;
+      const apres = await reconcilier(c);
+      if (apres.statut_paiement !== c.statut_paiement) {
+        rattrapes += 1;
+        console.error(`Commande ${c.numero} : paiement rattrapé par la surveillance (confirmation de Stripe jamais reçue).`);
+      }
+    } catch (e) {
+      console.error(`Paiement à rattraper (${id}) : ${e instanceof Error ? e.message : e}`);
+    }
+  }
+  return rattrapes;
+}
+
+export async function executerSurveillance(maintenant = new Date()): Promise<{ fait: boolean; retards: number; pause: boolean; imprimees: number; rattrapes: number }> {
+  if (!(await fonctionSql<boolean>("tour_de_surveillance", {}))) return { fait: false, retards: 0, pause: false, imprimees: 0, rattrapes: 0 };
 
   // D'abord les tickets : une alerte ou une pause qui échoue ne doit pas retarder la cuisine.
   const imprimees = await imprimerCommandesDues().catch((e) => {
     console.error(`Impression des commandes à l'avance : ${e instanceof Error ? e.message : e}`);
     return 0;
   });
+
+  // Ensuite les paiements perdus : une commande payée doit arriver sur la tablette.
+  const rattrapes = await rattraperPaiements();
 
   // Premier tour d'un nouveau jour de service (5h, heure de Genève) : livraison rouverte, retard à zéro,
   // pause manuelle sans fin levée (audit du gérant, G06). La pause automatique reste.
@@ -112,5 +146,5 @@ export async function executerSurveillance(maintenant = new Date()): Promise<{ f
       "Les commandes en ligne sont en pause. Rallumez la tablette, puis touchez « Reprendre les commandes ».",
     ]).catch((e) => console.error(`Alerte non envoyée : ${e instanceof Error ? e.message : e}`));
   }
-  return { fait: true, retards: retards.length, pause, imprimees };
+  return { fait: true, retards: retards.length, pause, imprimees, rattrapes };
 }
