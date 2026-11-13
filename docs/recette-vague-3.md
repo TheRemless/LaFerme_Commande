@@ -2,12 +2,12 @@
 
 À jouer pendant la phase 3 de [mise-en-ligne.md](mise-en-ligne.md), en plus de sa liste, sur la préversion finale branchée sur le projet de test, Stripe en mode test, hors des heures de service. Chaque ligne est une scène courte : on la joue, on coche, on note ce qui gêne.
 
-Préparé par la session qualité le 13.11.2026, à compléter à la passe finale avec ce qui sera arrivé d'ici là.
+Préparé par la session qualité le 13.11.2026, complété à la passe finale (main du 13.11, toutes les PR de la vague).
 
 ## Avant de commencer
 
 - [ ] Claude : `npm run donnees:rush` puis `npm run charge:vendredi` en local sur la version finale. Aucune erreur, mêmes ordres de grandeur que [charge.md](charge.md).
-- [ ] Claude : suite e2e complète sur le jeu de rush (`BASE_LOCALE_INSTANTANE=… npx playwright test`). Référence du 13.11 : 395 sur 397, les deux échecs étant des collisions de noms dans les tests, corrigées depuis.
+- [ ] Claude : suite e2e complète sur le jeu de rush (`BASE_LOCALE_INSTANTANE=… npx playwright test`). Référence de la passe finale (13.11) : base vide 478 sur 478 ; jeu de rush 471 sur 474, les trois échecs corrigés depuis (#213).
 - [ ] Jérémy : les fonctions construites mais désactivées restent éteintes pour la recette, sauf celles qu'il décide d'allumer (liste en bas de page).
 
 ## Commande du client
@@ -46,6 +46,39 @@ Préparé par la session qualité le 13.11.2026, à compléter à la passe final
 - [ ] Clôture du jour (rapport Z) puis export pour la fiduciaire : les montants correspondent aux commandes du jour, remboursements compris (#83, #86).
 - [ ] Journal : chaque geste de la recette y figure, avec son auteur (#106).
 - [ ] Équipe : déconnecter un seul appareil d'un membre (#141).
+
+## Arrivé après le 13.11 à 14h (fin de vague)
+
+Commande du client et heure promise :
+
+- [ ] Heure promise avec un livreur en attente puis un poste qui a fini sa part : l'heure annoncée suit (#167, #177).
+- [ ] Message du gérant aux clients : posé au back-office, lu à l'accueil, à la carte, au panier et au paiement (#168, #185).
+- [ ] Service fédéral des adresses coupé (réseau du poste) : le panier et le paiement proposent « Commander à emporter » et le numéro du restaurant (#207).
+
+Tablette, postes et tickets :
+
+- [ ] Vue par poste (lien, D12 à l'essai) : lancée, prête, rouvrir ; un poste qui a fini sort de la file (#178, #172).
+- [ ] Commande modifiée après ses tickets : ticket « MODIFIÉE » au poste du sac (#183, #192).
+- [ ] Allergie, destinataire, couverts et prénoms sur la tablette, le poste, les tickets et la page livreur (#182).
+- [ ] « Décaler les commandes en cours… » en deux gestes, aussi par poste ; chaque client reçoit l'e-mail. À faire avec une quarantaine de commandes de test pour mesurer le vrai temps des envois SMTP (#186, #194, #211).
+- [ ] Four en panne : la carte refuse les plats du poste, la liste des commandes touchées se lit au téléphone (#188).
+- [ ] Gestes « Prête », « Partie », « Retirée », encaissement : 5 secondes avec « Annuler », puis rien n'est parti si on annule (#206).
+- [ ] Tableau compact : 11 à 12 commandes par écran sur la vraie tablette (#209).
+- [ ] Livraisons : livreurs du planning en boutons, les autres dans « Donner à… » ; deux livreurs homonymes distinguables (#199, #210).
+- [ ] Code de connexion d'un livreur affiché sur la tablette, si Jérémy l'allume (#204 dans #205).
+- [ ] Page livreur d'une main : l'arrêt en cours seul ouvert, Livrée et Itinéraire sous le pouce (#201).
+
+Imprimantes :
+
+- [ ] « Imprimer un ticket de test » au back-office, sur chaque imprimante (#171, #174, #175).
+- [ ] Imprimante débranchée : renvoyer ses tickets sur l'autre, depuis le back-office (#193).
+
+Back-office et chiffres :
+
+- [ ] Alertes sur toutes les pages, réglables par type (#196, #198) ; « Aucun livreur prévu » si la règle est allumée (#189).
+- [ ] Livraison et horaires en cinq onglets, « Tester une adresse » (#179, #187).
+- [ ] Clôture : espèces et carte au comptoir séparées, montants justes contre la caisse (#176, #212).
+- [ ] Rapports : analyses et temps réels contre temps promis sur une vraie soirée de recette (#173, #180).
 
 ## Argent et pannes (Stripe en mode test)
 
