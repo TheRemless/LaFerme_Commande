@@ -14,6 +14,9 @@ function cle(prefixe: string): string {
   return `${prefixe}-${test.info().project.name}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+// Prénom accentué (recherche au comptoir) : la clé d'idempotence et l'e-mail restent en ASCII.
+const ascii = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
 // Ruptures : état commun à toute la base. Chaque projet épuise son propre supplément et son propre plat,
 // sinon l'un remet « Disponible » pendant que l'autre attend « Épuisé ».
 const RUPTURES: Record<string, { supplement: string; recherchePlat: string; plat: string; slug: string }> = {
@@ -26,12 +29,12 @@ async function commander(request: APIRequestContext, prenom: string, moyen: "com
   const rep = await request.post("/api/commandes", {
     headers: ORIGINE,
     data: {
-      cle: cle(`tablette-${prenom}`),
+      cle: cle(`tablette-${ascii(prenom)}`),
       mode: "retrait",
       moyen,
       quand: { type: "asap" },
       heure: "2026-11-10T19:05",
-      client: { prenom, nom: "Test", telephone: "079 000 00 00", email: `${prenom.toLowerCase()}@laferme.test` },
+      client: { prenom, nom: "Test", telephone: "079 000 00 00", email: `${ascii(prenom).toLowerCase()}@laferme.test` },
       lignes: [
         { slug: "pizza-margherita", qte: 1, choix: {}, retraits: [], note: "" },
         { slug: "pasta-alla-carbonara", qte: 1, choix: { "choix-pates": ["Penne"] }, retraits: [], note: "" },
@@ -94,6 +97,29 @@ test("une commande arrive, on l'accepte, puis prête, retirée et payée", async
   await tablette.getByRole("button", { name: /^Terminées/ }).click();
   await expect(carte).toContainText(/Retirée pour \d{2}h\d{2}/);
   await expect(carte).toContainText("Encaissée CHF");
+});
+
+// Vague 3, rush : au comptoir, « c'est pour Bérénice » ou « le 42 », quel que soit l'onglet ouvert.
+test("recherche au comptoir : par numéro ou par nom, toutes listes confondues", async ({ request }, info) => {
+  // Bureau et mobile tournent en même temps : chacun son prénom, pour ne trouver que sa commande.
+  const [prenom, tape] = info.project.name === "bureau" ? ["Bérénice", "berenice"] : ["Héloïse", "HELOISE"];
+  const { numero } = await commander(request, prenom, "comptoir");
+  const carte = tablette.locator(".tab-commande", { has: tablette.locator(".tab-num", { hasText: new RegExp(`^${numero}$`) }) });
+  await tablette.getByRole("button", { name: /^Terminées/ }).click();
+  await expect(carte).toBeHidden();
+  const champ = tablette.getByRole("searchbox", { name: "Chercher une commande par numéro, nom ou téléphone" });
+  await champ.fill(numero);
+  await expect(carte).toBeVisible({ timeout: 10_000 });
+  await expect(tablette.locator(".tab-liste > li")).toHaveCount(1);
+  await champ.fill(tape);
+  await expect(carte).toBeVisible();
+  await expect(tablette.locator(".tab-recherche-info")).toContainText(`pour « ${tape} »`);
+  // Accepter depuis la recherche : la carte reste dans les résultats, avec son nouvel état.
+  await carte.getByRole("button", { name: /^Accepter pour/ }).click();
+  await expect(carte).toContainText("Acceptée pour");
+  await tablette.getByRole("button", { name: "Effacer la recherche" }).click();
+  await expect(champ).toHaveValue("");
+  await expect(tablette.locator(".tab-recherche-info")).toBeHidden();
 });
 
 test("refus d'une commande payée en ligne : remboursée, le client est prévenu", async ({ request }) => {

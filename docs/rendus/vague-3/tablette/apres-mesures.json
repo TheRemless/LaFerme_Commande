@@ -1,0 +1,114 @@
+{
+  "base": "http://localhost:3228",
+  "vues": {
+    "paysage-1024": {
+      "traiter": {
+        "cartes": 6,
+        "numerosVisibles": 2,
+        "hauteurCarteMoyenne": 361,
+        "hauteurListeEnEcrans": 3.2,
+        "hautDeLaListe": 234,
+        "ciblesTropPetites": 0
+      },
+      "cours": {
+        "cartes": 15,
+        "numerosVisibles": 1,
+        "hauteurCarteMoyenne": 552,
+        "hauteurListeEnEcrans": 11.3,
+        "hautDeLaListe": 234,
+        "ciblesTropPetites": 0
+      },
+      "avance": {
+        "cartes": 3,
+        "numerosVisibles": 2,
+        "hauteurCarteMoyenne": 424,
+        "hauteurListeEnEcrans": 2,
+        "hautDeLaListe": 234,
+        "ciblesTropPetites": 0
+      },
+      "terminees": {
+        "cartes": 10,
+        "numerosVisibles": 2,
+        "hauteurCarteMoyenne": 352,
+        "hauteurListeEnEcrans": 5.1,
+        "hautDeLaListe": 234,
+        "ciblesTropPetites": 0
+      },
+      "recherche": 1
+    },
+    "paysage-1180": {
+      "traiter": {
+        "cartes": 6,
+        "numerosVisibles": 2,
+        "hauteurCarteMoyenne": 361,
+        "hauteurListeEnEcrans": 3,
+        "hautDeLaListe": 215,
+        "ciblesTropPetites": 0
+      },
+      "cours": {
+        "cartes": 15,
+        "numerosVisibles": 1,
+        "hauteurCarteMoyenne": 535,
+        "hauteurListeEnEcrans": 10.3,
+        "hautDeLaListe": 215,
+        "ciblesTropPetites": 0
+      },
+      "avance": {
+        "cartes": 3,
+        "numerosVisibles": 2,
+        "hauteurCarteMoyenne": 356,
+        "hauteurListeEnEcrans": 1.6,
+        "hautDeLaListe": 215,
+        "ciblesTropPetites": 0
+      },
+      "terminees": {
+        "cartes": 10,
+        "numerosVisibles": 2,
+        "hauteurCarteMoyenne": 339,
+        "hauteurListeEnEcrans": 4.6,
+        "hautDeLaListe": 215,
+        "ciblesTropPetites": 0
+      },
+      "recherche": 1
+    },
+    "portrait-820": {
+      "traiter": {
+        "cartes": 6,
+        "numerosVisibles": 2,
+        "hauteurCarteMoyenne": 623,
+        "hauteurListeEnEcrans": 3.5,
+        "hautDeLaListe": 303,
+        "ciblesTropPetites": 0
+      },
+      "cours": {
+        "cartes": 15,
+        "numerosVisibles": 2,
+        "hauteurCarteMoyenne": 686,
+        "hauteurListeEnEcrans": 9.1,
+        "hautDeLaListe": 303,
+        "ciblesTropPetites": 0
+      },
+      "avance": {
+        "cartes": 3,
+        "numerosVisibles": 2,
+        "hauteurCarteMoyenne": 613,
+        "hauteurListeEnEcrans": 1.8,
+        "hautDeLaListe": 303,
+        "ciblesTropPetites": 0
+      },
+      "terminees": {
+        "cartes": 10,
+        "numerosVisibles": 2,
+        "hauteurCarteMoyenne": 476,
+        "hauteurListeEnEcrans": 4.4,
+        "hautDeLaListe": 303,
+        "ciblesTropPetites": 0
+      },
+      "recherche": 1
+    }
+  },
+  "gestes": {
+    "accepter_ms": 116,
+    "prete_ms": 116
+  }
+}

@@ -17,6 +17,8 @@ import { nouvelleCle } from "@/lib/cle";
 import type { DonneesLivraisons } from "@/lib/livreur";
 import { MOTIF_CLIENT_ABSENT } from "@/lib/livraisons-textes";
 import { OngletLivraisons, livraisonsEnCours, problemeTexte } from "@/components/tablette/Livraisons";
+import { chercherCommandes, lignesImprimantes, minutesDeRetard, minutesRestantes } from "@/components/tablette/rush";
+import "./tablette.css";
 
 // Tablette posée en cuisine : file des commandes, alerte sonore, accepter, refuser, statuts.
 // Relecture toutes les 15 secondes en service, 60 hors service, 5 sans signal Realtime, et tout de suite quand Supabase Realtime signale un changement.
@@ -89,7 +91,10 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
   // Vrai seulement si le navigateur a accepté de jouer le son.
   const [son, setSon] = useState(false);
   const [reglagesOuverts, setReglagesOuverts] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  // Retour du dernier geste. Un échec reste affiché jusqu'à « OK » : il ne doit pas passer inaperçu.
+  const [message, setMessage] = useState<{ texte: string; echec: boolean } | null>(null);
+  // Retrouver une commande au comptoir : numéro exact ou nom du client, toutes listes confondues.
+  const [recherche, setRecherche] = useState("");
   // Livreurs et tournées (onglet « Livraisons ») : relus avec la file, une panne ici ne la bloque pas.
   const [livraisons, setLivraisons] = useState<DonneesLivraisons | null>(null);
   const audio = useRef<AudioContext | null>(null);
@@ -212,12 +217,19 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
     return () => document.removeEventListener("visibilitychange", surRetour);
   }, [demarre, charger]);
 
+  // Le retour d'un geste réussi reste 8 secondes en bas de l'écran, sous le doigt, puis s'efface.
+  useEffect(() => {
+    if (!message || message.echec) return;
+    const t = window.setTimeout(() => setMessage(null), 8000);
+    return () => window.clearTimeout(t);
+  }, [message]);
+
   async function agir(commande: string, corps: Record<string, unknown>) {
     setMessage(null);
     const r = await poster("/api/tablette/action", { commande, ...corps });
     if (r.statut === 401) return router.refresh();
-    if (typeof r.donnees.message === "string") setMessage(r.donnees.message);
-    else if (!r.ok) setMessage(String(r.donnees.erreur ?? "L'action n'est pas passée. Réessayez."));
+    if (typeof r.donnees.message === "string") setMessage({ texte: r.donnees.message, echec: !r.ok });
+    else if (!r.ok) setMessage({ texte: String(r.donnees.erreur ?? "L'action n'est pas passée. Réessayez."), echec: true });
     await charger();
   }
 
@@ -226,8 +238,8 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
     setMessage(null);
     const r = await poster("/api/tablette/livraisons", corps);
     if (r.statut === 401) return router.refresh();
-    if (typeof r.donnees.message === "string") setMessage(r.donnees.message);
-    else if (!r.ok) setMessage(String(r.donnees.erreur ?? "L'action n'est pas passée. Réessayez."));
+    if (typeof r.donnees.message === "string") setMessage({ texte: r.donnees.message, echec: !r.ok });
+    else if (!r.ok) setMessage({ texte: String(r.donnees.erreur ?? "L'action n'est pas passée. Réessayez."), echec: true });
     await charger();
   }
 
@@ -240,7 +252,8 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
   const imprimantes = (donnees?.impression.imprimantes ?? []).filter((i) => i.actif);
   const imprimantesKo = imprimantes.filter((i) => etatImprimante(i) !== "en ligne");
   const enPause = pause?.active && (!pause.jusqua || new Date(pause.jusqua).getTime() > Date.now());
-  const liste = listes[onglet];
+  const resultats = recherche.trim() ? chercherCommandes(donnees?.commandes ?? [], recherche) : null;
+  const liste = resultats ?? listes[onglet];
   // Refus payés dont le remboursement n'est pas passé : visibles jusqu'au remboursement, même le lendemain.
   const aRembourser = (donnees?.commandes ?? []).filter((c) => c.statut === "refusee" && c.statut_paiement === "paye");
   const nomLivreur = new Map((livraisons?.livreurs ?? []).map((l) => [l.id, l.nom]));
@@ -284,6 +297,20 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
             {imprimantes.length === 0 ? "Pas d'imprimante." : imprimantes.map((i) => `${i.nom} : ${etatImprimante(i)}`).join(". ") + "."}
           </span>
         </div>
+        <div className="tab-recherche" role="search">
+          <label htmlFor="tab-recherche" className="sr-only">
+            Chercher une commande par numéro, nom ou téléphone
+          </label>
+          <input
+            id="tab-recherche"
+            type="search"
+            placeholder="N°, nom ou tél."
+            autoComplete="off"
+            enterKeyHint="search"
+            value={recherche}
+            onChange={(e) => setRecherche(e.target.value)}
+          />
+        </div>
         <button type="button" className="bouton-second" aria-expanded={reglagesOuverts} onClick={() => setReglagesOuverts((v) => !v)}>
           {reglagesOuverts ? "Fermer les réglages" : "Pause, délai, ruptures"}
         </button>
@@ -302,6 +329,22 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
             Déconnexion
           </button>
         )}
+        {/* Les onglets restent en haut de l'écran quand on descend dans la liste. */}
+        <nav className="tab-onglets" aria-label="Commandes">
+          {ONGLETS.map(([cle, titre]) => (
+            <button
+              key={cle}
+              type="button"
+              aria-pressed={!resultats && onglet === cle}
+              onClick={() => {
+                setOnglet(cle);
+                setRecherche("");
+              }}
+            >
+              {titre} <span className="tab-nb">{listes[cle].length}</span>
+            </button>
+          ))}
+        </nav>
       </header>
 
       {horsLigne && (
@@ -321,11 +364,12 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
           touchez « Rembourser ».
         </p>
       )}
-      {imprimantesKo.map((i) => (
-        <p key={i.id} className="tab-attente" role="alert">
-          {i.nom} : {etatImprimante(i)}. Les tickets attendent et sortiront à son retour. Touchez « Ticket » sur une commande pour l&apos;afficher ici.
+      {imprimantesKo.length > 0 && (
+        // Une seule ligne pour toutes les imprimantes : la file reste visible (vague 3, rush).
+        <p className="tab-attente" role="alert">
+          {lignesImprimantes(imprimantesKo.map((i) => ({ nom: i.nom, etat: etatImprimante(i) })))}. Les tickets attendent leur retour, « Ticket » les affiche ici.
         </p>
-      ))}
+      )}
       {problemes.map((l) => (
         <p key={l.commande_id} className="tab-attente" role="alert">
           Livraison {l.numero} : {problemeTexte(l)} ({nomLivreur.get(l.livreur_id)}). Ouvrez « Livraisons ».
@@ -334,34 +378,25 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
       {listes.traiter.length > 0 && (
         <p className="tab-attente" role="status">
           {listes.traiter.length === 1 ? "1 commande à accepter" : `${listes.traiter.length} commandes à accepter`}
-          {!son ? ". Le son est coupé." : ""}
-        </p>
-      )}
-      {message && (
-        <p className="tab-message" role="status">
-          {message}
+          {!son ? ". Le son est coupé." : "."}
         </p>
       )}
 
       {reglagesOuverts && donnees && <Reglages reglages={donnees.reglages} onChange={charger} />}
 
-      <nav className="tab-onglets" aria-label="Commandes">
-        {ONGLETS.map(([cle, titre]) => (
-          <button key={cle} type="button" aria-pressed={onglet === cle} onClick={() => setOnglet(cle)}>
-            {titre} <span className="tab-nb">{listes[cle].length}</span>
+      {resultats && (
+        <p className="tab-recherche-info">
+          {resultats.length === 0 ? "Aucune commande" : resultats.length === 1 ? "1 commande" : `${resultats.length} commandes`} pour « {recherche.trim()} ».
+          <button type="button" className="bouton-second" onClick={() => setRecherche("")}>
+            Effacer la recherche
           </button>
-        ))}
-      </nav>
-
+        </p>
+      )}
       {donnees === null ? (
         <p className="tab-vide">Chargement…</p>
-      ) : onglet === "livraisons" ? (
+      ) : !resultats && onglet === "livraisons" ? (
         <OngletLivraisons commandes={donnees.commandes} plusTard={listes.plusTard} donnees={livraisons} agir={agirLivraison} />
-      ) : liste.length === 0 ? (
-        <p className="tab-vide">
-          {onglet === "traiter" ? "Aucune commande à accepter." : onglet === "cours" ? "Aucune commande en cours." : onglet === "avance" ? "Aucune commande pour plus tard." : "Rien de terminé aujourd'hui."}
-        </p>
-      ) : (
+      ) : liste.length > 0 ? (
         <ol className="tab-liste">
           {liste.map((c) => (
             <CarteCommande
@@ -378,7 +413,23 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
             />
           ))}
         </ol>
+      ) : resultats ? null : (
+        <p className="tab-vide">
+          {onglet === "traiter" ? "Aucune commande à accepter." : onglet === "cours" ? "Aucune commande en cours." : onglet === "avance" ? "Aucune commande pour plus tard." : "Rien de terminé aujourd'hui."}
+        </p>
       )}
+
+      {/* Retour de la dernière action, en bas de l'écran : visible même au fond d'une longue liste. */}
+      <div className="tab-retour" aria-live="polite">
+        {message && (
+          <div className={`tab-retour-boite${message.echec ? " tab-retour-echec" : ""}`} role={message.echec ? "alert" : undefined}>
+            <p className="tab-message">{message.texte}</p>
+            <button type="button" className="bouton-second" onClick={() => setMessage(null)}>
+              OK
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -437,6 +488,9 @@ function CarteCommande({
   // Commande acceptée pas encore imprimée : ses tickets sortiront à cette heure (SS-11). Déjà prête ou partie,
   // la surveillance ne l'imprime plus (commandes_a_imprimer).
   const imprimerA = c.heure_confirmee ? heureImpression(c.heure_confirmee, avance[c.mode]) : null;
+  // Heure promise dépassée et pas encore prête : la commande se voit de loin (vague 3, rush).
+  const retard = minutesDeRetard(c, maintenant);
+  const reste = retard === null ? minutesRestantes(c, maintenant) : null;
   const ticketsPrevus =
     parPoste.length === 0 && (c.statut === "acceptee" || c.statut === "en_preparation") && imprimerA !== null && imprimerA.getTime() > new Date(maintenant).getTime();
 
@@ -490,7 +544,7 @@ function CarteCommande({
   );
 
   return (
-    <li className={`tab-commande tab-${c.statut}`}>
+    <li className={`tab-commande tab-${c.statut}${retard !== null ? " tab-en-retard" : ""}`}>
       <div className="tab-tete">
         <p className="tab-num">{c.numero}</p>
         <div>
@@ -511,6 +565,8 @@ function CarteCommande({
             <span>Heure annoncée au client</span>
             {jourDe(c.heure_confirmee) && <strong className="tab-promise-jour">{jourCourt(c.heure_confirmee)}</strong>}
             {heure(c.heure_confirmee)}
+            {retard !== null && <em className="tab-retard">En retard de {retard} min</em>}
+            {reste !== null && <em className="tab-reste">{reste === 0 ? "maintenant" : `dans ${reste} min`}</em>}
           </p>
         )}
       </div>

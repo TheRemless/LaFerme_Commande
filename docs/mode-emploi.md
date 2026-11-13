@@ -30,6 +30,8 @@ Ne pas toucher « Continuer sans son ». Sans son, personne n'entend les command
 - À emporter payé au comptoir : quand le client paie et part, toucher « Retirée et payée ».
 - En livraison, donner la commande à un livreur dans l'onglet « Livraisons ». Il touche « Je pars » puis « Livrée » sur son téléphone. Sans téléphone, toucher ici « Partie en livraison » puis « Livrée » à son retour.
 - « Changer l'heure » envoie la nouvelle heure au client.
+- Sous l'heure promise, la tablette écrit le temps qui reste (« dans 12 min »). Une fois l'heure passée, l'heure s'affiche en blanc sur noir avec « En retard de 4 min ». Les commandes sont rangées par heure promise : les plus pressées sont en haut.
+- Le résultat d'un bouton (« Commande refusée et remboursée », « Tickets prévus à 18h30 ») s'affiche en bas de l'écran pendant 8 secondes. « OK » le ferme.
 
 ### Il manque un plat ou un supplément sur une commande
 
@@ -39,6 +41,10 @@ Ne pas toucher « Continuer sans son ». Sans son, personne n'entend les command
 4. Toucher « Confirmer et prévenir le client ». Le client reçoit un e-mail avec ce qui manque et le montant.
 
 Payée en ligne, le montant lui est remboursé. À payer au comptoir, il est déduit : la carte affiche le nouveau montant à encaisser. Le reste de la commande se prépare normalement. Une fois la commande prête ou partie, seul le gérant peut le faire.
+
+### Retrouver une commande au comptoir
+
+Taper le numéro, le nom ou le téléphone du client dans la case « N°, nom ou tél. », en haut. La tablette cherche dans tous les onglets, les commandes terminées comprises. Pas besoin d'accents ni de majuscules : « berenice » trouve Bérénice. Pour le téléphone, cinq chiffres suffisent, avec ou sans espaces. Toucher « Effacer la recherche » ou un onglet pour revenir à la liste.
 
 ### Un client appelle
 
