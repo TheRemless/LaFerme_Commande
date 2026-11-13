@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { corpsJson, refus } from "@/lib/comptes/api";
-import { emailNormalise } from "@/lib/comptes/securite";
 import { fonctionSql } from "@/lib/db/serveur";
-import { exigerGerant } from "@/lib/personnel/session";
+import { emailNormalise, empreinte } from "@/lib/comptes/securite";
+import { exigerGerant, jetonPersonnel } from "@/lib/personnel/session";
 
 // L'équipe (audit du gérant, G03) : liste, ajout, rôle, retrait, sessions coupées. Gérant seulement ;
 // chaque fonction SQL le vérifie encore et journalise.
@@ -38,6 +38,7 @@ export async function GET(requete: Request) {
 }
 
 // { action: "ajouter", email, nom, role } | { action: "modifier", id, nom?, role?, actif? } | { action: "couper", id }
+// | { action: "appareils", id } | { action: "couper_appareil", session }
 export async function POST(requete: Request) {
   const g = await exigerGerant(requete);
   if ("reponse" in g) return g.reponse;
@@ -53,6 +54,12 @@ export async function POST(requete: Request) {
       if (!email) return refus(ERREURS.adresse_invalide);
       await fonctionSql("ajouter_personnel", { p_email: email, p_nom: c.nom, p_role: role, p_personnel: qui });
       return NextResponse.json({ enregistre: true, message: "Ajouté. Il se connecte avec son e-mail et le code reçu." });
+    }
+    // Un appareil se désigne par sa session, pas par le membre.
+    if (c.action === "couper_appareil") {
+      if (typeof c.session !== "string" || !UUID.test(c.session)) return refus("Appareil inconnu.", 404);
+      const ok = await fonctionSql<boolean>("couper_appareil_personnel", { p_session: c.session, p_personnel: qui });
+      return ok ? NextResponse.json({ enregistre: true, message: "Appareil déconnecté." }) : refus("Cet appareil est déjà déconnecté.", 404);
     }
     if (typeof c.id !== "string" || !UUID.test(c.id)) return refus("Membre inconnu.", 404);
     if (c.action === "modifier") {
@@ -73,6 +80,11 @@ export async function POST(requete: Request) {
       const ok = await fonctionSql<boolean>("modifier_personnel", { p_id: c.id, p, p_personnel: qui });
       if (!ok) return refus("Membre inconnu.", 404);
       return NextResponse.json({ enregistre: true, message: p.actif === false ? "Retiré. Ses sessions sont coupées." : "Enregistré." });
+    }
+    if (c.action === "appareils") {
+      const jeton = await jetonPersonnel();
+      const appareils = await fonctionSql("appareils_personnel", { p_membre: c.id, p_personnel: qui, p_session_hache: jeton ? empreinte("session-personnel", jeton) : "" });
+      return NextResponse.json({ appareils }, { headers: { "Cache-Control": "no-store" } });
     }
     if (c.action === "couper") {
       const n = await fonctionSql<number>("couper_sessions_personnel", { p_id: c.id, p_personnel: qui });

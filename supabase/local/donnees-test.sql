@@ -33,7 +33,12 @@ insert into personnel (email, nom, role) values
   ('accueil-service-mobile@laferme.test', 'Accueil service mobile', 'service'),
   -- Recherche globale du back-office (tests/e2e/gestion-recherche.spec.ts).
   ('recherche-bureau@laferme.test', 'Recherche bureau', 'gerant'),
-  ('recherche-mobile@laferme.test', 'Recherche mobile', 'gerant');
+  ('recherche-mobile@laferme.test', 'Recherche mobile', 'gerant'),
+  -- Appareils de l'équipe (tests/e2e/gestion-appareils.spec.ts).
+  ('appareils-bureau@laferme.test', 'Appareils bureau', 'gerant'),
+  ('appareils-mobile@laferme.test', 'Appareils mobile', 'gerant'),
+  ('appareils-service-bureau@laferme.test', 'Téléphone bureau', 'service'),
+  ('appareils-service-mobile@laferme.test', 'Téléphone mobile', 'service');
 
 -- Livreurs des essais (tests/e2e/livreurs.spec.ts) et la tablette qui leur donne les commandes.
 insert into personnel (email, nom, role) values
