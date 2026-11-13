@@ -19,10 +19,18 @@ async function connecter(page: Page, email: string) {
   await page.getByRole("button", { name: "Me connecter" }).click();
 }
 
+// Coque du back-office (vague 3) : une adresse par rubrique, menu latéral, tiroir « Menu » sur téléphone.
+async function rubrique(page: Page, titre: string) {
+  const menu = page.getByRole("button", { name: "Menu", exact: true });
+  if (await menu.isVisible()) await menu.click();
+  await page.getByRole("navigation", { name: "Rubriques" }).getByRole("link", { name: titre, exact: true }).click();
+  await expect(page.getByRole("heading", { level: 1, name: titre })).toBeVisible();
+}
+
 test.beforeAll(async ({ browser }, info) => {
   gestion = await browser.newPage({ baseURL: SITE });
   await connecter(gestion, `gerant-${info.project.name}@laferme.test`);
-  await expect(gestion.getByRole("heading", { name: "Back-office" })).toBeVisible();
+  await expect(gestion.getByRole("heading", { level: 1, name: "Accueil" })).toBeVisible();
 });
 
 test.afterAll(async () => {
@@ -31,7 +39,7 @@ test.afterAll(async () => {
 
 test("un plat se modifie, ce qui bloque s'affiche, la modification va au journal", async () => {
   await expect(gestion.locator(".ges-bloquants")).toContainText("bloquent la mise en ligne");
-  await gestion.getByRole("button", { name: "Carte", exact: true }).click();
+  await rubrique(gestion, "Carte");
   await gestion.getByLabel("Chercher un plat").fill("tonno");
   await gestion.getByRole("button", { name: /^Pizza Tonno/ }).click();
   const fiche = gestion.locator(".ges-fiche");
@@ -40,13 +48,13 @@ test("un plat se modifie, ce qui bloque s'affiche, la modification va au journal
   await expect(fiche.getByText("Enregistré.")).toBeVisible();
   await expect(gestion.getByRole("button", { name: /^Pizza Tonno/ })).not.toContainText("allergènes manquants");
 
-  await gestion.getByRole("button", { name: "Journal" }).click();
+  await rubrique(gestion, "Journal");
   await expect(gestion.locator(".ges-journal-liste")).toContainText("Plat Pizza Tonno");
   await expect(gestion.locator(".ges-journal-liste")).toContainText("gluten, lait, poisson (test)");
 });
 
 test("l'import du tableau montre les changements avant de les appliquer", async () => {
-  await gestion.getByRole("button", { name: "Importer le tableau" }).click();
+  await rubrique(gestion, "Importer le tableau");
   await gestion.getByLabel("Fichier .xlsx").setInputFiles("tests/fixtures/validation-remplie.xlsx");
   await gestion.getByRole("button", { name: "Voir les changements" }).click();
   const apercu = gestion.locator(".ges-apercu");
@@ -57,7 +65,7 @@ test("l'import du tableau montre les changements avant de les appliquer", async 
 });
 
 test("l'export comptable se télécharge en CSV", async () => {
-  await gestion.getByRole("button", { name: "Export comptable" }).click();
+  await rubrique(gestion, "Export comptable");
   const telechargement = gestion.waitForEvent("download");
   await gestion.getByRole("button", { name: "Télécharger le fichier CSV" }).click();
   const fichier = await telechargement;
@@ -68,7 +76,7 @@ test("l'export comptable se télécharge en CSV", async () => {
 });
 
 test("une zone se valide, les horaires et les fermetures s'affichent", async () => {
-  await gestion.getByRole("button", { name: "Livraison et horaires" }).click();
+  await rubrique(gestion, "Livraison et horaires");
   const zone = gestion.locator(".ges-zone").first();
   await zone.getByRole("button", { name: "Enregistrer la zone" }).click();
   await expect(zone.getByText("Enregistré.")).toBeVisible();
@@ -105,7 +113,7 @@ test("une commande passée se retrouve et se rembourse en partie", async ({}, in
     expect((await gestion.request.post("/api/tablette/action", { headers: ORIGINE, data: { commande: c.id, ...corps } })).ok()).toBe(true);
   }
 
-  await gestion.getByRole("button", { name: "Commandes", exact: true }).click();
+  await rubrique(gestion, "Commandes");
   await gestion.getByLabel("Nom, téléphone ou numéro").fill(prenom);
   await gestion.getByRole("button", { name: "Chercher" }).click();
   // La liste du jour montre déjà la commande : attendre le résultat de la recherche avant d'ouvrir la fiche.
@@ -153,7 +161,7 @@ test("une recherche n'est pas remplacée par la liste du jour arrivée en retard
 // Audit du gérant, G03 : l'équipe se gère sans SQL.
 test("un membre de l'équipe s'ajoute puis se retire", async ({}, info) => {
   const email = `nouveau-${info.project.name}@laferme.test`;
-  await gestion.getByRole("button", { name: "Équipe" }).click();
+  await rubrique(gestion, "Équipe");
   await gestion.getByLabel("Prénom").fill(`Nouveau ${info.project.name}`);
   await gestion.getByLabel("E-mail").fill(email);
   await gestion.getByRole("button", { name: "Ajouter", exact: true }).click();
@@ -168,7 +176,7 @@ test("un membre de l'équipe s'ajoute puis se retire", async ({}, info) => {
 // Audit du gérant, vague 2 : fermer un seul soir, puis le rouvrir depuis le journal (G11).
 test("un soir se ferme, puis se rouvre par le journal", async ({}, info) => {
   const jour = info.project.name === "bureau" ? "2027-01-05" : "2027-01-12";
-  await gestion.getByRole("button", { name: "Livraison et horaires" }).click();
+  await rubrique(gestion, "Livraison et horaires");
   const bloc = gestion.locator(".ges-bloc", { has: gestion.getByRole("heading", { name: "Fermetures" }) });
   await bloc.getByLabel("Fermer").selectOption("soir");
   await bloc.getByLabel("Le", { exact: true }).fill(jour);
@@ -177,12 +185,12 @@ test("un soir se ferme, puis se rouvre par le journal", async ({}, info) => {
   await expect(bloc.getByText("Fermeture ajoutée.")).toBeVisible();
   await expect(bloc).toContainText(`le soir, Soirée privée ${info.project.name}`);
 
-  await gestion.getByRole("button", { name: "Journal" }).click();
+  await rubrique(gestion, "Journal");
   const ligne = gestion.locator(".ges-journal-liste li", { hasText: `Soirée privée ${info.project.name}` }).first();
   await ligne.getByRole("button", { name: "Annuler" }).click();
   await ligne.getByRole("button", { name: "Oui, remettre l'ancienne valeur" }).click();
   await expect(gestion.getByText("Ancienne valeur remise.")).toBeVisible();
-  await gestion.getByRole("button", { name: "Livraison et horaires" }).click();
+  await rubrique(gestion, "Livraison et horaires");
   await expect(gestion.locator(".ges-bloc", { has: gestion.getByRole("heading", { name: "Fermetures" }) })).not.toContainText(`Soirée privée ${info.project.name}`);
 });
 

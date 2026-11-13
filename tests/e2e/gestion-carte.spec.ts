@@ -21,11 +21,19 @@ async function connecter(page: Page, email: string) {
   await page.getByRole("button", { name: "Me connecter" }).click();
 }
 
+// Coque du back-office (vague 3) : une adresse par rubrique, menu latéral, tiroir « Menu » sur téléphone.
+async function rubrique(page: Page, titre: string) {
+  const menu = page.getByRole("button", { name: "Menu", exact: true });
+  if (await menu.isVisible()) await menu.click();
+  await page.getByRole("navigation", { name: "Rubriques" }).getByRole("link", { name: titre, exact: true }).click();
+  await expect(page.getByRole("heading", { level: 1, name: titre })).toBeVisible();
+}
+
 test.beforeAll(async ({ browser }, info) => {
   nom = `Risotto essai ${info.project.name}`;
   gestion = await browser.newPage({ baseURL: info.project.use.baseURL });
   await connecter(gestion, `carte-${info.project.name}@laferme.test`);
-  await expect(gestion.getByRole("heading", { name: "Back-office" })).toBeVisible();
+  await expect(gestion.getByRole("heading", { level: 1, name: "Accueil" })).toBeVisible();
 });
 
 test.afterAll(async () => {
@@ -33,7 +41,7 @@ test.afterAll(async () => {
 });
 
 test("un plat neuf naît hors de la vente et dit ce qui lui manque", async () => {
-  await gestion.getByRole("button", { name: "Carte", exact: true }).click();
+  await rubrique(gestion, "Carte");
   await gestion.getByRole("button", { name: "Ajouter un plat" }).click();
   const form = gestion.locator("form", { has: gestion.getByRole("heading", { name: "Nouveau plat" }) });
   await form.getByLabel("Catégorie").selectOption({ label: "Pâtes et risottos" });
@@ -101,7 +109,7 @@ test("le plat s'archive, quitte la liste, puis se remet", async () => {
 });
 
 test("le plat du jour de demain s'enregistre et se liste à part", async ({}, info) => {
-  await gestion.getByRole("button", { name: "Plat du jour" }).click();
+  await rubrique(gestion, "Plat du jour");
   const form = gestion.locator("form", { has: gestion.getByRole("heading", { name: "Nouveau plat du jour" }) });
   const demain = await form.getByLabel("Jour").evaluate((el: HTMLInputElement) => {
     const d = new Date(`${el.min}T12:00:00Z`);

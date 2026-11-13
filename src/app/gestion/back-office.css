@@ -1,0 +1,441 @@
+/* Back-office (vague 3) : la coque. Même famille que le site (Béton, Archivo), plus dense et plus « outil ».
+   Le menu est du béton sombre, comme le plan de travail des photos. La rubrique ouverte est découpée dans
+   la feuille de papier du contenu : elle rejoint la page, on voit tout de suite où l'on est.
+   Toutes les règles commencent par .bo : ce fichier n'agit pas hors de /gestion. */
+
+.bo {
+  --bo-cote: var(--beton-sombre);
+  --bo-cote-survol: #636365;
+  --bo-cote-texte: var(--blanc);
+  --bo-cote-doux: #e4e4e1;
+  --bo-fond: var(--papier);
+  --bo-surface: var(--blanc);
+  --bo-trait: var(--filet);
+  --bo-texte: var(--encre);
+  --bo-texte-doux: var(--encre-douce);
+  --bo-rayon: 4px;
+  --bo-largeur-menu: 248px;
+  --bo-largeur-rail: 72px;
+  --bo-hauteur-tete: 72px;
+  --bo-taille: 15px;
+  --bo-cible: 44px;
+
+  display: grid;
+  grid-template-columns: var(--bo-largeur-menu) minmax(0, 1fr);
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--bo-fond);
+  color: var(--bo-texte);
+}
+
+.bo .bo-ic {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ---------- Menu ---------- */
+.bo-cote {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 0 12px 12px;
+  color: var(--bo-cote-texte);
+  background: var(--bo-cote);
+  scrollbar-width: thin;
+}
+.bo-marque {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: var(--bo-hauteur-tete);
+  padding: 0 12px 0 8px;
+}
+.bo-marque-nom {
+  font-size: 24px;
+  font-weight: 700;
+  font-stretch: 62%;
+  line-height: 1;
+}
+.bo-marque-sous {
+  margin-top: 2px;
+  font-size: 14px;
+  color: var(--bo-cote-doux);
+}
+.bo-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 4px;
+}
+.bo-groupe ul,
+.bo-plan ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.bo-groupe-titre {
+  margin: 0 0 2px;
+  padding: 0 12px 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--bo-cote-doux);
+}
+.bo-lien {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: var(--bo-cible);
+  padding: 0 12px 0 8px;
+  font: inherit;
+  font-size: var(--bo-taille);
+  font-weight: 500;
+  text-align: left;
+  text-decoration: none;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-radius: var(--bo-rayon) 0 0 var(--bo-rayon);
+  cursor: pointer;
+}
+.bo-lien:hover {
+  background: var(--bo-cote-survol);
+}
+.bo-lien:focus-visible {
+  outline: 2px solid var(--bo-cote-texte);
+  outline-offset: -2px;
+}
+/* La rubrique ouverte : un morceau de la feuille du contenu, collé au bord droit du menu. */
+.bo-lien[aria-current="page"] {
+  font-weight: 700;
+  color: var(--bo-texte);
+  background: var(--bo-fond);
+}
+.bo-lien[aria-current="page"]:focus-visible {
+  outline-color: var(--bo-texte);
+}
+.bo-libelle {
+  flex: 1;
+  min-width: 0;
+}
+.bo-qui {
+  display: block;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--bo-cote-doux);
+}
+.bo-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 6px;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--bo-texte);
+  background: var(--bo-surface);
+  border-radius: 11px;
+}
+.bo-lien[aria-current="page"] .bo-badge {
+  color: var(--bo-cote-texte);
+  background: var(--bo-cote);
+}
+.bo-pied {
+  display: flex;
+  flex-direction: column;
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--bo-cote-survol);
+}
+.bo-tiroir-fermer,
+.bo-bouton-menu,
+.bo-voile {
+  display: none;
+}
+
+/* ---------- En-tête de la rubrique et contenu ---------- */
+.bo-corps {
+  min-width: 0;
+}
+.bo-tete {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--bo-hauteur-tete);
+  padding: 8px 24px;
+  background: var(--bo-fond);
+  border-bottom: 1px solid var(--bo-trait);
+}
+.bo-titre {
+  min-width: 0;
+}
+.bo-titre-groupe {
+  margin: 0;
+  font-size: 14px;
+  color: var(--bo-texte-doux);
+}
+.bo-titre h1 {
+  font-size: 32px;
+}
+.bo .bo-contenu {
+  max-width: 1240px;
+  margin: 0;
+  padding: 20px 24px 64px;
+}
+.bo .bo-contenu > .ges-bloc:first-child,
+.bo .bo-contenu > section:first-child {
+  margin-top: 0;
+}
+
+/* ---------- Accueil (première version) ---------- */
+.bo-plan {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+.bo-plan-groupe {
+  padding: 16px;
+  background: var(--bo-surface);
+  border: 1px solid var(--bo-trait);
+  border-radius: var(--bo-rayon);
+}
+.bo-plan-groupe h2 {
+  margin-bottom: 8px;
+  font-size: 22px;
+}
+.bo-plan-lien {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: var(--bo-cible);
+  padding: 10px 8px;
+  margin: 0 -8px;
+  text-decoration: none;
+  border-radius: var(--bo-rayon);
+}
+.bo-plan-lien:hover {
+  background: var(--bo-fond);
+}
+.bo-plan-lien .bo-ic {
+  margin-top: 1px;
+}
+.bo-plan-lien strong {
+  display: block;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.bo-plan-resume {
+  display: block;
+  font-size: var(--bo-taille);
+  color: var(--bo-texte-doux);
+}
+
+/* ---------- Rail : menu étroit, icônes seules (tablette en portrait par défaut, ou au choix) ---------- */
+@media (min-width: 768px) {
+  .bo[data-menu="etroit"] {
+    grid-template-columns: var(--bo-largeur-rail) minmax(0, 1fr);
+  }
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  .bo[data-menu="auto"] {
+    grid-template-columns: var(--bo-largeur-rail) minmax(0, 1fr);
+  }
+}
+@media (min-width: 768px) {
+  .bo[data-menu="etroit"] .bo-cote {
+    padding-left: 8px;
+  }
+  .bo[data-menu="etroit"] :is(.bo-libelle, .bo-groupe-titre, .bo-marque-sous) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .bo[data-menu="etroit"] .bo-marque {
+    align-items: center;
+    padding: 0 8px 0 0;
+  }
+  .bo[data-menu="etroit"] .bo-marque-nom {
+    font-size: 18px;
+    text-align: center;
+  }
+  .bo[data-menu="etroit"] .bo-groupe + .bo-groupe {
+    padding-top: 12px;
+    border-top: 1px solid var(--bo-cote-survol);
+    margin-right: 8px;
+  }
+  .bo[data-menu="etroit"] .bo-nav {
+    gap: 12px;
+  }
+  .bo[data-menu="etroit"] .bo-lien {
+    position: relative;
+    justify-content: center;
+    min-height: 48px;
+    padding: 0 8px 0 0;
+  }
+  .bo[data-menu="etroit"] .bo-badge {
+    position: absolute;
+    top: 2px;
+    right: 6px;
+    min-width: 20px;
+    height: 18px;
+    padding: 0 4px;
+    font-size: 12px;
+  }
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  .bo[data-menu="auto"] .bo-cote {
+    padding-left: 8px;
+  }
+  .bo[data-menu="auto"] :is(.bo-libelle, .bo-groupe-titre, .bo-marque-sous) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .bo[data-menu="auto"] .bo-marque {
+    align-items: center;
+    padding: 0 8px 0 0;
+  }
+  .bo[data-menu="auto"] .bo-marque-nom {
+    font-size: 18px;
+    text-align: center;
+  }
+  .bo[data-menu="auto"] .bo-groupe + .bo-groupe {
+    padding-top: 12px;
+    border-top: 1px solid var(--bo-cote-survol);
+    margin-right: 8px;
+  }
+  .bo[data-menu="auto"] .bo-nav {
+    gap: 12px;
+  }
+  .bo[data-menu="auto"] .bo-lien {
+    position: relative;
+    justify-content: center;
+    min-height: 48px;
+    padding: 0 8px 0 0;
+  }
+  .bo[data-menu="auto"] .bo-badge {
+    position: absolute;
+    top: 2px;
+    right: 6px;
+    min-width: 20px;
+    height: 18px;
+    padding: 0 4px;
+    font-size: 12px;
+  }
+}
+
+/* ---------- Téléphone : le menu devient un tiroir ---------- */
+@media (max-width: 767px) {
+  .bo {
+    grid-template-columns: minmax(0, 1fr);
+    --bo-hauteur-tete: 64px;
+  }
+  .bo-cote {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 60;
+    width: min(300px, 86vw);
+    visibility: hidden;
+    transform: translateX(-100%);
+  }
+  .bo[data-tiroir="ouvert"] .bo-cote {
+    visibility: visible;
+    transform: none;
+  }
+  .bo[data-tiroir="ouvert"] .bo-voile {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: block;
+    padding: 0;
+    background: rgb(28 27 26 / 0.45);
+    border: 0;
+  }
+  .bo-marque {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+  .bo-marque-sous {
+    margin: 4px 0 0;
+  }
+  .bo-tiroir-fermer {
+    display: grid;
+    place-items: center;
+    width: var(--bo-cible);
+    height: var(--bo-cible);
+    margin-left: auto;
+    padding: 0;
+    color: inherit;
+    background: none;
+    border: 0;
+    border-radius: var(--bo-rayon);
+    cursor: pointer;
+  }
+  .bo-tiroir-fermer:focus-visible {
+    outline: 2px solid var(--bo-cote-texte);
+    outline-offset: -2px;
+  }
+  .bo-replier {
+    display: none;
+  }
+  .bo-tete {
+    padding: 8px 16px;
+  }
+  .bo-bouton-menu {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 8px;
+    min-height: var(--bo-cible);
+    padding: 0 12px;
+    font: inherit;
+    font-weight: 600;
+    color: var(--bo-texte);
+    background: var(--bo-surface);
+    border: 1px solid var(--bo-trait);
+    border-radius: var(--bo-rayon);
+    cursor: pointer;
+  }
+  .bo-titre h1 {
+    font-size: 26px;
+  }
+  .bo .bo-contenu {
+    padding: 16px 16px 48px;
+  }
+}
+@media (max-width: 767px) and (prefers-reduced-motion: no-preference) {
+  /* À l'ouverture, le tiroir devient visible tout de suite (le focus peut y entrer) ; à la fermeture, après le glissé. */
+  .bo-cote {
+    transition:
+      transform 0.2s ease-out,
+      visibility 0s linear 0.2s;
+  }
+  .bo[data-tiroir="ouvert"] .bo-cote {
+    transition: transform 0.2s ease-out;
+  }
+}
