@@ -17,9 +17,14 @@ La remise est calculée par la base à partir de ce qu'elle a, jamais d'un monta
 
 Textes montrés au client (`src/lib/codes-promo.ts`, passés par `redaction-fr`) : « Ce code n'existe pas. Vérifiez l'orthographe. », « Ce code n'est plus valable. » (aussi quand le plafond est atteint), « Ce code n'est pas encore valable. », « Ce code vaut à partir de CHF … de plats. », « Vous avez déjà utilisé ce code. », « Ce code vaut pour une première commande. », « Ce code vaut pour une livraison. ».
 
+## Limite connue
+
+Au retrait, en invité, l'e-mail et le téléphone ne sont pas prouvés : un client qui en invente d'autres peut reprendre un code « une fois par client » ou « première commande ». En livraison, l'adresse officielle du registre fédéral bloque la reprise. C'est la conséquence de la commande sans compte (décision fixée), à peser par Jérémy avec l'offre choisie.
+
 ## Pas encore branché (PR suivante, avec `client-commande` et `bo-pilotage`)
 
 - Champ « Code » au panier et `?code=` dans l'adresse du QR (le code seul, jamais une donnée du client).
 - Remise dans le calcul du panier et revérifiée au paiement ; montant Stripe après remise ; `noter_utilisation_code` dans la même transaction que la commande.
 - Ligne « Remise » sur le reçu, l'e-mail de confirmation et le suivi ; ticket de cuisine inchangé.
 - Remboursements cohérents avec la remise ; export comptable : la remise réduit la base imposable (à faire confirmer par la fiduciaire).
+- Règles pour ce branchement (revue de sécurité) : passer à `evaluer_code` l'adresse officielle rendue par `zoneServeur` (avec `featureId`), jamais celle du corps de la requête ; prendre `sous_total_centimes`, `frais_centimes` et `mode` du calcul du serveur ; appeler `noter_utilisation_code` avec la `remise_centimes` rendue par `evaluer_code`, dans la même transaction que la commande.
