@@ -1759,7 +1759,8 @@ body.fiche-ouverte {
 /* Chaque commande porte son numéro du jour en grand, celui du ticket et du téléphone. */
 .ancienne {
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr);
+  /* Le numéro prend sa largeur : à 300 commandes par jour, il a souvent trois chiffres (jeu de rush). */
+  grid-template-columns: minmax(40px, max-content) minmax(0, 1fr);
   gap: 10px;
   padding: 18px 0;
   border-top: 1px solid var(--filet);
@@ -3574,4 +3575,161 @@ body.fiche-ouverte {
   padding-left: 12px;
   font-weight: 700;
   border-left: 6px solid var(--alerte-trait);
+}
+
+/* Reçu avec TVA (vague 3, client-compte) : papier blanc, encre, lisible à l'impression. */
+.page-recu {
+  min-height: calc(100vh - var(--hauteur-tete));
+  padding: 24px 0 48px;
+  background: var(--beton);
+}
+.recu {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 20px max(16px, env(safe-area-inset-left));
+  color: var(--encre);
+  background: var(--blanc);
+  border-radius: 4px;
+}
+.recu h1 {
+  font-size: 28px;
+}
+.recu-vendeur,
+.recu-meta {
+  margin: 12px 0;
+}
+.recu-table {
+  width: 100%;
+  margin: 12px 0;
+  border-collapse: collapse;
+}
+.recu-table th,
+.recu-table td {
+  padding: 8px 0;
+  text-align: left;
+  vertical-align: top;
+  border-top: 1px solid var(--filet);
+}
+.recu-table td:last-child,
+.recu-table tfoot td {
+  text-align: right;
+  white-space: nowrap;
+}
+.recu-table thead th:last-child {
+  text-align: right;
+}
+.recu-detail {
+  display: block;
+  color: var(--encre-douce);
+}
+.recu-total th,
+.recu-total td {
+  font-size: 18px;
+  font-weight: 700;
+}
+.recu-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  margin-top: 20px;
+}
+@media print {
+  .page-recu {
+    padding: 0;
+    background: var(--blanc);
+  }
+  .recu {
+    max-width: none;
+    padding: 0;
+  }
+  .tete,
+  .pied,
+  .recu-actions {
+    display: none !important;
+  }
+}
+
+/* Annulation par le client depuis le suivi (désactivée par défaut). */
+.suivi-annuler {
+  margin-top: 16px;
+}
+.suivi-annuler-confirmer {
+  margin: 16px 0;
+  padding: 12px 14px;
+  color: var(--encre);
+  background: var(--papier);
+  border-radius: 4px;
+}
+
+/* Consignes d'une adresse enregistrée, modifiables dans le compte (vague 3, client-compte). */
+.adresses li {
+  flex-wrap: wrap;
+}
+.adresses .adresse-actions {
+  flex-direction: row;
+  gap: 16px;
+}
+.form-adresse {
+  display: grid;
+  flex-basis: 100%;
+  gap: 4px;
+  padding-top: 8px;
+}
+/* Historique du compte au-delà des 30 dernières commandes. */
+.espace-plus {
+  margin-top: 16px;
+}
+
+/* Réclamation depuis le suivi (vague 3, client-compte). */
+.suivi-reclamation {
+  margin-top: 24px;
+  padding: 20px 16px;
+  color: var(--encre);
+  background: var(--papier);
+  border-radius: 4px;
+}
+.suivi-reclamation h2 {
+  font-size: 28px;
+}
+.choix-reclamation {
+  display: grid;
+  gap: 4px;
+  margin: 12px 0;
+  padding: 0;
+  border: 0;
+}
+.choix-reclamation legend {
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+.suivi-reclamation textarea {
+  width: 100%;
+  font: inherit;
+}
+
+/* Appareils connectés au compte (vague 3, client-compte). */
+.appareils {
+  display: grid;
+  margin: 8px 0 16px;
+  padding: 0;
+  list-style: none;
+}
+.appareils li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--filet);
+}
+.appareils li:first-child {
+  border-top: 0;
+}
+.appareils span {
+  display: flex;
+  flex-direction: column;
+}
+.appareils small {
+  color: var(--encre-douce);
 }

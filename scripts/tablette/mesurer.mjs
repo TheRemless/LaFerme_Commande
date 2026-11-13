@@ -34,13 +34,14 @@ for (const [nomVue, viewport] of [
     await page.getByRole("button", { name: titre }).click();
     await page.waitForTimeout(300);
     const m = await page.evaluate(() => {
-      const cartes = [...document.querySelectorAll(".tab-liste > li")];
+      // Cartes (avant la vague 3, et « À accepter ») ou lignes du tableau (après).
+      const cartes = [...document.querySelectorAll(":is(.tab-liste, .tab-tableau-liste):not(.tab-detail *) > li")];
       const h = window.innerHeight;
-      const liste = document.querySelector(".tab-liste");
+      const liste = document.querySelector(".tab-tableau-liste") ?? document.querySelector(".tab-liste");
       return {
         cartes: cartes.length,
         // Carte dont le numéro se lit sans défiler.
-        numerosVisibles: cartes.filter((c) => c.querySelector(".tab-num").getBoundingClientRect().bottom <= h).length,
+        numerosVisibles: cartes.filter((c) => c.querySelector(".tab-num, .tab-ligne-num").getBoundingClientRect().bottom <= h).length,
         hauteurCarteMoyenne: cartes.length ? Math.round(cartes.reduce((a, c) => a + c.getBoundingClientRect().height, 0) / cartes.length) : 0,
         hauteurListeEnEcrans: liste ? +(liste.getBoundingClientRect().bottom / h).toFixed(1) : 0,
         hautDeLaListe: liste ? Math.round(liste.getBoundingClientRect().top) : null,
@@ -59,7 +60,7 @@ for (const [nomVue, viewport] of [
   if (await champ.count()) {
     await champ.fill("lea");
     await page.waitForTimeout(300);
-    vue.recherche = await page.evaluate(() => document.querySelectorAll(".tab-liste > li").length);
+    vue.recherche = await page.evaluate(() => document.querySelectorAll(":is(.tab-liste, .tab-tableau-liste):not(.tab-detail *) > li").length);
     await page.screenshot({ path: `${dossier}/${prefixe}-${nomVue}-recherche.png` });
     await champ.fill("");
   }
@@ -79,11 +80,16 @@ await premiere.getByRole("button", { name: /^Accepter pour/ }).click();
 await page.locator(".tab-liste > li .tab-num", { hasText: new RegExp(`^${num}$`) }).waitFor({ state: "detached" });
 gestes.accepter_ms = Date.now() - t;
 await page.getByRole("button", { name: /^En cours/ }).click();
-const prete = page.locator(".tab-liste > li", { has: page.getByRole("button", { name: "Prête au comptoir" }) }).first();
-const numP = await prete.locator(".tab-num").innerText();
+// Un geste : la carte (avant) ou la ligne du tableau (après) a son bouton « Prête ».
+const prete = page.locator(":is(.tab-liste, .tab-tableau-liste):not(.tab-detail *) > li", { has: page.getByRole("button", { name: /^Prête( au comptoir)?$/ }) }).first();
+const numP = await prete.locator(".tab-num, .tab-ligne-num").innerText();
 t = Date.now();
-await prete.getByRole("button", { name: "Prête au comptoir" }).click();
-await page.locator(".tab-liste > li", { has: page.locator(".tab-num", { hasText: new RegExp(`^${numP}$`) }) }).getByRole("button", { name: /^Retirée/ }).waitFor();
+await prete.getByRole("button", { name: /^Prête( au comptoir)?$/ }).click();
+await page
+  .locator(":is(.tab-liste, .tab-tableau-liste):not(.tab-detail *) > li", { has: page.locator(".tab-num, .tab-ligne-num", { hasText: new RegExp(`^${numP}$`) }) })
+  .getByRole("button", { name: /^Retirée/ })
+  .first()
+  .waitFor();
 gestes.prete_ms = Date.now() - t;
 mesures.gestes = gestes;
 await navigateur.close();

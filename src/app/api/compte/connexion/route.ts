@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { attenteTexte, corpsJson, refus } from "@/lib/comptes/api";
 import { commandeACompte, verifierCode } from "@/lib/comptes/connexion";
 import { requeteDuSite } from "@/lib/comptes/origine-requete";
-import { codeValide, emailNormalise, ipDe } from "@/lib/comptes/securite";
+import { codeValide, emailNormalise, empreinte, ipDe } from "@/lib/comptes/securite";
+import { libelleAppareil } from "@/lib/comptes/appareil";
+import { fonctionSql } from "@/lib/db/serveur";
 import { jetonSession, nomCookie, optionsCookie } from "@/lib/comptes/session";
 
 // Vérification du code. Bon : nouvelle session dans un cookie neuf, l'ancienne est fermée.
@@ -19,6 +21,10 @@ export async function POST(requete: Request) {
   const r = await verifierCode(email, code, ipDe(requete), await jetonSession(), jetonCommande);
   if (r.statut === "attente") return refus(attenteTexte(r.attente), 429);
   if (r.statut === "invalide") return refus("Code incorrect ou expiré. Vérifiez le dernier e-mail reçu.", 400);
+  // Nom court de l'appareil pour la liste « Vos appareils » (migration 20261202140000 ; sans elle, rien).
+  await fonctionSql("noter_appareil", { p_session_hache: empreinte("session", r.jeton), p_appareil: libelleAppareil(requete.headers.get("user-agent")) }).catch(
+    (e) => console.error(`Appareil non noté : ${e instanceof Error ? e.message : e}`),
+  );
   const rep = NextResponse.json({ connecte: true }, { headers: { "Cache-Control": "no-store" } });
   rep.cookies.set(nomCookie(), r.jeton, optionsCookie());
   return rep;

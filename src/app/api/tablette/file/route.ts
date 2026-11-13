@@ -46,6 +46,12 @@ export async function GET(requete: Request) {
         impression_avance: config.reglages.impression_avance,
       },
       impression,
+      // Tableau par urgence (vague 3) : préparation habituelle et trajet de chaque zone (délai de la zone moins la
+      // préparation, le retard du soir et l'allongement s'ajoutant aux deux), pour savoir quand lancer.
+      rythme: {
+        preparation: config.reglages.preparation_base ?? config.reglages.preparation_minutes,
+        trajets: Object.fromEntries(config.zones.map((z) => [z.numero, Math.max(0, z.delai_min - config.reglages.preparation_minutes)])),
+      },
       relecture_s: enService ? RELECTURE_SERVICE_S : RELECTURE_VEILLE_S,
     },
     { headers: { "Cache-Control": "no-store" } },

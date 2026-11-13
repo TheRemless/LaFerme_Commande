@@ -125,6 +125,9 @@ test("commande en invité sans la case, puis connexion : la commande est dans le
 
   await seConnecter(page, email);
   await expect(page.locator(".ancienne-num")).toHaveText(numero);
+  await expect(page.getByText("1 commande avec ce compte.")).toBeVisible();
+  // Moins de 30 commandes : pas de bouton pour les plus anciennes.
+  await expect(page.getByRole("button", { name: "Voir les commandes plus anciennes" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Recommander la même chose" })).toBeVisible();
   // Rien n'est recopié de la commande : une adresse e-mail mal tapée ne livre pas le téléphone d'un inconnu.
   await expect(page.getByLabel("Téléphone")).toHaveValue("");
@@ -180,7 +183,7 @@ test("export des données puis suppression du compte, case de confirmation oblig
   await expect(page.getByRole("button", { name: "Recevoir un code" })).toBeVisible();
 });
 
-test("deux appareils, puis « déconnecter tous mes appareils »", async ({ page, browser }) => {
+test("deux appareils : la liste, un appareil déconnecté seul, puis « déconnecter tous mes appareils »", async ({ page, browser }) => {
   // Un second code pour le même e-mail n'est permis qu'après 30 secondes (limite de débit).
   test.setTimeout(75_000);
   const email = await identite(page, "partout");
@@ -190,11 +193,21 @@ test("deux appareils, puis « déconnecter tous mes appareils »", async ({ page
   await autre.setExtraHTTPHeaders({ "x-forwarded-for": `10.7.${n}.1` });
   await seConnecter(autre, email);
   await page.reload();
-  await expect(page.getByText("Connecté sur 2 appareils.")).toBeVisible();
-  await page.getByRole("button", { name: "Déconnecter tous mes appareils" }).click();
-  await expect(page.getByRole("button", { name: "Recevoir un code" })).toBeVisible();
+  // Vague 3 : la liste des appareils (nom court tiré du navigateur), celui-ci marqué.
+  const appareils = page.locator(".appareils li");
+  await expect(appareils).toHaveCount(2);
+  await expect(appareils.filter({ hasText: "Cet appareil" })).toHaveCount(1);
+  await expect(appareils.first()).toContainText(/ sur /);
+  await page.locator(".espace-bloc", { has: page.getByRole("heading", { name: "Connexion" }) }).screenshot({ path: "docs/rendus/vague-3/client-compte/compte-appareils.png" });
+  // Déconnecter l'autre seul : il revient à la connexion, celui-ci reste connecté.
+  await appareils.filter({ hasNotText: "Cet appareil" }).getByRole("button", { name: /^Déconnecter/ }).click();
+  await expect(appareils).toHaveCount(1);
   await autre.reload();
   await expect(autre.getByRole("button", { name: "Recevoir un code" })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Vos commandes" })).toBeVisible();
+  await page.getByRole("button", { name: "Déconnecter tous mes appareils" }).click();
+  await expect(page.getByRole("button", { name: "Recevoir un code" })).toBeVisible();
   await autre.close();
 });
 

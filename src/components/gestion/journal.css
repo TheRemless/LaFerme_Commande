@@ -1,0 +1,31 @@
+/* Journal du back-office (bo-pilotage) : filtres plus serrés que ceux de la carte, cinq champs sur une ligne
+   à partir de 1280 px, en colonne sur tablette étroite. Rien hors de .bo. */
+.bo .ges-journal-filtres .champ {
+  min-width: 200px;
+  flex: 1 1 200px;
+}
+.bo .ges-journal-filtres .ges-journal-date {
+  min-width: 150px;
+  flex: 0 1 160px;
+}
+.bo .ges-journal-filtres input,
+.bo .ges-journal-filtres select {
+  min-height: 44px;
+}
+/* Téléphone : la recherche sur toute la largeur, puis Quoi et Qui, Du et Au, deux par ligne. */
+@media (max-width: 640px) {
+  .bo .ges-journal-filtres {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px 12px;
+    align-items: end;
+  }
+  .bo .ges-journal-filtres .champ,
+  .bo .ges-journal-filtres .ges-journal-date {
+    min-width: 0;
+  }
+  .bo .ges-journal-filtres .champ:first-child,
+  .bo .ges-journal-filtres .boutons-ligne {
+    grid-column: 1 / -1;
+  }
+}

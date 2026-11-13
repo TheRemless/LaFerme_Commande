@@ -4,8 +4,9 @@ import { poster } from "@/lib/requete-client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
-import { adresseTexte, type Adresse, type Details } from "@/lib/adresse";
+import type { Adresse, Details } from "@/lib/adresse";
 import { lireChoix } from "@/lib/choix";
+import { AdresseEnregistree } from "@/components/compte/AdresseEnregistree";
 import type { Recommande } from "@/lib/comptes/recommander";
 import { annoncerPlatsRemis, panierVide, remplacerPanier } from "@/lib/panier-local";
 import { nomClient } from "@/lib/nom-plat";
@@ -25,7 +26,7 @@ const STATUTS: Record<string, string> = {
   prete: "Prête",
   partie: "En route",
   terminee: "Terminée",
-  refusee: "Refusée",
+  refusee: "Annulée",
 };
 
 function dateTexte(iso: string): string {
@@ -116,7 +117,20 @@ function Recommander({ commandeId }: { commandeId: string }) {
   );
 }
 
-export function EspaceCompte({ donnees, preversion }: { donnees: DonneesEspace; preversion: boolean }) {
+// Une session ouverte du compte (migration 20261202140000).
+export type Appareil = { id: string; appareil: string | null; cree_le: string; courant: boolean };
+
+export function EspaceCompte({
+  donnees,
+  historique,
+  appareils = null,
+  preversion,
+}: {
+  donnees: DonneesEspace;
+  historique: { suite: boolean; total: number } | null;
+  appareils?: Appareil[] | null;
+  preversion: boolean;
+}) {
   const router = useRouter();
   const ids = useId();
   const [profil, setProfil] = useState({ prenom: donnees.compte.prenom, nom: donnees.compte.nom, telephone: donnees.compte.telephone });
@@ -124,6 +138,23 @@ export function EspaceCompte({ donnees, preversion }: { donnees: DonneesEspace; 
   const [confirmer, setConfirmer] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState(false);
+  // Historique au-delà des 30 dernières commandes, chargé à la demande.
+  const [commandes, setCommandes] = useState(donnees.commandes);
+  const [suite, setSuite] = useState(historique?.suite ?? false);
+  const [plus, setPlus] = useState<"repos" | "envoi" | string>("repos");
+
+  async function plusAnciennes() {
+    const derniere = commandes[commandes.length - 1];
+    if (!derniere) return;
+    setPlus("envoi");
+    const r = await poster("/api/compte/commandes", { avant: derniere.cree_le });
+    if (r.statut === 401) return router.refresh();
+    if (!r.ok) return setPlus(String(r.donnees.erreur ?? "Impossible pour le moment. Réessayez."));
+    const page = r.donnees as unknown as { commandes: DonneesEspace["commandes"]; suite: boolean };
+    setCommandes((avant) => [...avant, ...page.commandes]);
+    setSuite(page.suite);
+    setPlus("repos");
+  }
 
   async function action(url: string, corps: unknown, ensuite: () => void) {
     setEnvoi(true);
@@ -184,7 +215,12 @@ export function EspaceCompte({ donnees, preversion }: { donnees: DonneesEspace; 
       <div className="espace-grille">
         <section className="espace-commandes" aria-labelledby={`${ids}-commandes`}>
           <h2 id={`${ids}-commandes`}>Vos commandes</h2>
-          {donnees.commandes.length === 0 ? (
+          {historique && historique.total > 0 && (
+            <p className="aide">
+              {historique.total} commande{historique.total > 1 ? "s" : ""} avec ce compte.
+            </p>
+          )}
+          {commandes.length === 0 ? (
             <div className="espace-vide">
               <p>Pas encore de commande avec ce compte.</p>
               <Link className="bouton-principal" href="/">
@@ -193,7 +229,7 @@ export function EspaceCompte({ donnees, preversion }: { donnees: DonneesEspace; 
             </div>
           ) : (
             <ol className="historique">
-              {donnees.commandes.map((c) => (
+              {commandes.map((c) => (
                 <li key={c.id} className="ancienne">
                   <p className="ancienne-num" aria-hidden="true">
                     {c.numero}
@@ -218,11 +254,28 @@ export function EspaceCompte({ donnees, preversion }: { donnees: DonneesEspace; 
                       <Link className="lien" href={`/suivi/${c.jeton_suivi}`}>
                         Suivre la commande
                       </Link>
+                      {c.statut !== "refusee" && (
+                        <Link className="lien" href={`/suivi/${c.jeton_suivi}/recu`}>
+                          Reçu
+                        </Link>
+                      )}
                     </div>
                   </div>
                 </li>
               ))}
             </ol>
+          )}
+          {suite && (
+            <div className="espace-plus">
+              <button type="button" className="bouton-second" onClick={plusAnciennes} disabled={plus === "envoi"}>
+                {plus === "envoi" ? "Un instant…" : "Voir les commandes plus anciennes"}
+              </button>
+              {plus !== "repos" && plus !== "envoi" && (
+                <p className="panier-alerte" role="alert">
+                  {plus}
+                </p>
+              )}
+            </div>
           )}
         </section>
 
@@ -234,21 +287,12 @@ export function EspaceCompte({ donnees, preversion }: { donnees: DonneesEspace; 
             ) : (
               <ul className="adresses">
                 {donnees.adresses.map((a) => (
-                  <li key={a.id}>
-                    <span>
-                      <strong>{adresseTexte(a.adresse)}</strong>
-                      {a.details.sonnette && <small>Sonnette {a.details.sonnette}</small>}
-                    </span>
-                    <button
-                      type="button"
-                      className="lien"
-                      disabled={envoi}
-                      onClick={() => action("/api/compte/adresses", { supprimer: a.id }, () => router.refresh())}
-                      aria-label={`Retirer ${adresseTexte(a.adresse)}`}
-                    >
-                      Retirer
-                    </button>
-                  </li>
+                  <AdresseEnregistree
+                    key={a.id}
+                    a={a}
+                    occupe={envoi}
+                    retirer={() => action("/api/compte/adresses", { supprimer: a.id }, () => router.refresh())}
+                  />
                 ))}
               </ul>
             )}
@@ -289,9 +333,35 @@ export function EspaceCompte({ donnees, preversion }: { donnees: DonneesEspace; 
 
           <section className="espace-bloc" aria-labelledby={`${ids}-connexion`}>
             <h2 id={`${ids}-connexion`}>Connexion</h2>
-            <p className="aide">
-              Connecté sur {donnees.sessions_actives} appareil{donnees.sessions_actives > 1 ? "s" : ""}.
-            </p>
+            {appareils && appareils.length > 0 ? (
+              <ul className="appareils">
+                {appareils.map((a) => (
+                  <li key={a.id}>
+                    <span>
+                      <strong>{a.appareil ?? "Appareil sans nom"}</strong>
+                      <small>
+                        {a.courant ? "Cet appareil, connecté" : "Connecté"} depuis le {dateTexte(a.cree_le)}
+                      </small>
+                    </span>
+                    {!a.courant && (
+                      <button
+                        type="button"
+                        className="lien"
+                        disabled={envoi}
+                        onClick={() => action("/api/compte/deconnexion", { appareil: a.id }, () => router.refresh())}
+                        aria-label={`Déconnecter ${a.appareil ?? "cet appareil"}`}
+                      >
+                        Déconnecter
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="aide">
+                Connecté sur {donnees.sessions_actives} appareil{donnees.sessions_actives > 1 ? "s" : ""}.
+              </p>
+            )}
             <div className="boutons-ligne">
               <button type="button" className="bouton-second" disabled={envoi} onClick={() => action("/api/compte/deconnexion", {}, () => router.refresh())}>
                 Me déconnecter
@@ -316,7 +386,7 @@ export function EspaceCompte({ donnees, preversion }: { donnees: DonneesEspace; 
             <div className="zone-suppression">
               <h3>Supprimer mon compte</h3>
               <p className="aide">
-                Votre profil, vos adresses et vos connexions sont effacés. Les commandes déjà passées restent dans la comptabilité du restaurant, sans
+                Votre profil, vos adresses, vos connexions et les notes du restaurant à votre sujet sont effacés. Les commandes déjà passées restent dans la comptabilité du restaurant, sans
                 lien avec un compte.
               </p>
               <label className="option">

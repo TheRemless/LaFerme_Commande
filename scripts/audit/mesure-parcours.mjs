@@ -178,6 +178,8 @@ const id = Date.now().toString(36);
   await c.aller(`/?heure=${HEURE}`);
   await page.waitForFunction(() => window.__laFermePret === true);
   const enregistree = page.locator(".adresses-enregistrees button, .adresses-enregistrees label").first();
+  // Les adresses du compte arrivent avec /api/accueil, après le premier affichage.
+  await enregistree.waitFor({ timeout: 5000 }).catch(() => undefined);
   if (await enregistree.isVisible().catch(() => false)) {
     await c.tap(enregistree);
   } else {
@@ -198,6 +200,29 @@ const id = Date.now().toString(36);
   await c.ecran(() => page.waitForURL(/\/commande/));
   await payerDoublure(c, page);
   resultats.push(c.resultat("client fidèle connecté, livraison"));
+
+  // 4. Le même client, le surlendemain, reprend sa dernière commande dès l'accueil (vague 3).
+  await page.evaluate(() => {
+    localStorage.removeItem("laferme.panier.v1");
+    localStorage.removeItem("laferme.choix.v1");
+    sessionStorage.clear();
+  });
+  const r = compteur(page);
+  await r.aller(`/?heure=${HEURE}`);
+  await page.waitForFunction(() => window.__laFermePret === true);
+  const reprendre = page.getByRole("button", { name: "Reprendre cette commande" });
+  await reprendre.waitFor({ timeout: 5000 }).catch(() => undefined);
+  if (await reprendre.isVisible().catch(() => false)) {
+    await r.tap(reprendre);
+    await page.getByText(/plats? remis dans votre panier/).waitFor();
+    await page.getByText("Dans notre zone de livraison").waitFor();
+    await r.tap(page.getByRole("button", { name: "Voir le panier" }));
+    await r.ecran(() => page.waitForURL(/\/panier/));
+    await r.tap(page.getByRole("link", { name: /^Commander, / }));
+    await r.ecran(() => page.waitForURL(/\/commande/));
+    await payerDoublure(r, page);
+    resultats.push(r.resultat("client fidèle connecté, reprendre la dernière commande"));
+  }
   await ctx.close();
 }
 
