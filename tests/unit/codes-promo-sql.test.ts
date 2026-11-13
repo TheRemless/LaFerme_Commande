@@ -129,6 +129,8 @@ describe("abus", () => {
     await commande({ telephone: "0041791234567" });
     expect(await evaluer(c)).toEqual({ ok: false, raison: "pas_premiere" });
     expect(await evaluer(c, { email: "", telephone: "" })).toEqual({ ok: false, raison: "client_inconnu" });
+    // Au panier, client pas encore connu : remise annoncée, à vérifier au paiement.
+    expect(await evaluer(c, { email: "", telephone: "", provisoire: true })).toMatchObject({ ok: true, a_verifier: true, remise_centimes: 400 });
   });
 
   it("plafond d'utilisations", async () => {
@@ -172,6 +174,14 @@ describe("back-office", () => {
     for (const fn of ["evaluer_code(jsonb)", "creer_code(jsonb, uuid)", "codes_gestion()", "noter_utilisation_code(text, uuid, integer)"]) {
       expect(await f("has_function_privilege('anon', $1, 'execute')", [fn])).toBe(false);
     }
+  });
+});
+
+describe("commande", () => {
+  it("garde le code et la remise (colonnes neuves, remise jamais négative)", async () => {
+    const id = await commande();
+    expect((await db.query("select code_promo, remise_centimes from commandes where id = $1", [id])).rows[0]).toEqual({ code_promo: null, remise_centimes: 0 });
+    await expect(db.query("update commandes set remise_centimes = -1 where id = $1", [id])).rejects.toThrow(/check/);
   });
 });
 

@@ -11,9 +11,13 @@ Migration `supabase/migrations/20261210120000_codes_promo.sql`. Tests : `tests/u
 - **Un code par support** pour savoir lequel ramène des commandes : `codes_gestion()` donne, par code, les commandes, la remise accordée et le total encaissé.
 - **Après un premier usage**, le type et la valeur d'un code ne changent plus (on en crée un autre) : les chiffres restent justes.
 
+## Commande
+
+`commandes.code_promo` et `commandes.remise_centimes` (0 sans code, migration `20261210160000_codes_promo_commande.sql`) gardent le code et la remise avec la commande, pour le reçu, l'e-mail et l'export. Le total vaut plats + frais − remise. Une ligne de `utilisations_codes` relie la commande au code (chiffres par code, abus).
+
 ## Contrôles (base, `evaluer_code`)
 
-La remise est calculée par la base à partir de ce qu'elle a, jamais d'un montant envoyé par le navigateur. « Une fois par client » et « première commande » se vérifient sur l'e-mail (sans majuscules ni étiquette `+`), le téléphone (079…, +41…, 0041… sont le même) et l'adresse de livraison (bâtiment du registre fédéral). Ne comptent que les commandes payées, à encaisser, encaissées, ou en cours de paiement depuis moins de 30 minutes. Une commande refusée, annulée ou dont le paiement a échoué rend le code au client.
+La remise est calculée par la base à partir de ce qu'elle a, jamais d'un montant envoyé par le navigateur. « Une fois par client » et « première commande » se vérifient sur l'e-mail (sans majuscules ni étiquette `+`), le téléphone (079…, +41…, 0041… sont le même) et l'adresse de livraison (bâtiment du registre fédéral). Au panier, le client n'est pas encore connu : avec `provisoire`, la remise est annoncée et marquée `a_verifier`, puis tout est revérifié au paiement. Ne comptent que les commandes payées, à encaisser, encaissées, ou en cours de paiement depuis moins de 30 minutes. Une commande refusée, annulée ou dont le paiement a échoué rend le code au client.
 
 Textes montrés au client (`src/lib/codes-promo.ts`, passés par `redaction-fr`) : « Ce code n'existe pas. Vérifiez l'orthographe. », « Ce code n'est plus valable. » (aussi quand le plafond est atteint), « Ce code n'est pas encore valable. », « Ce code vaut à partir de CHF … de plats. », « Vous avez déjà utilisé ce code. », « Ce code vaut pour une première commande. », « Ce code vaut pour une livraison. ».
 
