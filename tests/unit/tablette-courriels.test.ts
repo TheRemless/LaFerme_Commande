@@ -62,3 +62,12 @@ describe("E-mail au client quand la commande avance", () => {
     expect((await sujets(id)).at(-1)).toMatch(/prête/);
   });
 });
+
+describe("E-mail d'acceptation envoyé par la tablette (client-compte, #143)", () => {
+  it("l'heure est donnée en fourchette, comme à l'accueil et au suivi", async () => {
+    const id = await acceptee("retrait");
+    const db = await baseLocale();
+    const textes = (await db.query<{ texte: string }>("select texte from courriels where commande_id = $1 order by envoye_le", [id])).rows.map((r) => r.texte).join("\n");
+    expect(textes).toMatch(/entre \d{1,2}h\d{2} et \d{1,2}h\d{2}/);
+  });
+});

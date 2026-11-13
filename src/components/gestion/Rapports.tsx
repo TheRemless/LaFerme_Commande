@@ -16,13 +16,23 @@ import {
   periodeComparaison,
   periodeDe,
   nomFichierCsv,
+  Onglets,
   telechargerCsv,
   type Periode,
 } from "@/components/gestion/ui";
 import { jourGeneveDe } from "@/lib/heures";
 import type { Service, Synthese, TableauVentes } from "@/lib/pilotage";
 import { jourTexte } from "@/lib/service";
+import { AnalysesRapports, type PartieAnalyses } from "./AnalysesRapports";
 import "./rapports.css";
+
+const ONGLETS = [
+  { cle: "ventes", titre: "Ventes" },
+  { cle: "plats", titre: "Plats" },
+  { cle: "heures", titre: "Heures" },
+  { cle: "zones", titre: "Zones et clients" },
+  { cle: "livreurs", titre: "Livreurs" },
+];
 
 type Jour = TableauVentes["jours"][number];
 
@@ -65,6 +75,7 @@ async function lire(p: Periode, comparaison: Periode, service: Service | null): 
 export function Rapports() {
   const [periode, setPeriode] = useState<Periode>(() => periodeDe("7jours", jourGeneveDe(new Date())));
   const [service, setService] = useState<Service | null>(null);
+  const [onglet, setOnglet] = useState("ventes");
   const [tableau, setTableau] = useState<TableauVentes | null>(null);
   const [joursAvant, setJoursAvant] = useState<Jour[]>([]);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -116,7 +127,10 @@ export function Rapports() {
         Une commande compte au jour de service où elle est servie (jusqu&apos;à 5h du matin).
       </p>
 
-      {erreur ? (
+      <Onglets onglets={ONGLETS} actif={onglet} onChange={setOnglet} libelle="Parties des rapports">
+      {onglet !== "ventes" ? (
+        <AnalysesRapports periode={periode} service={service} partie={onglet as PartieAnalyses} />
+      ) : erreur ? (
         <EtatErreur texte={erreur} reessayer={charger} />
       ) : !p || !c ? (
         <Chargement lignes={6} libelle="Calcul des chiffres…" />
@@ -135,7 +149,7 @@ export function Rapports() {
             <div className="bo-chiffres">
               <CarteChiffre libelle="En livraison" valeur={pourcent(p.livraison.commandes, p.commandes)} aide={`${nombre(p.livraison.commandes)} commandes, frais encaissés CHF ${montant(p.frais_centimes)}`} />
               <CarteChiffre libelle="Payé en ligne" valeur={pourcent(p.en_ligne.commandes, p.commandes)} aide={`Au comptoir : ${nombre(p.comptoir.commandes)} commandes, CHF ${montant(p.comptoir.ttc_centimes)}`} />
-              <CarteChiffre libelle="Refusées" valeur={nombre(p.refusees.commandes)} comparaison={{ valeur: p.refusees.commandes, reference: c.refusees.commandes, contre }} aide={`CHF ${montant(p.refusees.ttc_centimes)} non vendus`} />
+              <CarteChiffre libelle="Refusées" valeur={nombre(p.refusees.commandes)} comparaison={{ valeur: p.refusees.commandes, reference: c.refusees.commandes, contre }} aide={`CHF ${montant(p.refusees.ttc_centimes)} non vendus${p.annulees_client?.commandes ? `. Et ${nombre(p.annulees_client.commandes)} annulée${p.annulees_client.commandes > 1 ? "s" : ""} par le client, à part` : ""}`} />
               <CarteChiffre
                 libelle="Comptoir pas encore encaissé"
                 valeur={nombre(p.a_encaisser)}
@@ -153,6 +167,7 @@ export function Rapports() {
               {p.refusees.motifs.length === 0 ? (
                 <p className="aide">Aucun refus sur la période.</p>
               ) : (
+                <div className="rap-defile" tabIndex={0} role="region" aria-labelledby="rap-refus">
                 <table className="rap-table">
                   <thead>
                     <tr>
@@ -171,6 +186,7 @@ export function Rapports() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               )}
             </section>
 
@@ -182,6 +198,7 @@ export function Rapports() {
 
           <section aria-labelledby="rap-tva">
             <h2 id="rap-tva">TVA par taux</h2>
+            <div className="rap-defile" tabIndex={0} role="region" aria-labelledby="rap-tva">
             <table className="rap-table">
               <thead>
                 <tr>
@@ -206,12 +223,14 @@ export function Rapports() {
                 ))}
               </tbody>
             </table>
+            </div>
             <p className="aide">
               Pour la fiduciaire : <a href="/gestion/export">Export comptable</a>.
             </p>
           </section>
         </>
       )}
+      </Onglets>
     </div>
   );
 }
@@ -220,6 +239,7 @@ function Remboursements({ s }: { s: Synthese }) {
   const r = s.remboursements;
   return (
     <>
+      <div className="rap-defile" tabIndex={0} role="region" aria-labelledby="rap-remb">
       <table className="rap-table">
         <tbody>
           <tr>
@@ -244,6 +264,7 @@ function Remboursements({ s }: { s: Synthese }) {
           </tr>
         </tbody>
       </table>
+      </div>
       {r.echecs_ouverts > 0 ? (
         <p className="rap-attention" role="note">
           {nombre(r.echecs_ouverts)} remboursement{r.echecs_ouverts > 1 ? "s" : ""} en échec, tous jours confondus (CHF {montant(r.echecs_ouverts_centimes)}) : le client n&apos;a pas reçu son argent. À reprendre depuis la fiche de la commande.
@@ -292,7 +313,7 @@ function VentesParJour({ jours, avant, contre }: { jours: Jour[]; avant: Jour[];
         <span className="rap-legende-barre" /> Cette période
         <span className="rap-legende-trait" /> {contre.charAt(0).toUpperCase() + contre.slice(1)}
       </p>
-      <div className="rap-graphe" onMouseLeave={() => setSurvol(null)}>
+      <div className="rap-graphe" tabIndex={0} role="region" aria-labelledby="rap-jours" onMouseLeave={() => setSurvol(null)}>
         <svg viewBox={`0 0 ${L} ${H}`} role="img" aria-label={`Ventes TTC par jour, ${jours.length} jours. Les chiffres sont aussi dans le tableau ci-dessous.`}>
           {graduations.map((g) => (
             <g key={g}>
@@ -347,6 +368,7 @@ function VentesParJour({ jours, avant, contre }: { jours: Jour[]; avant: Jour[];
       </div>
       <details className="rap-details">
         <summary>Voir le tableau jour par jour</summary>
+        <div className="rap-defile" tabIndex={0} role="region" aria-labelledby="rap-jours">
         <table className="rap-table">
           <thead>
             <tr>
@@ -369,6 +391,7 @@ function VentesParJour({ jours, avant, contre }: { jours: Jour[]; avant: Jour[];
             ))}
           </tbody>
         </table>
+        </div>
         <button type="button" className="bo-bouton bo-bouton-second bo-bouton-petit" onClick={csv}>
           Télécharger ce tableau (CSV)
         </button>

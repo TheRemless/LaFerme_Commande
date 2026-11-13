@@ -50,8 +50,13 @@
 .bo .clo > * {
   min-width: 0;
 }
-.bo .clo section:has(> .clo-table) {
+/* Un tableau trop large défile dans son cadre, que le clavier peut atteindre (axe : scrollable-region-focusable). */
+.bo .clo-defile {
   overflow-x: auto;
+}
+.bo .clo-defile:focus-visible {
+  outline: 3px solid var(--bo-texte);
+  outline-offset: 2px;
 }
 .bo .clo-table {
   width: 100%;
@@ -75,6 +80,10 @@
 .bo .clo-table .clo-nb {
   text-align: right;
   white-space: nowrap;
+}
+.bo .clo-detail th {
+  padding-left: 24px;
+  color: var(--bo-texte-doux);
 }
 .bo .clo-total th,
 .bo .clo-total td {

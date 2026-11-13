@@ -22,6 +22,12 @@ export type RapportCloture = {
     deductions_centimes: number;
     especes_rendues_centimes: number;
     attendu_comptoir_centimes: number;
+    // Moyen noté par la tablette (absents d'un rapport enregistré avant cette séparation).
+    comptoir_especes?: { commandes: number; centimes: number };
+    comptoir_carte?: { commandes: number; centimes: number };
+    comptoir_non_note?: { commandes: number; centimes: number };
+    attendu_especes_centimes?: number;
+    attendu_carte_centimes?: number;
   };
   a_encaisser: { numero: number; mode: string; statut: string; du_centimes: number; heure: string }[];
   remboursements: {
@@ -103,9 +109,19 @@ export function csvCloture(j: ClotureJour): string {
     ligne("Encaissements", "Commandes", "CHF"),
     ligne("En ligne (TWINT ou carte)", e.en_ligne.commandes, chf(e.en_ligne.centimes)),
     ligne("Comptoir", e.comptoir.commandes, chf(e.comptoir.centimes)),
+    ...(e.comptoir_especes && e.comptoir_carte && e.comptoir_non_note
+      ? [
+          ligne("dont espèces", e.comptoir_especes.commandes, chf(e.comptoir_especes.centimes)),
+          ligne("dont carte", e.comptoir_carte.commandes, chf(e.comptoir_carte.centimes)),
+          ligne("dont moyen pas noté", e.comptoir_non_note.commandes, chf(e.comptoir_non_note.centimes)),
+        ]
+      : []),
     ligne("Déduit au comptoir (manques)", "", chf(e.deductions_centimes)),
     ligne("Espèces rendues", "", chf(e.especes_rendues_centimes)),
     ligne("Attendu au comptoir", "", chf(e.attendu_comptoir_centimes)),
+    ...(e.attendu_especes_centimes !== undefined && e.attendu_carte_centimes !== undefined
+      ? [ligne("Attendu en espèces", "", chf(e.attendu_especes_centimes)), ligne("Attendu en carte", "", chf(e.attendu_carte_centimes))]
+      : []),
   ];
   if (j.cloture) {
     l.push(
