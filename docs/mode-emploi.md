@@ -247,6 +247,7 @@ E-mail des alertes, longueur d'un créneau, commande à l'avance, annulation par
 - Une ligne par vente encaissée, puis les remboursements de la période en négatif, puis le total net par taux de TVA.
 - Une commande payée au comptoir n'y est que si quelqu'un a touché « Encaissée » ou « Retirée et payée » sur la tablette.
 - Rapports (rubrique à côté) : choisir la période et le service, les ventes, les commandes et le panier moyen s'affichent avec l'écart contre la période d'avant. Détail : [docs/rapports-gestion.md](rapports-gestion.md).
+- Fin de journée : rubrique « Clôture du jour ». Compter la caisse, écrire les espèces et le total du ticket du terminal, toucher « Clôturer le jour », puis « Imprimer ». Détail : [docs/pilotage.md](pilotage.md).
 
 ### Journal
 

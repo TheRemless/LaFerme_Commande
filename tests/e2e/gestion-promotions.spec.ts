@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { adresseDuCompte, codeDuPersonnel } from "./site";
+import { adresseDuCompte, codeDuPersonnel, passage } from "./site";
 
 // Promotions au back-office (vague 3) : construites désactivées. Un code d'essai se crée inactif, s'active,
 // se rend inactif ; l'interrupteur général n'est jamais touché ici (il reste faux pour les autres tests).
@@ -11,7 +11,8 @@ let code: string;
 const RENDUS = process.env.RENDUS === "1" ? "docs/rendus/vague-3/bo-carte" : null;
 
 test.beforeAll(async ({ browser }, info) => {
-  code = `ESSAI-${info.project.name.toUpperCase()}`;
+  // Suffixe de passage : un réessai de la CI dans la même base crée un code neuf.
+  code = `ESSAI-${info.project.name.toUpperCase()}-${passage().toUpperCase()}`;
   gestion = await browser.newPage({ baseURL: info.project.use.baseURL });
   await adresseDuCompte(gestion, `promos-${info.project.name}@laferme.test`);
   await gestion.goto("/gestion");

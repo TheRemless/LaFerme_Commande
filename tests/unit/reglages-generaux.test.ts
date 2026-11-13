@@ -18,7 +18,7 @@ describe("validerReglage", () => {
     ["plafond_codes_clients_jour", 500, /20 à 450/],
     ["alerte_email", "gerant@", /illisible/],
     ["preparation_minutes", 20, /inconnu/],
-    ["annulation_client_active", "true", /oui ou non/],
+    ["annulation_client_active", "true", /oui ou non/i],
   ])("refuse %s = %j", (cle, valeur, erreur) => {
     const r = validerReglage(cle, valeur);
     expect(r.ok).toBe(false);
