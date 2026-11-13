@@ -12,6 +12,7 @@ import {
   nouvelleOption,
   slugDe,
 } from "@/lib/gestion";
+import { champsDisponibilite, dateRupture } from "@/lib/gestion-dispo";
 import { exigerGerant } from "@/lib/personnel/session";
 import { instantGeneve } from "@/lib/service";
 import { rafraichirCaches } from "@/lib/tablette";
@@ -32,6 +33,11 @@ const ERREURS: Record<string, string> = {
   jour_invalide: "Date invalide : aujourd'hui ou dans les 14 jours.",
   service_invalide: "Choisissez midi, soir ou les deux.",
   texte_trop_long: "Texte trop long.",
+  jours_vides: "Cochez au moins un jour.",
+  jours_invalides: "Jours illisibles.",
+  mode_invalide: "Mode inconnu.",
+  plat_du_jour: "Le plat du jour a déjà sa date et son service.",
+  date_rupture: "Date de retour : d'aujourd'hui à 60 jours.",
   "Réservé au gérant": "Réservé au gérant.",
 };
 
@@ -117,6 +123,23 @@ async function agir(c: Record<string, unknown>, qui: string): Promise<Reponse | 
     case "service_jour": {
       if (!slug(c.slug) || (c.service !== "midi" && c.service !== "soir" && c.service !== "journee")) return refus("Service inconnu.");
       return { ok: await fonctionSql<boolean>("modifier_service_jour", { p_slug: c.slug, p_service: c.service, p_personnel: qui }) };
+    }
+    case "disponibilite": {
+      if (!slug(c.slug)) return refus("Plat inconnu.", 404);
+      const d = champsDisponibilite(c.dispo);
+      if (!d.ok) return refus(d.erreur);
+      return { ok: await fonctionSql<boolean>("regler_disponibilite", { p_slug: c.slug, p: d.valeur, p_personnel: qui }) };
+    }
+    case "rupture": {
+      const date = dateRupture(c.jusqu_au, instantGeneve(new Date()).date);
+      if (!date.ok) return refus(date.erreur);
+      if (c.groupe !== undefined) {
+        if (!slug(c.groupe) || typeof c.nom !== "string" || c.nom.length > 80) return refus("Option inconnue.", 404);
+        const p = { p_groupe: c.groupe, p_nom: c.nom, p_jusqu_au: date.valeur, p_personnel: qui };
+        return { ok: await fonctionSql<boolean>("planifier_rupture_option", p) };
+      }
+      if (!slug(c.slug)) return refus("Plat inconnu.", 404);
+      return { ok: await fonctionSql<boolean>("planifier_rupture", { p_slug: c.slug, p_jusqu_au: date.valeur, p_personnel: qui }) };
     }
     default:
       return refus("Type inconnu.");

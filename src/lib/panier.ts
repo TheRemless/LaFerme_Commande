@@ -1,6 +1,7 @@
 // Panier : contenu choisi par le client et calcul des montants. Fonction pure, la même dans le
 // navigateur (affichage immédiat) et sur le serveur (/api/panier), qui seul fait foi.
 // Tous les prix viennent du catalogue lu en base : aucun montant n'est écrit ici.
+import type { Dispo } from "@/lib/disponibilite";
 
 export type OptionCatalogue = { nom: string; prix_centimes: number; prix_a_valider: boolean; rupture?: boolean };
 export type GroupeCatalogue = { slug: string; nom: string; choix_min: number; choix_max: number; options: OptionCatalogue[] };
@@ -17,6 +18,9 @@ export type PlatCatalogue = {
   retraits: RetraitCatalogue[];
   // Plat du jour : sa date et son service. Absent pour les plats de la carte.
   jour?: { date: string; service: "midi" | "soir" | "journee" } | null;
+  // Restrictions du plat (service, mode, jours) et dernier jour d'une rupture planifiée.
+  dispo?: Dispo | null;
+  rupture_jusqu_au?: string | null;
 };
 export type Catalogue = {
   plats: Record<string, PlatCatalogue>;

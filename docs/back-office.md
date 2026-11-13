@@ -53,6 +53,14 @@ Contrôles : gérant connecté et requête du site ; 5 Mo au plus (Netlify refus
 
 Le module d'image `sharp` est déclaré dans `package.json` et se construit pour Linux sur Netlify. Le back-office n'étant pas ouvert sur les préversions, `/api/diagnostic/images` (préversions seulement) réduit une image générée avec le même code et répond `{ "ok": true, "taille": "2133x1600" }` quand tout marche.
 
+## Disponibilités et ruptures planifiées (vague 3, 13.11.2026)
+
+Migration `supabase/migrations/20261128090000_disponibilites.sql`. Tests : `tests/unit/disponibilites-sql.test.ts` (base), `tests/unit/disponibilite.test.ts` (contrôle et saisie). L'écran arrive après la nouvelle coque du back-office : en attendant, le serveur accepte déjà les actions `disponibilite` et `rupture` de `/api/gestion/carte`.
+
+- **Disponibilités.** Un plat de la carte peut être réservé à un service (midi ou soir), à un mode (livraison ou à emporter) et à certains jours de la semaine (colonnes `dispo_service`, `dispo_mode`, `dispo_jours` ; vide = sans restriction, sept jours cochés = tous les jours). Le plat du jour garde sa date et son service, seul le mode s'y règle. Le serveur refuse au panier et au paiement un plat pris hors de ses disponibilités, d'après le créneau et le mode choisis (`src/lib/disponibilite.ts`, appelé par `erreurPlatsDuJour`). Motifs montrés au client : « Seulement le soir. », « Seulement à emporter. », « Seulement le vendredi et le samedi. ».
+- **Rupture planifiée.** `rupture_jour` (plats et options) se lit « épuisé jusqu'au » cette date comprise, d'aujourd'hui à 60 jours. La tablette y met toujours aujourd'hui ; le back-office peut mettre une date plus lointaine. Le plat revient seul le lendemain. « Remettre » sur la tablette lève aussi une rupture planifiée. Un plat épuisé jusqu'au jeudi 19 novembre reste commandable pour un créneau du vendredi 20 ; pour un créneau d'ici jeudi, le client lit « Épuisé. De retour le vendredi 20 novembre. ». Une option épuisée l'est jusqu'à sa date, quel que soit le jour choisi.
+- **Journal.** Objets `disponibilite`, `rupture` et `rupture_option`, avec la valeur d'avant et d'après. Ils ne s'annulent pas depuis le journal : on règle de nouveau la disponibilité ou on remet le plat.
+
 ## Pas encore fait
 
 - Créer un nouveau groupe d'options (autre que les suppléments de pizza et le choix des pâtes).

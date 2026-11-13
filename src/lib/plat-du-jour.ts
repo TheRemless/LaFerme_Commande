@@ -1,5 +1,6 @@
 // Plat du jour : vendu seulement le jour dit et pour son service (midi, soir ou les deux).
 // Fonctions pures, les mêmes dans le navigateur (carte) et sur le serveur (panier, commande).
+import { motifDisponibilite } from "@/lib/disponibilite";
 import type { ServiceJour } from "@/lib/gestion";
 import type { Catalogue } from "@/lib/panier";
 import { enMinutes, etatService, instantGeneve, jourIso, type ConfigService, type Mode, type Quand, type Zone } from "@/lib/service";
@@ -7,7 +8,8 @@ import { enMinutes, etatService, instantGeneve, jourIso, type ConfigService, typ
 export type { ServiceJour };
 export type JourPlat = { date: string; service: ServiceJour };
 // service : celui des horaires quand on le connaît (serveur), sinon déduit de l'heure (navigateur).
-export type Moment = { date: string; minutes: number; service?: "midi" | "soir" };
+// mode : livraison ou retrait, pour les plats réservés à l'un des deux.
+export type Moment = { date: string; minutes: number; service?: "midi" | "soir"; mode?: Mode };
 
 // Repli quand les horaires ne sont pas là (carte dans le navigateur) : une remise avant 15h appartient au
 // service de midi, après au service du soir. Les horaires proposés finissent à 13h45 et commencent à 18h45.
@@ -47,15 +49,22 @@ export function momentDe(config: ConfigService, maintenant: Date, mode: Mode, zo
   }
   if (!m) return null;
   const service = serviceHoraire(config, m.date, m.minutes);
-  return service ? { ...m, service } : m;
+  return service ? { ...m, service, mode } : { ...m, mode };
 }
 
-// Premier plat du jour du panier qui ne va pas avec le moment demandé : « Osso buco : seulement à midi. »
-export function erreurPlatsDuJour(catalogue: Catalogue, lignes: { slug: string }[], moment: Moment | null): string | null {
-  if (!moment) return null;
+// Premier plat du panier qui ne va pas avec le moment demandé : plat du jour d'un autre jour ou service,
+// plat réservé à un service, un mode ou certains jours, rupture planifiée (src/lib/disponibilite.ts).
+// « Osso buco : seulement à midi. » Appelée au panier et au paiement.
+export function erreurPlatsDuJour(
+  catalogue: Catalogue,
+  lignes: { slug: string }[],
+  moment: Moment | null,
+  aujourdhui: string = instantGeneve(new Date()).date,
+): string | null {
   for (const l of lignes) {
     const p = Object.hasOwn(catalogue.plats, l.slug) ? catalogue.plats[l.slug] : undefined;
-    const motif = p?.jour ? motifPlatDuJour(p.jour, moment) : null;
+    if (!p) continue;
+    const motif = (p.jour && moment ? motifPlatDuJour(p.jour, moment) : null) ?? motifDisponibilite(p, moment, aujourdhui);
     if (motif) return `${p!.nom} : ${motif.charAt(0).toLowerCase()}${motif.slice(1)}`;
   }
   return null;
