@@ -121,3 +121,46 @@
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+
+/* Groupes d'options : liste ordonnée avec ses boutons, plats à cocher par catégorie. */
+.bo-ordre {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+.bo-ordre li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--bo-trait);
+}
+.bo-ordre-boutons {
+  display: flex;
+  gap: 8px;
+}
+.bo-choix-plats {
+  margin-bottom: 12px;
+}
+.bo-choix-plats legend {
+  font-weight: 700;
+}
+.bo-fiche-partie-premiere {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+.bo-ligne-champs-haut {
+  align-items: flex-start;
+}
+.bo-ligne-champs input[type="number"] {
+  width: 8ch;
+}
+.bo-ligne-champs-haut .bo-champ {
+  max-width: 28ch;
+}

@@ -3,7 +3,8 @@
 import { useId, useMemo, useState } from "react";
 import { enregistrer } from "@/components/gestion/enregistrer";
 import { PhotoPlat } from "@/components/gestion/PhotoPlat";
-import { useGardeModifications } from "@/components/gestion/ui";
+import { NouveauGroupe, ReglerGroupe } from "@/components/gestion/carte/Groupes";
+import { PanneauLateral, useGardeModifications } from "@/components/gestion/ui";
 import { PHOTOS, estPhotoEnvoyee } from "@/lib/photos";
 import { poster } from "@/lib/requete-client";
 
@@ -34,7 +35,15 @@ export type PlatGestion = {
   dispo?: { service: "midi" | "soir" | null; mode: "livraison" | "retrait" | null; jours: number[] | null };
   rupture_jusqu_au?: string | null;
 };
-export type GroupeGestion = { slug: string; nom: string; choix_min: number; choix_max: number; options: { nom: string; prix_centimes: number; prix_a_valider: boolean; actif: boolean }[] };
+export type GroupeGestion = {
+  slug: string;
+  nom: string;
+  choix_min: number;
+  choix_max: number;
+  options: { nom: string; prix_centimes: number; prix_a_valider: boolean; actif: boolean; par_defaut?: boolean; rupture_jusqu_au?: string | null }[];
+  // Vague 3 : plats qui portent le groupe (absent avant la migration 20261210100000).
+  plats?: string[];
+};
 export type DonneesCarte = {
   categories: { slug: string; nom: string; plats: PlatGestion[] }[];
   plats_du_jour: PlatGestion[];
@@ -857,13 +866,28 @@ function jourCourt(iso: string): string {
 // ---------- Suppléments ----------
 
 export function GestionSupplements({ donnees, recharger }: { donnees: DonneesCarte; recharger: () => Promise<void> }) {
+  const [regle, setRegle] = useState<string | null>(null);
+  const [nouveau, setNouveau] = useState(false);
+  const groupe = regle ? (donnees.groupes.find((g) => g.slug === regle) ?? null) : null;
   return (
     <section className="ges-carte">
+      <div className="bo-carte-tete">
+        <p className="aide">Un groupe d&apos;options (suppléments, pâtes, sauce, cuisson) se pose sur autant de plats qu&apos;on veut.</p>
+        <button type="button" className="bo-bouton bo-bouton-principal" onClick={() => setNouveau(true)}>
+          Nouveau groupe
+        </button>
+      </div>
       {donnees.groupes.map((g) => (
         <div key={g.slug} className="ges-categorie">
-          <h2>{g.nom}</h2>
+          <div className="ges-categorie-tete">
+            <h2>{g.nom}</h2>
+            <button type="button" className="bo-bouton bo-bouton-second bo-bouton-petit" onClick={() => setRegle(g.slug)} aria-label={`Régler le groupe ${g.nom}`}>
+              Régler le groupe
+            </button>
+          </div>
           <p className="aide">
             {g.choix_min > 0 ? `Choix obligatoire, ${g.choix_max} au plus.` : `Facultatif, ${g.choix_max} au plus par plat.`}
+            {g.plats ? ` Sur ${g.plats.length} plat${g.plats.length > 1 ? "s" : ""}.` : ""}
           </p>
           <ul className="ges-options">
             {g.options.map((o) => (
@@ -873,6 +897,22 @@ export function GestionSupplements({ donnees, recharger }: { donnees: DonneesCar
           <NouvelleOption groupe={g} recharger={recharger} />
         </div>
       ))}
+      {nouveau && (
+        <PanneauLateral titre="Nouveau groupe d'options" onFermer={() => setNouveau(false)}>
+          <NouveauGroupe
+            cree={async (slug) => {
+              setNouveau(false);
+              await recharger();
+              setRegle(slug);
+            }}
+          />
+        </PanneauLateral>
+      )}
+      {groupe && (
+        <PanneauLateral titre={groupe.nom} sousTitre={groupe.choix_min > 0 ? "Choix obligatoire" : "Facultatif"} onFermer={() => setRegle(null)} large>
+          <ReglerGroupe key={groupe.slug} groupe={groupe} donnees={donnees} recharger={recharger} />
+        </PanneauLateral>
+      )}
     </section>
   );
 }

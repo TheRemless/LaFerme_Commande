@@ -86,7 +86,9 @@ insert into personnel (email, nom, role) values
 -- conflit avec la liste commune. Un code par 30 secondes et par e-mail : un compte par fichier et par projet.
 insert into personnel (email, nom, role) values
   ('liste-bureau@laferme.test', 'Liste bureau', 'gerant'),
-  ('liste-mobile@laferme.test', 'Liste mobile', 'gerant');
+  ('liste-mobile@laferme.test', 'Liste mobile', 'gerant'),
+  ('groupes-bureau@laferme.test', 'Groupes bureau', 'gerant'),
+  ('groupes-mobile@laferme.test', 'Groupes mobile', 'gerant');
 
 -- Rubrique Clients du back-office (vague 3, bo-commandes, tests/e2e/gestion-clients.spec.ts).
 insert into personnel (email, nom, role) values
