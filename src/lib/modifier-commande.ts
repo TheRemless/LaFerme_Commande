@@ -3,6 +3,7 @@ import { chargerConfigService } from "@/lib/config-service";
 import { courrielModification } from "@/lib/courriel/modeles";
 import { envoyerCourriel } from "@/lib/courriel/envoi";
 import { commandeParId, fonctionSql } from "@/lib/db/serveur";
+import { imprimerModification } from "@/lib/impression/modification";
 import { auteur, type Personnel } from "@/lib/personnel/session";
 import { signalerTablette } from "@/lib/tablette";
 import { detailsValides, telephoneValide } from "@/lib/validation";
@@ -134,6 +135,11 @@ export async function modifierCommande(
       console.error(`Courriel de modification non envoyé pour la commande ${apres.numero} : ${e instanceof Error ? e.message : e}`),
     );
   }
+  // Ticket « MODIFIÉE » au poste du sac (tablette, #183) : seulement si les premiers tickets sont sortis.
+  // Un échec d'impression ne défait pas la modification, déjà enregistrée et journalisée.
+  await imprimerModification(commandeId, changementsLisibles(r.avant, r.apres)).catch((e) =>
+    console.error(`Ticket « MODIFIÉE » non créé pour la commande ${commandeId} : ${e instanceof Error ? e.message : e}`),
+  );
   await signalerTablette();
   return { ok: true, message: "Commande modifiée. Le client reçoit le nouveau récapitulatif par e-mail.", champs: r.champs };
 }

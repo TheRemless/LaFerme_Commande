@@ -127,4 +127,19 @@ describe("ticket « MODIFIÉE » : changements lisibles", () => {
       { champ: "Adresse", avant: "Route de Chancy 1, 1213 Onex", apres: "Route de Chancy 45, 1213 Onex" },
     ]);
   });
+
+  it("tickets déjà sortis : un ticket « MODIFIÉE » au poste du sac ; avant les premiers tickets, aucun", async () => {
+    const db = await baseLocale();
+    const reimpressions = async (id: string) =>
+      (await db.query<{ station: string; contenu: unknown }>("select station, contenu from taches_impression where commande_id = $1 and reimpression", [id])).rows;
+    const sortie = await livraison();
+    await db.query("select premiers_tickets($1, $2::jsonb)", [sortie, JSON.stringify([{ station: "cuisine", contenu: [] }])]);
+    await modifierCommande(sortie, { telephone: "079 444 55 66" }, service, { de: "acceptee" });
+    const t = await reimpressions(sortie);
+    expect(t.map((x) => x.station)).toEqual(["cuisine"]);
+    expect(JSON.stringify(t[0].contenu)).toContain("079 444 55 66");
+    const pasSortie = await livraison();
+    await modifierCommande(pasSortie, { telephone: "079 444 55 66" }, service, { de: "acceptee" });
+    expect(await reimpressions(pasSortie)).toEqual([]);
+  });
 });
