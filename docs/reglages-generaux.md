@@ -6,7 +6,7 @@ Des valeurs que le gérant devait faire changer par un développeur. Migration `
 |---|---|---|---|
 | E-mail des alertes | vide : la variable `ALERTE_EMAIL` de Netlify sert | une adresse e-mail | Commande pas acceptée, tablette muette, client absent, remboursement échoué : l'alerte part à cette adresse |
 | Codes de connexion des clients par jour (`plafond_codes_clients_jour`) | 150 (décision de Jérémy du 12.11.2026) | de 20 à 450 | Au-delà, plus de code pour les clients jusqu'au lendemain. La boîte d'envoi est limitée à 500 e-mails par jour, confirmations comprises : d'où 450 au plus |
-| Longueur d'un créneau (`creneau_minutes`) | 15 | 10, 15, 20 ou 30 | Heures proposées au client. La capacité par créneau compte par créneau : passer de 15 à 30 minutes double le temps couvert par la même capacité |
+| Longueur d'un créneau (`creneau_minutes`) | 15 | 10, 15, 20 ou 30 | Heures proposées au client. La capacité par créneau compte par créneau : passer de 15 à 30 minutes double le temps couvert par la même capacité. Les commandes déjà prises hors de la nouvelle grille (19h15 après le passage à 30 minutes) ne comptent plus dans la capacité des créneaux voisins : changer un jour sans réservation, jamais pendant un service |
 | Commande à l'avance (`avance_jours`) | 7 | de 0 à 14 jours | 0 : seulement le jour même |
 
 - **Où vit l'e-mail** : la table `reglages` est lisible par tous (le site en a besoin pour les créneaux). L'adresse va donc dans `reglages_prives`, sans aucun droit pour les visiteurs. Elle n'est jamais recopiée dans le journal, qui note seulement « adresse saisie » ou « variable ALERTE_EMAIL ».
