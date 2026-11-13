@@ -25,7 +25,7 @@ export type LignePlat = {
   // Plat du jour : date (lue en texte ou en Date selon la base) et service. Null pour la carte.
   jour?: string | null;
   jour_service?: "midi" | "soir" | "journee" | null;
-  // Disponibilités et rupture planifiée (migration 20261130110000). Absentes avant la migration.
+  // Disponibilités et rupture planifiée (migration 20261210090000). Absentes avant la migration.
   dispo_service?: string | null;
   dispo_mode?: string | null;
   dispo_jours?: number[] | null;

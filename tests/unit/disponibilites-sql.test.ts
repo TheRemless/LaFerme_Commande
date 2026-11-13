@@ -2,7 +2,7 @@ import type { PGlite } from "@electric-sql/pglite";
 import { beforeEach, describe, expect, it } from "vitest";
 import { creerBaseLocale } from "@/lib/db/locale";
 
-// Disponibilités et ruptures planifiées, côté base (supabase/migrations/20261130110000_disponibilites.sql).
+// Disponibilités et ruptures planifiées, côté base (supabase/migrations/20261210090000_disponibilites.sql).
 // Les vues lient now() à leur création : on part du vrai jour de Genève (pg_catalog.now) et on déplace
 // les dates pour simuler le temps qui passe. Montants d'essai, aucun prix de la carte.
 
