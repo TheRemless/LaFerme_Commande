@@ -97,6 +97,12 @@ begin
   end if;
 
   select valeur into actuel from reglages where cle = 'coup_de_feu' for update;
+  -- Un coup de feu dont l'heure est passée (surveillance pas encore passée) est fini d'abord : le nouveau
+  -- repart de maintenant.
+  if jsonb_typeof(actuel) = 'object' and (actuel ->> 'jusqua')::timestamptz <= now() then
+    perform finir_coup_de_feu(null);
+    actuel := 'null'::jsonb;
+  end if;
   if jsonb_typeof(actuel) = 'object' then
     perform coup_de_feu_rendre(actuel);
     debut := (actuel ->> 'debut')::timestamptz;

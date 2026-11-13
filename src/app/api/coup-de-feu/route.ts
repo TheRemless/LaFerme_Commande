@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { corpsJson, refus } from "@/lib/comptes/api";
-import { etatCoupDeFeu, finirCoupDeFeu, lancerCoupDeFeu } from "@/lib/coup-de-feu";
+import { etatCoupDeFeu, finCoupDeFeuEchue, finirCoupDeFeu, lancerCoupDeFeu } from "@/lib/coup-de-feu";
 import { exigerPersonnel } from "@/lib/personnel/session";
 
 // Coup de feu : tablette (rôle service) et back-office (gérant). Les livreurs n'y ont pas accès.
@@ -11,6 +11,9 @@ const SANS_CACHE = { "Cache-Control": "no-store, private" };
 export async function GET(requete: Request) {
   const g = await exigerPersonnel(requete, { lecture: true });
   if ("reponse" in g) return g.reponse;
+  // Heure de fin passée sans tour de surveillance depuis : on le finit ici, l'écran ne montre jamais un
+  // coup de feu échu.
+  await finCoupDeFeuEchue();
   return NextResponse.json(await etatCoupDeFeu(), { headers: SANS_CACHE });
 }
 

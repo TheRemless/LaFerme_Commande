@@ -112,6 +112,22 @@ describe("coup de feu : lancer", () => {
     await finir();
     expect(await reglage("retard_minutes")).toBe(0);
   });
+
+  it("relancer après l'heure de fin repart de maintenant et journalise la fin du premier", async () => {
+    await lancer(GESTE);
+    await horloge("2026-11-20T19:05:00Z");
+    const second = await lancer({ retard_minutes: 10, duree_minutes: 30 });
+    expect(new Date(second.debut as string).toISOString()).toBe("2026-11-20T19:05:00.000Z");
+    expect(second.avant).toEqual({ retard_minutes: 0 });
+    expect(await reglage("capacite_livraisons_par_creneau")).toBe(3);
+    const j = await db.query<{ personnel_nom: string; cle: string }>(
+      "select personnel_nom, cle from journal_gestion where objet = 'coup_de_feu' order by id desc limit 2",
+    );
+    expect(j.rows).toEqual([
+      { personnel_nom: "Cdf service", cle: "lancer" },
+      { personnel_nom: "Fin automatique", cle: "finir" },
+    ]);
+  });
 });
 
 describe("coup de feu : fin", () => {
