@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { corpsJson, refus } from "@/lib/comptes/api";
 import { fonctionSql } from "@/lib/db/serveur";
+import { lireRecherche } from "@/lib/journal";
 import { exigerGerant } from "@/lib/personnel/session";
 import { rafraichirCaches } from "@/lib/tablette";
 
@@ -20,10 +21,20 @@ const ERREURS: Record<string, string> = {
   "Réservé au gérant": "Réservé au gérant.",
 };
 
+// Lecture filtrée (vague 3, bo-pilotage) : { action: "chercher", auteur?, objet?, debut?, fin?, recherche?, avant_id?, limite? }
+// et { action: "filtres" } pour les listes de l'écran. En POST : un nom cherché n'apparaît pas dans une adresse.
 export async function POST(requete: Request) {
   const g = await exigerGerant(requete);
   if ("reponse" in g) return g.reponse;
   const c = await corpsJson(requete);
+  if (c?.action === "chercher") {
+    const r = lireRecherche(c);
+    if (!r.ok) return refus(r.erreur);
+    return NextResponse.json(await fonctionSql("journal_gestion_chercher", { p: r.valeur }), { headers: { "Cache-Control": "no-store" } });
+  }
+  if (c?.action === "filtres") {
+    return NextResponse.json(await fonctionSql("journal_gestion_filtres", {}), { headers: { "Cache-Control": "no-store" } });
+  }
   if (!c || c.action !== "annuler" || !Number.isInteger(c.id) || (c.id as number) < 1) return refus("Ligne introuvable.", 404);
   try {
     await fonctionSql("annuler_journal", { p_id: c.id, p_personnel: g.personnel.id });

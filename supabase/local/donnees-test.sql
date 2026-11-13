@@ -43,3 +43,8 @@ insert into personnel (email, nom, role) values
 insert into personnel (email, nom, role) values
   ('zones-bureau@laferme.test', 'Zones bureau', 'gerant'),
   ('zones-mobile@laferme.test', 'Zones mobile', 'gerant');
+
+-- Chiffres et journal (bo-pilotage, tests/e2e/gestion-journal.spec.ts, vague 3) : un compte par projet Playwright.
+insert into personnel (email, nom, role) values
+  ('pilotage-bureau@laferme.test', 'Pilotage bureau', 'gerant'),
+  ('pilotage-mobile@laferme.test', 'Pilotage mobile', 'gerant');
