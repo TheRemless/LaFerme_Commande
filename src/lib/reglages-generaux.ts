@@ -15,8 +15,18 @@ export type ReglagesGeneraux = {
   // Interrupteurs de client-commande (décision C7), absents avant la migration 20261130170000.
   plats_populaires_actifs?: boolean;
   suggestion_panier_active?: boolean;
+  // Rythme de la cuisine (heure promise réaliste), absent avant la migration 20261130180000.
+  rythme?: Partial<Record<CleRythme, number>>;
 };
-export type CleGenerale = keyof ReglagesGeneraux;
+export type CleRythme = "debit_pizza_quart_heure" | "debit_cuisine_quart_heure" | "allongement_max_minutes" | "fourchette_livraison_minutes" | "fourchette_retrait_minutes";
+export const BORNES_RYTHME: Record<CleRythme, { min: number; max: number }> = {
+  debit_pizza_quart_heure: { min: 0, max: 100 },
+  debit_cuisine_quart_heure: { min: 0, max: 100 },
+  allongement_max_minutes: { min: 0, max: 90 },
+  fourchette_livraison_minutes: { min: 0, max: 60 },
+  fourchette_retrait_minutes: { min: 0, max: 60 },
+};
+export type CleGenerale = Exclude<keyof ReglagesGeneraux, "rythme"> | CleRythme;
 
 export const BORNES = {
   plafond_codes_clients_jour: { min: 20, max: 450 },
@@ -57,6 +67,11 @@ export function validerReglage(cle: unknown, valeur: unknown): { ok: true; cle: 
     }
     return { ok: true, cle, valeur: valeur as number };
   }
+  if (typeof cle === "string" && cle in BORNES_RYTHME) {
+    const b = BORNES_RYTHME[cle as CleRythme];
+    if (!Number.isInteger(valeur) || (valeur as number) < b.min || (valeur as number) > b.max) return { ok: false, erreur: `Un nombre de ${b.min} à ${b.max}.` };
+    return { ok: true, cle: cle as CleRythme, valeur: valeur as number };
+  }
   return { ok: false, erreur: "Réglage inconnu." };
 }
 
@@ -66,6 +81,7 @@ export async function reglerReglageGeneral(p: Personnel, cle: unknown, valeur: u
   await fonctionSql("regler_reglage_general", { p_cle: v.cle, p_valeur: v.valeur === null ? null : String(v.valeur), p_personnel: p.id });
   // Créneau, jours à l'avance, annulation par le client : lus dans la config du service (en cache).
   if (v.cle === "plats_populaires_actifs" || v.cle === "suggestion_panier_active") rafraichirCaches("catalogue");
+  // Créneau, jours à l'avance, annulation, rythme de la cuisine : lus dans la config du service (en cache).
   else if (v.cle !== "plafond_codes_clients_jour" && v.cle !== "alerte_email") rafraichirCaches("config-service");
   return { ok: true };
 }

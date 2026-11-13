@@ -23,7 +23,12 @@ beforeAll(async () => {
 
 describe("réglages généraux", () => {
   it("valeurs de départ : celles du site, e-mail vide (la variable ALERTE_EMAIL sert)", async () => {
-    expect(await generaux()).toEqual({ plafond_codes_clients_jour: 150, creneau_minutes: 15, avance_jours: 7, alerte_email: null, annulation_client_active: false, plats_populaires_actifs: false, suggestion_panier_active: false });
+    expect(await generaux()).toEqual({ plafond_codes_clients_jour: 150, creneau_minutes: 15, avance_jours: 7, alerte_email: null,
+      annulation_client_active: false,
+      plats_populaires_actifs: false,
+      suggestion_panier_active: false,
+      rythme: { debit_pizza_quart_heure: 0, debit_cuisine_quart_heure: 0, allongement_max_minutes: 45, fourchette_livraison_minutes: 15, fourchette_retrait_minutes: 10 },
+    });
   });
 
   it("le gérant règle chaque valeur dans ses bornes, journalisé", async () => {
@@ -69,6 +74,22 @@ describe("réglages généraux", () => {
     await expect(regler("plats_populaires_actifs", true, ids.service)).rejects.toThrow(/gérant/);
     await regler("plats_populaires_actifs", false);
     await regler("suggestion_panier_active", false);
+  });
+
+  it("rythme de la cuisine : bornes, et charge_cuisine suit", async () => {
+    expect(await regler("debit_pizza_quart_heure", 8)).toBe(8);
+    expect(await regler("allongement_max_minutes", 30)).toBe(30);
+    expect(await regler("fourchette_retrait_minutes", 0)).toBe(0);
+    const c = await f<{ pizza: { compte: boolean }; plafond_minutes: number }>("charge_cuisine()");
+    expect(c.pizza.compte).toBe(true);
+    expect(c.plafond_minutes).toBe(30);
+    await expect(regler("debit_cuisine_quart_heure", 101)).rejects.toThrow(/hors limites/);
+    await expect(regler("allongement_max_minutes", 91)).rejects.toThrow(/hors limites/);
+    await expect(regler("fourchette_livraison_minutes", 61)).rejects.toThrow(/hors limites/);
+    await expect(regler("debit_pizza_quart_heure", 5, ids.service)).rejects.toThrow(/gérant/);
+    await regler("debit_pizza_quart_heure", 0);
+    await regler("allongement_max_minutes", 45);
+    await regler("fourchette_retrait_minutes", 10);
   });
 
   it("e-mail des alertes : rangé à part, jamais recopié dans le journal", async () => {

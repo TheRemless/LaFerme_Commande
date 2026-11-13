@@ -28,7 +28,9 @@ Partout où le délai est lu, sans calcul en double :
 
 La config est relue au plus une fois par minute (cache existant). L'accueil est lui-même en cache 60 secondes : l'heure qu'il affiche peut dater de deux minutes au plus. Le contrôle au paiement lit la config du serveur, vieille d'une minute au plus.
 
-## Réglages (tous marqués « proposition »)
+## Réglages (tous marqués « proposition » au départ)
+
+Ils se règlent au back-office, rubrique « Réglages généraux », bloc « Rythme de la cuisine » (migration `20261130180000_reglages_rythme.sql`). On y voit aussi la raison en cours (« En ce moment : Four : 22 pizzas en file… »).
 
 | Réglage | Départ | Rôle |
 |---|---|---|

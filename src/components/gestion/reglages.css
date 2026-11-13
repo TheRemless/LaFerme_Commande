@@ -32,3 +32,10 @@
 .bo-reg-case .aide {
   margin: 0 0 0 32px;
 }
+.bo-reg-maintenant {
+  margin: 0;
+  padding: 8px 10px;
+  font-weight: 600;
+  border: 1px solid var(--bo-trait);
+  border-radius: var(--bo-rayon);
+}
