@@ -2,6 +2,7 @@ import "server-only";
 import { chargerConfigService } from "@/lib/config-service";
 import { finCoupDeFeuEchue } from "@/lib/coup-de-feu";
 import { courrielConfigure, envoyerParSmtp } from "@/lib/courriel/envoi";
+import { QuotaAtteint, type TypeCourriel } from "@/lib/courriel/quota";
 import { enregistrerCourriel, fonctionSql } from "@/lib/db/serveur";
 import { imprimerCommandesDues } from "@/lib/impression/service";
 import { etatService, type ConfigService } from "@/lib/service";
@@ -19,12 +20,20 @@ import { rafraichirCaches } from "@/lib/tablette";
 const TABLETTE_MUETTE_S = 180;
 
 // Courriel au restaurant (ALERTE_EMAIL). Sans serveur d'envoi, gardé en base comme les autres courriels de test.
-export async function alerter(sujet: string, lignes: string[]): Promise<void> {
+export async function alerter(sujet: string, lignes: string[], type: TypeCourriel = "alerte"): Promise<void> {
   const texte = [...lignes, "", "Site de commande La Ferme"].join("\n");
   const html = `<pre>${texte.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!)}</pre>`;
   const destinataire = process.env.ALERTE_EMAIL;
-  if (courrielConfigure() && destinataire) {
-    await envoyerParSmtp(destinataire, sujet, texte, html);
+  let fournisseur = courrielConfigure() && destinataire ? "smtp" : "doublure";
+  if (fournisseur === "smtp") {
+    try {
+      await envoyerParSmtp(destinataire!, sujet, texte, html, { type });
+    } catch (e) {
+      // Limite du jour : l'alerte ne part pas par e-mail, mais sa copie reste pour le back-office.
+      if (!(e instanceof QuotaAtteint)) throw e;
+      console.error(`Alerte non envoyée (limite d'e-mails du jour) : ${sujet}`);
+      fournisseur = "quota";
+    }
   } else {
     console.error(`Alerte (aucun courriel configuré) : ${sujet}`);
   }
@@ -34,7 +43,7 @@ export async function alerter(sujet: string, lignes: string[]): Promise<void> {
     sujet,
     texte,
     html,
-    fournisseur: courrielConfigure() && destinataire ? "smtp" : "doublure",
+    fournisseur,
   });
 }
 

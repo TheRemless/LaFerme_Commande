@@ -1,13 +1,15 @@
 import "server-only";
 import nodemailer from "nodemailer";
 import { courrielsPartis, enregistrerCourriel } from "@/lib/db/serveur";
+import { courrielSupprime, plafondJour, reserverEnvoi, terminerEnvoi, type TypeCourriel } from "@/lib/courriel/quota";
 
 // Courriels aux clients. En vrai : le serveur SMTP de la boîte du restaurant (Infomaniak par défaut,
 // décision de Jérémy du 12.11.2026 à la place de Resend), avec l'adresse d'envoi comme identifiant et un
 // mot de passe d'appareil. Sans ces réglages, hors production, une doublure qui garde le courriel en
 // base pour l'afficher sur /dev/courriels. Dans les deux cas, une copie est gardée pour le restaurant.
 
-export type Courriel = { commandeId: string; destinataire: string; sujet: string; texte: string; html: string };
+// type : priorité dans le quota d'envoi du jour (src/lib/courriel/quota.ts) ; sans type, celle du suivi.
+export type Courriel = { commandeId: string; destinataire: string; sujet: string; texte: string; html: string; type?: TypeCourriel };
 
 const REGLAGES_MANQUANTS = "SMTP_UTILISATEUR, SMTP_MOT_DE_PASSE ou COURRIEL_EXPEDITEUR manquant en production.";
 const DELAI_SMTP_MS = 8000;
@@ -18,9 +20,17 @@ export function courrielConfigure(): boolean {
 
 // Une connexion par courriel : une fonction sans serveur ne garde pas de connexion ouverte entre deux appels.
 // Seuls les deux ports d'envoi chiffrés sont admis : 587 (STARTTLS exigé) et 465 (TLS dès la connexion).
-export async function envoyerParSmtp(destinataire: string, sujet: string, texte: string, html: string): Promise<void> {
+export async function envoyerParSmtp(
+  destinataire: string,
+  sujet: string,
+  texte: string,
+  html: string,
+  quoi: { type?: TypeCourriel; commandeId?: string | null } = {},
+): Promise<void> {
   const port = Number(process.env.SMTP_PORT || 587);
   if (port !== 587 && port !== 465) throw new Error("SMTP_PORT doit valoir 587 (STARTTLS) ou 465 (TLS).");
+  // Quota du jour : une place réservée avant de partir, rendue si le serveur refuse (QuotaAtteint sinon).
+  const place = await reserverEnvoi(quoi.type ?? "suivi", quoi.commandeId ?? null);
   const transport = nodemailer.createTransport({
     host: process.env.SMTP_HOTE || "mail.infomaniak.com",
     port,
@@ -41,7 +51,9 @@ export async function envoyerParSmtp(destinataire: string, sujet: string, texte:
   });
   try {
     await Promise.race([transport.sendMail({ from: process.env.COURRIEL_EXPEDITEUR, to: { name: "", address: destinataire }, subject: sujet, text: texte, html }), tropLong]);
+    await terminerEnvoi(place, true);
   } catch (e) {
+    await terminerEnvoi(place, false);
     transport.close();
     // Le message du serveur peut citer l'adresse du client : seul le code part dans les journaux.
     const { responseCode, code } = e as { responseCode?: number; code?: string };
@@ -49,6 +61,26 @@ export async function envoyerParSmtp(destinataire: string, sujet: string, texte:
   } finally {
     clearTimeout(minuteur);
   }
+  if (place?.alerte80) prevenirQuota();
+}
+
+// 80 % du quota atteints : le restaurant est prévenu une fois par 24 heures (la base le garantit).
+// Import différé : surveillance.ts envoie lui-même par ce fichier.
+function prevenirQuota(): void {
+  const plafond = plafondJour();
+  void import("@/lib/surveillance")
+    .then(({ alerter }) =>
+      alerter(
+        "E-mails : 80 % de la limite du jour atteints",
+        [
+          `Le site a envoyé ${Math.ceil(plafond * 0.8)} e-mails sur les ${plafond} permis par 24 heures.`,
+          "Il garde la place pour les confirmations de commande, puis les codes de connexion. Les e-mails « prête » et « en route » s'arrêtent à 85 %.",
+          "Pour relever la limite, il faut la demander à Infomaniak, puis changer COURRIELS_PLAFOND_JOUR dans Netlify.",
+        ],
+        "alerte_quota",
+      ),
+    )
+    .catch((e) => console.error(`Alerte de quota non envoyée : ${e instanceof Error ? e.message : e}`));
 }
 
 // Le même courriel rejoué (webhook répété) ne part qu'une fois : on le compare au dernier courriel parti
@@ -61,10 +93,11 @@ async function dejaParti(c: Courriel): Promise<boolean> {
 }
 
 export async function envoyerCourriel(c: Courriel): Promise<void> {
+  if (courrielSupprime(c.type)) return;
   const smtp = courrielConfigure();
   if (smtp) {
     if (await dejaParti(c)) return;
-    await envoyerParSmtp(c.destinataire, c.sujet, c.texte, c.html);
+    await envoyerParSmtp(c.destinataire, c.sujet, c.texte, c.html, { type: c.type, commandeId: c.commandeId });
   } else if (process.env.CONTEXTE_DEPLOIEMENT === "production") throw new Error(REGLAGES_MANQUANTS);
   await enregistrerCourriel({
     commande_id: c.commandeId,
@@ -78,9 +111,9 @@ export async function envoyerCourriel(c: Courriel): Promise<void> {
 
 // Code de connexion : jamais gardé en base, même en copie. Renvoie faux quand rien n'est parti
 // (doublure, hors production) : l'appelant décide alors s'il peut montrer le code à l'écran.
-export async function envoyerCodeParCourriel(m: { destinataire: string; sujet: string; texte: string; html: string }): Promise<boolean> {
+export async function envoyerCodeParCourriel(m: { destinataire: string; sujet: string; texte: string; html: string; type?: TypeCourriel }): Promise<boolean> {
   if (courrielConfigure()) {
-    await envoyerParSmtp(m.destinataire, m.sujet, m.texte, m.html);
+    await envoyerParSmtp(m.destinataire, m.sujet, m.texte, m.html, { type: m.type ?? "code" });
     return true;
   }
   if (process.env.CONTEXTE_DEPLOIEMENT === "production") throw new Error(REGLAGES_MANQUANTS);
