@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { adresseDuCompte } from "./site";
 import sharp from "sharp";
 
 // Carte gérée sans développeur (back-office, gérant de test par projet). Les plats créés ici portent le
@@ -10,6 +11,7 @@ let gestion: Page;
 let nom: string;
 
 async function connecter(page: Page, email: string) {
+  await adresseDuCompte(page, email);
   await page.goto("/gestion");
   await page.getByLabel("E-mail", { exact: true }).fill(email);
   await page.getByRole("button", { name: "Recevoir un code" }).click();

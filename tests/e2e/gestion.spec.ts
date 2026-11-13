@@ -1,5 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { SITE } from "./site";
+import { adresseDuCompte, SITE } from "./site";
 
 // Back-office : réservé au gérant. Un gérant de test par projet (supabase/local/donnees-test.sql).
 // L'import est seulement prévisualisé ici : l'appliquer changerait des prix pendant les autres tests
@@ -9,6 +9,7 @@ test.describe.configure({ mode: "serial" });
 let gestion: Page;
 
 async function connecter(page: Page, email: string) {
+  await adresseDuCompte(page, email);
   await page.goto("/gestion");
   await page.getByLabel("E-mail", { exact: true }).fill(email);
   await page.getByRole("button", { name: "Recevoir un code" }).click();

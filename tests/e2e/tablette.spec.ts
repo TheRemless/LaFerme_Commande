@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
-import { SITE } from "./site";
+import { adresseDuCompte, SITE } from "./site";
 
 // Tablette du restaurant : connexion du personnel, file, accepter, statuts, refus et remboursement, rupture.
 // Un membre d'équipe par projet (supabase/local/donnees-test.sql) : un seul code par e-mail toutes les 30 s.
@@ -55,6 +55,7 @@ async function commander(request: APIRequestContext, prenom: string, moyen: "com
 
 test.beforeAll(async ({ browser }, info) => {
   tablette = await browser.newPage({ baseURL: SITE });
+  await adresseDuCompte(tablette, `equipe-${info.project.name}@laferme.test`);
   await tablette.goto("/tablette");
   await tablette.getByLabel("E-mail", { exact: true }).fill(`equipe-${info.project.name}@laferme.test`);
   await tablette.getByRole("button", { name: "Recevoir un code" }).click();
