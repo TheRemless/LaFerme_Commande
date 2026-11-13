@@ -1,4 +1,4 @@
-import { SITE, adresseDuCompte } from "./site";
+import { adresseDuCompte, codeDuPersonnel, SITE } from "./site";
 import { expect, test, type Page } from "@playwright/test";
 
 // Planning et suivi des livreurs (vague 3, bo-operations) : la route du back-office, sans écran pour l'instant
@@ -12,10 +12,7 @@ async function connecter(page: Page, email: string) {
   await adresseDuCompte(page, email);
   await page.goto("/gestion");
   await page.getByLabel("E-mail", { exact: true }).fill(email);
-  await page.getByRole("button", { name: "Recevoir un code" }).click();
-  const code = page.locator(".note-preversion strong");
-  await expect(code).toHaveText(/^\d{8}$/);
-  await page.getByLabel("Code à 8 chiffres").fill(await code.innerText());
+  await page.getByLabel("Code à 8 chiffres").fill(await codeDuPersonnel(page));
   await page.getByRole("button", { name: "Me connecter" }).click();
   await expect(page.getByLabel("Code à 8 chiffres")).toHaveCount(0);
 }

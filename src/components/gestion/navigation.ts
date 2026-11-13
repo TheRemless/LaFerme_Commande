@@ -42,6 +42,8 @@ export const GROUPES: Groupe[] = [
       { href: "/gestion/import", titre: "Importer le tableau", icone: "importer", resume: "Le tableau de validation rempli, vérifié avant d'être appliqué." },
       // bo-carte : codes promo, construits désactivés (l'offre est une décision de Jérémy).
       { href: "/gestion/promotions", titre: "Promotions", icone: "promotions", resume: "Codes promo par support, désactivés tant que l'offre n'est pas décidée." },
+      // bo-carte : menus et formules, construits désactivés (vendre des menus est une décision de Jérémy).
+      { href: "/gestion/menus", titre: "Menus et formules", icone: "carte", resume: "Menus à prix fixe et leurs étapes, désactivés tant que Jérémy n'a pas décidé." },
     ],
   },
   {
@@ -49,7 +51,7 @@ export const GROUPES: Groupe[] = [
     rubriques: [
       { href: "/gestion/export", titre: "Export comptable", icone: "exporter", resume: "Les ventes d'une période en fichier CSV, pour la comptabilité." },
       // bo-pilotage
-      { href: "/gestion/rapports", titre: "Rapports", icone: "rapports", resume: "Les ventes par jour, par service et par plat.", aVenir: true },
+      { href: "/gestion/rapports", titre: "Rapports", icone: "rapports", resume: "Les ventes par jour et par service, comparées à la période d'avant." },
       { href: "/gestion/cloture", titre: "Clôture du jour", icone: "cloture", resume: "Le jour fermé : ventes, encaissements et remboursements.", aVenir: true },
       { href: "/gestion/journal", titre: "Journal", icone: "journal", resume: "Qui a changé quoi, quand, et le retour à l'ancienne valeur." },
     ],
@@ -61,6 +63,7 @@ export const GROUPES: Groupe[] = [
       { href: "/gestion/horaires", titre: "Livraison et horaires", icone: "horaires", resume: "Zones, horaires, fermetures, délais et capacité." },
       { href: "/gestion/livreurs", titre: "Livreurs", icone: "livreurs", resume: "Qui livre ce soir, la semaine type et les livraisons de chacun." },
       { href: "/gestion/imprimantes", titre: "Imprimantes", icone: "imprimante", resume: "Les deux postes d'impression et leur état." },
+      { href: "/gestion/reglages", titre: "Réglages généraux", icone: "reglages", resume: "E-mail des alertes, créneaux, commande à l'avance, annulation par le client." },
     ],
   },
   {
