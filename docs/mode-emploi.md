@@ -137,7 +137,8 @@ Chaque rubrique a sa propre adresse, par exemple `/gestion/carte` ou `/gestion/c
 ### Réclamations (rubrique Clients, onglet « Réclamations »)
 
 - Une réclamation se note depuis la fiche d'une commande (onglet « Réclamations ») ou arrive du suivi du client. La liste montre d'abord les ouvertes et celles en cours.
-- Ouvrir une réclamation : ce que dit le client, la commande (« Ouvrir la commande »), le suivi du dossier. Noter un geste : un remboursement déjà fait (il se fait depuis la commande, onglet « Gestes »), ou « Pas de geste » avec la raison. « Offert à la prochaine commande » n'est pas encore activé.
+- Ouvrir une réclamation : ce que dit le client, la commande (« Ouvrir la commande »), le suivi du dossier. Noter un geste, d'abord pour la prochaine fois : « Offert à la prochaine commande » (ce qui est offert), ou « Réduction sur la prochaine commande » (en francs ou en pour cent, vous choisissez ; le client reçoit un code à son nom, valable une fois, que vous lui donnez). Sinon « Pas de geste » avec la raison, et en dernier recours un remboursement déjà fait (il se fait depuis la commande, onglet « Gestes »). Offert et réduction ne sont pas encore activés : c'est une décision du restaurant.
+- Un plat offert promis attend la commande suivante du client : sa fiche le montre en haut de l'onglet « Gestes ». Une fois mis dans la commande, « Offert dans cette commande ».
 - « Suivre » ajoute un mot au dossier, la passe « en cours » ou la clôt avec la façon dont elle s'est réglée. Une réclamation close peut se rouvrir.
 
 ### Rembourser un client mécontent
