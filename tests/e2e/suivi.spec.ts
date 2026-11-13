@@ -12,7 +12,7 @@ let gestion: Page;
 test.beforeAll(async ({ browser }, info) => {
   gestion = await browser.newPage({ baseURL: SITE });
   await gestion.goto("/gestion");
-  await gestion.getByLabel("E-mail", { exact: true }).fill(`gerant-${info.project.name}@laferme.test`);
+  await gestion.getByLabel("E-mail", { exact: true }).fill(`suivi-${info.project.name}@laferme.test`);
   await gestion.getByRole("button", { name: "Recevoir un code" }).click();
   const code = gestion.locator(".note-preversion strong");
   await expect(code).toHaveText(/^\d{8}$/);
