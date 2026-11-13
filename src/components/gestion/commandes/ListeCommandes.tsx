@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AnnulerLot } from "@/components/gestion/commandes/ActionsLot";
 import { FicheCommande } from "@/components/gestion/commandes/FicheCommande";
 import {
@@ -212,6 +212,11 @@ type Filtres = {
   remboursee: boolean;
   avec_note: boolean;
   avec_reclamation: boolean;
+  service: string;
+  zone: string;
+  livreur: string;
+  montant_min: string;
+  montant_max: string;
 };
 const SANS_FILTRE: Filtres = {
   mode: "",
@@ -221,6 +226,15 @@ const SANS_FILTRE: Filtres = {
   remboursee: false,
   avec_note: false,
   avec_reclamation: false,
+  service: "",
+  zone: "",
+  livreur: "",
+  montant_min: "",
+  montant_max: "",
+};
+type Options = {
+  zones: { numero: number; nom: string }[];
+  livreurs: { id: string; nom: string; actif: boolean }[];
 };
 
 export function ListeCommandes() {
@@ -242,6 +256,16 @@ export function ListeCommandes() {
   } | null>(null);
   useOuverture("commande", (id) => setOuverte({ id, titre: "Commande" }));
   const notifier = useNotifier();
+  // Zones et livreurs pour les listes de choix, lus une fois.
+  const [options, setOptions] = useState<Options>({ zones: [], livreurs: [] });
+  useEffect(() => {
+    poster("/api/gestion/commandes", { action: "options_filtres" }).then(
+      (r) => r.ok && setOptions(r.donnees as unknown as Options),
+    );
+  }, []);
+  // Les montants partent 500 ms après la dernière frappe (pas une requête par chiffre).
+  const montantMin = useDiffere(filtres.montant_min.trim(), 500);
+  const montantMax = useDiffere(filtres.montant_max.trim(), 500);
   const [annulerLot, setAnnulerLot] = useState<{
     lignes: LigneCommande[];
     vider: () => void;
@@ -259,12 +283,17 @@ export function ListeCommandes() {
       ...(filtres.remboursee ? { remboursee: true } : {}),
       ...(filtres.avec_note ? { avec_note: true } : {}),
       ...(filtres.avec_reclamation ? { avec_reclamation: true } : {}),
+      ...(filtres.service ? { service: filtres.service } : {}),
+      ...(filtres.zone ? { zone: Number(filtres.zone) } : {}),
+      ...(filtres.livreur ? { livreur: filtres.livreur } : {}),
+      ...(montantMin ? { montant_min: montantMin } : {}),
+      ...(montantMax ? { montant_max: montantMax } : {}),
       tri: triServeur(tri),
       page,
       par_page: PAR_PAGE,
       ...extra,
     }),
-    [q, periode, statuts, filtres, tri, page],
+    [q, periode, statuts, filtres, tri, page, montantMin, montantMax],
   );
 
   // Relecture du kit : la dernière demande gagne (PR #72), le minuteur ne double jamais une requête.
@@ -338,6 +367,16 @@ export function ListeCommandes() {
     charger();
   }
 
+  // Filtres repliés sur téléphone (ils repousseraient la liste d'un écran), ouverts sur grand écran.
+  const [filtresOuverts, setFiltresOuverts] = useState(true);
+  useEffect(() => {
+    if (window.matchMedia("(max-width: 767px)").matches)
+      setFiltresOuverts(false);
+  }, []);
+  const nbFiltres = Object.values(filtres).filter(
+    (v) => v !== "" && v !== false,
+  ).length;
+
   const compteurs = donnees?.compteurs ?? {};
   const filtresActifs =
     statuts.length > 0 || Object.entries(filtres).some(([, v]) => v);
@@ -408,81 +447,150 @@ export function ListeCommandes() {
                 />
               )}
             </div>
-            <div className="bo-filtres-ligne">
-              <label>
-                Mode
-                <select
-                  value={filtres.mode}
-                  onChange={(e) => filtrer("mode", e.target.value)}
-                >
-                  <option value="">Tous</option>
-                  <option value="livraison">Livraison</option>
-                  <option value="retrait">À emporter</option>
-                </select>
-              </label>
-              <label>
-                Paiement
-                <select
-                  value={filtres.paiement}
-                  onChange={(e) => filtrer("paiement", e.target.value)}
-                >
-                  <option value="">Tous</option>
-                  <option value="paye">Payée en ligne</option>
-                  <option value="a_encaisser_retrait">
-                    À encaisser au comptoir
-                  </option>
-                  <option value="encaisse">Payée au comptoir</option>
-                  <option value="rembourse">Remboursée</option>
-                </select>
-              </label>
-              <label className="bo-case">
-                <input
-                  type="checkbox"
-                  checked={filtres.en_retard}
-                  onChange={(e) => filtrer("en_retard", e.target.checked)}
-                />{" "}
-                En retard
-              </label>
-              <label className="bo-case">
-                <input
-                  type="checkbox"
-                  checked={filtres.remboursee}
-                  onChange={(e) => filtrer("remboursee", e.target.checked)}
-                />{" "}
-                Avec remboursement
-              </label>
-              <label className="bo-case">
-                <input
-                  type="checkbox"
-                  checked={filtres.avec_note}
-                  onChange={(e) => filtrer("avec_note", e.target.checked)}
-                />{" "}
-                Avec note
-              </label>
-              <label className="bo-case">
-                <input
-                  type="checkbox"
-                  checked={filtres.avec_reclamation}
-                  onChange={(e) =>
-                    filtrer("avec_reclamation", e.target.checked)
-                  }
-                />{" "}
-                Avec réclamation ouverte
-              </label>
-              {filtresActifs && (
-                <button
-                  type="button"
-                  className="bo-bouton bo-bouton-discret bo-bouton-petit"
-                  onClick={() => {
-                    setStatuts([]);
-                    setFiltres(SANS_FILTRE);
-                    setPage(1);
-                  }}
-                >
-                  Effacer les filtres
-                </button>
-              )}
-            </div>
+            <details
+              className="bo-filtres-plus"
+              open={filtresOuverts}
+              onToggle={(e) =>
+                setFiltresOuverts((e.target as HTMLDetailsElement).open)
+              }
+            >
+              <summary className="bo-bouton bo-bouton-second bo-bouton-petit">
+                Filtres{nbFiltres ? ` (${nbFiltres})` : ""}
+              </summary>
+              <div className="bo-filtres-ligne">
+                <label>
+                  Service
+                  <select
+                    value={filtres.service}
+                    onChange={(e) => filtrer("service", e.target.value)}
+                  >
+                    <option value="">Midi et soir</option>
+                    <option value="midi">Midi</option>
+                    <option value="soir">Soir</option>
+                  </select>
+                </label>
+                <label>
+                  Mode
+                  <select
+                    value={filtres.mode}
+                    onChange={(e) => filtrer("mode", e.target.value)}
+                  >
+                    <option value="">Tous</option>
+                    <option value="livraison">Livraison</option>
+                    <option value="retrait">À emporter</option>
+                  </select>
+                </label>
+                <label>
+                  Paiement
+                  <select
+                    value={filtres.paiement}
+                    onChange={(e) => filtrer("paiement", e.target.value)}
+                  >
+                    <option value="">Tous</option>
+                    <option value="paye">Payée en ligne</option>
+                    <option value="a_encaisser_retrait">
+                      À encaisser au comptoir
+                    </option>
+                    <option value="encaisse">Payée au comptoir</option>
+                    <option value="rembourse">Remboursée</option>
+                  </select>
+                </label>
+                <label>
+                  Zone
+                  <select
+                    value={filtres.zone}
+                    onChange={(e) => filtrer("zone", e.target.value)}
+                  >
+                    <option value="">Toutes</option>
+                    {options.zones.map((z) => (
+                      <option key={z.numero} value={String(z.numero)}>
+                        {z.nom}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Livreur
+                  <select
+                    value={filtres.livreur}
+                    onChange={(e) => filtrer("livreur", e.target.value)}
+                  >
+                    <option value="">Tous</option>
+                    {options.livreurs.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.nom}
+                        {l.actif ? "" : " (ancien)"}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Total dès (CHF)
+                  <input
+                    className="bo-filtre-montant"
+                    inputMode="decimal"
+                    value={filtres.montant_min}
+                    onChange={(e) => filtrer("montant_min", e.target.value)}
+                  />
+                </label>
+                <label>
+                  Total jusqu&apos;à (CHF)
+                  <input
+                    className="bo-filtre-montant"
+                    inputMode="decimal"
+                    value={filtres.montant_max}
+                    onChange={(e) => filtrer("montant_max", e.target.value)}
+                  />
+                </label>
+                <label className="bo-case">
+                  <input
+                    type="checkbox"
+                    checked={filtres.en_retard}
+                    onChange={(e) => filtrer("en_retard", e.target.checked)}
+                  />{" "}
+                  En retard
+                </label>
+                <label className="bo-case">
+                  <input
+                    type="checkbox"
+                    checked={filtres.remboursee}
+                    onChange={(e) => filtrer("remboursee", e.target.checked)}
+                  />{" "}
+                  Avec remboursement
+                </label>
+                <label className="bo-case">
+                  <input
+                    type="checkbox"
+                    checked={filtres.avec_note}
+                    onChange={(e) => filtrer("avec_note", e.target.checked)}
+                  />{" "}
+                  Avec note
+                </label>
+                <label className="bo-case">
+                  <input
+                    type="checkbox"
+                    checked={filtres.avec_reclamation}
+                    onChange={(e) =>
+                      filtrer("avec_reclamation", e.target.checked)
+                    }
+                  />{" "}
+                  Avec réclamation ouverte
+                </label>
+              </div>
+            </details>
+            {filtresActifs && (
+              <button
+                type="button"
+                className="bo-bouton bo-bouton-discret bo-bouton-petit"
+                onClick={() => {
+                  setStatuts([]);
+                  setFiltres(SANS_FILTRE);
+                  setPage(1);
+                }}
+              >
+                Effacer les filtres
+              </button>
+            )}
           </div>
         }
         onOuvrir={(l) =>

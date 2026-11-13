@@ -74,3 +74,7 @@
 .bo-fiche-form legend { font-weight: 600; margin-bottom: 4px; }
 .bo-fiche-deux { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px 16px; }
 .bo-fiche-boutons { display: flex; flex-wrap: wrap; gap: 8px; }
+.bo-filtre-montant { min-height: var(--bo-cible); width: 110px; font: inherit; }
+.bo-filtres-plus > summary { display: inline-flex; align-items: center; list-style: none; cursor: pointer; }
+.bo-filtres-plus > summary::-webkit-details-marker { display: none; }
+.bo-filtres-plus[open] > summary { margin-bottom: 12px; }

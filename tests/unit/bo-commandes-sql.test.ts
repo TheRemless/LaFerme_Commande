@@ -198,6 +198,21 @@ describe("liste : réclamations ouvertes", () => {
   });
 });
 
+describe("liste : service et listes de choix", () => {
+  it("midi avant 15h à Genève, soir ensuite ; zones et livreurs pour les filtres", async () => {
+    // L'heure de création vient de la valeur par défaut de la table (horloge réelle) : on la pose à la main.
+    const midi = await commande();
+    const soir = await commande();
+    await db.query("update commandes set cree_le = '2026-11-17T10:30:00Z' where id = $1", [midi]); // 11h30 à Genève
+    await db.query("update commandes set cree_le = '2026-11-17T18:00:00Z' where id = $1", [soir]); // 19h00
+    expect((await liste({ service: "midi" })).lignes.map((l) => l.id)).toEqual([midi]);
+    expect((await liste({ service: "soir" })).lignes.map((l) => l.id)).toEqual([soir]);
+    const o = await f<{ zones: { numero: number }[]; livreurs: { nom: string }[] }>("options_filtres_commandes()");
+    expect(o.zones.length).toBeGreaterThan(0);
+    expect(o.livreurs.map((l) => l.nom)).toContain("Marco");
+  });
+});
+
 describe("fiche complète d'une commande", () => {
   it("rassemble chronologie, e-mails, livreur, tickets, notes et l'historique du client", async () => {
     const ancienne = await commande({ mode: "livraison", email: "fidele@laferme.test", total: 3000 });

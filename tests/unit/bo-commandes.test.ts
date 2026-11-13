@@ -49,6 +49,7 @@ describe("filtres de la liste", () => {
     expect(refus({ statuts: "acceptee" })).toBe("Statut inconnu.");
     expect(refus({ paiements: ["gratuit"] })).toMatch(/paiement inconnu/);
     expect(refus({ mode: "drone" })).toBe("Mode inconnu.");
+    expect(refus({ service: "nuit" })).toBe("Service inconnu.");
     expect(refus({ zone: "1; drop table commandes" })).toBe("Zone inconnue.");
     expect(refus({ zone: true })).toBe("Zone inconnue.");
     expect(refus({ page: true })).toBe("Page invalide.");

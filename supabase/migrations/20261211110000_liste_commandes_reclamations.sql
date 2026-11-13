@@ -1,8 +1,10 @@
 -- Vague 3, bo-commandes : la liste des commandes du back-office filtre les commandes qui ont une réclamation
--- encore ouverte (ou en cours) et donne leur nombre par commande (colonne « Réclamations »).
+-- encore ouverte (ou en cours) et donne leur nombre par commande (colonne « Réclamations »), et filtre par
+-- service : midi avant 15h (heure prévue, sinon heure de la commande, à Genève), soir ensuite, comme le plat
+-- du jour. options_filtres_commandes() donne les zones et les livreurs pour les listes de choix de l'écran.
 --
 -- Objet partagé recréé : liste_commandes_gestion, reprise de sa seule définition (20261127090000_bo_commandes_liste.sql),
--- avec seulement le filtre avec_reclamation et le champ reclamations en plus. Nommée après la dernière migration de
+-- avec seulement les filtres avec_reclamation et service, et le champ reclamations en plus. Nommée après la dernière migration de
 -- main et après celles des PR #98 et #139 (20261211090000, 20261211100000).
 -- Compatible avant et après : même signature, un champ de plus dans chaque ligne, un filtre ignoré tant que
 -- l'écran ne l'envoie pas.
@@ -48,6 +50,8 @@ begin
         select 1 from remboursements rb where rb.commande_id = o.id and rb.statut = 'fait'))
       and (coalesce((p ->> 'avec_note')::boolean, false) = false or exists (
         select 1 from notes_commande nc where nc.commande_id = o.id))
+      and (p ->> 'service' is null or (case when extract(hour from coalesce(heure_prevue_commande(o), o.cree_le) at time zone 'Europe/Zurich') < 15
+            then 'midi' else 'soir' end) = p ->> 'service')
       and (coalesce((p ->> 'avec_reclamation')::boolean, false) = false or exists (
         select 1 from reclamations rc where rc.commande_id = o.id and rc.statut <> 'close'))
   ),
@@ -90,3 +94,16 @@ begin
   return r;
 end;
 $$;
+
+-- Listes de choix de l'écran : zones (numéro, nom) et livreurs (actifs et anciens, pour filtrer le passé).
+create function options_filtres_commandes() returns jsonb
+language sql stable as $$
+  select jsonb_build_object(
+    'zones', coalesce((select jsonb_agg(jsonb_build_object('numero', z.numero, 'nom', z.nom) order by z.numero) from zones_livraison z), '[]'::jsonb),
+    'livreurs', coalesce((select jsonb_agg(jsonb_build_object('id', pe.id, 'nom', pe.nom, 'actif', pe.actif) order by pe.actif desc, pe.nom)
+      from personnel pe where pe.role = 'livreur'), '[]'::jsonb));
+$$;
+
+revoke execute on function options_filtres_commandes() from public, anon, authenticated;
+grant execute on function options_filtres_commandes() to service_role;
+

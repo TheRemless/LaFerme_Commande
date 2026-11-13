@@ -44,6 +44,10 @@ export function filtresListe(c: Record<string, unknown>): Resultat<Record<string
     if (c.mode !== "livraison" && c.mode !== "retrait") return { ok: false, erreur: "Mode inconnu." };
     p.mode = c.mode;
   }
+  if (!vide(c.service)) {
+    if (c.service !== "midi" && c.service !== "soir") return { ok: false, erreur: "Service inconnu." };
+    p.service = c.service;
+  }
   if (!vide(c.moyen)) {
     if (c.moyen !== "en_ligne" && c.moyen !== "comptoir") return { ok: false, erreur: "Moyen de paiement inconnu." };
     p.moyen = c.moyen;
