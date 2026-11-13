@@ -4,6 +4,10 @@ import { expect, test, type APIRequestContext, type Page } from "@playwright/tes
 // Adresse du serveur de test (playwright.config.ts) : le port se règle avec PORT_E2E.
 export const SITE = `http://localhost:${process.env.PORT_E2E ?? 3200}`;
 
+// Suffixe propre à ce passage, pour les noms que les tests créent puis retrouvent (commande, plat). La CI
+// réessaie un test dans la même base : sans lui, le réessai retrouvait l'objet laissé par le premier passage.
+export const passage = (): string => Date.now().toString(36).slice(-5);
+
 // Les demandes de code du personnel sont limitées à 20 par heure et par adresse IP (envoi_ip). Toute la
 // suite tourne depuis le même poste : sans adresse propre, les fichiers qui se connectent se partagent ces
 // 20 codes et le suivant reçoit « Trop d'essais » selon l'ordre de passage. Chaque compte de test a donc

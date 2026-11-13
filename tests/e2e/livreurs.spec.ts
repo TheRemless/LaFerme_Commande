@@ -191,7 +191,8 @@ test("deux livreurs et réattribution : l'ancien ne voit plus l'adresse", async 
   await ines.reload();
   await expect(arret(ines, c)).toHaveCount(0);
 
-  await tournee("Marco").getByRole("button", { name: "Donner à Inès" }).click();
+  // La ligne de cette commande : au réessai, la tournée de Marco garde celles du premier passage.
+  await tournee("Marco").locator("li.liv-arret-tab", { has: tablette.getByText(`N° ${c}`, { exact: true }) }).getByRole("button", { name: "Donner à Inès" }).click();
   await marco.reload();
   await expect(arret(marco, c)).toHaveCount(0);
   await expect(marco.locator(".liv-retiree")).toContainText(`N° ${c} donnée à un autre livreur. Si vous avez le sac, appelez le restaurant.`);

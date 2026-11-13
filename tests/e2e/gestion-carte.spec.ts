@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { adresseDuCompte, codeDuPersonnel } from "./site";
+import { adresseDuCompte, codeDuPersonnel, passage } from "./site";
 import sharp from "sharp";
 
 // Carte gérée sans développeur (back-office, gérant de test par projet). Les plats créés ici portent le
@@ -27,7 +27,7 @@ async function rubrique(page: Page, titre: string) {
 }
 
 test.beforeAll(async ({ browser }, info) => {
-  nom = `Risotto essai ${info.project.name}`;
+  nom = `Risotto essai ${info.project.name} ${passage()}`;
   gestion = await browser.newPage({ baseURL: info.project.use.baseURL });
   await connecter(gestion, `carte-${info.project.name}@laferme.test`);
   await expect(gestion.getByRole("heading", { level: 1, name: "Accueil" })).toBeVisible();

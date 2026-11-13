@@ -1,5 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { adresseDuCompte, codeDuPersonnel, SITE } from "./site";
+import { adresseDuCompte, codeDuPersonnel, passage, SITE } from "./site";
 
 // Back-office : réservé au gérant. Un gérant de test par projet (supabase/local/donnees-test.sql).
 // L'import est seulement prévisualisé ici : l'appliquer changerait des prix pendant les autres tests
@@ -86,7 +86,7 @@ test("une zone se valide, les horaires et les fermetures s'affichent", async () 
 // Audit du gérant, G02 et G04 : une commande livrée se retrouve par le nom et se rembourse en partie.
 test("une commande passée se retrouve et se rembourse en partie", async ({}, info) => {
   const ORIGINE = { Origin: SITE };
-  const prenom = `Remb${info.project.name}`;
+  const prenom = `Remb${info.project.name}${passage()}`;
   const rep = await gestion.request.post("/api/commandes", {
     headers: ORIGINE,
     data: {

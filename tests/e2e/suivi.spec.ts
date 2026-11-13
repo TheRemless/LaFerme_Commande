@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { adresseDuCompte, codeDuPersonnel, SITE } from "./site";
+import { adresseDuCompte, codeDuPersonnel, passage, SITE } from "./site";
 
 // Vague 3, client-compte : la page de suivi dit ce qui est rendu au client et dans quel état (S2-03).
 // Un remboursement partiel du gérant apparaît « remboursé », puis « n'a pas abouti » si Stripe l'annonce en échec.
@@ -57,7 +57,7 @@ async function commandeRetireePayee(prenom: string): Promise<{ id: string; jeton
 }
 
 test("remboursement partiel : visible au suivi, puis son échec chez Stripe", async ({ browser }, info) => {
-  const prenom = `Suivi${info.project.name}`;
+  const prenom = `Suivi${info.project.name}${passage()}`;
   const { id, jeton } = await commandeRetireePayee(prenom);
   const cle = `suivi-geste-${info.project.name}-${Date.now()}`;
   const remb = await gestion.request.post("/api/gestion/commandes", {
@@ -93,7 +93,7 @@ test("remboursement partiel : visible au suivi, puis son échec chez Stripe", as
 });
 
 test("reçu avec TVA : vendeur, numéro de TVA, plats et TVA, sans données du client", async ({ browser }, info) => {
-  const prenom = `Recu${info.project.name}`;
+  const prenom = `Recu${info.project.name}${passage()}`;
   const { jeton } = await commandeRetireePayee(prenom);
   const client = await browser.newPage({ baseURL: SITE, viewport: { width: 375, height: 812 } });
   await client.goto(`/suivi/${jeton}`);
