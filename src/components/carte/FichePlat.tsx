@@ -12,6 +12,13 @@ import { prixChf, prixCourt } from "@/lib/prix";
 import { nomAffiche } from "@/components/Plat";
 import { Icone } from "@/components/Icone";
 
+// Étiquettes posées par le restaurant (bo-carte) ; végane suffit quand le plat l'est (il est aussi végétarien).
+const NOMS_ETIQUETTES: Record<string, string> = { vegane: "Végane", vegetarien: "Végétarien", epice: "Épicé" };
+function ordreEtiquettes(e: string[]): string[] {
+  const liste = e.includes("vegane") ? e.filter((x) => x !== "vegetarien") : e;
+  return ["vegane", "vegetarien", "epice"].filter((x) => liste.includes(x)).map((x) => NOMS_ETIQUETTES[x]);
+}
+
 // Suppléments affichés d'office ; les autres derrière « Voir les … suppléments ».
 const SUPPLEMENTS_VISIBLES = 8;
 
@@ -129,6 +136,12 @@ export function FichePlat({
                     <li key={p}>{p}</li>
                   ))}
                 </ul>
+              </div>
+            )}
+            {(plat.etiquettes ?? []).length > 0 && (
+              <div>
+                <h3>Indications</h3>
+                <p>{ordreEtiquettes(plat.etiquettes ?? []).join(", ")}</p>
               </div>
             )}
             <div>
