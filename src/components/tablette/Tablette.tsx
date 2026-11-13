@@ -397,11 +397,22 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
             </button>
           ))}
         </nav>
-        {listes.cours.length > 0 && (
-          <p className="tab-compteur" aria-live="polite">
-            {retards > 0 ? <strong className="tab-compteur-retard">{retards} en retard</strong> : <span>Aucune en retard</span>}
-            {aLancer > 0 && <span>{aLancer} à lancer maintenant</span>}
-          </p>
+        {/* Compteur sur une ligne : à accepter, en retard, à lancer. Il remplace le bandeau « N à accepter ». */}
+        {(listes.cours.length > 0 || listes.traiter.length > 0) && (
+          <div className="tab-compteur">
+            {listes.traiter.length > 0 && (
+              <p className="tab-attente" role="status">
+                {listes.traiter.length === 1 ? "1 commande à accepter" : `${listes.traiter.length} commandes à accepter`}
+                {!son ? ". Le son est coupé." : "."}
+              </p>
+            )}
+            {listes.cours.length > 0 && (
+              <p aria-live="polite">
+                {retards > 0 ? <strong className="tab-compteur-retard">{retards} en retard</strong> : <span>Aucune en retard</span>}
+                {aLancer > 0 && <span>{aLancer} à lancer maintenant</span>}
+              </p>
+            )}
+          </div>
         )}
       </header>
 
@@ -433,12 +444,6 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
           Livraison {l.numero} : {problemeTexte(l)} ({nomLivreur.get(l.livreur_id)}). Ouvrez « Livraisons ».
         </p>
       ))}
-      {listes.traiter.length > 0 && (
-        <p className="tab-attente" role="status">
-          {listes.traiter.length === 1 ? "1 commande à accepter" : `${listes.traiter.length} commandes à accepter`}
-          {!son ? ". Le son est coupé." : "."}
-        </p>
-      )}
 
       {reglagesOuverts && donnees && <Reglages reglages={donnees.reglages} onChange={charger} />}
 

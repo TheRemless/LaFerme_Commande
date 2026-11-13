@@ -158,6 +158,17 @@
   font-size: 16px;
   font-weight: 600;
 }
+.tab-compteur p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+  margin: 0;
+}
+.tablette .tab-compteur .tab-attente {
+  margin: 0;
+  padding: 2px 10px;
+}
 .tab-compteur-retard {
   padding: 2px 10px;
   color: var(--blanc);
@@ -189,7 +200,7 @@
 }
 .tab-ligne-corps {
   display: grid;
-  grid-template-columns: 60px 136px minmax(0, 1fr);
+  grid-template-columns: 60px 168px minmax(0, 1fr);
   gap: 12px;
   align-items: center;
   min-height: 62px;
@@ -233,6 +244,7 @@
 .tab-ligne-etat {
   font-size: 15px;
   font-weight: 700;
+  white-space: nowrap;
 }
 .tab-ligne-infos {
   display: flex;
@@ -333,7 +345,7 @@
     grid-template-columns: minmax(0, 1fr);
   }
   .tab-ligne-corps {
-    grid-template-columns: 44px 104px minmax(0, 1fr);
+    grid-template-columns: 44px 140px minmax(0, 1fr);
     gap: 8px;
     padding: 6px 8px;
   }
