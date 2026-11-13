@@ -148,3 +148,15 @@ Migration `supabase/migrations/20261127110000_annulation_client.sql`. Serveur : 
 ## Commandes et clients, suite (vague 3)
 
 Clients, réclamations et gestes du back-office : voir [back-office/commandes-clients.md](back-office/commandes-clients.md).
+
+### Clôture du jour (rapport Z)
+
+Migration `supabase/migrations/20261129100000_cloture_jour.sql`, module `src/lib/cloture.ts`, route `/api/gestion/cloture` (gérant). Tests : `tests/unit/cloture-jour-sql.test.ts`, `tests/unit/cloture.test.ts`.
+
+- Un jour de service va de 5h à 5h le lendemain (heure de Genève). Les ventes sont celles du tableau des ventes pour ce jour. Les remboursements sont ceux faits (ou demandés, s'ils ne sont pas faits) dans cette fenêtre. L'export comptable, lui, compte un remboursement au jour civil.
+- Encaissements : en ligne (TWINT et carte ensemble tant que la commande ne garde pas le moyen de Stripe), comptoir (net des manques déduits avant l'encaissement), espèces rendues, et l'attendu au comptoir (comptoir moins espèces rendues).
+- À encaisser : chaque commande au comptoir pas encore encaissée, avec son numéro, son heure et le montant dû.
+- À vérifier : remise au client sans encaissement, remboursement en échec ou pas encore confirmé, commande pas terminée.
+- Clôturer (`POST { jour, especes, carte, note }`, montants en francs, vides si pas comptés) : la base garde une copie du rapport, calcule l'écart (espèces comptées + ticket du terminal de carte − attendu) et journalise (objet `cloture`, sans le rapport). Reclôturer le même jour remplace la clôture ; l'ancienne reste dans le journal. Une clôture ne s'annule pas depuis le journal. Pas de clôture d'un jour à venir.
+- `GET ?jour=…&format=csv` : le rapport en CSV (point-virgule), sans aucune donnée de client, formules neutralisées.
+- Mesure (base embarquée, un jour de 300 commandes dans un an d'historique) : 3 ms.

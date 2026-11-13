@@ -58,6 +58,14 @@ async function main() {
     temps.sort((a, b) => a - b);
     console.log(`pilotage_ventes ${nom.padEnd(16)} médiane ${Math.round(temps[2])} ms (min ${Math.round(temps[0])}, max ${Math.round(temps[4])})`);
   }
+  const temps: number[] = [];
+  for (let i = 0; i < 5; i += 1) {
+    const t = performance.now();
+    await db.query("select cloture_jour($1::date)", [FIN]);
+    temps.push(performance.now() - t);
+  }
+  temps.sort((x, y) => x - y);
+  console.log(`cloture_jour (un jour de ${PAR_JOUR})   médiane ${Math.round(temps[2])} ms (min ${Math.round(temps[0])}, max ${Math.round(temps[4])})`);
   await db.close();
 }
 
