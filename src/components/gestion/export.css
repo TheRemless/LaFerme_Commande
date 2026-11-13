@@ -1,0 +1,52 @@
+/* Export comptable : choix du fichier et plan de comptes Crésus (vague 3, bo-pilotage). */
+.bo-export-formats {
+  display: grid;
+  gap: 4px;
+  margin: 16px 0;
+  padding: 0;
+  border: 0;
+}
+.bo-export-formats legend {
+  margin-bottom: 4px;
+  padding: 0;
+  font-weight: 600;
+}
+.bo-export-formats label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: var(--bo-cible);
+  padding: 6px 0;
+  cursor: pointer;
+}
+.bo-export-formats input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  accent-color: var(--bo-texte);
+}
+.bo-export-formats label > span {
+  display: grid;
+  gap: 2px;
+}
+.bo-export-a-confirmer {
+  padding: 10px 12px;
+  border-left: 4px solid var(--bo-texte);
+  background: var(--bo-surface);
+  font-weight: 600;
+}
+.bo-export-plan {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px 16px;
+  align-items: start;
+}
+.bo-export-plan input {
+  max-width: 12ch;
+  font-variant-numeric: tabular-nums;
+}
+.bo-export-plan button {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
