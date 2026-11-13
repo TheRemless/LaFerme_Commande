@@ -2,7 +2,7 @@
 
 Un vendredi à 19h50, le site annonçait « Chez vous vers 20h30 » avec un délai fixe (préparation habituelle, ou délai de la zone, plus le retard posé à la main). Le four avait 22 pizzas en file : la commande arrivait à 21h10. Désormais la file réelle de chaque poste allonge les heures annoncées. Une seule source pour tout le site : la config du service.
 
-Migrations `supabase/migrations/20261130100000_heure_reelle.sql` (calcul `charge_cuisine()`) et `20261130210000_charge_livraison.sql` (calcul `charge_livraison()`, version 2) ; lecture `src/lib/config-service.ts` ; fourchette et raison `src/lib/heure-reelle.ts`.
+Migrations `supabase/migrations/20261130100000_heure_reelle.sql` (calcul `charge_cuisine()`), `20261130210000_charge_livraison.sql` (calcul `charge_livraison()`, version 2) et `20261130220000_charge_postes.sql` (postes prêts, version 3) ; lecture `src/lib/config-service.ts` ; fourchette et raison `src/lib/heure-reelle.ts`.
 
 ## La règle (version 1)
 
@@ -68,9 +68,16 @@ Les débits (four, cuisine, livreur) restent à 0 tant que Jérémy n'a pas donn
 
 Avant la migration, `charge_cuisine` n'existe pas. La config l'ignore et garde les heures du délai fixe. Après la migration, rien ne change tant que les débits valent 0. Même chose pour `charge_livraison` : absente, les livraisons suivent la cuisine seule.
 
-## Version 3 (à venir)
+## Version 3 : un poste qui a fini sa part ne compte plus
+
+Une commande pizza et lasagne dont les pizzas sont sorties restait dans la file du four jusqu'à ce que la lasagne soit prête. Le four paraissait chargé et les heures s'allongeaient à tort. Désormais, quand la table `commande_postes` (session `tablette`, migration `20261203120000_commande_postes.sql`) dit qu'un poste a fini sa part (`pret_le` rempli), ses articles sortent de sa file. Le reste de la règle ne change pas.
+
+- `pret_le` se remplit quand le poste touche « Prête » sur la tablette, ou au plus tard quand la commande passe prête, partie ou terminée.
+- Sans la table (migration de tablette pas encore passée), le calcul reste celui de la version 1. `charge_cuisine()` est recréée en plpgsql (migration `20261130220000_charge_postes.sql`), avec la même réponse, pour marcher dans les deux cas quel que soit l'ordre de fusion.
+- Test : `tests/unit/charge-postes-sql.test.ts`.
+
+## À venir
 
 - Allongement par poste, selon ce que contient le panier (au lieu de la plus longue file). Un four en panne ne retarderait alors plus un panier sans pizza.
 - Ne pas compter dans sa file la commande dont on calcule l'heure (aujourd'hui, à l'acceptation, ses articles l'allongent un peu : prudent, jamais plus tôt).
-- Articles déjà prêts à un poste. Il faut l'horodatage par poste que prépare la session `tablette`.
 - Mesure sur le jeu de rush de `qualite`.
