@@ -246,3 +246,49 @@ test("rythme de relecture : 15 s tant qu'une commande est en cours", async ({ re
   const r = await (await tablette.request.get("/api/tablette/file")).json();
   expect(r.relecture_s).toBe(15);
 });
+
+// File allégée (vague 3, proposé par qualite) : sans changement, le serveur répond 204 avec seulement son heure. La
+// tablette doit quand même faire avancer le temps : « Attend depuis » monte et une commande programmée passe
+// d'« À l'avance » à « En cours » à son heure d'impression, sans nouvelle donnée.
+test("204 sans changement : l'attente monte et l'avance passe en cours à l'heure serveur", async ({ request }) => {
+  const page = await tablette.context().newPage();
+  try {
+    await page.goto("/tablette");
+    await page.getByRole("button", { name: "Continuer sans son" }).click();
+    const carteDe = (numero: string) => page.locator(".tab-commande", { has: page.locator(".tab-num", { hasText: new RegExp(`^${numero}$`) }) });
+
+    // Programmée : acceptée 15 min plus tard, tickets prévus 30 min avant, donc dans « À l'avance ».
+    const programmee = await commander(request, "Avance", "comptoir");
+    await expect(carteDe(programmee.numero)).toBeVisible({ timeout: 15_000 });
+    await carteDe(programmee.numero).getByRole("button", { name: "+15 min" }).click();
+    await carteDe(programmee.numero).getByRole("button", { name: /^Accepter pour/ }).click();
+    await page.getByRole("button", { name: /^À l'avance/ }).click();
+    await ouvrirCommande(page, programmee.numero);
+    await expect(carteDe(programmee.numero)).toContainText("Tickets prévus");
+
+    // Non acceptée : arrive normalement (200).
+    const attend = await commander(request, "Attente", "comptoir");
+    await page.getByRole("button", { name: /^À accepter/ }).click();
+    await expect(carteDe(attend.numero)).toBeVisible({ timeout: 15_000 });
+    await expect(carteDe(attend.numero)).not.toContainText("Attend depuis");
+
+    // Version et heure du serveur à jour, puis toutes les relectures suivantes répondent 204, 40 minutes plus tard.
+    const rep = await page.waitForResponse((r) => r.url().includes("/api/tablette/file") && r.ok());
+    const version = rep.headers()["x-version-file"];
+    const plusTard = new Date(new Date(rep.headers()["x-maintenant"]).getTime() + 40 * 60_000).toISOString();
+    expect(version).toBeTruthy();
+    await page.route("**/api/tablette/file*", (r) => r.fulfill({ status: 204, headers: { "X-Version-File": version, "X-Maintenant": plusTard } }));
+
+    await expect(carteDe(attend.numero)).toContainText(/Attend depuis (39|40|41) min/, { timeout: 20_000 });
+    await page.getByRole("button", { name: /^En cours/ }).click();
+    await expect(page.locator(".tab-ligne-num", { hasText: new RegExp(`^${programmee.numero}$`) })).toBeVisible({ timeout: 20_000 });
+
+    // Ménage : la commande en attente est acceptée, pour ne pas peser sur les tests suivants.
+    await page.unroute("**/api/tablette/file*");
+    await page.getByRole("button", { name: /^À accepter/ }).click();
+    await carteDe(attend.numero).getByRole("button", { name: /^Accepter pour/ }).click();
+    await expect(carteDe(attend.numero)).toBeHidden({ timeout: 15_000 });
+  } finally {
+    await page.close();
+  }
+});
