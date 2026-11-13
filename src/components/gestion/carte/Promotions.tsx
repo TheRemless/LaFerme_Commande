@@ -264,12 +264,12 @@ function FormulaireCode({ existant, fini }: { existant?: Code; fini: (code: stri
         <div className="bo-champ">
           <label htmlFor="code-minimum">Minimum de plats (CHF)</label>
           <input id="code-minimum" inputMode="decimal" {...champ("minimum")} />
-          <p className="bo-champ-aide">Laissez vide s'il n'y a pas de minimum.</p>
+          <p className="bo-champ-aide">Laissez vide s&apos;il n&apos;y a pas de minimum.</p>
         </div>
         <div className="bo-champ">
           <label htmlFor="code-plafond">Plafond d&apos;utilisations</label>
           <input id="code-plafond" type="number" min={1} {...champ("plafond")} />
-          <p className="bo-champ-aide">Laissez vide s'il n'y a pas de plafond.</p>
+          <p className="bo-champ-aide">Laissez vide s&apos;il n&apos;y a pas de plafond.</p>
         </div>
       </div>
       <div className="bo-ligne-champs">
