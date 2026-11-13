@@ -34,6 +34,15 @@ Migration `supabase/migrations/20261210190000_cloture_jour.sql`, module `src/lib
 - `GET ?jour=…&format=csv` : le rapport en CSV (point-virgule), sans aucune donnée de client, formules neutralisées.
 - Mesure (base embarquée, un jour de 300 commandes dans un an d'historique) : 3 ms.
 
+### Écran (`/gestion/cloture`)
+
+`src/components/gestion/ClotureJour.tsx` et `cloture.css`, kit du back-office. Test : `tests/e2e/gestion-cloture.spec.ts`. Captures sur le jeu de rush : `docs/rendus/vague-3/bo-pilotage/cloture-bureau.png`, `cloture-mobile.png`, `cloture-impression.pdf` (une page A4 pour un jour de 322 commandes).
+
+- Jour de service (date, « Aujourd'hui », « Hier »), jamais un jour à venir.
+- Encaissé (en ligne, comptoir, déduit, espèces rendues, attendu au comptoir), puis « Compter la caisse » : espèces comptées, ticket du terminal de carte, note. Un montant illisible est refusé sous son champ. « Clôturer le jour » demande confirmation en donnant l'attendu, le compté et l'écart. Un jour clôturé montre l'écart, garde ses montants dans les champs et propose « Reclôturer ». Si une commande du jour a changé depuis, un bandeau le dit.
+- Comptoir pas encore encaissé, à vérifier, remboursements du jour, ventes et TVA.
+- « Imprimer » : une page A4 sans menu ni formulaire. « Télécharger (CSV) » : le même rapport en fichier.
+
 ## Analyses
 
 Migration `supabase/migrations/20261210200000_pilotage_analyses.sql`, route `GET /api/gestion/pilotage/analyses` (mêmes paramètres que les ventes, sans comparaison). Tests : `tests/unit/pilotage-analyses-sql.test.ts`.
