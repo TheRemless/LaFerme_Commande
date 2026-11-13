@@ -38,6 +38,25 @@ Mesures avant et après : `docs/rendus/vague-3/tablette/` (`avant-mesures.json`,
 - Le retour d'un geste s'affiche en bas de l'écran pendant 8 secondes, même au fond d'une longue liste.
 - Commande acceptée ou en préparation : temps restant sous l'heure promise (« dans 12 min »), puis « En retard de N min », heure en négatif et cadre épais une fois l'heure passée. Prête ou partie, la marque disparaît : la cuisine a fini.
 
+### Mode d'emploi en service (à imprimer pour la cuisine)
+
+Onglet « En cours » :
+
+- Une ligne par commande, la plus pressée en haut : d'abord celles en retard, puis celles à lancer maintenant, puis les autres dans l'ordre où il faut les lancer. Une livraison loin passe avant un retrait proche. Les commandes prêtes ou parties sont en bas.
+- Chaque ligne dit ce qui presse : « En retard de 4 min » (heure en blanc sur noir, ligne encadrée), « À lancer » (trait épais à gauche), « À lancer dans 12 min », « À sortir dans 6 min ». Sous les onglets, le compteur dit combien sont en retard et combien sont à lancer maintenant.
+- Le bouton à droite de la ligne fait le pas suivant d'un seul geste : « Prête » (à emporter, le client reçoit un e-mail), « Partie » (livraison), « Retirée et payée », « Retirée », « Livrée ».
+- Toucher la ligne ouvre la commande en entier à côté : plats et options, client, « Changer l'heure », « Il manque… », « Annuler la commande », tickets. « Fermer » la referme. Sur un téléphone, elle couvre la liste.
+- Pendant qu'on touche la liste, elle ne se réordonne pas : l'ordre change 8 secondes après le dernier appui.
+- En livraison, donner la commande à un livreur dans l'onglet « Livraisons ». Il touche « Je pars » puis « Livrée » sur son téléphone. Sans téléphone, toucher ici « Partie » puis « Livrée » à son retour.
+- Le résultat d'un bouton (« Commande refusée et remboursée », « Tickets prévus à 18h30 ») s'affiche en bas de l'écran pendant 8 secondes. « OK » le ferme.
+
+### Tableau « En cours » (vague 3)
+
+- « En cours », « À l'avance », « Terminées » et la recherche affichent une ligne par commande (`LigneCommande.tsx`) : numéro, heure promise et ce qui presse, mode, client, livreur, plats en résumé, montant à encaisser, et un bouton pour le pas suivant. « À accepter » garde ses cartes (l'heure s'y règle).
+- Tri de « En cours » (`etatTemps` dans `src/components/tablette/rush.ts`) : en retard d'abord (le plus ancien en tête), puis par heure de lancement, prêtes et parties à la fin. Heure de départ : heure promise pour un retrait, moins le trajet de la zone pour une livraison. Trajet : délai minimal de la zone moins la préparation (le retard du soir et l'allongement s'ajoutent aux deux). Heure de lancement : départ moins la préparation habituelle. La file envoie `rythme: { preparation, trajets }`.
+- Toucher une ligne ouvre la carte complète à côté (sous la barre, par-dessus la liste sous 900 px). Le détail ne s'affiche que si sa commande est dans la liste à l'écran.
+- L'ordre de « En cours » reste figé 8 secondes après un appui sur le tableau (`ordreStable`). Compteur « N en retard » et « N à lancer maintenant » sous les onglets. L'état des imprimantes ne s'écrit qu'une fois : « Imprimantes en ligne. » ou leur bandeau.
+
 ## Correctifs du 13.11.2026 (audit « samedi soir »)
 
 Détail : `docs/audits/samedi-soir.md`, « Suivi des corrections ».

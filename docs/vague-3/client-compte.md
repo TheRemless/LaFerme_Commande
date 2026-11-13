@@ -27,3 +27,7 @@ Désactivé tant que Jérémy ne l'a pas décidé (réglage `annulation_client_a
 ## Ses données (nLPD)
 
 Le fichier « Télécharger mes données » du compte contient aussi les notes que l'équipe a écrites sur le client et sa marque (« à surveiller », « bloqué »). Une note écrite sur un client peut donc être lue par lui. À la suppression de son compte, ses notes sont effacées. La marque reste, pour qu'un blocage ne se lève pas en supprimant son compte : c'est une proposition qui attend la décision de Jérémy.
+
+## E-mails aux clients
+
+Chaque e-mail part en deux versions, texte seul et mise en page. La mise en page reste sur fond blanc, même quand le téléphone du client est en mode sombre. Sous le sujet, la boîte de réception montre la première phrase utile, par exemple « Nous avons bien reçu votre commande n° 37. ».

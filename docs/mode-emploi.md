@@ -29,6 +29,8 @@ Ne pas toucher « Continuer sans son ». Sans son, personne n'entend les command
 
 ### Pendant la préparation (onglet « En cours »)
 
+Depuis le 13.11.2026, « En cours » est un tableau trié par urgence : mode d'emploi à jour dans [tablette.md](tablette.md), « Mode d'emploi en service ».
+
 - Toucher « Prête au comptoir ». Le client reçoit un e-mail.
 - À emporter payé au comptoir : quand le client paie et part, toucher « Retirée et payée ».
 - En livraison, donner la commande à un livreur dans l'onglet « Livraisons ». Il touche « Je pars » puis « Livrée » sur son téléphone. Sans téléphone, toucher ici « Partie en livraison » puis « Livrée » à son retour.
