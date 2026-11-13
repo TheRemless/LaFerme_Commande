@@ -2,6 +2,8 @@
 
 Trois pages à imprimer. La première se colle en cuisine près de la tablette, la deuxième reste avec le gérant, la troisième se donne à chaque livreur. Elles décrivent le site tel qu'il est au 16.11.2026. Le numéro à appeler reste à remplir.
 
+Ce que voit le client qui commande, pour répondre au téléphone : `docs/vague-3/client-commande.md`.
+
 ---
 
 ## Page 1. La tablette (à afficher en cuisine)
