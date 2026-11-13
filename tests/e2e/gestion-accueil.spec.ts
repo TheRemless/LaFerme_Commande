@@ -62,6 +62,56 @@ test("une commande qui arrive compte dans « À accepter »", async ({ request }
   await expect(carte.getByRole("link", { name: "Ouvrir la tablette" })).toHaveAttribute("href", "/tablette");
 });
 
+test("les alertes se voient sur toutes les pages ; une commande citée ouvre sa fiche", async ({}, info) => {
+  // Une alerte connue, posée sur la vraie réponse : la base de test n'a pas forcément de remboursement en échec.
+  const liste = await page.request.post("/api/gestion/commandes", { headers: ORIGINE, data: { action: "liste_page", recherche: `Accueil${info.project.name}` } });
+  expect(liste.ok()).toBe(true);
+  const c = ((await liste.json()) as { lignes: { id: string; numero: number; jour_service: string }[] }).lignes[0];
+  expect(c).toBeTruthy();
+  const vraie = await (await page.request.get("/api/gestion/accueil")).json();
+  const alerte = {
+    cle: "remboursements",
+    type: "remboursements",
+    niveau: "bloquant",
+    titre: "1 remboursement a échoué",
+    detail: "Le client n'a pas été remboursé.",
+    commandes: [{ id: c.id, numero: c.numero, jour: c.jour_service }],
+    liste: { href: `/gestion/commandes?remboursement=echec&du=${c.jour_service}&au=${c.jour_service}`, texte: "Voir la liste" },
+  };
+  await page.route("**/api/gestion/accueil", (r) => r.fulfill({ json: { ...vraie, alertes: [alerte] } }));
+
+  // Ailleurs que sur l'accueil : le nombre dans le titre de l'onglet et sur Accueil (ou sur Menu au téléphone).
+  await page.goto("/gestion/horaires");
+  await expect(page).toHaveTitle(/^\(1\) /);
+  const menu = page.getByRole("button", { name: "Menu", exact: true });
+  if (await menu.isVisible()) await expect(menu).toHaveAccessibleDescription("1 alerte à régler");
+  else
+    await expect(page.getByRole("navigation", { name: "Rubriques" }).getByRole("link", { name: "Accueil", exact: true })).toHaveAccessibleDescription(
+      "1 alerte à régler, dont au moins une bloque le service",
+    );
+
+  // Sur l'accueil : la commande avec son jour, qui ouvre sa fiche dans Commandes ; aucune donnée de client dans l'adresse.
+  await page.goto("/gestion");
+  await expect(page.getByRole("link", { name: "Voir la liste" })).toHaveAttribute("href", alerte.liste.href);
+  await page.getByRole("button", { name: new RegExp(`^N° ${c.numero}, \\p{L}+ \\d+ \\p{L}+$`, "u") }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Commandes" })).toBeVisible();
+  await expect(page.getByRole("dialog").getByRole("tab", { name: "Historique" })).toBeVisible();
+  expect(page.url()).not.toContain(c.id);
+  await page.keyboard.press("Escape");
+
+  // Réglages de l'appareil : un type par ligne, coupés tant que les notifications ne sont pas demandées.
+  await page.goto("/gestion");
+  await page.getByRole("button", { name: "Régler les alertes" }).click();
+  const panneau = page.getByRole("dialog", { name: "Alertes sur cet appareil" });
+  await expect(panneau.getByRole("group", { name: "Me prévenir pour" }).getByRole("checkbox")).toHaveCount(9);
+  const r = await new AxeBuilder({ page }).include(".bo-panneau").withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
+  expect(r.violations.map((v) => v.id)).toEqual([]);
+  await page.keyboard.press("Escape");
+  await expect(panneau).toHaveCount(0);
+  await page.unroute("**/api/gestion/accueil");
+  await page.goto("/gestion");
+});
+
 test("la route de l'accueil est réservée au gérant", async ({ request, browser }, info) => {
   expect((await request.get("/api/gestion/accueil")).status()).toBe(401);
   const service = await browser.newPage({ baseURL: info.project.use.baseURL });

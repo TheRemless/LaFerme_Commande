@@ -42,7 +42,8 @@ test.afterAll(async () => {
 test("chaque rubrique a son adresse, son titre et sa place marquée dans le menu", async () => {
   await gestion.goto("/gestion/journal");
   await titre(gestion, "Journal");
-  await expect(gestion).toHaveTitle("Journal, back-office La Ferme");
+  // Le compteur d'alertes du gérant peut précéder le titre : « (2) Journal, … ».
+  await expect(gestion).toHaveTitle(/^(\(\d+\) )?Journal, back-office La Ferme$/);
   await ouvrirMenuSiTelephone(gestion);
   await expect(menu(gestion).getByRole("link", { name: "Journal", exact: true })).toHaveAttribute("aria-current", "page");
   await expect(menu(gestion).locator('[aria-current="page"]')).toHaveCount(1);
@@ -50,7 +51,7 @@ test("chaque rubrique a son adresse, son titre et sa place marquée dans le menu
 
   await gestion.goto("/gestion");
   await titre(gestion, "Accueil");
-  await expect(gestion).toHaveTitle("Back-office, La Ferme");
+  await expect(gestion).toHaveTitle(/^(\(\d+\) )?Back-office, La Ferme$/);
   // Le plan de l'accueil mène aux rubriques.
   await gestion.locator(".bo-plan").getByRole("link", { name: /^Imprimantes/ }).click();
   await titre(gestion, "Imprimantes");
