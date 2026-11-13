@@ -117,3 +117,8 @@ insert into personnel (email, nom, role) values ('ecran-service@laferme.test', '
 insert into personnel (email, nom, role) values
   ('rapports-bureau@laferme.test', 'Rapports bureau', 'gerant'),
   ('rapports-mobile@laferme.test', 'Rapports mobile', 'gerant');
+
+-- Clôture du jour (bo-pilotage, tests/e2e/gestion-cloture.spec.ts, vague 3) : un compte par projet Playwright.
+insert into personnel (email, nom, role) values
+  ('cloture-bureau@laferme.test', 'Clôture bureau', 'gerant'),
+  ('cloture-mobile@laferme.test', 'Clôture mobile', 'gerant');
