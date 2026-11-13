@@ -308,7 +308,7 @@ test("commande annulée pendant la tournée (adresse introuvable) : remboursée,
   await expect(cours.locator(".tab-meta")).toContainText("Partie", { timeout: 10_000 });
   // Annuler une livraison partie rembourse tout : gérant seulement (audit de sécurité 2, S2-01).
   await expect(cours.getByRole("button", { name: "Annuler la commande" })).toHaveCount(0);
-  await expect(cours).toContainText("Seul le gérant peut annuler une livraison partie.");
+  await expect(cours).toContainText("Seul le gérant ou le responsable de service peut annuler une livraison partie.");
   const gerant = await (await browser.newContext({ baseURL: BASE, viewport: { width: 1024, height: 768 } })).newPage();
   await connecter(gerant, "/tablette", "gerant-livraison@laferme.test");
   await gerant.getByRole("button", { name: "Continuer sans son" }).click();
