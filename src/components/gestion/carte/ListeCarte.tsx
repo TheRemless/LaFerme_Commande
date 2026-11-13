@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import "./carte.css";
 import { FichePlat, NouveauPlat, type DonneesCarte, type PlatGestion } from "@/components/gestion/GestionCarte";
+import { PhotosEnLot } from "@/components/gestion/carte/PhotosEnLot";
 import { PrixEnLot } from "@/components/gestion/carte/PrixEnLot";
 import { DispoRupture, CopierPlat, Etiquettes, ETIQUETTES } from "@/components/gestion/carte/FicheVague3";
 import { enregistrer } from "@/components/gestion/enregistrer";
@@ -140,6 +141,7 @@ export function ListeCarte({ donnees, recharger, version }: { donnees: DonneesCa
   const [lot, setLot] = useState<string[] | null>(null);
   const [epuiser, setEpuiser] = useState<string[] | null>(null);
   const [nouveau, setNouveau] = useState(false);
+  const [photos, setPhotos] = useState(false);
   // Après des prix changés en lot, la sélection se vide : un second appui ne rejoue pas la hausse.
   const viderLot = useRef<(() => void) | null>(null);
 
@@ -248,9 +250,14 @@ export function ListeCarte({ donnees, recharger, version }: { donnees: DonneesCa
             </button>
           ))}
         </div>
-        <button type="button" className="bo-bouton bo-bouton-principal" onClick={() => setNouveau(true)}>
-          Ajouter un plat
-        </button>
+        <span className="bo-ligne-champs">
+          <button type="button" className="bo-bouton bo-bouton-second" onClick={() => setPhotos(true)}>
+            Envoyer des photos
+          </button>
+          <button type="button" className="bo-bouton bo-bouton-principal" onClick={() => setNouveau(true)}>
+            Ajouter un plat
+          </button>
+        </span>
       </div>
       {donnees.bloquants > 0 && (
         <p className="bo-champ-aide">
@@ -357,6 +364,17 @@ export function ListeCarte({ donnees, recharger, version }: { donnees: DonneesCa
               }}
             />
           )}
+        </PanneauLateral>
+      )}
+      {photos && (
+        <PanneauLateral titre="Envoyer des photos" sousTitre="Plusieurs plats d'un coup" onFermer={() => setPhotos(false)} large>
+          <PhotosEnLot
+            donnees={donnees}
+            fini={async (n) => {
+              await recharger();
+              notifier({ texte: `${n} photo${n > 1 ? "s" : ""} en ligne.`, ton: "succes" });
+            }}
+          />
         </PanneauLateral>
       )}
       {nouveau && (

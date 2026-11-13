@@ -1,6 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 import { codeDuPersonnel } from "./site";
 
+import sharp from "sharp";
+
 // Carte du back-office en liste (vague 3) : filtres de qualité, fiche dans le panneau, rupture jusqu'à une
 // date, prix en lot (aperçu seulement : aucun prix de la carte n'est changé pour les autres tests).
 // Captures dans docs/rendus/vague-3/bo-carte seulement avec RENDUS=1.
@@ -122,3 +124,25 @@ test("en lot : retirer de la vente puis remettre en vente", async () => {
   await expect(gestion.getByText("1 plat en vente.")).toBeVisible();
   await expect(ligne).toContainText("En vente");
 });
+
+test("plusieurs photos d'un coup : le plat se trouve d'après le nom du fichier", async ({}, info) => {
+  const photo = await sharp({ create: { width: 2400, height: 1800, channels: 3, background: { r: 150, g: 110, b: 80 } } }).jpeg().toBuffer();
+  await gestion.goto("/gestion/carte");
+  await gestion.getByRole("button", { name: "Envoyer des photos" }).click();
+  const panneau = gestion.getByRole("dialog", { name: "Envoyer des photos" });
+  await panneau.getByLabel("Photos").setInputFiles([
+    { name: "tiramisu.jpg", mimeType: "image/jpeg", buffer: photo },
+    { name: "IMG_0001.jpg", mimeType: "image/jpeg", buffer: photo },
+  ]);
+  await expect(panneau.getByLabel("Plat pour tiramisu.jpg")).toHaveValue("tiramisu");
+  await expect(panneau.getByRole("row", { name: /IMG_0001\.jpg/ })).toContainText("Pas de plat trouvé");
+  await panneau.getByLabel("Cadrage pour tiramisu.jpg").selectOption("haut");
+  await panneau.getByRole("button", { name: "Envoyer 1 photo" }).click();
+  await expect(panneau.getByRole("row", { name: /tiramisu\.jpg/ })).toContainText("En ligne.");
+  // La photo du shooting revient : la carte des autres tests ne change pas.
+  const origine = new URL(info.project.use.baseURL!).origin;
+  const r = await gestion.request.post("/api/gestion/carte", { headers: { Origin: origine }, data: { type: "plat", slug: "tiramisu", champs: { photo: "tiramisu.jpg" } } });
+  expect(r.ok()).toBe(true);
+  await gestion.keyboard.press("Escape");
+});
+
