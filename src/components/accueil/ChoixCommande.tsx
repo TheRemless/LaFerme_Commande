@@ -6,6 +6,7 @@ import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "re
 import { adresseTexte, chercherAdresses, numeroTape, type Adresse, type Details } from "@/lib/adresse";
 import { ecrireChoix, lireChoix, type Quand, type ZoneChoisie } from "@/lib/choix";
 import { prixCourt } from "@/lib/prix";
+import { ancrePlat } from "@/lib/plat-adresse";
 import { messageZoneFermee } from "@/lib/zone-fermee";
 import { fourchette } from "@/lib/heure-reelle";
 import { plageTexte } from "@/lib/plage-heure";
@@ -301,7 +302,7 @@ export function ChoixCommande({
       estimation: quand.type === "asap" && etat.etat === "ouvert" ? etat.desQuePossible : undefined,
       fourchette: quand.type === "asap" && plage ? plage : undefined,
     });
-    router.push(reprise ? "/panier" : "/carte");
+    router.push(reprise ? "/panier" : `/carte${ancrePlat()}`);
   }
 
   function choisirSuggestion(a: Adresse) {
