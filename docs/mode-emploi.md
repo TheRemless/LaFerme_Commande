@@ -223,6 +223,7 @@ Coup de feu (en tête de la rubrique) et zones livrées le soir seulement ou fer
 - Choisir « Du » et « Au » puis toucher « Télécharger le fichier CSV ». Le fichier s'ouvre dans Excel.
 - Une ligne par vente encaissée, puis les remboursements de la période en négatif, puis le total net par taux de TVA.
 - Une commande payée au comptoir n'y est que si quelqu'un a touché « Encaissée » ou « Retirée et payée » sur la tablette.
+- Rapports (rubrique à côté) : choisir la période et le service, les ventes, les commandes et le panier moyen s'affichent avec l'écart contre la période d'avant. Détail : [docs/rapports-gestion.md](rapports-gestion.md).
 
 ### Journal
 

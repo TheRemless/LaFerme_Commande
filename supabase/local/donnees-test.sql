@@ -83,3 +83,8 @@ insert into personnel (email, nom, role) values
 
 -- Écran Livraison et horaires, parties de la vague 3 (tests/e2e/gestion-service-v3.spec.ts).
 insert into personnel (email, nom, role) values ('ecran-service@laferme.test', 'Écran service', 'gerant');
+
+-- Rapports (bo-pilotage, tests/e2e/gestion-rapports.spec.ts, vague 3) : un compte par projet Playwright.
+insert into personnel (email, nom, role) values
+  ('rapports-bureau@laferme.test', 'Rapports bureau', 'gerant'),
+  ('rapports-mobile@laferme.test', 'Rapports mobile', 'gerant');
