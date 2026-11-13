@@ -41,7 +41,11 @@ export const personnelCourant = cache(async (): Promise<Personnel | null> => {
   const jeton = await jetonPersonnel();
   if (!jeton) return null;
   try {
-    return await fonctionSql<Personnel | null>("personnel_de_session", { p_session_hache: empreinte("session-personnel", jeton) });
+    const hache = empreinte("session-personnel", jeton);
+    const p = await fonctionSql<Personnel | null>("personnel_de_session", { p_session_hache: hache });
+    // Dernière activité de l'appareil (Équipe) : une écriture toutes les cinq minutes au plus, sans attendre.
+    if (p) void fonctionSql("voir_session_personnel", { p_session_hache: hache }).catch(() => undefined);
+    return p;
   } catch (e) {
     console.error(`Session du personnel illisible : ${e instanceof Error ? e.message : e}`);
     return null;

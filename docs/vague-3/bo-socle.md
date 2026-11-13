@@ -34,3 +34,13 @@ Le remettre à `false` coupe tout de suite les droits des responsables déjà no
   - la déconnexion d'un appareil (bo-socle) ;
   - la fermeture du service (bo-operations).
   Les fonctions `modifier_commande` et `coup_de_feu`, qui acceptent `role in ('service', 'gerant')`, doivent aussi accepter `responsable`.
+
+## Appareils connectés de l'équipe
+
+Dans Équipe, chaque membre connecté a un bouton « Appareils (n) ». Il ouvre la liste de ses appareils : le type (« iPad, Safari », « Téléphone Android, Chrome »), la date de connexion et la dernière activité. « Déconnecter » coupe un seul appareil, après confirmation : une tablette volée ou le téléphone perdu d'un livreur, sans déconnecter les autres. « Déconnecter partout » reste à côté.
+
+- Rien de personnel n'est gardé : ni adresse IP, ni empreinte du navigateur. Seulement un libellé court, calculé à la connexion (`src/lib/personnel/appareil.ts`).
+- La dernière activité est notée au plus une fois toutes les cinq minutes par appareil.
+- Migration `…_appareils_equipe.sql` : colonnes `appareil` et `vue_le` de `sessions_personnel`, fonctions `noter_appareil_personnel`, `voir_session_personnel`, `appareils_personnel` et `couper_appareil_personnel`. Ces deux dernières sont réservées au gérant et la coupure va au journal. Le code marche avant la migration : la connexion ignore l'échec de `noter_appareil_personnel`.
+- Le jour où D1 est activé, couper un appareil passe au droit `deconnecter_appareil` (responsable de service).
+- Tests : `tests/unit/appareils-equipe.test.ts`, `tests/e2e/gestion-appareils.spec.ts`.
