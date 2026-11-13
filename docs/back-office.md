@@ -86,3 +86,24 @@ Migration `supabase/migrations/20261127100000_modifier_commande.sql`, aucun obje
 - **Traces** : seuls les champs changés, avant et après, au journal du back-office (`commande`) ; un événement « modifiee … » dans l'historique de la commande ; « adresse_modifiee » au journal des livraisons si un livreur l'a déjà.
 - **Client** : un e-mail « Commande n modifiée » ne reprend que les champs changés, avec le lien de suivi. Rien n'est envoyé si rien n'a changé.
 - **Ticket « MODIFIÉE »** : pas encore, à faire avec la session `tablette`.
+
+## Chiffres (vague 3, bo-pilotage)
+
+Calculés en base, jamais dans le navigateur. Migration `supabase/migrations/20261129090000_pilotage_ventes.sql`, module `src/lib/pilotage.ts`, route `GET /api/gestion/pilotage/ventes` (gérant). Tests : `tests/unit/pilotage-ventes-sql.test.ts`, `tests/unit/pilotage.test.ts`.
+
+| Chiffre | Définition |
+|---|---|
+| Jour d'une commande | Son jour de service (`jour_service`), qui change à 5h du matin à Genève. L'export comptable garde, lui, le jour de la commande (`jour`) |
+| Commande prise | Ni refusée, ni annulée, ni en attente de paiement. Encaissée ou encore à encaisser au comptoir |
+| TTC | Total payé par le client, frais de livraison compris. HT = TTC moins la TVA de la commande |
+| Panier moyen | TTC des commandes prises divisé par leur nombre |
+| Encaissé, à encaisser | Payé en ligne ou encaissé au comptoir ; commandes au comptoir pas encore encaissées |
+| Remboursements faits | Au jour du remboursement (heure de Genève), comme l'export, sans ceux d'une commande refusée |
+| Remboursements en cours, en échec | Au jour de la demande, refusées comprises |
+| Net TTC | TTC moins remboursements faits. TVA par taux : ventes, remboursements et net |
+| Refus | Nombre, montant et les huit motifs les plus fréquents (majuscules et espaces ignorés) |
+| Comparaison | Sans choix : les mêmes jours de la semaine précédente pour moins de 7 jours, sinon la même durée juste avant. Le mois se compare au mois civil précédent. La semaine va du lundi au dimanche |
+
+Paramètres de la route : `?periode=jour|semaine|mois&jour=AAAA-MM-JJ`, ou `?periode=choisie&debut=…&fin=…` (et `&comp_debut=…&comp_fin=…`). Un an au plus de chaque côté. Les fonctions SQL ne s'exécutent que pour le serveur (`service_role`) et ne rendent aucune donnée personnelle.
+
+Mesure (`npx tsx --conditions=react-server scripts/mesure-pilotage.ts`, base embarquée, 109 500 commandes sur un an, 13.11.2026) : un jour 3 ms, une semaine 5 ms, un mois 19 ms, une année 138 ms, comparaison comprise. Aucune table de cumuls nécessaire à ce volume.
