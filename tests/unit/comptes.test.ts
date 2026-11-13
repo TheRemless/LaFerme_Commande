@@ -205,10 +205,12 @@ describe("compte et commandes", () => {
       { cle_idempotence: "compte-a", compte_id: compte },
       { cle_idempotence: "compte-b", compte_id: null },
     ]);
-    // Profil complété et adresse gardée depuis la commande.
-    const espace = await f<{ compte: { prenom: string }; adresses: unknown[]; commandes: unknown[] }>("espace_compte($1)", [compte]);
+    // Seul le prénom est repris (revue de sécurité du 13.11.2026, migration 20261202110000) : une adresse
+    // e-mail mal tapée ne doit pas livrer le téléphone ni l'adresse d'un inconnu.
+    const espace = await f<{ compte: { prenom: string; telephone: string }; adresses: unknown[]; commandes: unknown[] }>("espace_compte($1)", [compte]);
     expect(espace.compte.prenom).toBe("Léa");
-    expect(espace.adresses).toHaveLength(1);
+    expect(espace.compte.telephone).toBe("");
+    expect(espace.adresses).toHaveLength(0);
     expect(espace.commandes).toHaveLength(1);
   });
 

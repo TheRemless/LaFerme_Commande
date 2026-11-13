@@ -147,7 +147,7 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
               </ul>
             </section>
           )}
-          {c.compte_demande && enregistree && <CreerCompte jeton={c.jeton_suivi} rattachee={Boolean(c.compte_id)} />}
+          {c.compte_demande && enregistree && !c.detachee_du_compte && <CreerCompte jeton={c.jeton_suivi} rattachee={Boolean(c.compte_id)} />}
           <section className="suivi-detail">
             <h2>{c.mode === "livraison" && c.adresse ? `Livraison à ${c.adresse.localite}` : "À emporter, Route de Chancy 132, Onex"}</h2>
             <ul className="lignes">

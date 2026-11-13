@@ -53,6 +53,7 @@ Taper le numéro, le nom ou le téléphone du client dans la case « N°, nom ou
 - Il veut annuler. Toucher « Annuler la commande », choisir « À la demande du client » puis toucher « Annuler et rembourser ». Le lien « Fermer » referme le panneau sans rien annuler.
 - La commande est déjà prête ou livrée. Noter son numéro et prévenir le gérant : il rembourse depuis le back-office, en entier ou en partie.
 - La livraison est partie. « Annuler la commande » reste possible pour le gérant seulement. Elle rembourse tout. Le livreur lit « annulée, rapportez le sac » sur son téléphone. Client absent : voir « Les livraisons » plus bas, rien n'est remboursé.
+- Il ne retrouve pas ses anciennes commandes, ou une question sur son compte, son suivi ou un e-mail : voir [l'espace client](vague-3/client-compte.md).
 
 ### Pendant le service (bouton « Pause, délai, ruptures »)
 
@@ -100,7 +101,9 @@ Adresse : la page `/gestion` du site, au téléphone ou à l'ordinateur. Connexi
 
 Numéro à appeler en cas de problème : ______________________
 
-Le back-office s'ouvre sur « Commandes ». Les autres rubriques sont juste en dessous du titre.
+Le back-office s'ouvre sur l'accueil. Les rubriques sont dans le menu à gauche, rangées par groupe (Commandes et clients, Carte et offre, Chiffres, Réglages du restaurant, Équipe). Au téléphone, toucher « Menu » en haut à gauche. Sur ordinateur, « Réduire le menu » ne garde que les icônes.
+
+Chaque rubrique a sa propre adresse, par exemple `/gestion/carte` ou `/gestion/commandes`. On peut la garder en favori ou l'envoyer à quelqu'un de l'équipe : il devra se connecter. Le bouton retour du navigateur ramène à la rubrique d'avant. « Se déconnecter » est en bas du menu.
 
 ### Commandes
 

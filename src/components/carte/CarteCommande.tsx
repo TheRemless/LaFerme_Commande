@@ -18,12 +18,26 @@ import { ContenuPanier } from "@/components/panier/ContenuPanier";
 
 export function CarteCommande({ categories, catalogue, preversion }: { categories: Categorie[]; catalogue: Catalogue; preversion: boolean }) {
   const panier = usePanier();
-  const { lignes, charge, ajouter, quantite } = panier;
+  const { lignes, charge, ajouter, quantite, remplacer } = panier;
   const calcul = useCalculPanier(lignes, charge);
   const { reponse } = calcul;
   const [choix, setChoix] = useState<Choix | null>(null);
   const [ouvert, setOuvert] = useState<LignePlat | null>(null);
-  const fermer = useCallback(() => setOuvert(null), []);
+  // Ligne du panier rouverte dans sa fiche (« Modifier ») : son rang dans le panier.
+  const [edition, setEdition] = useState<number | null>(null);
+  const fermer = useCallback(() => {
+    setOuvert(null);
+    setEdition(null);
+  }, []);
+  const modifier = useCallback(
+    (i: number) => {
+      const plat = categories.flatMap((c) => c.plats).find((p) => p.slug === lignes[i]?.slug);
+      if (!plat) return;
+      setEdition(i);
+      setOuvert(plat);
+    },
+    [categories, lignes],
+  );
   // La fiche se ferme après l'ajout : on annonce aux lecteurs d'écran ce qui est entré dans le panier.
   const [annonce, setAnnonce] = useState("");
   // Recherche de plat (maquette Béton, docs/PROMPT.md §7) : nom et description, sans tenir compte des accents.
@@ -172,7 +186,7 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
         </div>
         <aside className="panier-col" aria-label="Votre commande">
           <h2 className="panier-titre">Votre commande</h2>
-          <ContenuPanier lignes={lignes} quantite={quantite} catalogue={catalogue} choix={choix} reponse={reponse} preversion={preversion} suivi={panier} calcul={calcul} />
+          <ContenuPanier lignes={lignes} quantite={quantite} catalogue={catalogue} choix={choix} reponse={reponse} preversion={preversion} suivi={panier} calcul={calcul} onModifier={modifier} />
         </aside>
       </div>
       {nbArticles > 0 && (
@@ -196,7 +210,13 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
           catalogue={catalogue}
           preversion={preversion}
           ferme={ferme}
+          initiale={edition !== null ? lignes[edition] : undefined}
           onAjouter={(ligne) => {
+            if (edition !== null) {
+              remplacer(edition, ligne);
+              setAnnonce("Ligne mise à jour dans le panier.");
+              return;
+            }
             ajouter(ligne);
             const total = nbArticles + ligne.qte;
             setAnnonce(`Dans le panier : ${nomAffiche(ouvert)}. ${total} article${total > 1 ? "s" : ""} en tout.`);

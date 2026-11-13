@@ -167,6 +167,8 @@ export type Commande = {
   motif: string | null;
   compte_id: string | null;
   compte_demande: boolean;
+  // Détachée par la suppression de son compte : jamais rangée de nouveau. Absent avant la migration 20261202110000.
+  detachee_du_compte?: boolean;
   origine: string;
   cree_le: string;
   lignes: LigneCommande[];
