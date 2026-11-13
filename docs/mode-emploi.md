@@ -53,6 +53,7 @@ Taper le numéro, le nom ou le téléphone du client dans la case « N°, nom ou
 - Il veut annuler. Toucher « Annuler la commande », choisir « À la demande du client » puis toucher « Annuler et rembourser ». Le lien « Fermer » referme le panneau sans rien annuler.
 - La commande est déjà prête ou livrée. Noter son numéro et prévenir le gérant : il rembourse depuis le back-office, en entier ou en partie.
 - La livraison est partie. « Annuler la commande » reste possible pour le gérant seulement. Elle rembourse tout. Le livreur lit « annulée, rapportez le sac » sur son téléphone. Client absent : voir « Les livraisons » plus bas, rien n'est remboursé.
+- Il ne retrouve pas ses anciennes commandes, ou une question sur son compte, son suivi ou un e-mail : voir [l'espace client](vague-3/client-compte.md).
 
 ### Pendant le service (bouton « Pause, délai, ruptures »)
 
