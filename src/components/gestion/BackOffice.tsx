@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FournisseurCarte, useCarte } from "@/components/gestion/contexte-carte";
 import { GROUPES_VISIBLES, rubriqueDe, type Rubrique } from "@/components/gestion/navigation";
+import { RechercheGlobale } from "@/components/gestion/RechercheGlobale";
 import { FournisseurConfirmation } from "@/components/gestion/ui/Confirmation";
 import { BandeauHorsLigne } from "@/components/gestion/ui/Etats";
 import { FournisseurGarde, usePeutPartir } from "@/components/gestion/ui/Garde";
@@ -171,6 +172,7 @@ function Coque({ nom, children }: { nom: string; children: React.ReactNode }) {
               {rubrique.titre}
             </h1>
           </div>
+          <RechercheGlobale />
         </header>
         <BandeauHorsLigne />
         <main id="contenu" className="gestion bo-contenu">
