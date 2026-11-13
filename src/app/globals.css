@@ -3707,3 +3707,29 @@ body.fiche-ouverte {
   width: 100%;
   font: inherit;
 }
+
+/* Appareils connectés au compte (vague 3, client-compte). */
+.appareils {
+  display: grid;
+  margin: 8px 0 16px;
+  padding: 0;
+  list-style: none;
+}
+.appareils li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--filet);
+}
+.appareils li:first-child {
+  border-top: 0;
+}
+.appareils span {
+  display: flex;
+  flex-direction: column;
+}
+.appareils small {
+  color: var(--encre-douce);
+}
