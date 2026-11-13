@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import "./livreur.css";
 import type { Geste, LivraisonLivreur, Probleme, RetireeLivreur } from "@/lib/livreur";
 import { poster } from "@/lib/requete-client";
 import { heureDe as heure } from "@/lib/heures";
@@ -52,6 +53,8 @@ export function Livreur({ nom, supabase }: { nom: string; supabase: { url: strin
   const [attente, setAttente] = useState<EnAttente[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [plateforme, setPlateforme] = useState<Plateforme>("autre");
+  // Arrêts suivants dépliés à la main (en route, ils sont repliés sur une ligne).
+  const [deplies, setDeplies] = useState<Set<string>>(new Set());
   const envoiEnCours = useRef(false);
   const attenteRef = useRef<EnAttente[]>([]);
 
@@ -154,6 +157,12 @@ export function Livreur({ nom, supabase }: { nom: string; supabase: { url: strin
   const retirees = (donnees?.retirees ?? []).filter((r) => !attente.some((g) => g.commande === r.commande_id && g.geste === "compris"));
   // « Je pars » pour toutes celles encore au restaurant, quand il y en a plusieurs.
   const aPartir = livraisons.filter((l) => l.statut !== "partie" && !enAttentePour(l.commande_id).some((g) => g.geste === "partie" || g.geste === "livree"));
+  // En route (vague 3, une main) : l'arrêt en cours est le premier pas encore livré ; les suivants se replient sur une
+  // ligne, dépliables au toucher. Avant le départ, tout reste ouvert (on vérifie les sacs).
+  const pasLivrees = livraisons.filter((l) => !enAttentePour(l.commande_id).some((g) => g.geste === "livree"));
+  const estPartie = (l: LivraisonLivreur) => l.statut === "partie" || enAttentePour(l.commande_id).some((g) => g.geste === "partie");
+  const courant = pasLivrees[0] ?? null;
+  const enRoute = !!courant && estPartie(courant);
 
   return (
     <div className="livreur">
@@ -220,9 +229,30 @@ export function Livreur({ nom, supabase }: { nom: string; supabase: { url: strin
       ) : (
         <ol className="liv-liste">
           {livraisons.map((l, i) => (
-            <Arret key={l.commande_id} l={l} rang={i + 1} plateforme={plateforme} attente={enAttentePour(l.commande_id)} geste={(g, extra) => geste(l, g, extra)} />
+            <Arret
+              key={l.commande_id}
+              l={l}
+              rang={i + 1}
+              plateforme={plateforme}
+              attente={enAttentePour(l.commande_id)}
+              geste={(g, extra) => geste(l, g, extra)}
+              replie={enRoute && l.commande_id !== courant?.commande_id && !deplies.has(l.commande_id)}
+              deplier={() => setDeplies((x) => new Set(x).add(l.commande_id))}
+            />
           ))}
         </ol>
+      )}
+
+      {/* En route, d'une main : l'arrêt en cours a ses deux gestes sous le pouce, en bas de l'écran. */}
+      {enRoute && courant && (
+        <div className="liv-pouce">
+          <a className="bouton-second" href={lienNavigation(courant.adresse, plateforme)} target="_blank" rel="noreferrer noopener">
+            Itinéraire
+          </a>
+          <button type="button" className="bouton-principal" onClick={() => geste(courant, "livree")}>
+            Livrée, n° {courant.numero}
+          </button>
+        </div>
       )}
 
       <p className="liv-pied">
@@ -238,12 +268,16 @@ function Arret({
   plateforme,
   attente,
   geste,
+  replie = false,
+  deplier,
 }: {
   l: LivraisonLivreur;
   rang: number;
   plateforme: Plateforme;
   attente: EnAttente[];
   geste: (g: Geste, extra?: { motif?: Probleme; detail?: string }) => void;
+  replie?: boolean;
+  deplier?: () => void;
 }) {
   const ids = useId();
   const [probleme, setProbleme] = useState<Probleme | null>(null);
@@ -255,6 +289,23 @@ function Arret({
   const d = l.details;
   const acces = [d?.etage && `Étage ${d.etage}`, d?.sonnette && `Sonnette ${d.sonnette}`, d?.code && `Code ${d.code}`].filter(Boolean) as string[];
   const motifAffiche = problemeEnAttente?.motif ?? l.probleme;
+
+  if (replie) {
+    // Arrêt suivant, replié : de quoi savoir où l'on ira ensuite, et le toucher pour tout voir.
+    return (
+      <li className="liv-arret liv-arret-replie" aria-labelledby={`${ids}-titre`}>
+        <button type="button" className="liv-replie" aria-expanded={false} onClick={deplier}>
+          <span className="liv-rang" aria-label={`Arrêt ${rang}`}>
+            {rang}
+          </span>
+          <span id={`${ids}-titre`} className="liv-replie-texte">
+            <strong>{l.heure ? heure(l.heure) : "dès que possible"}</strong> {l.adresse.rue} {l.adresse.numero}
+            <span className="liv-replie-etat">{partie ? "En route." : "À prendre au restaurant."} n° {l.numero}</span>
+          </span>
+        </button>
+      </li>
+    );
+  }
 
   return (
     <li className={`liv-arret${livreeEnAttente ? " liv-arret-fini" : ""}`} aria-labelledby={`${ids}-titre`}>
