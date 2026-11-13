@@ -78,7 +78,7 @@ export async function POST(requete: Request) {
 
   if (messageQuand === null && lignes.length > 0) {
     const jourRefuse = erreurPlatsDuJour(catalogue, lignes, momentDe(config, maintenant, mode, zone, totaux.pizzas_seulement, quand));
-    if (jourRefuse) messageQuand = `${jourRefuse} Retirez-le ou choisissez une autre heure.`;
+    if (jourRefuse) messageQuand = `${jourRefuse} Retirez-le du panier ou changez de créneau.`;
   }
 
   return NextResponse.json({

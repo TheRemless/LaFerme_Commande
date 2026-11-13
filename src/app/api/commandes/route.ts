@@ -101,7 +101,7 @@ export async function POST(requete: Request) {
   }
   // Plat du jour : seulement le jour dit et pour son service.
   const jourRefuse = erreurPlatsDuJour(catalogue, lignes, momentDe(config, maintenant, mode, zone, totaux.pizzas_seulement, quand));
-  if (jourRefuse) return refus(`${jourRefuse} Retirez-le ou choisissez une autre heure.`);
+  if (jourRefuse) return refus(`${jourRefuse} Retirez-le du panier ou changez de créneau.`);
 
   // Au comptoir, rien n'est payé avant le retrait : on limite les commandes en attente (audit, S5).
   // Les tests de bout en bout (même téléphone, même IP) coupent la limite ; la production le refuse.
