@@ -274,7 +274,13 @@ export function GestionJournal() {
   async function suivantes() {
     if (suivant === null) return;
     setPlus(true);
+    const n = demande.current;
     const rep = await poster("/api/gestion/journal", { action: "chercher", ...actifs, avant_id: suivant, limite: LIMITE });
+    // Une nouvelle recherche lancée entre-temps : cette page ne la concerne pas.
+    if (n !== demande.current) {
+      setPlus(false);
+      return;
+    }
     if (rep.ok) {
       const page = rep.donnees as unknown as PageJournal;
       setEntrees((e) => [...(e ?? []), ...(page.entrees as Entree[])]);
