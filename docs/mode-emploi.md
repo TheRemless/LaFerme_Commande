@@ -2,6 +2,8 @@
 
 Trois pages à imprimer. La première se colle en cuisine près de la tablette, la deuxième reste avec le gérant, la troisième se donne à chaque livreur. Elles décrivent le site tel qu'il est au 16.11.2026. Le numéro à appeler reste à remplir.
 
+Fiches par poste, plus récentes (13.11.2026) : [fiches/](fiches/). Installation au restaurant : [mise-en-service.md](mise-en-service.md).
+
 Ce que voit le client qui commande, pour répondre au téléphone : `docs/vague-3/client-commande.md`.
 
 ---
