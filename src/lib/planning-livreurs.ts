@@ -5,7 +5,7 @@ import { ajouterJours, instantGeneve } from "@/lib/service";
 import { signalerTablette } from "@/lib/tablette";
 
 // Planning et suivi des livreurs (vague 3, bo-operations). Base : migration 20261130120000_planning_livreurs.sql.
-// Doc : docs/livreurs.md, partie « Planning et suivi ».
+// Doc : docs/planning-livreurs.md.
 
 export type Service = "midi" | "soir";
 export type Creneau = { jour: number; service: Service };
