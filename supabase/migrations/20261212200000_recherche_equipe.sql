@@ -6,15 +6,14 @@
 -- sans quoi une tablette connectée depuis un mois affichait la date de sa connexion.
 --
 -- Objets partagés recréés, chacun depuis sa seule définition en vigueur dans main :
---   liste_commandes_gestion (20261211110000_liste_commandes_reclamations.sql),
+--   liste_commandes_gestion (20261212130000_liste_commandes_remboursement.sql de bo-commandes, PR #197, fusionnée avant),
 --   clients_gestion (20261127120000_clients.sql),
 --   liste_personnel (20261210250000_appareils_equipe.sql).
--- liste_commandes_gestion : conditions de recherche (deux variables mots et debut_email), et le filtre
--- remboursement (fait, en_cours, echec) de bo-commandes (20261212120000), mot pour mot et à la même place, pour
--- que l'ordre des fusions n'ait pas d'importance. Même signature, mêmes champs.
+-- liste_commandes_gestion : seules changent les conditions de recherche (deux variables mots et debut_email) ;
+-- le reste, filtre remboursement compris, est la définition de 20261212130000 telle quelle. Même signature, mêmes champs.
 -- clients_gestion : seules changent les conditions de recherche.
 -- liste_personnel : un champ de plus (derniere_activite), l'écran lit encore derniere_connexion sans lui.
--- Numéro provisoire : à renommer au numéro que le chef réserve.
+-- Numéro provisoire : à renommer au numéro que le chef réserve (après 20261212130000).
 
 create or replace function liste_commandes_gestion(p jsonb) returns jsonb
 language plpgsql stable as $$
