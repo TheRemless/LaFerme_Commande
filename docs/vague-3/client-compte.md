@@ -53,3 +53,7 @@ La rubrique « Connexion » du compte liste les appareils connectés, avec un no
 ## Heure et allergie au suivi
 
 Le suivi et les e-mails donnent l'heure confirmée en fourchette, comme l'accueil (« Prête entre 19h35 et 19h45 »), selon les largeurs réglées par le restaurant. À largeur 0, une seule heure (« vers 19h40 »). L'allergie que le client a signalée à la commande est rappelée dans le détail de sa page de suivi. L'e-mail de confirmation dit seulement qu'une allergie est signalée, sans en recopier le texte.
+
+## Allergie effacée après 30 jours
+
+L'allergie ou l'intolérance signalée à la commande est effacée 30 jours après la commande (décision de Jérémy du 13.11.2026). Elle disparaît de la commande et des tickets de cuisine gardés pour la réimpression. Le reste du ticket ne change pas. La surveillance du site s'en charge à chaque tour (migration `20261214090000_allergie_30_jours.sql`). L'effacement ne date pas la commande : une commande terminée il y a un mois ne revient pas dans la journée de la tablette. La déclaration de confidentialité le dit, ainsi que les 30 jours au plus des copies de sauvegarde chiffrées.
