@@ -248,6 +248,38 @@ test("acceptation en série : deux commandes à accepter, la confirmation s'annu
   await expect(serie.getByRole("button", { name: /^Accepter les \d+ à l'heure proposée/ })).toBeVisible();
 });
 
+test("responsable de service : coup de feu et « Fermer le service du jour » ; l'équipe n'a pas ce bouton", async ({ browser }, info) => {
+  // L'équipe de service : ni bloc ni route.
+  expect(((await (await tablette.request.get("/api/tablette/fermer-service")).json()) as { autorise: boolean }).autorise).toBe(false);
+  const refus = await tablette.request.post("/api/tablette/fermer-service", { headers: ORIGINE, data: { quoi: "soir", motif: "Essai" } });
+  expect(refus.status()).toBe(403);
+
+  // Le responsable (rôle ouvert dans la base embarquée) : le bloc, jusqu'à la confirmation. On ne ferme pas :
+  // la fermeture vaudrait pour toute la base pendant les autres tests.
+  const contexte = await browser.newContext({ baseURL: SITE, viewport: test.info().project.use.viewport ?? undefined });
+  const page = await contexte.newPage();
+  const email = `responsable-tablette-${info.project.name}@laferme.test`;
+  await adresseDuCompte(page, email);
+  await page.goto("/tablette");
+  await page.getByLabel("E-mail", { exact: true }).fill(email);
+  await page.getByLabel("Code à 8 chiffres").fill(await codeDuPersonnel(page));
+  await page.getByRole("button", { name: "Me connecter" }).click();
+  await page.getByRole("button", { name: "Continuer sans son" }).click();
+  expect(((await (await page.request.get("/api/tablette/coup-de-feu")).json()) as { autorise: boolean }).autorise).toBe(true);
+  await page.getByRole("button", { name: "Pause, délai, ruptures" }).click();
+  const bloc = page.locator(".tab-fermer-service");
+  await expect(bloc.getByRole("heading", { name: "Fermer le service du jour" })).toBeVisible();
+  await bloc.getByRole("button", { name: "Ce soir" }).click();
+  await expect(bloc).toContainText("Les clients ne pourront plus commander pour ce soir.");
+  await expect(bloc.getByRole("button", { name: "Fermer pour ce soir" })).toBeDisabled();
+  await bloc.getByLabel("Motif, lu par les clients (jamais un nom)").fill("Panne de courant");
+  await expect(bloc.getByRole("button", { name: "Fermer pour ce soir" })).toBeEnabled();
+  await page.screenshot({ path: `test-results/tablette/responsable-fermer-${info.project.name}.png`, fullPage: true });
+  await bloc.getByRole("button", { name: "Annuler" }).click();
+  await expect(bloc.getByRole("button", { name: "Fermer pour ce soir" })).toHaveCount(0);
+  await contexte.close();
+});
+
 test("rupture du jour : le plat est grisé sur la carte, puis revient", async ({ page }) => {
   await tablette.getByRole("button", { name: "Pause, délai, ruptures" }).click();
   const { recherchePlat, plat, slug } = rupturesDuProjet();

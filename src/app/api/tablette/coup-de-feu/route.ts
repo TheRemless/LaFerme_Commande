@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { corpsJson, refus } from "@/lib/comptes/api";
 import { etatCoupDeFeu, finCoupDeFeuEchue, finirCoupDeFeu, lancerCoupDeFeu } from "@/lib/coup-de-feu";
 import { lirePublic } from "@/lib/db/lecture";
+import { fonctionSql } from "@/lib/db/serveur";
 import { exigerPersonnel, type Personnel } from "@/lib/personnel/session";
 
 // Coup de feu depuis la tablette (vague 3) : mêmes fonctions que le back-office (src/lib/coup-de-feu.ts, bo-operations).
@@ -12,7 +13,10 @@ const SANS_CACHE = { "Cache-Control": "no-store, private" };
 
 async function autorise(p: Personnel): Promise<boolean> {
   if (p.role === "gerant") return true;
-  if (p.role !== "service") return false;
+  // Responsable de service au rôle ouvert (D1) : toujours, comme le chef d'équipe d'un soir. Rôle éteint : il
+  // reste dans l'équipe, avec la même règle qu'elle.
+  if (p.role === "responsable" && (await fonctionSql<boolean>("role_responsable_actif", {}))) return true;
+  if (p.role !== "service" && p.role !== "responsable") return false;
   const reglages = await lirePublic<{ cle: string; valeur: unknown }>("reglages");
   return reglages.find((r) => r.cle === "coup_de_feu_par_equipe")?.valeur === true;
 }

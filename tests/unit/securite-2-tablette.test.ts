@@ -51,7 +51,7 @@ describe("S2-01 : annuler une livraison partie", () => {
     const id = await livraisonPartie();
     const r = await agir(id, { action: "refuser", motif: "Client absent.", de: "partie" }, await membre("livraison@laferme.test"));
     expect(r.ok).toBe(false);
-    expect(r.message).toMatch(/^Seul le gérant peut annuler une livraison partie\./);
+    expect(r.message).toMatch(/^Seul le gérant ou le responsable de service peut annuler une livraison partie\./);
     expect(await statut(id)).toBe("partie");
   });
 

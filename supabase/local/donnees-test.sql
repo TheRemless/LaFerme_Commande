@@ -132,3 +132,27 @@ insert into personnel (email, nom, role) values
 
 -- Bannière des messages aux clients sur le site (client-commande, messages-bandeau.spec.ts).
 insert into personnel (email, nom, role) values ('bandeau-client@laferme.test', 'Bandeau client', 'gerant');
+
+-- Responsable de service (D1, oui de Jérémy le 13.11.2026) : rôle activé dans la base embarquée, comme il le sera
+-- en production quand le chef posera role_responsable_actif. Un compte par fichier de test et par projet
+-- Playwright (un code par e-mail toutes les 30 secondes) : socle (bo-socle, gestion-responsable.spec.ts),
+-- commandes (bo-commandes), tablette (tablette), operations (bo-operations).
+insert into reglages (cle, valeur, proposition) values ('role_responsable_actif', 'true', false)
+  on conflict (cle) do update set valeur = excluded.valeur, proposition = false;
+insert into personnel (email, nom, role) values
+  ('responsable-socle-bureau@laferme.test', 'Responsable socle bureau', 'responsable'),
+  ('responsable-socle-mobile@laferme.test', 'Responsable socle mobile', 'responsable'),
+  ('responsable-commandes-bureau@laferme.test', 'Responsable commandes bureau', 'responsable'),
+  ('responsable-commandes-mobile@laferme.test', 'Responsable commandes mobile', 'responsable'),
+  ('responsable-tablette-bureau@laferme.test', 'Responsable tablette bureau', 'responsable'),
+  ('responsable-tablette-mobile@laferme.test', 'Responsable tablette mobile', 'responsable'),
+  ('responsable-operations-bureau@laferme.test', 'Responsable operations bureau', 'responsable'),
+  ('responsable-operations-mobile@laferme.test', 'Responsable operations mobile', 'responsable'),
+  -- Employés dont le responsable coupe l'appareil (gestion-responsable.spec.ts).
+  ('responsable-cible-bureau@laferme.test', 'Cible bureau', 'service'),
+  ('responsable-cible-mobile@laferme.test', 'Cible mobile', 'service');
+
+-- Mise en route du back-office (bo-socle, tests/e2e/gestion-mise-en-route.spec.ts) : un compte par projet Playwright.
+insert into personnel (email, nom, role) values
+  ('mise-en-route-bureau@laferme.test', 'Mise en route bureau', 'gerant'),
+  ('mise-en-route-mobile@laferme.test', 'Mise en route mobile', 'gerant');

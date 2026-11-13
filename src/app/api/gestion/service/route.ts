@@ -46,7 +46,8 @@ export async function GET(requete: Request) {
   );
 }
 
-// { type: "zone", numero, champs } | { type: "horaire", id, champs } | { type: "simuler-adresse", adresse }
+// { type: "zone", numero, champs } | { type: "horaire", id, champs } | { type: "semaine-fermer" | "semaine-commandes", jour, service }
+// | { type: "semaine-ouvrir", jour, service, champs } | { type: "simuler-adresse", adresse }
 // | { type: "fermeture", debut, fin, motif } | { type: "fermeture-suppr", id }
 export async function POST(requete: Request) {
   const g = await exigerGerant(requete);
@@ -88,6 +89,29 @@ export async function POST(requete: Request) {
     const r = await reglerTypeAlerte(g.personnel, c.cle, c.actif);
     if (!r.ok) return refus(r.erreur);
     return NextResponse.json({ enregistre: true });
+  } else if (c.type === "semaine-fermer" || c.type === "semaine-ouvrir" || c.type === "semaine-commandes") {
+    // Jours fermés chaque semaine (vague 3) : fermer ou ouvrir un service chaque semaine, ou compter les
+    // commandes déjà prises pour ce jour (affiché avant de fermer).
+    const jour = Number.isInteger(c.jour) && (c.jour as number) >= 1 && (c.jour as number) <= 7 ? (c.jour as number) : null;
+    const service = c.service === "midi" || c.service === "soir" ? c.service : null;
+    if (!jour || !service) return refus("Jour ou service inconnu.");
+    if (c.type === "semaine-commandes") {
+      const n = await fonctionSql<number>("commandes_jour_semaine", { p_jour: jour, p_service: service });
+      return NextResponse.json({ commandes: n }, { headers: { "Cache-Control": "no-store" } });
+    }
+    if (c.type === "semaine-fermer") {
+      ok = await fonctionSql<boolean>("fermer_service_semaine", { p_jour: jour, p_service: service, p_personnel: qui });
+      if (!ok) return refus("Ce service est déjà fermé chaque semaine.");
+    } else {
+      const champs = champsHoraire(c.champs);
+      if (!champs.ok) return refus(champs.erreur);
+      try {
+        await fonctionSql("ouvrir_service_semaine", { p_jour: jour, p_service: service, p: champs.valeur, p_personnel: qui });
+      } catch (e) {
+        if (e instanceof Error && e.message.includes("déjà ouvert")) return refus("Ce service est déjà ouvert chaque semaine.");
+        throw e;
+      }
+    }
   } else if (c.type === "horaire") {
     const id = entier(c.id);
     const champs = champsHoraire(c.champs);

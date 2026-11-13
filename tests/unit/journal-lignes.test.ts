@@ -34,4 +34,10 @@ describe("lignes du journal", () => {
     expect(sansChangement(e({ objet: "plat", cle: "margherita", avant: { rupture: false }, apres: { rupture: true } }))).toBe(false);
     expect(sansChangement(e({ objet: "plat_ajoute", cle: "x", apres: { nom: "X" } }))).toBe(false);
   });
+  it("un compte du plan Crésus porte son rôle et ses deux numéros", () => {
+    const l = e({ objet: "plan_comptes", cle: "ventes", avant: "3200" as never, apres: "3000" as never });
+    expect(quoi(l)).toBe("Plan de comptes Crésus, Ventes");
+    expect(resume(l)).toBe("Compte 3200 → 3000");
+    expect(sansChangement(l)).toBe(false);
+  });
 });

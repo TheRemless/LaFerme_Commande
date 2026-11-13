@@ -8,7 +8,7 @@ export { ecartPourcent, ecartTexte, montant, nombre } from "@/components/gestion
 export { BarreEnregistrer, Champ, useFormulaire, type EtatEnvoi, type OptionsFormulaire } from "@/components/gestion/ui/Formulaire";
 export { useGardeModifications, usePeutPartir } from "@/components/gestion/ui/Garde";
 export { IconeGestion, type NomIconeGestion } from "@/components/gestion/ui/icones";
-export { demanderOuverture, useOuverture, type CibleOuverture } from "@/components/gestion/ui/ouverture";
+export { demanderOuverture, ouvertureEnAttente, useOuverture, type CibleOuverture } from "@/components/gestion/ui/ouverture";
 export { useNotifier, type Notification } from "@/components/gestion/ui/Notifications";
 export { Onglets, type Onglet } from "@/components/gestion/ui/Onglets";
 export { PanneauLateral } from "@/components/gestion/ui/PanneauLateral";
