@@ -111,5 +111,5 @@ export async function verifierCode(
 export async function commandeACompte(jeton: unknown): Promise<{ email: string; jeton: string } | null> {
   if (typeof jeton !== "string" || !/^[A-Za-z0-9_-]{20,64}$/.test(jeton)) return null;
   const c = await commandeParJeton(jeton);
-  return c && c.compte_demande && !c.compte_id ? { email: c.client_email, jeton: c.jeton_suivi } : null;
+  return c && c.compte_demande && !c.compte_id && !c.detachee_du_compte ? { email: c.client_email, jeton: c.jeton_suivi } : null;
 }

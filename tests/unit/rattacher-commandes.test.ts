@@ -16,7 +16,7 @@ beforeAll(async () => {
   connexion = await import("@/lib/comptes/connexion");
 });
 
-async function commande(email: string, statut = "terminee") {
+async function commande(email: string, statut = "terminee", options: { compteDemande?: boolean } = {}) {
   const cle = randomUUID();
   const c = await creerCommande({
     jeton_suivi: `jeton-${cle}`,
@@ -29,6 +29,7 @@ async function commande(email: string, statut = "terminee") {
     client_nom: "Fidèle",
     client_telephone: "079 000 00 00",
     client_email: email,
+    compte_demande: options.compteDemande ?? false,
     quand_type: "asap",
     pizzas_seulement: true,
     sous_total_centimes: 2000,
@@ -45,10 +46,10 @@ async function commande(email: string, statut = "terminee") {
   return c.id;
 }
 
-async function seConnecter(email: string): Promise<string> {
+async function seConnecter(email: string, jetonCommande: string | null = null): Promise<string> {
   const d = await connexion.demanderCode(email, "10.9.0.1");
   if (d.statut !== "envoye" || !d.codePreversion) throw new Error(`code non reçu : ${JSON.stringify(d)}`);
-  const v = await connexion.verifierCode(email, d.codePreversion, "10.9.0.1", null, null);
+  const v = await connexion.verifierCode(email, d.codePreversion, "10.9.0.1", null, jetonCommande);
   if (v.statut !== "ok") throw new Error(`connexion refusée : ${v.statut}`);
   return (await (await baseLocale()).query<{ id: string }>("select id from comptes where email = $1", [email])).rows[0].id;
 }
@@ -72,15 +73,38 @@ describe("commandes passées en invité, rangées à la connexion", () => {
     expect(espace.adresses).toHaveLength(0);
   });
 
-  it("l'export du compte ne donne ni le téléphone ni les détails de livraison d'une commande rangée par e-mail", async () => {
+  it("l'export d'une commande rangée par e-mail ne donne que ce que l'e-mail de confirmation montrait", async () => {
     const email = `export-${randomUUID().slice(0, 8)}@laferme.test`;
     await commande(email);
     const id = await seConnecter(email);
     const e = await fonctionSql<{ commandes: Record<string, unknown>[] }>("export_compte", { p_compte: id, p_ip_court: "10.9" });
     expect(e.commandes).toHaveLength(1);
+    const c = e.commandes[0];
+    for (const cle of ["client_telephone", "details_livraison", "client_nom", "avertissement", "stripe_payment_intent", "allergie"]) expect(c).not.toHaveProperty(cle);
+    expect(c).toMatchObject({ client_prenom: "Invitée", total_centimes: 2000, adresse: { rue: "Route de Chancy", numero: "1", npa: "1213", localite: "Onex" } });
+    expect(Object.keys(c.adresse as object).sort()).toEqual(["localite", "npa", "numero", "rue"]);
+    expect(c).toHaveProperty("lignes");
+  });
+
+  it("par le lien de suivi (case « créer mon compte ») : seul le prénom est repris, l'export reste limité", async () => {
+    const email = `case-${randomUUID().slice(0, 8)}@laferme.test`;
+    const a = await commande(email, "nouvelle", { compteDemande: true });
+    const jeton = (await (await baseLocale()).query<{ j: string }>("select jeton_suivi j from commandes where id = $1", [a])).rows[0].j;
+    const id = await seConnecter(email, jeton);
+    expect(await compteDe(a)).toBe(id);
+    const espace = await fonctionSql<{ compte: { prenom: string; telephone: string }; adresses: unknown[] }>("espace_compte", { p_compte: id });
+    expect(espace.compte).toMatchObject({ prenom: "Invitée", telephone: "" });
+    expect(espace.adresses).toHaveLength(0);
+    const e = await fonctionSql<{ commandes: Record<string, unknown>[] }>("export_compte", { p_compte: id, p_ip_court: "10.9" });
     expect(e.commandes[0]).not.toHaveProperty("client_telephone");
-    expect(e.commandes[0]).not.toHaveProperty("details_livraison");
-    expect(e.commandes[0]).toHaveProperty("lignes");
+  });
+
+  it("une commande de plus de 12 mois n'est pas rangée (adresse e-mail reprise par quelqu'un d'autre)", async () => {
+    const email = `ancien-${randomUUID().slice(0, 8)}@laferme.test`;
+    const vieille = await commande(email);
+    await (await baseLocale()).query("update commandes set cree_le = now() - interval '13 months' where id = $1", [vieille]);
+    await seConnecter(email);
+    expect(await compteDe(vieille)).toBeNull();
   });
 
   it("ni une commande non payée ou annulée, ni celle d'un autre e-mail, ni celle d'un autre compte", async () => {
@@ -116,5 +140,21 @@ describe("commandes passées en invité, rangées à la connexion", () => {
     expect(await compteDe(a)).toBeNull();
     expect(await compteDe(b)).toBe(nouveau);
     expect((await db.query<{ d: boolean }>("select detachee_du_compte d from commandes where id = $1", [a])).rows[0].d).toBe(true);
+  });
+
+  it("un compte supprimé ne retrouve pas sa commande par l'ancien lien de suivi non plus", async () => {
+    const email = `lien-${randomUUID().slice(0, 8)}@laferme.test`;
+    const a = await commande(email, "nouvelle", { compteDemande: true });
+    const db = await baseLocale();
+    const jeton = (await db.query<{ j: string }>("select jeton_suivi j from commandes where id = $1", [a])).rows[0].j;
+    const id = await seConnecter(email, jeton);
+    expect(await compteDe(a)).toBe(id);
+    const cleEmail = (await import("@/lib/comptes/securite")).empreinte("email", email);
+    await fonctionSql("supprimer_compte", { p_compte: id, p_cle_email: cleEmail });
+    // Le suivi ne propose plus de créer un compte pour cette commande, et le code ne la range pas.
+    expect(await connexion.commandeACompte(jeton)).toBeNull();
+    await db.query("delete from tentatives_connexion where cle = $1", [cleEmail]);
+    await seConnecter(email, jeton);
+    expect(await compteDe(a)).toBeNull();
   });
 });

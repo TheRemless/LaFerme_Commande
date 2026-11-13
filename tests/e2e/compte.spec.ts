@@ -89,7 +89,9 @@ test("commande en invité avec « créer mon compte », code sur le suivi, puis 
   await expect(page.getByRole("heading", { name: "Bonjour Léa" })).toBeVisible();
   await expect(page.locator(".ancienne-num")).toHaveText(numero);
   await expect(page.locator(".ancienne-lignes")).toContainText("2 × Margherita");
-  await expect(page.getByLabel("Téléphone")).toHaveValue("079 000 00 00");
+  // Seul le prénom est repris : lien et code arrivent par le même e-mail, une adresse mal tapée ne doit pas
+  // livrer le téléphone ni l'adresse d'un inconnu (revue de sécurité du 13.11.2026).
+  await expect(page.getByLabel("Téléphone")).toHaveValue("");
 
   // Recommander avec un panier en cours : confirmation d'abord.
   await page.evaluate(() =>
