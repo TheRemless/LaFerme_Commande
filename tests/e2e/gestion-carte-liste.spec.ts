@@ -84,3 +84,10 @@ test("prix en lot : l'aperçu donne avant et après, sans rien écrire", async (
   await gestion.keyboard.press("Escape");
   await expect(tableau.getByLabel("Prix de Pizza Tonno (CHF)")).toHaveValue(prixAvant);
 });
+
+test("la recherche globale ouvre la fiche d'un plat en arrivant sur la carte", async () => {
+  await gestion.evaluate(() => sessionStorage.setItem("laferme.gestion.ouvrir", JSON.stringify({ type: "plat", cle: "pizza-tonno", le: Date.now() })));
+  await gestion.goto("/gestion/carte");
+  await expect(gestion.getByRole("dialog", { name: "Pizza Tonno" }).getByLabel("Nom affiché")).toHaveValue("Pizza Tonno");
+  await gestion.keyboard.press("Escape");
+});

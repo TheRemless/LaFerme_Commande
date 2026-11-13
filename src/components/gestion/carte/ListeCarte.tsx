@@ -6,7 +6,7 @@ import { FichePlat, NouveauPlat, type DonneesCarte, type PlatGestion } from "@/c
 import { PrixEnLot } from "@/components/gestion/carte/PrixEnLot";
 import { DispoRupture, CopierPlat } from "@/components/gestion/carte/FicheVague3";
 import { enregistrer } from "@/components/gestion/enregistrer";
-import { PanneauLateral, TableauDonnees, montant, useConfirmer, useNotifier, type Colonne, type Tri } from "@/components/gestion/ui";
+import { PanneauLateral, TableauDonnees, montant, useConfirmer, useNotifier, useOuverture, type Colonne, type Tri } from "@/components/gestion/ui";
 
 // La carte en liste dense (vague 3) : 80 plats et plus d'un coup d'œil, ce qui manque à chacun, le prix
 // modifiable sur place, les gestes en lot (prix, validation, épuisé jusqu'à une date, remise en vente).
@@ -140,6 +140,9 @@ export function ListeCarte({ donnees, recharger, version }: { donnees: DonneesCa
   const [nouveau, setNouveau] = useState(false);
   // Après des prix changés en lot, la sélection se vide : un second appui ne rejoue pas la hausse.
   const viderLot = useRef<(() => void) | null>(null);
+
+  // Recherche globale (⌘K) : un plat choisi s'ouvre dans le panneau en arrivant sur la carte.
+  useOuverture("plat", (slug) => setOuvert(slug));
 
   const toutes = useMemo(() => lignesCarte(donnees), [donnees]);
   const comptes = useMemo(() => Object.fromEntries(FILTRES.map((f) => [f.cle, toutes.filter(f.garde).length])) as Record<FiltreEtat, number>, [toutes]);
