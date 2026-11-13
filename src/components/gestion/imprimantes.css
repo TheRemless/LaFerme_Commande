@@ -23,3 +23,18 @@
   padding: 0 8px;
   font: inherit;
 }
+/* Où coller l'adresse (étapes Star, non vérifiées). */
+.ges-imp-ou {
+  margin: 8px 0 12px;
+}
+.ges-imp-ou summary {
+  min-height: var(--bo-cible);
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ges-imp-ou ol {
+  margin: 4px 0 0;
+  padding-left: 22px;
+}

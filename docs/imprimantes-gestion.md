@@ -29,3 +29,15 @@ Une imprimante en panne (plus de papier, ne répond plus) : « Renvoyer ses tick
 - **Les tickets suivants** vont encore à l'imprimante en panne tant qu'elle est active. La désactiver les envoie à l'autre imprimante du même poste, ou sur la tablette. L'écran le rappelle, comme « En cas de panne ».
 - Tests : `tests/unit/renvoyer-tickets-sql.test.ts`, `tests/e2e/gestion-imprimantes.spec.ts`. Capture : `docs/rendus/vague-3/bo-operations/imprimantes-renvoyer-1024.png`.
 
+## Où coller l'adresse dans l'imprimante (Star, non vérifié)
+
+Mise en situation M1 (P0) de `produit-gestion` : l'écran disait « à coller dans ses réglages CloudPRNT » sans dire où. Il a maintenant un dépliant « Où coller l'adresse dans l'imprimante (Star) ». Ses étapes sont celles que le chef a données, génériques pour Star :
+
+1. Adresse IP de l'imprimante : l'éteindre, la rallumer en tenant FEED. Elle imprime une page d'autotest avec son adresse IP.
+2. Page de réglages : un navigateur sur le même réseau, à cette adresse IP.
+3. Rubrique CloudPRNT, l'activer, coller l'adresse dans « Server URL ».
+4. Intervalle de relève, enregistrer, redémarrer si la page le demande.
+5. « Imprimer un ticket de test » sur l'écran : le ticket TEST doit sortir.
+
+**Non vérifié.** La notice Star (star-m.jp, documentation CloudPRNT) a refusé la connexion le 13.11.2026. Les pages de starmicronics.com lues ce jour-là (support, help-center, CloudPRNT SDK) ne donnent pas ces étapes, et aucune imprimante n'est encore branchée. L'écran l'affiche en clair. À contrôler avec l'imprimante en main, puis retirer l'avertissement : `src/components/gestion/GestionImprimantes.tsx`, commentaire au-dessus du dépliant.
+
