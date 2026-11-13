@@ -118,3 +118,12 @@ Calculés en base, jamais dans le navigateur. Migration `supabase/migrations/202
 Paramètres de la route : `?periode=jour|semaine|mois&jour=AAAA-MM-JJ`, ou `?periode=choisie&debut=…&fin=…` (et `&comp_debut=…&comp_fin=…`). Un an au plus de chaque côté. Les fonctions SQL ne s'exécutent que pour le serveur (`service_role`) et ne rendent aucune donnée personnelle.
 
 Mesure (`npx tsx --conditions=react-server scripts/mesure-pilotage.ts`, base embarquée, 109 500 commandes sur un an, 13.11.2026) : un jour 3 ms, une semaine 5 ms, un mois 19 ms, une année 138 ms, comparaison comprise. Avec un seul service (Mac chargé par les autres sessions, deuxième passage) : un soir 9 ms, un mois de soirs 37 ms ; dans ce même passage, le mois entier 30 ms et l'année 235 ms. Aucune table de cumuls nécessaire à ce volume.
+## Annulation par le client avant l'acceptation (vague 3, arbitrage C1, désactivée)
+
+Migration `supabase/migrations/20261127110000_annulation_client.sql`. Serveur : `src/lib/annulation-client.ts`. Route : `POST /api/suivi/annuler { jeton }` (jeton dans le corps, requête du site seulement). Le bouton du suivi est à faire par la session `client-compte`. Tests : `tests/unit/annulation-client.test.ts`.
+
+- **Désactivée par défaut** (règle envers le client, décision de Jérémy). Tant que le réglage `annulation_client_active` est faux, la route répond 403 : « Pour annuler, appelez-nous au 022 792 16 89. » L'activer : `update reglages set valeur = 'true', proposition = false where cle = 'annulation_client_active';`
+- **Quand** : seulement une commande payée (ou au comptoir) pas encore acceptée. Annulation et acceptation prennent le même verrou : la première arrivée gagne. Déjà acceptée : 409, « Votre commande est déjà acceptée. Pour la changer, appelez-nous au 022 792 16 89. »
+- **Effet** : statut « refusée » avec le motif « Annulée à votre demande. », colonne `annulee_par_client_le` remplie (le suivi écrit « vous avez annulé », la tablette fige la carte, les chiffres ne la comptent pas comme un refus), événement par « client » dans l'historique, tablette prévenue (signal vide, elle relit sa file).
+- **Argent** : payée en ligne, remboursée en entier tout de suite (même chemin que le refus de la tablette). Si Stripe refuse, la commande reste annulée, le client reçoit « le remboursement n'est pas encore parti » et le restaurant reçoit l'alerte « remboursement à refaire ». Au comptoir : rien à rembourser, e-mail « Rien n'a été débité ».
+- **Rejouée** (double appui, retour en arrière) : « déjà annulée », aucun second remboursement.
