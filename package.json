@@ -10,7 +10,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "seed:generer": "python3 -I scripts/seed_carte.py"
+    "seed:generer": "python3 -I scripts/seed_carte.py",
+    "donnees:rush": "tsx --conditions=react-server scripts/donnees-rush.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.15",
