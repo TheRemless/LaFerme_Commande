@@ -26,8 +26,15 @@ begin
     -- Livreurs qui se sont déjà connectés au moins une fois (sur /livreur).
     'livreurs_connectes', (select count(distinct p.id) from personnel p join sessions_personnel s on s.personnel_id = p.id
       where p.actif and p.role = 'livreur'),
-    'courriels_envoyes', (select count(*) from envois_courriel where statut = 'envoye'),
-    'evenements_paiement', (select count(*) from evenements_paiement),
+    -- Livreurs prévus au planning : semaine type, ou un jour à venir (planning de bo-operations).
+    'livreurs_planifies', (select count(distinct p.id) from personnel p where p.actif and p.role = 'livreur' and (
+      exists (select 1 from livreurs_semaine s where s.livreur_id = p.id)
+      or exists (select 1 from livreurs_jours j where j.livreur_id = p.id and j.present and j.jour >= (now() at time zone 'Europe/Zurich')::date))),
+    -- Connexion des livreurs par code affiché sur la tablette (réglage fermé au départ, décision de Jérémy).
+    'code_livreur_ouvert', coalesce((select valeur = 'true'::jsonb from reglages where cle = 'connexion_livreur_par_code'), false),
+    -- Au moins un, sans compter toute la table (relu chaque minute).
+    'courriel_parti', exists (select 1 from envois_courriel where statut = 'envoye'),
+    'paiement_recu', exists (select 1 from evenements_paiement),
     -- Une commande payée en ligne, puis remboursée (remboursement confirmé ou paiement rendu en entier).
     'essai_rembourse', exists (
       select 1 from commandes c where c.moyen_paiement = 'en_ligne'

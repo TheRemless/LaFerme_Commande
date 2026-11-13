@@ -23,20 +23,21 @@ test.afterAll(async () => {
   await page.context().close();
 });
 
-test("onze étapes dans l'ordre, la première à faire ouverte, chacune avec son état", async ({}, info) => {
-  await expect(page.getByText(/^\d+ étapes? faites? sur 11\.$|^Tout est prêt pour le premier service\.$/)).toBeVisible();
+test("douze étapes dans l'ordre, la première à faire ouverte, chacune avec son état", async ({}, info) => {
+  await expect(page.getByText(/^\d+ étapes? faites? sur 9\.$|^Tout est prêt pour le premier service\.$/)).toBeVisible();
   const etapes = page.locator(".bo-mer-etape");
-  await expect(etapes).toHaveCount(11);
+  await expect(etapes).toHaveCount(12);
   await expect(etapes.locator("summary strong")).toHaveText([
+    "Brancher l'envoi des e-mails",
     "Ajouter l'équipe de la tablette",
     "Connecter la tablette et démarrer le service",
-    "Brancher l'imprimante pizza",
-    "Brancher l'imprimante cuisine",
+    "Brancher l'imprimante pizzaConseillée",
+    "Brancher l'imprimante cuisineConseillée",
     "Valider les horaires et les zones",
     "Carte sans plat bloquant",
     "Ajouter les livreurs",
+    "Connexion des livreurs par un code de la tabletteConseillée",
     "Choisir l'adresse des alertes",
-    "Brancher l'envoi des e-mails",
     "Brancher le paiement en ligne",
     "Passer une commande d'essai et la rembourser",
   ]);
@@ -52,7 +53,7 @@ test("onze étapes dans l'ordre, la première à faire ouverte, chacune avec son
 test("l'étape des imprimantes donne les réglages à faire sur l'imprimante et mène à Imprimantes", async ({}, info) => {
   const pizza = page.locator(".bo-mer-etape", { hasText: "Brancher l'imprimante pizza" });
   await pizza.locator("summary").click();
-  await expect(pizza.getByText(/Activez CloudPRNT en HTTP \(pas MQTT\), collez l'adresse dans « Server URL »/)).toBeVisible();
+  await expect(pizza.getByText(/Activez CloudPRNT en HTTP \(pas MQTT\), collez l'adresse dans «\u00a0Server URL\u00a0»/)).toBeVisible();
   if (process.env.CAPTURES) await pizza.screenshot({ path: `docs/rendus/vague-3/bo-socle/mise-en-route-imprimante-${info.project.name}.png` });
   await pizza.getByRole("link", { name: "Ouvrir Imprimantes" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Imprimantes" })).toBeVisible();
@@ -72,7 +73,7 @@ test("la route est réservée au gérant", async ({ request }) => {
   const r = await page.request.get("/api/gestion/mise-en-route");
   expect(r.status()).toBe(200);
   const corps = (await r.json()) as { total: number; etapes: { cle: string }[] };
-  expect(corps.total).toBe(11);
+  expect(corps.total).toBe(9);
   // Aucune valeur de variable secrète ni donnée de client dans la réponse.
   expect(JSON.stringify(corps)).not.toMatch(/sk_|whsec_|@exemple|@laferme\.test/);
 });

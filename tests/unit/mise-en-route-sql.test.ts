@@ -19,8 +19,8 @@ describe("etat_mise_en_route", () => {
     const e = await etat();
     expect(Object.keys(e).sort()).toEqual(
       [
-        "courriels_envoyes", "equipe", "essai_rembourse", "evenements_paiement", "horaires", "horaires_a_valider", "imprimantes_testees",
-        "livreurs", "livreurs_connectes", "plats_bloquants", "tablette_vue_le", "zones_a_valider", "zones_actives",
+        "code_livreur_ouvert", "courriel_parti", "equipe", "essai_rembourse", "horaires", "horaires_a_valider", "imprimantes_testees",
+        "livreurs", "livreurs_connectes", "livreurs_planifies", "paiement_recu", "plats_bloquants", "tablette_vue_le", "zones_a_valider", "zones_actives",
       ].sort(),
     );
     expect(typeof e.equipe).toBe("number");

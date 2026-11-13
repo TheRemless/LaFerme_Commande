@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { createContext, useContext } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { Chargement, EtatErreur, useRelecture, type Relecture } from "@/components/gestion/ui";
 import type { Etape, MiseEnRoute } from "@/lib/mise-en-route-etapes";
 
@@ -9,12 +9,15 @@ import type { Etape, MiseEnRoute } from "@/lib/mise-en-route-etapes";
 // la coque (place dans le menu, nombre d'étapes restantes) et pour la page. Gérant seulement.
 
 const Ctx = createContext<Relecture<MiseEnRoute> | null>(null);
+// Toutes les minutes pendant la mise en route, toutes les dix minutes une fois tout fait (rien ne bouge plus).
 const RELECTURE_MS = 60_000;
+const RELECTURE_FINIE_MS = 600_000;
 
 /** null hors du fournisseur ou quand il est éteint (responsable de service). */
 export const useMiseEnRoute = () => useContext(Ctx);
 
 export function FournisseurMiseEnRoute({ actif, children }: { actif: boolean; children: React.ReactNode }) {
+  const [finie, setFinie] = useState(false);
   const lecture = useRelecture<MiseEnRoute>(
     async (signal) => {
       const r = await fetch("/api/gestion/mise-en-route", { cache: "no-store", signal });
@@ -22,8 +25,10 @@ export function FournisseurMiseEnRoute({ actif, children }: { actif: boolean; ch
       return r.json();
     },
     [],
-    { intervalleMs: RELECTURE_MS, actif, messageErreur: "L'état de la mise en route n'a pas pu être lu." },
+    { intervalleMs: finie ? RELECTURE_FINIE_MS : RELECTURE_MS, actif, messageErreur: "L'état de la mise en route n'a pas pu être lu." },
   );
+  const fin = lecture.donnees?.finie ?? false;
+  useEffect(() => setFinie(fin), [fin]);
   return <Ctx.Provider value={actif ? lecture : null}>{children}</Ctx.Provider>;
 }
 
@@ -40,7 +45,7 @@ export function PageMiseEnRoute() {
         <p className="bo-mer-compte" role="status">
           {d.finie ? "Tout est prêt pour le premier service." : `${d.faites} étape${d.faites > 1 ? "s" : ""} faite${d.faites > 1 ? "s" : ""} sur ${d.total}.`}
         </p>
-        <p className="aide">Chaque étape se coche seule quand le réglage est fait. Relu toutes les minutes.</p>
+        <p className="aide">Chaque étape se coche seule quand le réglage est fait. Les étapes conseillées ne bloquent pas le service. Relu toutes les minutes.</p>
         <button type="button" className="bo-bouton bo-bouton-second bo-bouton-petit" onClick={lecture.recharger}>
           Relire maintenant
         </button>
@@ -67,7 +72,10 @@ function EtapeMiseEnRoute({ etape: e, ouverte }: { etape: Etape; ouverte: boolea
             ) : null}
           </span>
           <span className="bo-mer-titre">
-            <strong>{e.titre}</strong>
+            <strong>
+              {e.titre}
+              {e.conseillee && <span className="bo-mer-conseil">Conseillée</span>}
+            </strong>
             <span className="bo-mer-etat">
               <span className="sr-only">{e.faite ? "Fait. " : "À faire. "}</span>
               {e.etat}
@@ -80,7 +88,7 @@ function EtapeMiseEnRoute({ etape: e, ouverte }: { etape: Etape; ouverte: boolea
               <li key={m}>{m}</li>
             ))}
           </ol>
-          {e.guide && <p className="aide">{e.guide}</p>}
+          <p className="aide">{e.guide}</p>
           {e.liens.length > 0 && (
             <p className="bo-mer-liens">
               {e.liens.map((l) =>

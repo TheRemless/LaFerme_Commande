@@ -1694,6 +1694,16 @@
   gap: 2px;
   min-width: 0;
 }
+.bo-mer-conseil {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  vertical-align: 1px;
+  border: 1px solid var(--bo-trait-fort);
+  border-radius: 3px;
+}
 .bo-mer-etat {
   font-size: 14px;
   color: var(--bo-texte-doux);
