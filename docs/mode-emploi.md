@@ -182,6 +182,10 @@ Client absent à la livraison : la commande est close sans remboursement, avec l
 - Communes d'une zone. Sous chaque zone, « Retirer » une commune, ou écrire un NPA et une localité puis « Ajouter à la zone ». Écrire la localité comme sur l'adresse officielle (Petit-Lancy, Le Lignon).
 - Paiement au comptoir. Le montant le plus haut qu'un client peut payer au comptoir (100 francs au départ). Au-delà, il paie en ligne.
 
+### Réglages généraux
+
+E-mail des alertes, longueur d'un créneau, commande à l'avance, annulation par le client, codes de connexion par jour : `docs/reglages-generaux.md`, « Mode d'emploi ».
+
 ### Imprimantes
 
 - La rubrique montre l'état de chaque imprimante.

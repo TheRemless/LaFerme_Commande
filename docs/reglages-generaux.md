@@ -1,6 +1,6 @@
 # Réglages généraux (vague 3, bo-operations)
 
-Des valeurs que le gérant devait faire changer par un développeur. Migration `supabase/migrations/20261130130000_reglages_generaux.sql`, serveur `src/lib/reglages-generaux.ts`, route `/api/gestion/service` (gérant). L'écran attend la coque de `bo-socle`.
+Des valeurs que le gérant devait faire changer par un développeur. Migration `supabase/migrations/20261130130000_reglages_generaux.sql`, serveur `src/lib/reglages-generaux.ts`, route `/api/gestion/service` (gérant). Écran : back-office, rubrique « Réglages généraux » (`/gestion/reglages`, `src/components/gestion/GestionReglages.tsx`).
 
 | Réglage | Départ | Bornes | Effet |
 |---|---|---|---|
@@ -14,6 +14,21 @@ Des valeurs que le gérant devait faire changer par un développeur. Migration `
 - **Journal** : objet `reglage`, comme les autres réglages. Ces cinq-là n'ont pas d'« Annuler ».
 - **Effet** : le créneau et les jours à l'avance s'appliquent en moins d'une minute (cache de la config vidé). Le plafond des codes s'applique tout de suite. L'e-mail sert dès l'alerte suivante.
 - **Panne de la base ou base pas encore migrée** : l'alerte part à `ALERTE_EMAIL`, comme avant.
+
+## Mode d'emploi (gérant)
+
+Back-office, rubrique « Réglages généraux ». Un seul formulaire, en trois blocs :
+- Alertes ;
+- Commandes des clients ;
+- Connexion des clients.
+
+Changer ce qu'il faut, puis « Enregistrer ». Seules les valeurs changées partent, et « Annuler les changements » remet l'écran comme avant. Une valeur hors limites est signalée sous son champ et rien n'est enregistré. Si on quitte la page sans enregistrer, le back-office le demande.
+
+- E-mail des alertes laissé vide : l'adresse réglée à l'installation du site sert.
+- Longueur d'un créneau : à changer un jour sans réservation, jamais pendant un service.
+- Annulation par le client : la case reste décochée tant que Jérémy n'a pas décidé.
+
+Captures : `docs/rendus/vague-3/bo-operations/reglages-1024.png` et `reglages-375.png`.
 
 ## Route
 

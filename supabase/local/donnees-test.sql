@@ -67,3 +67,6 @@ insert into personnel (email, nom, role) values
 
 -- Réglages généraux (tests/e2e/reglages-generaux.spec.ts, vague 3).
 insert into personnel (email, nom, role) values ('reglages-bureau@laferme.test', 'Réglages bureau', 'gerant');
+
+-- Écran Réglages généraux (tests/e2e/gestion-reglages.spec.ts, vague 3).
+insert into personnel (email, nom, role) values ('ecran-reglages@laferme.test', 'Écran réglages', 'gerant');
