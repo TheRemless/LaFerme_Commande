@@ -23,7 +23,7 @@ beforeAll(async () => {
 
 describe("réglages généraux", () => {
   it("valeurs de départ : celles du site, e-mail vide (la variable ALERTE_EMAIL sert)", async () => {
-    expect(await generaux()).toEqual({ plafond_codes_clients_jour: 150, creneau_minutes: 15, avance_jours: 7, alerte_email: null, annulation_client_active: false });
+    expect(await generaux()).toEqual({ plafond_codes_clients_jour: 150, creneau_minutes: 15, avance_jours: 7, alerte_email: null, annulation_client_active: false, plats_populaires_actifs: false, suggestion_panier_active: false });
   });
 
   it("le gérant règle chaque valeur dans ses bornes, journalisé", async () => {
@@ -58,6 +58,17 @@ describe("réglages généraux", () => {
     await expect(regler("annulation_client_active", "oui")).rejects.toThrow(/Oui ou non/);
     await expect(regler("annulation_client_active", false, ids.service)).rejects.toThrow(/gérant/);
     expect(await regler("annulation_client_active", false)).toBe(false);
+  });
+
+  it("plats populaires et suggestion au panier : oui ou non, gérant seulement", async () => {
+    expect(await regler("plats_populaires_actifs", true)).toBe(true);
+    expect(await regler("suggestion_panier_active", true)).toBe(true);
+    expect(await generaux()).toMatchObject({ plats_populaires_actifs: true, suggestion_panier_active: true });
+    // La fonction de client-commande suit.
+    expect(await f<{ populaires_actifs: boolean; suggestion_active: boolean }>("plats_populaires()")).toMatchObject({ populaires_actifs: true, suggestion_active: true });
+    await expect(regler("plats_populaires_actifs", true, ids.service)).rejects.toThrow(/gérant/);
+    await regler("plats_populaires_actifs", false);
+    await regler("suggestion_panier_active", false);
   });
 
   it("e-mail des alertes : rangé à part, jamais recopié dans le journal", async () => {

@@ -145,3 +145,12 @@ Accords de bo-pilotage (temps réels contre promis) et de bo-operations (file r�
 - Index partiel `(station) where pret_le is null`. RLS activée, aucun droit pour `anon` ni `authenticated`, `service_role` seulement.
 - `postes_actifs()` : postes des commandes en cuisine ou sorties depuis moins de 30 minutes (pour la tablette). `marquer_poste(commande, station, 'lancer' | 'pret' | 'rouvrir', personnel)` : équipe du restaurant seulement, commande encore en cuisine.
 - Commandes en cuisine au moment de la migration : ajoutées avec leur `tickets_le`.
+
+## Ticket de test (vague 3, pour le back-office de bo-operations)
+
+Le gérant vérifie qu'une imprimante sort un ticket sans passer de vraie commande (`docs/impression.md`, S13). Migration `20261203110000_ticket_de_test.sql`, serveur `src/lib/impression/test.ts`.
+
+- `imprimerTicketTest(imprimanteId, personnel)` : `{ ok: true, tache }` ou `{ ok: false, erreur }` en français (« Réservé au gérant. », « Imprimante inconnue. », « Imprimante désactivée : réactivez-la avant le test. »). Le bouton est au back-office (bo-operations).
+- Base : `ticket_de_test(p_imprimante smallint, p_personnel uuid)`, gérant revérifié, imprimante active, journalisé (`journal_gestion`, objet `imprimante`, clé `ticket_de_test`). Tâche `essai` sans commande : `taches_impression.commande_id` devient nullable, contrainte « commande ou essai ».
+- Ticket : « TEST », poste et nom de l'imprimante, date et heure de Genève, qui l'a demandé, « Si ce ticket sort, l'imprimante est bien branchée. ». CloudPRNT l'envoie et le confirme comme les autres, fonctions inchangées.
+- La tablette ne montre pas les essais (la file ne garde que les tickets des commandes actives). Pour lire `taches_impression` ailleurs sans les compter : `commande_id is not null`.

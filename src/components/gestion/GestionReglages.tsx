@@ -14,9 +14,11 @@ type Generaux = {
   avance_jours: number | null;
   alerte_email: string | null;
   annulation_client_active: boolean;
+  plats_populaires_actifs?: boolean;
+  suggestion_panier_active?: boolean;
 };
 // Valeurs du formulaire : du texte pour les champs à saisir, comme l'écran les montre.
-type Valeurs = { alerte_email: string; plafond: string; creneau: string; avance: string; annulation: boolean };
+type Valeurs = { alerte_email: string; plafond: string; creneau: string; avance: string; annulation: boolean; populaires: boolean; suggestion: boolean };
 
 const CRENEAUX = [10, 15, 20, 30];
 const EMAIL = /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i;
@@ -28,6 +30,8 @@ function versValeurs(g: Generaux): Valeurs {
     creneau: String(g.creneau_minutes ?? 15),
     avance: String(g.avance_jours ?? ""),
     annulation: g.annulation_client_active,
+    populaires: g.plats_populaires_actifs ?? false,
+    suggestion: g.suggestion_panier_active ?? false,
   };
 }
 
@@ -78,6 +82,8 @@ function Formulaire({ generaux, recharger }: { generaux: Generaux; recharger: ()
       if (v.creneau !== initiales.creneau) changes.push(["creneau_minutes", Number(v.creneau)]);
       if (v.avance !== initiales.avance) changes.push(["avance_jours", Number(v.avance)]);
       if (v.annulation !== initiales.annulation) changes.push(["annulation_client_active", v.annulation]);
+      if (v.populaires !== initiales.populaires) changes.push(["plats_populaires_actifs", v.populaires]);
+      if (v.suggestion !== initiales.suggestion) changes.push(["suggestion_panier_active", v.suggestion]);
       let r: Reponse = { ok: true, statut: 200, donnees: {} };
       for (const [cle, valeur] of changes) {
         r = await poster("/api/gestion/service", { type: "reglage-general", cle, valeur });
@@ -130,6 +136,26 @@ function Formulaire({ generaux, recharger }: { generaux: Generaux; recharger: ()
           <p className="aide">Tant que la commande n&apos;est pas acceptée. Remboursée en entier. Décochée au départ, en attente de la décision de Jérémy.</p>
         </div>
       </fieldset>
+
+      {generaux.plats_populaires_actifs !== undefined && (
+        <fieldset className="bo-reg-groupe">
+          <legend>Carte et panier</legend>
+          <div className="bo-reg-case">
+            <label>
+              <input type="checkbox" checked={v.populaires} onChange={(e) => f.changer("populaires", e.target.checked)} />
+              <span>« Les plus commandés » en tête de la carte</span>
+            </label>
+            <p className="aide">Les plats les plus commandés des 28 derniers jours. Décochée au départ, en attente de la décision de Jérémy.</p>
+          </div>
+          <div className="bo-reg-case">
+            <label>
+              <input type="checkbox" checked={v.suggestion} onChange={(e) => f.changer("suggestion", e.target.checked)} />
+              <span>Proposer une boisson ou un dessert au panier</span>
+            </label>
+            <p className="aide">Le plus commandé de sa catégorie. Décochée au départ, en attente de la décision de Jérémy.</p>
+          </div>
+        </fieldset>
+      )}
 
       <fieldset className="bo-reg-groupe">
         <legend>Connexion des clients</legend>

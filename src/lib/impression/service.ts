@@ -56,7 +56,7 @@ export type EtatImpression = {
   imprimantes: { id: number; nom: string; station: "pizza" | "cuisine"; actif: boolean; liee: boolean; vue_le: string | null; en_ligne: boolean; statut_code: string | null }[];
   taches: {
     id: string;
-    commande_id: string;
+    commande_id: string | null; // null : ticket de test (essai)
     station: "pizza" | "cuisine";
     etat: "en_attente" | "envoyee" | "imprimee" | "echec" | "sans_imprimante" | "annulee";
     reimpression: boolean;
