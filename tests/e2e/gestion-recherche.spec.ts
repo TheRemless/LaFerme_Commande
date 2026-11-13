@@ -87,6 +87,11 @@ test("une commande se trouve par le nom du client, sans que le nom passe dans l'
   await champ().press("ArrowUp");
   await champ().press("Enter");
   await expect(page.getByRole("heading", { level: 1, name: "Commandes" })).toBeVisible();
+  // La fiche de la commande s'ouvre (useOuverture, rubrique Commandes de bo-commandes) ; fermée pour la suite.
+  const fiche = page.getByRole("dialog");
+  await expect(fiche.getByRole("tab", { name: "Historique" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(fiche).toHaveCount(0);
   expect(demandes.some((u) => u.includes(prenom))).toBe(false);
 });
 

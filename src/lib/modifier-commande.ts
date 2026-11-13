@@ -28,7 +28,7 @@ const ERREURS: Record<string, string> = {
   reserve_gerant: "Seul le gérant peut modifier cette commande.",
   statut_non_modifiable: "Une commande terminée ou annulée ne se modifie plus.",
   pas_une_livraison: "C'est une commande à emporter : pas d'adresse à modifier.",
-  zone_differente: "Cette adresse est dans une autre zone, avec d'autres frais. Elle ne peut pas être changée ici.",
+  zone_differente: "Cette adresse est dans une autre zone de livraison. Elle ne peut pas être changée ici : annulez et faites recommander.",
   champ_invalide: "Un champ est vide ou trop long.",
 };
 
@@ -83,9 +83,14 @@ export async function modifierCommande(
     const z = await zoneServeur(await chargerConfigService(), d.adresse, true);
     if ("erreur" in z) return { ok: false, message: z.erreur };
     if (z.statut !== "livrable") return { ok: false, message: "Cette adresse est hors de notre zone de livraison." };
-    if (z.zone.numero !== avant.zone_numero) return { ok: false, message: ERREURS.zone_differente };
     p.adresse = z.adresse;
     p.zone_numero = z.zone.numero;
+    // Autre zone : la base décide (réglage modification_autre_zone, frais pas plus chers que ceux payés,
+    // minimum atteint). Sans réglage, toujours refusé comme avant.
+    if (z.zone.numero !== avant.zone_numero) {
+      p.zone_frais_centimes = z.zone.frais_centimes;
+      p.zone_minimum_centimes = z.zone.minimum_centimes;
+    }
   }
   let r: { modifie: boolean; champs: string[] };
   try {

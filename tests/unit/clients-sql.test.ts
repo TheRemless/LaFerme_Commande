@@ -96,6 +96,15 @@ describe("fiche client", () => {
     expect(fiche.commandes_liste).toHaveLength(3);
     expect(await f("fiche_client_gestion($1)", ["inconnu@exemple.ch"])).toBeNull();
   });
+
+  it("une commande à emporter passée par le site (adresse en JSON null) ne fait pas planter la fiche", async () => {
+    const id = await commande({ email: "j@exemple.ch", total: 2000 });
+    await db.query("update commandes set adresse = 'null'::jsonb where id = $1", [id]);
+    await commande({ email: "j@exemple.ch", total: 3000, livraison: { rue: "Route de Chancy", numero: "1" } });
+    const fiche = await f<{ adresses: unknown[]; commandes: number }>("fiche_client_gestion($1)", ["j@exemple.ch"]);
+    expect(fiche.commandes).toBe(2);
+    expect(fiche.adresses).toHaveLength(1);
+  });
 });
 
 describe("notes et marque", () => {

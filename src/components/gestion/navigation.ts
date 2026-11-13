@@ -28,8 +28,9 @@ export const GROUPES: Groupe[] = [
     titre: "Commandes et clients",
     rubriques: [
       { href: "/gestion/commandes", titre: "Commandes", icone: "commandes", resume: "Retrouver une commande, voir son historique, rembourser.", droit: "voir_commandes" },
-      // bo-commandes
-      { href: "/gestion/clients", titre: "Clients", icone: "clients", resume: "Les clients, leurs commandes et leurs réclamations.", aVenir: true, droit: "voir_commandes" },
+      // bo-commandes. Gérant seulement : /api/gestion/clients et /api/gestion/reclamations restent en exigerGerant
+      // (notes, marque, gestes). À ouvrir au responsable (droit) avec ces routes le jour où D1 est activé.
+      { href: "/gestion/clients", titre: "Clients", icone: "clients", resume: "Les clients, leurs commandes et leurs réclamations." },
     ],
   },
   {
@@ -58,7 +59,7 @@ export const GROUPES: Groupe[] = [
     rubriques: [
       // bo-operations (propriétaire de /gestion/horaires : s'il la renomme, garder une redirection depuis l'ancienne adresse)
       { href: "/gestion/horaires", titre: "Livraison et horaires", icone: "horaires", resume: "Zones, horaires, fermetures, délais et capacité." },
-      { href: "/gestion/livreurs", titre: "Livreurs", icone: "livreurs", resume: "Les livreurs et leurs tournées.", aVenir: true },
+      { href: "/gestion/livreurs", titre: "Livreurs", icone: "livreurs", resume: "Qui livre ce soir, la semaine type et les livraisons de chacun." },
       { href: "/gestion/imprimantes", titre: "Imprimantes", icone: "imprimante", resume: "Les deux postes d'impression et leur état." },
     ],
   },

@@ -31,3 +31,10 @@ Migration `supabase/migrations/20261127130000_reclamations.sql`, aucun objet par
 - **Suivre** (gérant) : fil du dossier (chaque mot, chaque changement d'état), « en cours », « close » avec une résolution obligatoire, rouvrir. Journalisé (`reclamation`).
 - **Geste** (gérant, un par réclamation) : « remboursement » relie un remboursement déjà fait par « Rembourser » sur la même commande ; « aucun » avec une raison ; « plat offert à la prochaine commande » **désactivé par défaut** (réglage `gestes_commerciaux_actifs`, décision de Jérémy, D3). Activé, il reste en attente sur le client (`gestes_en_attente(email)`, pour la tablette et la fiche) jusqu'à ce que l'équipe l'applique à sa commande suivante (`appliquer_geste`). Aucun avoir en francs : il attend les codes de `bo-carte` et l'export de `bo-pilotage`.
 - **Liste** (`reclamations_gestion`) : ouvertes d'abord, filtres état, type, période, commande ; compteurs par état. La fiche complète d'une commande liste ses réclamations.
+
+## Écrans (vague 3)
+
+- `/gestion/commandes` (`src/components/gestion/commandes/`) : liste paginée côté serveur avec pastilles de statut, fiche en panneau (contenu au prix payé, chronologie, e-mails, notes, gestes, réclamations). Tests : `tests/e2e/gestion-commandes.spec.ts`. Captures : `docs/rendus/vague-3/bo-commandes/commandes-apres-*`.
+- `/gestion/clients` (`src/components/gestion/clients/`) : onglets « Clients » (liste, fiche, notes, marque désactivée) et « Réclamations » (liste, dossier, geste, clôture). Tests : `tests/e2e/gestion-clients.spec.ts`. Captures : `docs/rendus/vague-3/bo-commandes/clients-apres-*` et `reclamations-apres-*`.
+- Correctif `supabase/migrations/20261211100000_fiche_client_adresse.sql` : la fiche d'un client plantait si une de ses commandes à emporter avait une adresse en JSON null (commandes passées par le site).
+

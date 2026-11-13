@@ -6,6 +6,7 @@ import { CarteCommande } from "@/components/carte/CarteCommande";
 import { chargerCarte } from "@/lib/carte";
 import { chargerCatalogue } from "@/lib/catalogue";
 import { chargerPopulaires } from "@/lib/populaires";
+import { chargerOptionsCommande } from "@/lib/options-commande";
 import { DESCRIPTION_CARTE, OPEN_GRAPH } from "@/lib/site";
 
 // Servie depuis le cache de Netlify, refaite au plus toutes les minutes. Le back-office et la
@@ -19,7 +20,7 @@ export const metadata: Metadata = {
 };
 
 export default async function PageCarte() {
-  const [{ categories, source }, catalogue, populaires] = await Promise.all([chargerCarte(), chargerCatalogue(), chargerPopulaires()]);
+  const [{ categories, source }, catalogue, populaires, options] = await Promise.all([chargerCarte(), chargerCatalogue(), chargerPopulaires(), chargerOptionsCommande()]);
   const preversion = process.env.CONTEXTE_DEPLOIEMENT !== "production";
   const aValider = categories.some((c) => c.plats.some((p) => p.prix_a_valider));
   return (
@@ -34,7 +35,7 @@ export default async function PageCarte() {
       )}
       {/* Sur les previews, data-source dit d'où vient la carte (Supabase ou base embarquée). */}
       <main id="contenu" className="page-carte" data-source={preversion ? source : undefined}>
-        <CarteCommande categories={categories} catalogue={catalogue} preversion={preversion} populaires={populaires} />
+        <CarteCommande categories={categories} catalogue={catalogue} preversion={preversion} populaires={populaires} prenomActif={options.prenom_par_ligne_actif} />
       </main>
       <PiedDePage />
     </>

@@ -55,6 +55,9 @@ insert into personnel (email, nom, role) values
   ('zones-bureau@laferme.test', 'Zones bureau', 'gerant'),
   ('zones-mobile@laferme.test', 'Zones mobile', 'gerant');
 
+-- Calendrier du back-office (tests/e2e/calendrier.spec.ts, vague 3).
+insert into personnel (email, nom, role) values ('calendrier-bureau@laferme.test', 'Calendrier bureau', 'gerant');
+
 -- Chiffres et journal (bo-pilotage, tests/e2e/gestion-journal.spec.ts, vague 3) : un compte par projet Playwright.
 insert into personnel (email, nom, role) values
   ('pilotage-bureau@laferme.test', 'Pilotage bureau', 'gerant'),
@@ -67,6 +70,12 @@ insert into personnel (email, nom, role) values
 
 -- Réglages généraux (tests/e2e/reglages-generaux.spec.ts, vague 3).
 insert into personnel (email, nom, role) values ('reglages-bureau@laferme.test', 'Réglages bureau', 'gerant');
+
+-- Écran Livreurs du back-office (tests/e2e/gestion-livreurs.spec.ts, vague 3) : un gérant et deux livreurs à part.
+insert into personnel (email, nom, role) values
+  ('ecran-livreurs@laferme.test', 'Écran livreurs', 'gerant'),
+  ('sami@laferme.test', 'Sami', 'livreur'),
+  ('nora@laferme.test', 'Nora', 'livreur');
 
 -- Commandes et clients du back-office (vague 3, bo-commandes, tests/e2e/gestion-commandes.spec.ts).
 insert into personnel (email, nom, role) values
@@ -82,3 +91,13 @@ insert into personnel (email, nom, role) values
   ('groupes-mobile@laferme.test', 'Groupes mobile', 'gerant'),
   ('promos-bureau@laferme.test', 'Promos bureau', 'gerant'),
   ('promos-mobile@laferme.test', 'Promos mobile', 'gerant');
+
+  ('liste-mobile@laferme.test', 'Liste mobile', 'gerant');
+
+-- Rubrique Clients du back-office (vague 3, bo-commandes, tests/e2e/gestion-clients.spec.ts).
+insert into personnel (email, nom, role) values
+  ('clients-bureau@laferme.test', 'Clients bureau', 'gerant'),
+  ('clients-mobile@laferme.test', 'Clients mobile', 'gerant');
+
+-- Écran Livraison et horaires, parties de la vague 3 (tests/e2e/gestion-service-v3.spec.ts).
+insert into personnel (email, nom, role) values ('ecran-service@laferme.test', 'Écran service', 'gerant');
