@@ -3660,6 +3660,8 @@ body.fiche-ouverte {
   color: var(--encre);
   background: var(--papier);
   border-radius: 4px;
+}
+
 /* Consignes d'une adresse enregistrée, modifiables dans le compte (vague 3, client-compte). */
 .adresses li {
   flex-wrap: wrap;
