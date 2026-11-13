@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { creerBaseLocale } from "@/lib/db/locale";
 import type { ClotureJour, RapportCloture } from "@/lib/cloture";
 
-// Clôture du jour (migration 20261129100000_cloture_jour.sql). Commandes écrites directement ; horloge
+// Clôture du jour (migration 20261210190000_cloture_jour.sql). Commandes écrites directement ; horloge
 // réglable comme dans tests/unit/gerant-correctifs-sql.test.ts.
 
 let db: PGlite;
