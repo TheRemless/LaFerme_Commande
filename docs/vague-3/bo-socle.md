@@ -61,5 +61,5 @@ L'accueil ne suffisait pas : Giuseppe en salle ne regarde pas l'accueil. Le cent
 ## Équipe
 
 - La liste d'accès de chaque membre a des libellés courts (« Livreur » au lieu de « Livreur (ses livraisons sur son téléphone) »), le détail est écrit sous le titre et sous le champ d'ajout. Elle ne déborde plus à 1280 px.
-- Chaque membre montre sa dernière activité (connexion ou passage sur un appareil), ou « Jamais connecté ». `liste_personnel` donne `derniere_activite` (migration `20261212200000_recherche_equipe.sql`, numéro provisoire).
+- Chaque membre montre sa dernière activité (connexion ou passage sur un appareil), ou « Jamais connecté ». `liste_personnel` donne `derniere_activite` (migration `20261212140000_recherche_equipe.sql`).
 

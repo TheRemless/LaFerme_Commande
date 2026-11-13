@@ -13,7 +13,7 @@
 -- le reste, filtre remboursement compris, est la définition de 20261212130000 telle quelle. Même signature, mêmes champs.
 -- clients_gestion : seules changent les conditions de recherche.
 -- liste_personnel : un champ de plus (derniere_activite), l'écran lit encore derniere_connexion sans lui.
--- Numéro provisoire : à renommer au numéro que le chef réserve (après 20261212130000).
+-- Numéro réservé par le chef (20261212140000), juste après 20261212130000.
 
 create or replace function liste_commandes_gestion(p jsonb) returns jsonb
 language plpgsql stable as $$

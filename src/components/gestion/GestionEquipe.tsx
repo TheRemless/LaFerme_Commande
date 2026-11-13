@@ -17,7 +17,7 @@ type Membre = {
   actif: boolean;
   sessions: number;
   derniere_connexion: string | null;
-  /** Dernier passage sur un de ses appareils (connexion ou activité). Absent avant la migration 20261212200000. */
+  /** Dernier passage sur un de ses appareils (connexion ou activité). Absent avant la migration 20261212140000. */
   derniere_activite?: string | null;
 };
 
