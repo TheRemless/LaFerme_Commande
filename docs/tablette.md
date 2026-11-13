@@ -215,3 +215,18 @@ Styles propres dans `src/components/livreur/livreur.css`. L'ordre de passage res
 - Avant le départ : tous les arrêts ouverts, pour vérifier les sacs. « Je pars avec les N » d'un geste.
 - En route : l'arrêt en cours (le premier pas encore livré) est seul ouvert ; les suivants tiennent sur une ligne (rang, heure, adresse, état, numéro) et s'ouvrent au toucher. En bas de l'écran, sous le pouce : « Itinéraire » et « Livrée, n° 17 » de l'arrêt en cours. Avant : trois arrêts faisaient six écrans de haut et « Livrée » était au milieu.
 - Captures : `docs/rendus/vague-3/tablette/livreur-375.png`, `livreur-375-entier.png`, `livreur-375-en-route.png`, `livreur-320.png` (`scripts/tablette/livreur.mjs`, après `scripts/tablette/rush.mjs`).
+
+## Sons distincts et acceptation en série (vague 3)
+
+Module `src/components/tablette/sons.ts`. Le navigateur n'autorise le son qu'après « Commencer le service ».
+
+| Ce qui arrive | Son | Combien de fois |
+|---|---|---|
+| Nouvelle commande à accepter | Deux notes (aiguë, puis plus basse) | Toutes les 4 s tant qu'elle attend, toutes les 2 s dès 3 minutes d'attente |
+| Commande qui passe en retard | Trois notes graves rapprochées | Une fois par commande |
+| Imprimante hors ligne, sans papier, capot ouvert ; problème signalé par un livreur | Deux notes qui descendent | Une fois par problème (un nouvel état de l'imprimante sonne de nouveau) |
+| Annulation par le client | Une note grave et longue | Une fois par commande (#115) |
+
+Au chargement de la page, rien ne sonne pour ce qui était déjà là.
+
+**Acceptation en série** : dans « À accepter », à partir de deux commandes, « Accepter les N à l'heure proposée… » puis « Accepter les N ». Chacune est acceptée à son heure proposée, comme le bouton de sa carte. Une commande avec une allergie ou un avertissement (adresse, créneau) n'entre pas dans la série : elle se lit et s'accepte seule. Le retour dit combien sont passées et combien restent à lire. L'acceptation automatique, côté serveur, reste une décision de Jérémy (non construite ici). Capture : `docs/rendus/vague-3/tablette/serie-confirmer-1180.png` (`scripts/tablette/serie.mjs`).
