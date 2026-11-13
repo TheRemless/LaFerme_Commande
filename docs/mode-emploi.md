@@ -217,6 +217,10 @@ Coup de feu (en tête de la rubrique) et zones livrées le soir seulement ou fer
 
 E-mail des alertes, longueur d'un créneau, commande à l'avance, annulation par le client, codes de connexion par jour : `docs/reglages-generaux.md`, « Mode d'emploi ».
 
+### Calendrier
+
+Le mois vu par les clients, fériés à confirmer, fermer un jour ou un service : `docs/calendrier.md`, « Mode d'emploi ».
+
 ### Imprimantes
 
 - La rubrique montre l'état de chaque imprimante.
