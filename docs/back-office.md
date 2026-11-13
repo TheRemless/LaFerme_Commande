@@ -160,3 +160,5 @@ Migration `supabase/migrations/20261210190000_cloture_jour.sql`, module `src/lib
 - Clôturer (`POST { jour, especes, carte, note }`, montants en francs, vides si pas comptés) : la base garde une copie du rapport, calcule l'écart (espèces comptées + ticket du terminal de carte − attendu) et journalise (objet `cloture`, sans le rapport). Reclôturer le même jour remplace la clôture ; l'ancienne reste dans le journal. Un jour clôturé se relit tel qu'il était à la clôture ; si une commande ou un remboursement du jour a changé depuis (`change_depuis`), l'écran et le CSV le disent : il faut reclôturer. Une clôture ne s'annule pas depuis le journal. Pas de clôture d'un jour à venir.
 - `GET ?jour=…&format=csv` : le rapport en CSV (point-virgule), sans aucune donnée de client, formules neutralisées.
 - Mesure (base embarquée, un jour de 300 commandes dans un an d'historique) : 3 ms.
+
+Chiffres (tableau des ventes, clôture du jour, analyses, export pour la fiduciaire) : [docs/pilotage.md](pilotage.md).
