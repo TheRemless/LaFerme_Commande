@@ -28,7 +28,10 @@ export default defineConfig({
   webServer: {
     // Accueil, carte et panier sont mis en cache dès le build : il lit déjà la base embarquée.
     // SANS_LIMITE_COMPTOIR : les tests passent toutes leurs commandes au comptoir avec le même téléphone.
-    command: `BASE_LOCALE=1 npm run build && BASE_LOCALE=1 SANS_LIMITE_COMPTOIR=1 npx next start -p ${PORT}`,
+    // Cache de données de Next (unstable_cache : config du service, carte) vidé d'abord : il survit au
+    // redémarrage alors que la base embarquée repart de zéro, et un passage interrompu laissait au suivant
+    // une fermeture ou un réglage qui n'existe plus en base (signalé par bo-operations).
+    command: `rm -rf .next/cache/fetch-cache && BASE_LOCALE=1 npm run build && BASE_LOCALE=1 SANS_LIMITE_COMPTOIR=1 npx next start -p ${PORT}`,
     url: `http://localhost:${PORT}/carte`,
     timeout: 240_000,
     reuseExistingServer: false,
