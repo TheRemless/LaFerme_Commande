@@ -84,18 +84,19 @@ export async function POST(requete: Request) {
     if (jourRefuse) messageQuand = `${jourRefuse} Retirez-le du panier ou changez de créneau.`;
   }
 
-  // Code promo (éteint par défaut) : remise calculée en base et montrée avant le paiement. Le client n'est
-  // peut-être pas encore connu (e-mail, téléphone) : le paiement revérifie tout.
+  // Code promo (éteint par défaut) : aperçu de la remise, calculée en base. Aucune donnée du client n'est
+  // utilisée ici (revue de sécurité : sinon la route dirait si un e-mail ou un téléphone a déjà commandé) ;
+  // « une fois par client » et « première commande » se vérifient au paiement, sous verrou.
   const code = codeTape(corps.code);
   let resultatCode: { code: string; ok: boolean; remise_centimes?: number; message?: string } | null = null;
   let aPayer = totaux;
   if (code && lignes.length > 0) {
-    const client = (corps.client && typeof corps.client === "object" ? corps.client : {}) as Record<string, unknown>;
     const ev = await evaluerCode({
       code,
-      email: typeof client.email === "string" ? client.email : null,
-      telephone: typeof client.telephone === "string" ? client.telephone : null,
-      adresse: corps.adresse,
+      // Identité neutre, qui ne correspond à aucun client : seules les conditions du code comptent.
+      email: "apercu@panier.invalid",
+      telephone: null,
+      adresse: null,
       mode,
       sous_total_centimes: totaux.sous_total_centimes,
       frais_centimes: totaux.frais_centimes,

@@ -197,8 +197,7 @@ function placeEnvoyee(mode: Mode, quand: Quand): boolean {
 // relance : un nombre qui change pour redemander le calcul sans changement du panier (plat épuisé
 // entre-temps, refusé au paiement). Redemandé aussi quand le client revient sur l'onglet ou que le réseau
 // revient : entre-temps, un plat a pu s'épuiser, le restaurant se mettre en pause ou le créneau se remplir.
-// client : e-mail et téléphone, pour qu'un code « une fois par client » puisse se vérifier avant le paiement.
-export function useCalculPanier(lignes: LignePanier[], actif: boolean, relance = 0, client?: { email: string; telephone: string }): CalculPanier {
+export function useCalculPanier(lignes: LignePanier[], actif: boolean, relance = 0): CalculPanier {
   const [etat, setEtat] = useState<{ cle: string; reponse: ReponsePanier } | null>(null);
   const [attente, setAttente] = useState<{ numero: number; lent: boolean; echec: boolean } | null>(null);
   const [retour, setRetour] = useState(0);
@@ -238,7 +237,6 @@ export function useCalculPanier(lignes: LignePanier[], actif: boolean, relance =
           heure: choix.heureSimulee,
           placeTenue: placeEnvoyee(choix.mode, choix.quand),
           code: lireCode() ?? undefined,
-          client: lireCode() ? client : undefined,
         }),
         signal: ctrl.signal,
       })
@@ -260,8 +258,7 @@ export function useCalculPanier(lignes: LignePanier[], actif: boolean, relance =
       window.clearTimeout(t);
       window.clearTimeout(lent);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- le client compte par sa valeur, pas son objet.
-  }, [lignes, actif, relance, retour, JSON.stringify(client ?? null)]);
+  }, [lignes, actif, relance, retour]);
 
   const reponse = etat && etat.cle === cle ? etat.reponse : null;
   return { reponse, lent: !reponse && Boolean(attente?.lent), echec: !reponse && Boolean(attente?.echec), relancer };

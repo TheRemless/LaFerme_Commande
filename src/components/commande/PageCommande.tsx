@@ -99,7 +99,7 @@ export function PageCommande({
   const [code, setCode] = useState<string | null>(null);
   // null : rien tapé, le champ montre le code gardé.
   const [saisieCode, setSaisieCode] = useState<string | null>(null);
-  const calcul = useCalculPanier(lignes, charge, relance, code ? { email: client.email, telephone: client.telephone } : undefined);
+  const calcul = useCalculPanier(lignes, charge, relance);
   const { reponse } = calcul;
   const [choix, setChoix] = useState<Choix | null>(null);
   const [creerCompte, setCreerCompte] = useState(false);

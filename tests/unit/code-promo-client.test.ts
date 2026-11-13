@@ -9,14 +9,14 @@ import { appliquerRemise, codesActifs, codeTape, evaluerCode, messageCode } from
 vi.mock("next/headers", () => ({ cookies: async () => ({ get: () => undefined }) }));
 process.env.SANS_LIMITE_COMPTOIR = "1";
 
-async function commander(code: string | undefined, email = `code-${randomUUID().slice(0, 8)}@laferme.test`) {
+async function commander(code: string | undefined, email = `code-${randomUUID().slice(0, 8)}@laferme.test`, cle = randomUUID()) {
   const { POST } = await import("@/app/api/commandes/route");
   return POST(
     new Request("http://localhost:3000/api/commandes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        cle: randomUUID(),
+        cle,
         lignes: [{ slug: "pizza-margherita", qte: 2, choix: {}, retraits: [], note: "" }],
         mode: "retrait",
         quand: { type: "asap" },
@@ -84,6 +84,49 @@ describe("codes promo côté client", () => {
     const email = `fidele-${randomUUID().slice(0, 8)}@laferme.test`;
     await commander("ESSAI-DIX", email);
     expect((await commandeDe(await commander("ESSAI-DIX", email))).erreur).toBe("Vous avez déjà utilisé ce code.");
+  });
+
+  it("envois simultanés du même client : le code ne sert qu'une fois", async () => {
+    await regler(true);
+    const email = `rafale-${randomUUID().slice(0, 8)}@laferme.test`;
+    const lues = await Promise.all([1, 2, 3, 4].map(async () => commandeDe(await commander("ESSAI-DIX", email))));
+    expect(lues.filter((c) => c.remise !== null && c.remise > 0)).toHaveLength(1);
+    expect(lues.filter((c) => c.erreur === "Vous avez déjà utilisé ce code.")).toHaveLength(3);
+  });
+
+  it("nouvel essai avec la même clé (retour de Stripe) : la commande enregistrée, sans refus du code", async () => {
+    await regler(true);
+    const email = `retour-${randomUUID().slice(0, 8)}@laferme.test`;
+    const cle = randomUUID();
+    const premiere = await commandeDe(await commander("ESSAI-DIX", email, cle));
+    const seconde = await commandeDe(await commander("ESSAI-DIX", email, cle));
+    expect(seconde.erreur).toBeUndefined();
+    expect(seconde.id).toBe(premiere.id);
+  });
+
+  it("panier : aperçu de la remise sans aucune donnée du client, rien n'est dit sur un client existant", async () => {
+    await regler(true);
+    const email = `deja-${randomUUID().slice(0, 8)}@laferme.test`;
+    await commander("ESSAI-DIX", email);
+    const { POST: panier } = await import("@/app/api/panier/route");
+    const r = await (
+      await panier(
+        new Request("http://localhost/api/panier", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            lignes: [{ slug: "pizza-margherita", qte: 2, choix: {}, retraits: [], note: "" }],
+            mode: "retrait",
+            quand: { type: "asap" },
+            heure: "2026-11-10T19:05",
+            code: "ESSAI-DIX",
+            client: { email, telephone: "079 000 00 00" },
+          }),
+        }),
+      )
+    ).json();
+    expect(r.code).toMatchObject({ code: "ESSAI-DIX", ok: true });
+    expect(r.total_centimes).toBe(r.sous_total_centimes - r.remise_centimes);
   });
 
   it("éteints : un code resté dans le navigateur est ignoré, la commande passe au plein prix", async () => {
