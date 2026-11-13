@@ -45,6 +45,10 @@ export type Reglages = {
   // déjà compris dans preparation_minutes et les délais des zones, comme retard_minutes. Le détail par poste
   // (Charge) reste sur le serveur : chargeDuMoment() dans src/lib/heure-reelle-serveur.ts.
   allongement_minutes?: number;
+  // Version 2 : allongement des heures de livraison, le plus long de la file de cuisine et de l'attente d'un
+  // livreur (livreurs présents, livraisons en route). Déjà compris dans les délais des zones. Absent : celui
+  // de la cuisine.
+  allongement_livraison_minutes?: number;
   fourchette?: { livraison: number; retrait: number };
   // Annulation par le client depuis son suivi (vague 3, C1) : faux par défaut, décision de Jérémy.
   annulation_client_active?: boolean;
@@ -56,6 +60,10 @@ export type Charge = {
   preparation_minutes: number;
   plafond_minutes: number;
   allongement_minutes: number;
+  // Version 2 (charge_livraison) : livreurs présents ce service et livraisons à faire ou en route. Absent si la
+  // base n'est pas migrée ; alors allongement_livraison_minutes vaut allongement_minutes.
+  livraison?: { livraisons: number; livreurs: number; attente_minutes: number; compte: boolean };
+  allongement_livraison_minutes: number;
 };
 
 export type ConfigService = {
@@ -310,8 +318,12 @@ export function etatService(config: ConfigService, maintenant: Date, mode: Mode,
     const { finCommande, finRemise } = bornes(config, h, mode, zone, pizzas);
     // « Dès que possible » quand la cuisine peut lancer la commande maintenant.
     // Le retard du soir allonge l'heure promise, pas la fenêtre d'avant service (revue du lot gérant).
-    // L'allongement dû à la file non plus.
-    const ouvertDes = enMinutes(h.premiere_heure) - (delai - (config.reglages.retard_minutes ?? 0) - (config.reglages.allongement_minutes ?? 0));
+    // L'allongement dû à la file non plus (en livraison, celui des délais de zone).
+    const allongement =
+      mode === "livraison" && zone
+        ? (config.reglages.allongement_livraison_minutes ?? config.reglages.allongement_minutes ?? 0)
+        : (config.reglages.allongement_minutes ?? 0);
+    const ouvertDes = enMinutes(h.premiere_heure) - (delai - (config.reglages.retard_minutes ?? 0) - allongement);
     if (ici.minutes >= ouvertDes && ici.minutes <= finCommande) {
       const moyen = mode === "livraison" && zone ? Math.round((zone.delai_min + zone.delai_max) / 2) : delai;
       const promise = Math.max(enMinutes(h.premiere_heure), arrondir(ici.minutes + moyen, 5));

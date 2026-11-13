@@ -21,10 +21,18 @@ export type ReglagesGeneraux = {
   rythme?: Partial<Record<CleRythme, number>>;
 };
 export type Interrupteur = { cle: string; libelle: string; aide: string | null; valeur: boolean };
-export type CleRythme = "debit_pizza_quart_heure" | "debit_cuisine_quart_heure" | "allongement_max_minutes" | "fourchette_livraison_minutes" | "fourchette_retrait_minutes";
+export type CleRythme =
+  | "debit_pizza_quart_heure"
+  | "debit_cuisine_quart_heure"
+  | "livraisons_par_livreur_heure"
+  | "allongement_max_minutes"
+  | "fourchette_livraison_minutes"
+  | "fourchette_retrait_minutes";
 export const BORNES_RYTHME: Record<CleRythme, { min: number; max: number }> = {
   debit_pizza_quart_heure: { min: 0, max: 100 },
   debit_cuisine_quart_heure: { min: 0, max: 100 },
+  // Heure promise réaliste, version 2 (migration 20261130210000).
+  livraisons_par_livreur_heure: { min: 0, max: 20 },
   allongement_max_minutes: { min: 0, max: 90 },
   fourchette_livraison_minutes: { min: 0, max: 60 },
   fourchette_retrait_minutes: { min: 0, max: 60 },

@@ -36,10 +36,13 @@ type Charge = {
   raison: string | null;
   pizza: { articles: number; compte: boolean };
   cuisine: { articles: number; compte: boolean };
+  // Version 2 : absent tant que la base n'a pas charge_livraison (migration 20261130210000).
+  livraison?: { livreurs: number; compte: boolean };
 } | null;
 type CleRythme =
   | "debit_pizza_quart_heure"
   | "debit_cuisine_quart_heure"
+  | "livraisons_par_livreur_heure"
   | "allongement_max_minutes"
   | "fourchette_livraison_minutes"
   | "fourchette_retrait_minutes";
@@ -65,9 +68,16 @@ const RYTHME: {
     max: 100,
   },
   {
+    cle: "livraisons_par_livreur_heure",
+    libelle: "Livraisons qu'un livreur fait en une heure",
+    aide: "Aller et retour compris. Avec les livreurs prévus ce service (rubrique Livreurs), donne l'attente d'un livreur. 0 : les livraisons ne sont pas comptées. Au départ 0, en attente du chiffre de Jérémy.",
+    min: 0,
+    max: 20,
+  },
+  {
     cle: "allongement_max_minutes",
     libelle: "Heures annoncées : minutes en plus, au plus",
-    aide: "Ce que la file peut ajouter aux heures annoncées, au maximum.",
+    aide: "Ce que la file ou l'attente d'un livreur peut ajouter aux heures annoncées, au maximum.",
     min: 0,
     max: 90,
   },
@@ -86,6 +96,24 @@ const RYTHME: {
     max: 60,
   },
 ];
+// « En ce moment » du bloc Rythme : la raison quand les heures s'allongent, sinon ce qui est compté ou pas.
+function maintenant(charge: Charge): string {
+  if (charge === null) return "file pas lue.";
+  if (charge.raison) return charge.raison;
+  const cuisine =
+    charge.pizza.compte || charge.cuisine.compte
+      ? "la file ne retarde rien."
+      : "la file n'est pas comptée (débits à 0).";
+  const l = charge.livraison;
+  if (!l) return cuisine;
+  const livraison = l.compte
+    ? "Les livreurs suivent."
+    : l.livreurs === 0
+      ? "Livraisons pas comptées (aucun livreur prévu ce service)."
+      : "Livraisons pas comptées (débit à 0).";
+  return `${cuisine} ${livraison}`;
+}
+
 // Valeurs du formulaire : du texte pour les champs à saisir, comme l'écran les montre.
 type Valeurs = {
   alerte_email: string;
@@ -357,22 +385,18 @@ function Formulaire({
 
       {generaux.rythme && (
         <fieldset className="bo-reg-groupe">
-          <legend>Rythme de la cuisine</legend>
+          <legend>Rythme de la cuisine et des livraisons</legend>
           <p className="aide">
             Quand la file du four ou de la cuisine dépasse la préparation
             habituelle, les heures annoncées aux clients s&apos;allongent
-            d&apos;elles-mêmes, jusqu&apos;au maximum réglé ici.
+            d&apos;elles-mêmes, jusqu&apos;au maximum réglé ici. En livraison,
+            l&apos;attente d&apos;un livreur compte aussi.
           </p>
           <p className="bo-reg-maintenant" role="status">
-            En ce moment :{" "}
-            {charge === null
-              ? "file pas lue."
-              : (charge.raison ??
-                (charge.pizza.compte || charge.cuisine.compte
-                  ? "la file ne retarde rien."
-                  : "la file n'est pas comptée (débits à 0)."))}
+            En ce moment : {maintenant(charge)}
           </p>
-          {RYTHME.map((r) => (
+          {/* Un réglage absent de la base (migration pas encore passée) ne s'affiche pas. */}
+          {RYTHME.filter((r) => generaux.rythme?.[r.cle] !== undefined).map((r) => (
             <Champ
               key={r.cle}
               libelle={r.libelle}
