@@ -16,6 +16,9 @@ export type AdresseRetenue = { rue: string; numero: string; npa: string; localit
 export type ResultatZoneServeur =
   | { statut: "livrable"; zone: Zone; verifiee: boolean; adresse: AdresseRetenue }
   | { statut: "hors-zone"; verifiee: boolean }
+  // Zone fermée jusqu'à une heure (neige, livreur malade) : la livraison reprend à jusqua. Une zone désactivée
+  // sans date reste « hors zone ».
+  | { statut: "zone-fermee"; verifiee: boolean; jusqua: string }
   | { erreur: string; code: 422 | 503 };
 
 // exigerRegistre : au paiement, une adresse saisie à la main doit être retrouvée dans le registre fédéral,
@@ -63,5 +66,7 @@ export async function zoneServeur(config: ConfigService, adresse: unknown, exige
   }
   const r = zonePour(config, npa, localite);
   retenue ??= { rue: champ(a.rue) ?? "", numero: champ(a.numero) ?? "", npa, localite };
-  return r.statut === "livrable" ? { statut: "livrable", zone: r.zone, verifiee, adresse: retenue } : { statut: "hors-zone", verifiee };
+  if (r.statut === "livrable") return { statut: "livrable", zone: r.zone, verifiee, adresse: retenue };
+  if (r.statut === "zone-fermee" && r.jusqua) return { statut: "zone-fermee", verifiee, jusqua: r.jusqua };
+  return { statut: "hors-zone", verifiee };
 }

@@ -6,6 +6,7 @@ import { calculerPanier } from "@/lib/panier";
 import { erreurPlatsDuJour, momentDe } from "@/lib/plat-du-jour";
 import { lignesValides, quandValide } from "@/lib/validation";
 import { depuisHeureGeneve, enMinutes, heureTexte, instantGeneve, jourIso, MESSAGE_CRENEAU_COMPLET, quandPossible, type CreneauPlein, type Zone, messagePause, messageSansCreneau, pauseEnCours } from "@/lib/service";
+import { messageZoneFermee, SUITE_ZONE_FERMEE } from "@/lib/zone-fermee";
 import { zoneServeur } from "@/lib/zone-serveur";
 
 // Prix du panier calculé par le serveur à partir de la base : options, frais de zone, minimum, TVA,
@@ -29,6 +30,7 @@ export async function POST(requete: Request) {
   if (mode === "livraison") {
     const r = await zoneServeur(config, corps.adresse);
     if ("erreur" in r) return NextResponse.json({ erreur: r.erreur }, { status: r.code });
+    if (r.statut === "zone-fermee") return NextResponse.json({ erreur: `${messageZoneFermee(r.jusqua)} ${SUITE_ZONE_FERMEE}` }, { status: 422 });
     if (r.statut !== "livrable") return NextResponse.json({ erreur: "Cette adresse est hors de notre zone de livraison." }, { status: 422 });
     zone = r.zone;
   }
