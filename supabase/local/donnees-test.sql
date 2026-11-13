@@ -51,3 +51,6 @@ insert into personnel (email, nom, role) values
 insert into personnel (email, nom, role) values
   ('planning-bureau@laferme.test', 'Planning bureau', 'gerant'),
   ('planning-livreur@laferme.test', 'Livreur planning', 'livreur');
+
+-- Messages aux clients (tests/e2e/messages-clients.spec.ts, vague 3).
+insert into personnel (email, nom, role) values ('messages-bureau@laferme.test', 'Messages bureau', 'gerant');
