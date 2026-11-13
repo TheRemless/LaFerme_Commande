@@ -119,7 +119,7 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
   const [annulationsVues, setAnnulationsVues] = useState<Set<string>>(new Set());
   const annulationsSonnees = useRef<Set<string> | null>(null);
   // Détail complet des commandes terminées ouvertes (file allégée) : lignes et tickets.
-  const [completes, setCompletes] = useState<Map<string, { commande: CommandeTablette; taches: Tache[] }>>(new Map());
+  const [completes, setCompletes] = useState<Map<string, { commande: CommandeTablette; taches: Tache[]; version: string | null }>>(new Map());
   // Commande ouverte en détail, à côté du tableau.
   const [ouverte, setOuverte] = useState<string | null>(null);
   const dernierAppui = useRef(0);
@@ -161,8 +161,9 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
       const heureServeur = rep.headers.get("X-Maintenant");
       if (heureServeur) setDecalage(new Date(heureServeur).getTime() - Date.now());
       if (rep.status !== 204) {
-        setDonnees(await rep.json());
+        const json = await rep.json();
         version.current = rep.headers.get("X-Version-File");
+        setDonnees(json);
       }
       if (repLivraisons?.ok) setLivraisons(await repLivraisons.json());
       setDernierContact(Date.now());
@@ -357,25 +358,28 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
   // Le détail ne s'affiche que si sa commande est dans la liste à l'écran : il revient avec son onglet et ne cache
   // jamais une recherche.
   const detailFile = ouverte ? (liste.find((c) => c.id === ouverte) ?? null) : null;
-  // Terminée ou refusée : la file l'envoie sans ses lignes ; le détail complet arrive au toucher.
+  // Terminée ou refusée : la file l'envoie sans ses lignes ; elles arrivent au toucher. Le statut et le paiement
+  // restent ceux de la file (un remboursement fait depuis « Terminées » s'affiche tout de suite).
   const complete = detailFile ? completes.get(detailFile.id) : undefined;
-  const detail = complete?.commande ?? detailFile;
+  const detail = detailFile && complete ? { ...detailFile, lignes: complete.commande.lignes } : detailFile;
 
-  // Détail d'une commande terminée, demandé une fois à l'ouverture.
-  const aCharger = detailFile && (detailFile as { lignes_omises?: boolean }).lignes_omises && !completes.has(detailFile.id) ? detailFile.id : null;
+  // Détail demandé à l'ouverture, puis de nouveau si la file a changé (tickets réimprimés) tant qu'il est ouvert.
+  const versionVue = version.current;
+  const aCharger =
+    detailFile && (detailFile as { lignes_omises?: boolean }).lignes_omises && (!complete || complete.version !== versionVue) ? detailFile.id : null;
   useEffect(() => {
     if (!aCharger) return;
     let annule = false;
     fetch(`/api/tablette/commande?id=${aCharger}`, { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
-        if (!annule && d) setCompletes((m) => new Map(m).set(aCharger, d));
+        if (!annule && d) setCompletes((m) => new Map(m).set(aCharger, { ...d, version: versionVue }));
       })
       .catch(() => undefined);
     return () => {
       annule = true;
     };
-  }, [aCharger]);
+  }, [aCharger, versionVue]);
   const retards = listes.cours.filter((c) => etats.get(c.id)?.niveau === "retard").length;
   const aLancer = listes.cours.filter((c) => etats.get(c.id)?.niveau === "maintenant").length;
   // Refus payés dont le remboursement n'est pas passé : visibles jusqu'au remboursement, même le lendemain.

@@ -66,10 +66,11 @@ Mesures de qualite (`docs/charge.md`) : 163 à 185 Ko par relecture et par table
 | Réponse complète | 157,8 Ko | 146,2 Ko |
 | Rien n'a changé | 161 Ko | 0 octet (204) |
 
-- Les commandes terminées ou refusées partent sans leurs lignes (`lignes_omises`). Leur détail (lignes et tickets) se charge au toucher par `GET /api/tablette/commande?id=…`. Les tâches d'impression ne concernent que les commandes actives.
+- Les commandes terminées ou refusées partent sans leurs lignes (`lignes_omises`). Leur détail (lignes et tickets) se charge au toucher par `GET /api/tablette/commande?id=…`, de nouveau si la file change tant qu'il est ouvert. Statut et paiement viennent toujours de la file. Les tâches d'impression ne concernent que les commandes actives.
 - Version : `versionFile` (`src/lib/tablette-file.ts`) hache tout ce que l'écran affiche, sauf l'heure. Une imprimante en ligne relue toutes les 10 s ne la change pas. La tablette renvoie `?version=` (en-tête `X-Version-File` de la réponse précédente). Rien de changé : 204 sans corps, l'heure du serveur dans `X-Maintenant`.
 - Le signe de vie (`?service=1`) et la surveillance passent avant la comparaison : une tablette calme reste « vivante » (test : 204 répétés pendant 4 minutes, `tests/unit/tablette-file.test.ts`).
 - La tablette garde l'écart entre son horloge et celle du serveur et recalcule toutes les 15 s ce qui dépend du temps (retards, « à lancer dans », passage d'« À l'avance » à la file) sans attendre de nouvelle donnée.
+- Test e2e (proposé par qualite) : relectures remplacées par des 204 portant une heure avancée de 40 minutes, « Attend depuis » monte et une commande d'« À l'avance » passe dans « En cours ».
 - Les livraisons ne sont relues que si l'onglet « Livraisons » est ouvert ou qu'une livraison est en cours.
 - Piste suivante (qualite) : une fonction SQL de version (dernière modification des commandes du jour, des réglages et des tâches) pour ne même plus lire `file_tablette` quand rien n'a changé.
 
