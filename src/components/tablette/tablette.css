@@ -73,8 +73,12 @@
   right: 0;
   bottom: 16px;
   left: 0;
-  z-index: 40;
+  /* Au-dessus du détail en surimpression (45, portrait et téléphone) : « Annuler » doit rester sous le doigt. */
+  z-index: 50;
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
   justify-content: center;
   padding: 0 16px;
   pointer-events: none;
@@ -573,4 +577,12 @@
   font-stretch: 62%;
   letter-spacing: 0.08em;
   font-variant-numeric: tabular-nums;
+}
+
+/* Geste différé (P0, retour arrière) : « Annuler » sous le doigt pendant 5 secondes. */
+.tab-differe {
+  border-width: 3px;
+}
+.tab-differe .bouton-principal {
+  min-width: 120px;
 }

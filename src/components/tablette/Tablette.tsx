@@ -18,6 +18,7 @@ import type { DonneesLivraisons } from "@/lib/livreur";
 import { MOTIF_CLIENT_ABSENT } from "@/lib/livraisons-textes";
 import { OngletLivraisons, livraisonsEnCours, problemeTexte } from "@/components/tablette/Livraisons";
 import { PanneauModifier } from "@/components/tablette/PanneauModifier";
+import { DELAI_ANNULER_MS, estDiffere, texteGeste } from "@/components/tablette/differe";
 import { acceptablesEnSerie, nouveaux, sonnerProbleme, sonnerRetard } from "@/components/tablette/sons";
 import { annuleesParClient, chercherCommandes, etatTemps, jourDuNumero, lignesImprimantes, minutesDeRetard, minutesRestantes, ordreStable, type Rythme } from "@/components/tablette/rush";
 import { LigneCommande } from "@/components/tablette/LigneCommande";
@@ -324,7 +325,57 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
     return () => window.clearTimeout(t);
   }, [message]);
 
+  // Gestes de statut et d'encaissement différés (P0, retour arrière) : ils partent après DELAI_ANNULER_MS, sauf
+  // « Annuler ». Un seul geste en attente par commande ; à la fermeture de la page, ils partent tout de suite.
+  const [differes, setDifferes] = useState<{ id: number; commande: string; numero: number; texte: string; fin: number; corps: Record<string, unknown> }[]>([]);
+  const minuteurs = useRef(new Map<number, number>());
+  const [, setTicDiffere] = useState(0);
+  useEffect(() => {
+    if (differes.length === 0) return;
+    const t = window.setInterval(() => setTicDiffere((x) => x + 1), 500);
+    return () => window.clearInterval(t);
+  }, [differes.length]);
+  const differesRef = useRef(differes);
+  differesRef.current = differes;
+  useEffect(() => {
+    const partir = () => {
+      for (const d of differesRef.current) {
+        window.clearTimeout(minuteurs.current.get(d.id));
+        void fetch("/api/tablette/action", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ commande: d.commande, ...d.corps }), keepalive: true });
+      }
+    };
+    window.addEventListener("pagehide", partir);
+    return () => window.removeEventListener("pagehide", partir);
+  }, []);
+  function annulerGeste(id: number) {
+    window.clearTimeout(minuteurs.current.get(id));
+    minuteurs.current.delete(id);
+    const d = differes.find((x) => x.id === id);
+    setDifferes((x) => x.filter((y) => y.id !== id));
+    if (d) setMessage({ texte: `N° ${d.numero} : « ${d.texte} » annulé, rien n'a changé.`, echec: false });
+  }
+
   async function agir(commande: string, corps: Record<string, unknown>) {
+    if (estDiffere(corps)) {
+      if (differesRef.current.some((d) => d.commande === commande)) return;
+      const c = donnees?.commandes.find((x) => x.id === commande);
+      const id = Date.now() + Math.random();
+      setMessage(null);
+      setDifferes((x) => [...x, { id, commande, numero: c?.numero ?? 0, texte: texteGeste(corps, c?.mode), fin: Date.now() + DELAI_ANNULER_MS, corps }]);
+      minuteurs.current.set(
+        id,
+        window.setTimeout(() => {
+          minuteurs.current.delete(id);
+          setDifferes((x) => x.filter((y) => y.id !== id));
+          void envoyerGeste(commande, corps);
+        }, DELAI_ANNULER_MS),
+      );
+      return;
+    }
+    await envoyerGeste(commande, corps);
+  }
+
+  async function envoyerGeste(commande: string, corps: Record<string, unknown>) {
     setMessage(null);
     const r = await poster("/api/tablette/action", { commande, ...corps });
     if (r.statut === 401) return router.refresh();
@@ -720,6 +771,16 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
 
       {/* Retour de la dernière action, en bas de l'écran : visible même au fond d'une longue liste. */}
       <div className="tab-retour" aria-live="polite">
+        {differes.map((d) => (
+          <div key={d.id} className="tab-retour-boite tab-differe">
+            <p className="tab-message">
+              N° {d.numero} : {d.texte} dans {Math.max(1, Math.ceil((d.fin - Date.now()) / 1000))} s.
+            </p>
+            <button type="button" className="bouton-principal" onClick={() => annulerGeste(d.id)}>
+              Annuler
+            </button>
+          </div>
+        ))}
         {message && (
           <div className={`tab-retour-boite${message.echec ? " tab-retour-echec" : ""}`} role={message.echec ? "alert" : undefined}>
             <p className="tab-message">{message.texte}</p>

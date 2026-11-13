@@ -252,3 +252,7 @@ Zéro e-mail : le gérant ou un responsable touche « Code de connexion » à c�
 - Frein par connexion partagé avec la connexion de l'équipe (choix gardé) : un livreur qui se trompe plusieurs fois fait attendre la connexion suivante sur le Wi-Fi du restaurant, puisque tous les appareils y sortent par la même adresse.
 - **Pour l'ouvrir** (décision de Jérémy, après la relecture de sécurité de qualite) : `update reglages set valeur = 'true', proposition = false where cle = 'connexion_livreur_par_code';`
 - Fermé : aucun bouton sur la tablette, rien de plus sur `/livreur`, et les deux fonctions refusent.
+
+## Retour arrière : « Annuler » pendant 5 secondes (P0 du contrôle de produit-gestion)
+
+Un geste qui change un statut ou écrit un encaissement (« Prête », « Partie », « Retirée », « Livrée », « Retirée, espèces / carte », « Encaissée … ») ne part qu'après 5 secondes. En bas de l'écran : « N° 17 : Prête au comptoir dans 4 s. » et « Annuler ». Pendant ce temps, rien n'est écrit en base, imprimé ni envoyé au client (e-mail « prête » ou « en route ») : annuler ne laisse aucune trace, il n'y a rien à défaire. Un seul geste en attente par commande. Si la page se ferme pendant le délai, les gestes en attente partent tout de suite. Accepter et refuser gardent leur propre confirmation ; « Prête » de la vue par poste a « Rouvrir ». Module `src/components/tablette/differe.ts`.

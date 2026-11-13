@@ -102,11 +102,19 @@ test("une commande arrive, on l'accepte, puis prête, retirée et payée", async
 
   // « Modifier… » : construit désactivé pour l'équipe de service (modification_par_equipe faux).
   await expect(carte.getByRole("button", { name: "Modifier…" })).toHaveCount(0);
+  // Retour arrière (P0) : le geste attend 5 secondes avec « Annuler » ; annulé, rien n'a changé.
   await carte.getByRole("button", { name: "Prête au comptoir" }).click();
-  await expect(carte).toContainText("Prête au comptoir pour");
+  const differe = tablette.locator(".tab-differe", { hasText: `N° ${numero} : Prête au comptoir dans` });
+  await expect(differe).toBeVisible();
+  await differe.getByRole("button", { name: "Annuler" }).click();
+  await expect(tablette.locator(".tab-retour")).toContainText(`N° ${numero} : « Prête au comptoir » annulé, rien n'a changé.`);
+  await expect(carte).toContainText("Acceptée pour");
+  await carte.getByRole("button", { name: "Prête au comptoir" }).click();
+  await expect(carte).toContainText("Prête au comptoir pour", { timeout: 15_000 });
   // Retrait payé au comptoir : un seul geste, retirée et encaissée (audit du gérant, G01).
   // Vague 3 : on dit aussi comment il a payé (clôture du jour).
   await carte.getByRole("button", { name: "Retirée, espèces" }).click();
+  await expect(tablette.locator(".tab-differe", { hasText: `N° ${numero} :` })).toBeHidden({ timeout: 15_000 });
   await tablette.getByRole("button", { name: /^Terminées/ }).click();
   await expect(carte).toContainText(/Retirée pour \d{2}h\d{2}/);
   await expect(carte).toContainText(/Encaissée CHF \d+\.\d{2} en espèces/);
