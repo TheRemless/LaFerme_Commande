@@ -21,7 +21,6 @@ import { rafraichirCaches } from "@/lib/tablette";
 // 5. Un coup de feu dont l'heure est passée prend fin (retard, capacité, livraison rendus).
 // 6. Un paiement en ligne dont la confirmation de Stripe n'est jamais arrivée est relu chez Stripe : la
 //    commande payée apparaît sur la tablette même si le webhook s'est perdu et que le client est parti.
-// 7. Une commande dès que possible que personne n'accepte dans le délai est refusée et remboursée (C13).
 
 const TABLETTE_MUETTE_S = 180;
 
@@ -145,13 +144,6 @@ export async function executerSurveillance(maintenant = new Date()): Promise<{ f
       `${retards.length > 1 ? "Les commandes" : "La commande"} ${numeros} ${retards.length > 1 ? "attendent" : "attend"} sur la tablette.`,
       "Le client n'a pas encore d'heure confirmée.",
     ], "alerte", "commande_en_attente").catch((e) => console.error(`Alerte non envoyée : ${e instanceof Error ? e.message : e}`));
-  }
-
-  // Commande « dès que possible » que personne n'accepte dans le délai : refusée, remboursée, pause et alerte
-  // (décision C13, src/lib/refus-automatique.ts). Hors service, rien.
-  if (service) {
-    const { refuserCommandesSansReponse } = await import("@/lib/refus-automatique");
-    await refuserCommandesSansReponse().catch((e) => console.error(`Refus automatique : ${e instanceof Error ? e.message : e}`));
   }
 
   let pause = false;

@@ -5,11 +5,13 @@ import { baseLocale } from "@/lib/db/locale";
 // est refusée et remboursée, le client prévenu par e-mail, les commandes en ligne en pause, le gérant alerté.
 // La passerelle de paiement est remplacée : aucun appel à Stripe.
 const remboursements: string[] = [];
+const passerelleEnPanne = { oui: false };
 vi.mock("@/lib/paiement/passerelle", async (original) => ({
   ...(await original<typeof import("@/lib/paiement/passerelle")>()),
   passerelle: () => ({
     nom: "stripe",
     async rembourser(pi: string) {
+      if (passerelleEnPanne.oui) throw new Error("Stripe indisponible (simulé)");
       remboursements.push(pi);
       return { id: `re_${pi}`, statut: "succeeded" as const };
     },
@@ -23,8 +25,10 @@ vi.mock("@/lib/paiement/passerelle", async (original) => ({
   }),
 }));
 
-const { refuserCommandesSansReponse, motifRefusAutomatique } = await import("@/lib/refus-automatique");
+const { refuserCommandesSansReponse, reprendreRemboursements, tourRefusAutomatique, motifRefusAutomatique } = await import("@/lib/refus-automatique");
 const { executerSurveillance } = await import("@/lib/surveillance");
+// Mardi soir, en plein service.
+const SERVICE = new Date("2026-11-10T18:05:00Z");
 
 let n = 0;
 async function nouvelle(extra: Record<string, unknown> = {}): Promise<{ id: string; numero: number }> {
@@ -67,7 +71,10 @@ async function pause() {
 
 beforeEach(async () => {
   remboursements.length = 0;
+  passerelleEnPanne.oui = false;
   const db = await baseLocale();
+  // Une commande d'un test précédent qui attend encore ne doit pas compter dans le suivant.
+  await db.query("update commandes set statut = 'terminee' where statut = 'nouvelle' and client_email like 'refus%@laferme.test'");
   await db.query("update reglages set valeur = 'null' where cle = 'pause_jusqu_a'");
   await db.query("update reglages set valeur = 'true' where cle = 'refus_automatique_actif'");
   await db.query("update reglages set valeur = '15' where cle = 'refus_automatique_minutes'");
@@ -127,12 +134,71 @@ describe("refus automatique (C13)", () => {
     expect((await etat(c.id)).motif).toBe(motifRefusAutomatique(20));
   });
 
-  it("hors service (dimanche) : la surveillance ne refuse rien", async () => {
+  it("hors service (dimanche) : rien n'est refusé ; la surveillance des passages de la tablette ne refuse jamais", async () => {
     const db = await baseLocale();
     const c = await nouvelle();
     await vieillir(c.id, 30);
+    expect((await tourRefusAutomatique(new Date("2026-11-15T12:00:00Z"))).refusees).toEqual([]);
     await db.query("update surveillance_etat set surveillance_le = null where id");
-    await executerSurveillance(new Date("2026-11-15T12:00:00Z"));
+    await executerSurveillance(SERVICE);
     expect((await etat(c.id)).statut).toBe("nouvelle");
+    expect((await tourRefusAutomatique(SERVICE)).refusees).toContain(c.numero);
+  });
+
+  it("une quinzaine en retard : pause et alerte d'abord, puis trois refus par tour", async () => {
+    const lot = [];
+    for (let i = 0; i < 5; i++) {
+      const c = await nouvelle();
+      await vieillir(c.id, 20);
+      lot.push(c);
+    }
+    const premier = await refuserCommandesSansReponse();
+    expect(premier).toHaveLength(3);
+    expect(await pause()).toBe("sans-fin");
+    const alertes = await courriels("commande_id is null and sujet like $1", [`%${lot[4].numero}%refusées%`]);
+    expect(alertes).toHaveLength(1);
+    expect(alertes[0].sujet).toContain(String(lot[0].numero));
+    // Tour suivant : les deux dernières, sans nouvelle alerte (la pause était déjà là).
+    const second = await refuserCommandesSansReponse();
+    expect([...premier, ...second].sort()).toEqual(lot.map((c) => c.numero).sort());
+    expect(await courriels("commande_id is null and sujet like $1", [`%${lot[4].numero}%refusées%`])).toHaveLength(1);
+  });
+
+  it("budget de temps épuisé : rien n'est refusé dans ce tour, mais la pause est posée", async () => {
+    const c = await nouvelle();
+    await vieillir(c.id, 20);
+    expect(await refuserCommandesSansReponse(Date.now() - 1)).toEqual([]);
+    expect((await etat(c.id)).statut).toBe("nouvelle");
+    expect(await pause()).toBe("sans-fin");
+  });
+
+  it("refusée puis coupée avant le remboursement : repris au tour suivant, client prévenu", async () => {
+    const db = await baseLocale();
+    const c = await payee();
+    await vieillir(c.id, 20);
+    // Stripe ne répond pas au moment du refus : refusée, pas remboursée.
+    passerelleEnPanne.oui = true;
+    expect(await refuserCommandesSansReponse()).toContain(c.numero);
+    expect(await etat(c.id)).toMatchObject({ statut: "refusee", statut_paiement: "paye" });
+    passerelleEnPanne.oui = false;
+    // Moins de 2 minutes après le refus : pas encore repris.
+    expect(await reprendreRemboursements()).not.toContain(c.numero);
+    await db.query("update evenements_commande set le = now() - interval '150 seconds' where commande_id = $1 and vers = 'refusee'", [c.id]);
+    expect(await reprendreRemboursements()).toContain(c.numero);
+    expect((await etat(c.id)).statut_paiement).toBe("rembourse");
+    expect((await courriels("commande_id = $1", [c.id])).at(-1)?.texte).toContain("sans confirmation de notre part");
+    // Déjà remboursée : plus rien à reprendre.
+    expect(await reprendreRemboursements()).not.toContain(c.numero);
+  });
+
+  it("reprise qui échoue au premier essai : une alerte au gérant", async () => {
+    const db = await baseLocale();
+    const c = await payee();
+    await vieillir(c.id, 20);
+    passerelleEnPanne.oui = true;
+    await refuserCommandesSansReponse();
+    await db.query("update evenements_commande set le = now() - interval '150 seconds' where commande_id = $1 and vers = 'refusee'", [c.id]);
+    expect(await reprendreRemboursements()).not.toContain(c.numero);
+    expect((await courriels("commande_id is null and sujet = $1", [`Commande ${c.numero} : remboursement à refaire`])).length).toBeGreaterThanOrEqual(1);
   });
 });

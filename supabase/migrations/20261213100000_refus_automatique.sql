@@ -4,7 +4,7 @@
 -- (src/lib/refus-automatique.ts). Seulement pendant un service, jamais pour une commande à une heure choisie.
 -- Allumé : c'est la décision. Le gérant peut l'éteindre au back-office (Réglages généraux).
 --
--- Objet neuf : commandes_sans_reponse. Ajouts sur des tables partagées : deux réglages et une ligne dans
+-- Objets neufs : commandes_sans_reponse et refus_automatiques_a_rembourser. Ajouts sur des tables partagées : deux réglages et une ligne dans
 -- interrupteurs_gestion (prévue pour ça, bo-operations).
 
 insert into reglages (cle, valeur, proposition) values
@@ -41,5 +41,23 @@ language sql stable as $$
   from r;
 $$;
 
-revoke execute on function commandes_sans_reponse() from public, anon, authenticated;
-grant execute on function commandes_sans_reponse() to service_role;
+-- Reprise (relecture de qualite) : refus automatique payé en ligne, toujours pas remboursé 2 minutes après le
+-- refus (fonction coupée, Stripe en panne). Retenté chaque minute pendant une heure ; premiere : le premier essai,
+-- qui alerte le gérant s'il échoue. Le refus automatique se reconnaît à son auteur dans l'historique.
+create function refus_automatiques_a_rembourser() returns jsonb
+language sql stable as $$
+  select coalesce(jsonb_agg(jsonb_build_object('id', c.id, 'numero', c.numero, 'premiere', e.le > now() - interval '3 minutes') order by c.numero), '[]'::jsonb)
+  from commandes c
+  join lateral (
+    select max(le) as le from evenements_commande
+    where commande_id = c.id and vers = 'refusee' and par = 'tablette:Refus automatique'
+  ) e on e.le is not null
+  where c.statut = 'refusee'
+    and c.moyen_paiement = 'en_ligne'
+    and c.statut_paiement = 'paye'
+    and e.le < now() - interval '2 minutes'
+    and e.le > now() - interval '1 hour';
+$$;
+
+revoke execute on function commandes_sans_reponse(), refus_automatiques_a_rembourser() from public, anon, authenticated;
+grant execute on function commandes_sans_reponse(), refus_automatiques_a_rembourser() to service_role;

@@ -38,6 +38,8 @@ Le panier et le paiement revérifient l'adresse de livraison auprès du registre
 
 Pendant un service, une commande « dès que possible » que personne n'accepte dans les 15 minutes qui suivent son paiement (ou sa création, au comptoir) est refusée par la surveillance, comme sur la tablette. Payée en ligne, elle est remboursée en entier. Le client reçoit l'e-mail habituel avec ce motif : « Elle attendait depuis 15 minutes sans confirmation de notre part. Pour commander quand même, appelez-nous au 022 792 16 89. » Ensuite les commandes en ligne passent en pause (une pause déjà en cours reste) et le gérant reçoit une alerte. Jamais hors service, jamais pour une commande à une heure choisie. Réglages `refus_automatique_actif` (interrupteur des Réglages généraux, allumé) et `refus_automatique_minutes` (15, minimum 5). Code `src/lib/refus-automatique.ts`, test `tests/unit/refus-automatique.test.ts`.
 
+Le refus tourne seulement dans la fonction planifiée de Netlify (chaque minute, production), jamais dans une requête de la tablette. Un tour pose d'abord la pause et envoie l'alerte, puis refuse au plus trois commandes en quatre secondes ; les suivantes passent à la minute d'après. Une commande refusée mais pas remboursée (fonction coupée, Stripe en panne) est reprise deux minutes après le refus, chaque minute pendant une heure, avec une alerte au gérant au premier échec. Sur une préversion ou en local, rien ne tourne seul.
+
 ## Heure annoncée en fourchette (#103)
 
 « Dès que possible, entre 19h35 et 19h50 » à l'accueil, rappelé au paiement. La largeur se règle au back-office (`fourchette_livraison_minutes`, `fourchette_retrait_minutes`) ; à 0, on revient à « vers 19h40 ». Les cases de chiffres et l'en-tête gardent l'heure unique.
