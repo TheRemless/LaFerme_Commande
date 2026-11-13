@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { corpsJson, refus } from "@/lib/comptes/api";
 import { fonctionSql } from "@/lib/db/serveur";
+import { MESSAGE_A_COMPLETER, resteACompleter } from "@/lib/messages-modeles";
 import { exigerGerant } from "@/lib/personnel/session";
 import { rafraichirCaches } from "@/lib/tablette";
 
@@ -33,6 +34,8 @@ export async function POST(requete: Request) {
   if (c.type === "ajouter") {
     const texte = typeof c.texte === "string" ? c.texte.replace(/\s+/g, " ").trim() : "";
     if (texte.length < 5 || texte.length > 200) return refus("Le texte fait de 5 à 200 caractères.");
+    // Modèle pas complété : jamais affiché aux clients avec « [jour] ».
+    if (resteACompleter(texte)) return refus(MESSAGE_A_COMPLETER);
     const fin = date(c.fin);
     if (!fin) return refus("Indiquez la fin du message.");
     const debut = c.debut === undefined || c.debut === null ? null : date(c.debut);
