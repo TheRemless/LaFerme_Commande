@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { CommandeTablette } from "@/lib/tablette";
 import { heureDe as heure, jourCourtDe as jourCourt, jourGeneveDe as jourGeneve } from "@/lib/heures";
 import { prixChf } from "@/lib/prix";
-import { gestePrincipal, resumePlats, type EtatTemps } from "@/components/tablette/rush";
+import { gestesPrincipaux, resumePlats, type EtatTemps, type Geste } from "@/components/tablette/rush";
 
 // Une commande sur une ligne du tableau (vague 3) : de quoi décider à un mètre, et le geste suivant sous le doigt.
 // Le reste (heure, manque, annulation, tickets) s'ouvre au toucher, sur le côté.
@@ -26,16 +26,15 @@ export function LigneCommande({
   agir: (corps: Record<string, unknown>) => Promise<void>;
 }) {
   const [envoi, setEnvoi] = useState(false);
-  const geste = gestePrincipal(c);
+  const gestes = gestesPrincipaux(c);
   const promise = c.heure_confirmee ?? c.heure_proposee;
   const autreJour = jourGeneve(promise) !== aujourdHui;
   const deduit = c.deduit_centimes ?? 0;
   const client = `${c.client_prenom} ${c.client_nom.charAt(0)}.`;
 
-  async function faire() {
-    if (!geste) return;
+  async function faire(g: Geste) {
     setEnvoi(true);
-    await agir(geste.corps);
+    await agir(g.corps);
     setEnvoi(false);
   }
 
@@ -59,13 +58,13 @@ export function LigneCommande({
           {c.statut_paiement === "a_encaisser_retrait" && <span className="tab-ligne-encaisser">À encaisser {prixChf(c.total_centimes - deduit)}</span>}
         </span>
       </button>
-      {geste ? (
-        <button type="button" className="bouton-principal tab-ligne-geste" disabled={envoi} onClick={faire}>
-          {geste.libelle}
-        </button>
-      ) : (
-        <span className="tab-ligne-geste" aria-hidden="true" />
-      )}
+      <span className="tab-ligne-gestes">
+        {gestes.map((g) => (
+          <button key={g.libelle} type="button" className="bouton-principal tab-ligne-geste" disabled={envoi} onClick={() => faire(g)}>
+            {g.libelle}
+          </button>
+        ))}
+      </span>
     </li>
   );
 }

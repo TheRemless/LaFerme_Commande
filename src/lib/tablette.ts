@@ -17,6 +17,8 @@ import { alerter } from "@/lib/surveillance";
 // Ce que fait la tablette. Les passages de statut sont contrôlés en base (changer_statut) ; ici, les
 // courriels au client, le remboursement d'un refus et le signal aux autres tablettes.
 
+export type MoyenComptoir = "especes" | "carte";
+
 export type CommandeTablette = {
   id: string;
   numero: number;
@@ -40,6 +42,9 @@ export type CommandeTablette = {
   motif: string | null;
   // Écart noté au paiement (pause, plat épuisé, heure dépassée) : audit « samedi soir », SS-08.
   avertissement: string | null;
+  // Vague 3 : comment le client a payé au comptoir, et annulation faite par lui-même (absents avant la migration).
+  moyen_comptoir?: MoyenComptoir | null;
+  annulee_par_client_le?: string | null;
   // Paiement en ligne confirmé, ou création pour le comptoir : point de départ de « Attend depuis ».
   attend_depuis: string;
   lignes: { nom: string; qte: number; station: "pizza" | "cuisine"; choix: Record<string, string[]>; retraits: string[]; note: string; details: string[] }[];
@@ -118,10 +123,22 @@ export type Action =
   | { action: "refuser"; motif: string; de?: string }
   | { action: "statut"; vers: "en_preparation" | "prete" | "partie" | "terminee"; de?: string }
   | { action: "heure"; heure: string }
-  | { action: "encaisser" }
-  | { action: "retiree_payee" }
+  | { action: "encaisser"; moyen?: MoyenComptoir }
+  | { action: "retiree_payee"; moyen?: MoyenComptoir }
   | { action: "reimprimer"; station?: "pizza" | "cuisine" }
   | { action: "rembourser" };
+
+// Encaissement au comptoir, avec le moyen (espèces ou carte) pour la clôture du jour. Base pas encore migrée (pas de
+// p_moyen) : on note l'encaissement sans le moyen plutôt que de perdre le geste.
+async function encaisser(commandeId: string, par: string, moyen?: MoyenComptoir): Promise<boolean> {
+  if (!moyen) return fonctionSql<boolean>("marquer_encaisse", { p_commande: commandeId, p_par: par });
+  try {
+    return await fonctionSql<boolean>("marquer_encaisse", { p_commande: commandeId, p_par: par, p_moyen: moyen });
+  } catch (e) {
+    console.error(`Moyen d'encaissement non noté (base pas encore migrée ?) : ${e instanceof Error ? e.message : e}`);
+    return fonctionSql<boolean>("marquer_encaisse", { p_commande: commandeId, p_par: par });
+  }
+}
 
 const changerStatut = (commande: string, vers: string, par: string, extra: { heure?: string; motif?: string; de?: string } = {}) =>
   fonctionSql<boolean>("changer_statut", { p_commande: commande, p_vers: vers, p_par: par, p_heure: extra.heure ?? null, p_motif: extra.motif ?? null, p_de: extra.de ?? null });
@@ -207,13 +224,13 @@ export async function agir(commandeId: string, a: Action, p: Personnel): Promise
       if (ok) await prevenir(avant, courrielNouvelleHeure(avant, a.heure));
       break;
     case "encaisser":
-      ok = await fonctionSql<boolean>("marquer_encaisse", { p_commande: commandeId, p_par: par });
+      ok = await encaisser(commandeId, par, a.moyen);
       break;
     case "retiree_payee":
       // Retrait payé au comptoir : encaissée et retirée d'un seul geste (audit du gérant, G01).
       if (avant.statut !== "prete") break;
       ok = await changerStatut(commandeId, "terminee", par, { de: "prete" });
-      if (ok && avant.statut_paiement === "a_encaisser_retrait") await fonctionSql<boolean>("marquer_encaisse", { p_commande: commandeId, p_par: par });
+      if (ok && avant.statut_paiement === "a_encaisser_retrait") await encaisser(commandeId, par, a.moyen);
       break;
     case "reimprimer":
       if (!["acceptee", "en_preparation", "prete", "partie", "terminee"].includes(avant.statut)) return { ok: false, message: "Seule une commande acceptée s'imprime." };

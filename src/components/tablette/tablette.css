@@ -265,11 +265,15 @@
 .tab-ligne-encaisser {
   font-weight: 700;
 }
+.tab-ligne-gestes {
+  display: flex;
+  gap: 8px;
+  margin: 6px 8px 6px 0;
+}
 .tablette .tab-ligne-geste {
   width: auto;
   min-width: 150px;
   min-height: 48px;
-  margin: 6px 8px 6px 0;
 }
 
 /* Niveaux : la forme et le texte disent l'urgence autant que le contraste, sans couleur vive. */
@@ -349,7 +353,24 @@
     gap: 8px;
     padding: 6px 8px;
   }
-  .tablette .tab-ligne-geste {
+  .tab-ligne-gestes {
     margin: 0 8px 8px;
   }
+  .tablette .tab-ligne-geste {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+/* Annulation faite par le client : bandeau noir avec « Vu », le bouton en blanc sur le noir. */
+.tab-annulee-client {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+.tab-annulee-client .bouton-second {
+  min-height: 44px;
+  color: var(--blanc);
+  border-color: var(--blanc);
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chercherCommandes, etatTemps, gestePrincipal, minutesDeRetard, minutesRestantes, ordreStable, resumePlats } from "@/components/tablette/rush";
+import { chercherCommandes, etatTemps, gestesPrincipaux, annuleesParClient, minutesDeRetard, minutesRestantes, ordreStable, resumePlats } from "@/components/tablette/rush";
 import type { CommandeTablette } from "@/lib/tablette";
 
 const base = { client_nom: "Audit", heure_confirmee: null, statut: "acceptee", cree_le: "2026-11-13T18:00:00Z" };
@@ -78,15 +78,25 @@ describe("Tableau par urgence", () => {
     expect(etatTemps(cmd({ statut: "en_preparation", mode: "livraison", zone_numero: 1, heure_confirmee: "2026-11-13T19:40:00Z" }), maintenant, r).texte).toBe("À sortir");
   });
 
-  it("un geste par ligne, selon le mode et le paiement", () => {
-    expect(gestePrincipal(cmd({ mode: "livraison", statut_paiement: "paye" }))?.libelle).toBe("Partie");
-    expect(gestePrincipal(cmd({ statut: "en_preparation", statut_paiement: "a_encaisser_retrait" }))?.corps).toEqual({ action: "statut", vers: "prete", de: "en_preparation" });
-    expect(gestePrincipal(cmd({ statut: "prete", statut_paiement: "a_encaisser_retrait" }))?.libelle).toBe("Retirée et payée");
-    expect(gestePrincipal(cmd({ statut: "prete", statut_paiement: "paye" }))?.libelle).toBe("Retirée");
-    expect(gestePrincipal(cmd({ statut: "partie", mode: "livraison", statut_paiement: "paye" }))?.libelle).toBe("Livrée");
-    expect(gestePrincipal(cmd({ statut: "terminee", statut_paiement: "a_encaisser_retrait" }))?.libelle).toBe("Encaissée");
-    expect(gestePrincipal(cmd({ statut: "terminee", statut_paiement: "paye" }))).toBeNull();
-    expect(gestePrincipal(cmd({ statut: "nouvelle", statut_paiement: "paye" }))).toBeNull();
+  it("le pas suivant sur la ligne, selon le mode ; espèces ou carte quand le client paie au comptoir", () => {
+    const libelles = (x: Partial<CommandeTablette>) => gestesPrincipaux(cmd(x)).map((g) => g.libelle);
+    expect(libelles({ mode: "livraison", statut_paiement: "paye" })).toEqual(["Partie"]);
+    expect(gestesPrincipaux(cmd({ statut: "en_preparation", statut_paiement: "a_encaisser_retrait" }))[0].corps).toEqual({ action: "statut", vers: "prete", de: "en_preparation" });
+    expect(libelles({ statut: "prete", statut_paiement: "a_encaisser_retrait" })).toEqual(["Retirée, espèces", "Retirée, carte"]);
+    expect(gestesPrincipaux(cmd({ statut: "prete", statut_paiement: "a_encaisser_retrait" }))[1].corps).toEqual({ action: "retiree_payee", moyen: "carte" });
+    expect(libelles({ statut: "prete", statut_paiement: "paye" })).toEqual(["Retirée"]);
+    expect(libelles({ statut: "partie", mode: "livraison", statut_paiement: "paye" })).toEqual(["Livrée"]);
+    expect(libelles({ statut: "terminee", statut_paiement: "a_encaisser_retrait" })).toEqual(["Espèces", "Carte"]);
+    expect(libelles({ statut: "terminee", statut_paiement: "paye" })).toEqual([]);
+    expect(libelles({ statut: "nouvelle", statut_paiement: "paye" })).toEqual([]);
+  });
+
+  it("annulée par le client : l'heure sur la ligne, et le bandeau pendant 20 minutes", () => {
+    const annulee = cmd({ id: "z", numero: 47, statut: "refusee", annulee_par_client_le: "2026-11-13T19:12:00Z" });
+    expect(etatTemps(annulee, maintenant, r).texte).toBe("Annulée par le client à 20h12");
+    expect(etatTemps(cmd({ statut: "refusee" }), maintenant, r).texte).toBe("Refusée ou annulée");
+    expect(annuleesParClient([annulee], maintenant).map((x) => x.numero)).toEqual([47]);
+    expect(annuleesParClient([annulee], "2026-11-13T19:33:00Z")).toEqual([]);
   });
 
   it("résumé court des plats", () => {

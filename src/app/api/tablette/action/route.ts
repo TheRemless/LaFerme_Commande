@@ -25,7 +25,11 @@ function actionValide(c: Record<string, unknown>): Action | null {
     case "statut":
       return typeof c.vers === "string" && STATUTS.has(c.vers) ? { action: "statut", vers: c.vers as "prete", ...de(c) } : null;
     case "encaisser":
-    case "retiree_payee":
+    case "retiree_payee": {
+      // Espèces ou carte (vague 3) : facultatif, une page ancienne ne l'envoie pas.
+      if (c.moyen !== undefined && c.moyen !== "especes" && c.moyen !== "carte") return null;
+      return { action: c.action, ...(c.moyen ? { moyen: c.moyen as "especes" | "carte" } : {}) };
+    }
     case "rembourser":
       return { action: c.action };
     case "reimprimer":

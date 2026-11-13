@@ -17,7 +17,7 @@ import { nouvelleCle } from "@/lib/cle";
 import type { DonneesLivraisons } from "@/lib/livreur";
 import { MOTIF_CLIENT_ABSENT } from "@/lib/livraisons-textes";
 import { OngletLivraisons, livraisonsEnCours, problemeTexte } from "@/components/tablette/Livraisons";
-import { chercherCommandes, etatTemps, lignesImprimantes, minutesDeRetard, minutesRestantes, ordreStable, type Rythme } from "@/components/tablette/rush";
+import { annuleesParClient, chercherCommandes, etatTemps, lignesImprimantes, minutesDeRetard, minutesRestantes, ordreStable, type Rythme } from "@/components/tablette/rush";
 import { LigneCommande } from "@/components/tablette/LigneCommande";
 import "./tablette.css";
 
@@ -86,6 +86,21 @@ function sonner(ctx: AudioContext) {
   }
 }
 
+// Annulation faite par le client : une note grave et courte, différente de la sonnerie des nouvelles commandes.
+function sonnerAnnulation(ctx: AudioContext) {
+  const t = ctx.currentTime;
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.frequency.value = 330;
+  o.type = "square";
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.35, t + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+  o.connect(g).connect(ctx.destination);
+  o.start(t);
+  o.stop(t + 0.62);
+}
+
 export function Tablette({ nom, gerant = false, supabase }: { nom: string; gerant?: boolean; supabase: { url: string; cle: string } | null }) {
   const router = useRouter();
   const [donnees, setDonnees] = useState<Donnees | null>(null);
@@ -100,6 +115,9 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
   const [message, setMessage] = useState<{ texte: string; echec: boolean } | null>(null);
   // Retrouver une commande au comptoir : numéro exact ou nom du client, toutes listes confondues.
   const [recherche, setRecherche] = useState("");
+  // Annulations faites par le client déjà vues (« Vu ») ou déjà sonnées sur cet appareil.
+  const [annulationsVues, setAnnulationsVues] = useState<Set<string>>(new Set());
+  const annulationsSonnees = useRef<Set<string> | null>(null);
   // Commande ouverte en détail, à côté du tableau.
   const [ouverte, setOuverte] = useState<string | null>(null);
   const dernierAppui = useRef(0);
@@ -246,6 +264,21 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
   useEffect(() => {
     if (ordre) ordrePrecedent.current = ordre;
   });
+
+  // Annulation par le client : bandeau jusqu'à « Vu » (20 minutes au plus) et une note grave, une fois par commande.
+  // Au chargement de la page, celles déjà là ne sonnent pas.
+  const annulees = donnees ? annuleesParClient(donnees.commandes, donnees.maintenant).filter((c) => !annulationsVues.has(c.id)) : [];
+  useEffect(() => {
+    if (!donnees) return;
+    const ids = annuleesParClient(donnees.commandes, donnees.maintenant).map((c) => c.id);
+    if (annulationsSonnees.current === null) {
+      annulationsSonnees.current = new Set(ids);
+      return;
+    }
+    const nouvelles = ids.filter((id) => !annulationsSonnees.current!.has(id));
+    nouvelles.forEach((id) => annulationsSonnees.current!.add(id));
+    if (nouvelles.length && son && audio.current) sonnerAnnulation(audio.current);
+  }, [donnees, son]);
 
   // Le retour d'un geste réussi reste 8 secondes en bas de l'écran, sous le doigt, puis s'efface.
   useEffect(() => {
@@ -431,6 +464,14 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
         <p className="tab-alerte" role="alert">
           Remboursement pas passé : {aRembourser.length === 1 ? "commande" : "commandes"} {aRembourser.map((c) => c.numero).join(", ")}. Ouvrez « Terminées » et
           touchez « Rembourser ».
+        </p>
+      )}
+      {annulees.length > 0 && (
+        <p className="tab-alerte tab-annulee-client" role="alert">
+          Annulée par le client : {annulees.map((c) => `${c.numero} à ${heure(c.annulee_par_client_le!)}`).join(", ")}. Ne pas préparer, mettre de côté ce qui est lancé.
+          <button type="button" className="bouton-second" onClick={() => setAnnulationsVues(new Set([...annulationsVues, ...annulees.map((c) => c.id)]))}>
+            Vu
+          </button>
         </p>
       )}
       {imprimantesKo.length > 0 && (
@@ -620,7 +661,7 @@ function CarteCommande({
       : c.statut_paiement === "a_encaisser_retrait"
         ? `À encaisser au comptoir ${prixChf(c.total_centimes - deduit)}`
         : c.statut_paiement === "encaisse"
-          ? `Encaissée ${prixChf(c.total_centimes)}`
+          ? `Encaissée ${prixChf(c.total_centimes)}${c.moyen_comptoir === "especes" ? " en espèces" : c.moyen_comptoir === "carte" ? " par carte" : ""}`
           : c.statut_paiement === "rembourse"
             ? `Remboursée ${prixChf(c.total_centimes)}`
             : prixChf(c.total_centimes);
@@ -631,7 +672,7 @@ function CarteCommande({
     prete: "Prête au comptoir",
     partie: "Partie",
     terminee: c.motif === MOTIF_CLIENT_ABSENT ? "Non remise, client absent (le gérant décide d'un remboursement)" : c.mode === "livraison" ? "Livrée" : "Retirée",
-    refusee: "Refusée",
+    refusee: c.annulee_par_client_le ? `Annulée par le client à ${heure(c.annulee_par_client_le)}` : "Refusée",
   };
 
   const reglageHeure = (
@@ -807,10 +848,16 @@ function CarteCommande({
             </button>
           )}
           {c.statut === "prete" && c.statut_paiement === "a_encaisser_retrait" ? (
-            // Retrait payé au comptoir : un seul geste, pour ne jamais oublier l'encaissement (audit du gérant, G01).
-            <button type="button" className="bouton-principal" disabled={envoi} onClick={() => faire({ action: "retiree_payee" })}>
-              Retirée et payée
-            </button>
+            // Retrait payé au comptoir : un seul geste, pour ne jamais oublier l'encaissement (audit du gérant, G01),
+            // en disant comment il a payé (vague 3, clôture du jour).
+            <>
+              <button type="button" className="bouton-principal" disabled={envoi} onClick={() => faire({ action: "retiree_payee", moyen: "especes" })}>
+                Retirée, espèces
+              </button>
+              <button type="button" className="bouton-principal" disabled={envoi} onClick={() => faire({ action: "retiree_payee", moyen: "carte" })}>
+                Retirée, carte
+              </button>
+            </>
           ) : (
             (c.statut === "prete" || c.statut === "partie") && (
               <button type="button" className="bouton-principal" disabled={envoi} onClick={() => faire({ action: "statut", vers: "terminee", de: c.statut })}>
@@ -819,9 +866,14 @@ function CarteCommande({
             )
           )}
           {c.statut_paiement === "a_encaisser_retrait" && c.statut !== "prete" && (
-            <button type="button" className="bouton-second" disabled={envoi} onClick={() => faire({ action: "encaisser" })}>
-              Encaissée
-            </button>
+            <>
+              <button type="button" className="bouton-second" disabled={envoi} onClick={() => faire({ action: "encaisser", moyen: "especes" })}>
+                Encaissée en espèces
+              </button>
+              <button type="button" className="bouton-second" disabled={envoi} onClick={() => faire({ action: "encaisser", moyen: "carte" })}>
+                Encaissée par carte
+              </button>
+            </>
           )}
           <button type="button" className="bouton-second" onClick={() => setPanneau("heure")}>
             Changer l&apos;heure
@@ -852,9 +904,14 @@ function CarteCommande({
       {c.statut === "terminee" && c.statut_paiement === "a_encaisser_retrait" && (
         <div className="tab-actions">
           <p className="aide-forte">Pas encore notée comme encaissée.</p>
-          <button type="button" className="bouton-principal" disabled={envoi} onClick={() => faire({ action: "encaisser" })}>
-            Encaissée
-          </button>
+          <div className="boutons-ligne">
+            <button type="button" className="bouton-principal" disabled={envoi} onClick={() => faire({ action: "encaisser", moyen: "especes" })}>
+              Encaissée en espèces
+            </button>
+            <button type="button" className="bouton-principal" disabled={envoi} onClick={() => faire({ action: "encaisser", moyen: "carte" })}>
+              Encaissée par carte
+            </button>
+          </div>
         </div>
       )}
 
