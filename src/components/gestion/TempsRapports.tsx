@@ -84,6 +84,7 @@ export function TempsRapports({ periode, service }: { periode: Periode; service:
         {t.postes.length === 0 ? (
           <p className="aide">Aucun temps de poste mesuré sur la période.</p>
         ) : (
+          <div className="rap-defile" tabIndex={0} role="region" aria-labelledby="tps-postes">
           <table className="rap-table">
             <thead>
               <tr>
@@ -106,6 +107,7 @@ export function TempsRapports({ periode, service }: { periode: Periode; service:
               ))}
             </tbody>
           </table>
+          </div>
         )}
         <p className="aide">
           Des premiers tickets à « Prête » sur le poste. Heure déduite : le poste n&apos;a pas touché « Prête », l&apos;heure vient du statut de la commande (moins précise).
@@ -117,6 +119,7 @@ export function TempsRapports({ periode, service }: { periode: Periode; service:
         {t.heures.length === 0 ? (
           <p className="aide">Aucune commande terminée avec une heure promise.</p>
         ) : (
+          <div className="rap-defile" tabIndex={0} role="region" aria-labelledby="tps-heures">
           <table className="rap-table">
             <thead>
               <tr>
@@ -145,6 +148,7 @@ export function TempsRapports({ periode, service }: { periode: Periode; service:
               ))}
             </tbody>
           </table>
+          </div>
         )}
         <p className="aide">Médianes. Une commande est en retard quand elle est prête (retrait) ou livrée (livraison) après l&apos;heure promise au client.</p>
       </section>
