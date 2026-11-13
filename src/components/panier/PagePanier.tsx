@@ -4,13 +4,14 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { lireChoix, type Choix } from "@/lib/choix";
 import type { Catalogue } from "@/lib/panier";
-import { lirePlatsRemis, usePanier, usePrixServeur } from "@/lib/panier-local";
+import { lirePlatsRemis, usePanier, useCalculPanier } from "@/lib/panier-local";
 import { ContenuPanier } from "@/components/panier/ContenuPanier";
 
 export function PagePanier({ catalogue, preversion }: { catalogue: Catalogue; preversion: boolean }) {
   const panier = usePanier();
   const { lignes, charge, quantite } = panier;
-  const reponse = usePrixServeur(lignes, charge);
+  const calcul = useCalculPanier(lignes, charge);
+  const { reponse } = calcul;
   const [choix, setChoix] = useState<Choix | null>(null);
   const [remis, setRemis] = useState(0);
   useEffect(() => {
@@ -28,7 +29,7 @@ export function PagePanier({ catalogue, preversion }: { catalogue: Catalogue; pr
           {remis === 1 ? "1 plat remis" : `${remis} plats remis`} dans votre panier.
         </p>
       )}
-      {charge && <ContenuPanier lignes={lignes} quantite={quantite} catalogue={catalogue} choix={choix} reponse={reponse} preversion={preversion} suivi={panier} />}
+      {charge && <ContenuPanier lignes={lignes} quantite={quantite} catalogue={catalogue} choix={choix} reponse={reponse} preversion={preversion} suivi={panier} calcul={calcul} />}
       <Link className="lien-retour" href="/carte">
         Ajouter d&apos;autres plats
       </Link>

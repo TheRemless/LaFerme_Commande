@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { lireChoix } from "@/lib/choix";
+import type { Mode, Quand } from "@/lib/service";
 import { LIMITES, memeLigne, type LignePanier, type Totaux } from "@/lib/panier";
 
 // Panier gardé dans le navigateur (localStorage), comme le choix du mode : rien dans l'URL.
@@ -110,16 +111,66 @@ export function usePanier() {
 
 export type SuiviPanier = Pick<ReturnType<typeof usePanier>, "expire" | "retiree" | "annulerRetrait" | "oublierExpire">;
 
-export type ReponsePanier = Totaux & { message_quand: string | null; erreur?: string; plafond_comptoir_centimes?: number | null };
+export type ReponsePanier = Totaux & {
+  message_quand: string | null;
+  erreur?: string;
+  plafond_comptoir_centimes?: number | null;
+  // Créneau rempli par d'autres clients depuis le choix de l'heure (vague 3).
+  creneau_complet?: boolean;
+};
+
+// État du calcul pour l'écran : rien n'est laissé gris sans raison (vague 3, client-commande).
+// lent : la réponse tarde (plus de 1,2 s), on le dit. echec : réseau coupé ou serveur muet, on propose de réessayer.
+export type CalculPanier = { reponse: ReponsePanier | null; lent: boolean; echec: boolean; relancer: () => void };
+
+const DELAI_LENT_MS = 1200;
+
+// Créneau pour lequel ce navigateur a déjà envoyé une commande (onglet seulement) : voir /api/panier.
+const CLE_PLACE = "laferme.place-envoyee";
+const place = (mode: Mode, quand: Quand) => (quand.type === "creneau" ? `${mode} ${quand.date} ${quand.minutes}` : null);
+
+export function noterPlaceEnvoyee(mode: Mode, quand: Quand): void {
+  const p = place(mode, quand);
+  try {
+    if (p) window.sessionStorage.setItem(CLE_PLACE, p);
+  } catch {
+    // Stockage bloqué : au pire, le créneau paraît complet et le client en choisit un autre.
+  }
+}
+
+function placeEnvoyee(mode: Mode, quand: Quand): boolean {
+  const p = place(mode, quand);
+  try {
+    return p !== null && window.sessionStorage.getItem(CLE_PLACE) === p;
+  } catch {
+    return false;
+  }
+}
 
 // Montants calculés par le serveur, redemandés 300 ms après chaque changement du panier.
 // Une réponse ne sert que pour le contenu exact qu'elle a calculé : sinon le navigateur affiche son propre calcul.
 // relance : un nombre qui change pour redemander le calcul sans changement du panier (plat épuisé
-// entre-temps, refusé au paiement).
-export function usePrixServeur(lignes: LignePanier[], actif: boolean, relance = 0): ReponsePanier | null {
+// entre-temps, refusé au paiement). Redemandé aussi quand le client revient sur l'onglet ou que le réseau
+// revient : entre-temps, un plat a pu s'épuiser, le restaurant se mettre en pause ou le créneau se remplir.
+export function useCalculPanier(lignes: LignePanier[], actif: boolean, relance = 0): CalculPanier {
   const [etat, setEtat] = useState<{ cle: string; reponse: ReponsePanier } | null>(null);
+  const [attente, setAttente] = useState<{ numero: number; lent: boolean; echec: boolean } | null>(null);
+  const [retour, setRetour] = useState(0);
   const cle = JSON.stringify(lignes);
   const dernier = useRef(0);
+  const relancer = useCallback(() => setRetour((n) => n + 1), []);
+
+  useEffect(() => {
+    const visible = () => {
+      if (document.visibilityState === "visible") relancer();
+    };
+    document.addEventListener("visibilitychange", visible);
+    window.addEventListener("online", relancer);
+    return () => {
+      document.removeEventListener("visibilitychange", visible);
+      window.removeEventListener("online", relancer);
+    };
+  }, [relancer]);
 
   useEffect(() => {
     if (!actif) return;
@@ -127,26 +178,44 @@ export function usePrixServeur(lignes: LignePanier[], actif: boolean, relance = 
     if (!choix || lignes.length === 0) return;
     const numero = ++dernier.current;
     const ctrl = new AbortController();
+    setAttente({ numero, lent: false, echec: false });
+    const lent = window.setTimeout(() => setAttente((a) => (a?.numero === numero ? { ...a, lent: true } : a)), DELAI_LENT_MS);
     const t = window.setTimeout(() => {
       fetch("/api/panier", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lignes, mode: choix.mode, adresse: choix.adresse, quand: choix.quand, heure: choix.heureSimulee }),
+        body: JSON.stringify({
+          lignes,
+          mode: choix.mode,
+          adresse: choix.adresse,
+          quand: choix.quand,
+          heure: choix.heureSimulee,
+          placeTenue: placeEnvoyee(choix.mode, choix.quand),
+        }),
         signal: ctrl.signal,
       })
         .then((r) => r.json())
         .then((r: ReponsePanier) => {
-          if (numero === dernier.current) setEtat({ cle: JSON.stringify(lignes), reponse: r });
+          if (numero !== dernier.current) return;
+          window.clearTimeout(lent);
+          setEtat({ cle: JSON.stringify(lignes), reponse: r });
+          setAttente(null);
         })
-        .catch(() => undefined);
+        .catch(() => {
+          if (numero !== dernier.current || ctrl.signal.aborted) return;
+          window.clearTimeout(lent);
+          setAttente({ numero, lent: false, echec: true });
+        });
     }, 300);
     return () => {
       ctrl.abort();
       window.clearTimeout(t);
+      window.clearTimeout(lent);
     };
-  }, [lignes, actif, relance]);
+  }, [lignes, actif, relance, retour]);
 
-  return etat && etat.cle === cle ? etat.reponse : null;
+  const reponse = etat && etat.cle === cle ? etat.reponse : null;
+  return { reponse, lent: !reponse && Boolean(attente?.lent), echec: !reponse && Boolean(attente?.echec), relancer };
 }
 
 // Après une commande passée : le panier repart vide (et la clé de commande avec lui). Seulement dans
@@ -156,6 +225,7 @@ export function viderPanier(): void {
     if (!window.sessionStorage.getItem("laferme.cle-commande")) return;
     window.localStorage.removeItem(CLE);
     window.sessionStorage.removeItem("laferme.cle-commande");
+    window.sessionStorage.removeItem(CLE_PLACE);
   } catch {
     // Stockage bloqué : rien à vider.
   }

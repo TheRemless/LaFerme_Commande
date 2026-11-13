@@ -11,7 +11,7 @@ import { erreurPlatsDuJour, momentDe } from "@/lib/plat-du-jour";
 import { paiementDisponible, passerelle } from "@/lib/paiement/passerelle";
 import { comptoirPermis } from "@/lib/plafond-comptoir";
 import { prixPhrase } from "@/lib/prix";
-import { depuisHeureGeneve, messagePause, messageSansCreneau, pauseEnCours, quandPossible, type Zone } from "@/lib/service";
+import { depuisHeureGeneve, MESSAGE_CRENEAU_COMPLET, messagePause, messageSansCreneau, pauseEnCours, quandPossible, type Zone } from "@/lib/service";
 import { requeteDuSite } from "@/lib/comptes/origine-requete";
 import { compteCourant, jetonSession } from "@/lib/comptes/session";
 import { empreinte, ipDe } from "@/lib/comptes/securite";
@@ -101,7 +101,7 @@ export async function POST(requete: Request) {
   }
   // Plat du jour : seulement le jour dit et pour son service.
   const jourRefuse = erreurPlatsDuJour(catalogue, lignes, momentDe(config, maintenant, mode, zone, totaux.pizzas_seulement, quand));
-  if (jourRefuse) return refus(`${jourRefuse} Retirez-le ou choisissez une autre heure.`);
+  if (jourRefuse) return refus(`${jourRefuse} Retirez-le du panier ou changez de créneau.`);
 
   // Au comptoir, rien n'est payé avant le retrait : on limite les commandes en attente (audit, S5).
   // Les tests de bout en bout (même téléphone, même IP) coupent la limite ; la production le refuse.
@@ -162,7 +162,7 @@ export async function POST(requete: Request) {
   } catch (e) {
     if (e instanceof ConfigurationManquante) return refus(e.message, 503);
     // Capacité du créneau atteinte, contrôlée en base sous verrou (audit « samedi soir », SS-02).
-    if (e instanceof Error && e.message.includes("creneau_complet")) return refus("Ce créneau est complet. Choisissez une autre heure ou appelez-nous au 022 792 16 89.", 409);
+    if (e instanceof Error && e.message.includes("creneau_complet")) return refus(MESSAGE_CRENEAU_COMPLET, 409);
     // Plafond revérifié par la base (réglage changé dans la minute du cache).
     if (e instanceof Error && e.message.includes("plafond_comptoir")) {
       return refus("Le paiement au comptoir n'est pas possible pour cette commande. Payez en ligne ou appelez-nous au 022 792 16 89.");

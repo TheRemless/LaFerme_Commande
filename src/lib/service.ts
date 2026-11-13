@@ -219,6 +219,9 @@ export function creneaux(config: ConfigService, maintenant: Date, mode: Mode, zo
 // Créneau plein pour un mode (capacité atteinte, SS-02) : lu par l'accueil, jamais proposé au client.
 export type CreneauPlein = { date: string; mode: Mode; minutes: number };
 
+// Même texte au panier (vu dès le calcul) et au paiement (refus de creer_commande sous verrou).
+export const MESSAGE_CRENEAU_COMPLET = "Ce créneau est complet. Choisissez une autre heure ou appelez-nous au 022\u00a0792\u00a016\u00a089.";
+
 export function creneauxLibres(liste: Creneau[], pleins: CreneauPlein[], mode: Mode): Creneau[] {
   if (!pleins.length) return liste;
   const plein = new Set(pleins.filter((p) => p.mode === mode).map((p) => `${p.date} ${p.minutes}`));
