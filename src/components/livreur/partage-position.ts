@@ -15,6 +15,25 @@ export type EtatPartage =
   | { etat: "desactive" };
 
 export const INTERVALLE_POSITION_MS = 20_000;
+// Un arrêt qui passe à null le reste au moins ce temps avant de compter (fin du partage, effacement).
+export const DELAI_FIN_MS = 8_000;
+
+// Arrêt suivi, stabilisé : un passage à null n'est appliqué qu'après delaiMs sans retour d'un arrêt. Juste après
+// « Je pars », la page recalcule l'arrêt pendant le rechargement : il vaut null quelques centaines de millisecondes,
+// et le « fin » envoyé alors effaçait la position écrite juste avant (signalé par client-compte, CI de la #236).
+export function suiviArret(delaiMs: number, appliquer: (arret: string | null) => void) {
+  let minuterie: ReturnType<typeof setTimeout> | undefined;
+  return {
+    changer(arret: string | null) {
+      clearTimeout(minuterie);
+      if (arret) appliquer(arret);
+      else minuterie = setTimeout(() => appliquer(null), delaiMs);
+    },
+    arreter() {
+      clearTimeout(minuterie);
+    },
+  };
+}
 
 // Faut-il envoyer cette position ? Oui à la première, à un changement d'arrêt, puis toutes les 20 secondes.
 export function envoyerMaintenant(dernier: { arret: string; le: number } | null, arret: string, maintenant: number): boolean {
@@ -29,8 +48,15 @@ const finir = () =>
     keepalive: true,
   }).catch(() => undefined);
 
-export function usePartagePosition(arret: string | null): EtatPartage {
+export function usePartagePosition(arretBrut: string | null): EtatPartage {
   const [etat, setEtat] = useState<EtatPartage>({ etat: "inactif" });
+  const [arret, setArret] = useState<string | null>(arretBrut);
+  const suivi = useRef<ReturnType<typeof suiviArret> | null>(null);
+  useEffect(() => {
+    suivi.current ??= suiviArret(DELAI_FIN_MS, setArret);
+    suivi.current.changer(arretBrut);
+  }, [arretBrut]);
+  useEffect(() => () => suivi.current?.arreter(), []);
   const desactive = useRef(false);
   const dernier = useRef<{ arret: string; le: number } | null>(null);
 
