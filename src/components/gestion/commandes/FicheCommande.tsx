@@ -717,9 +717,17 @@ function Gestes({
                   ({auteur(`gestion:${r.personnel_nom}`)},{" "}
                   {jourCourt(r.cree_le)})
                 </span>
-                {r.statut === "en_cours" && r.moyen === "stripe" && (
-                  <Relancer fiche={fiche} r={r} apres={apres} />
-                )}
+                {r.statut === "en_cours" &&
+                  r.moyen === "stripe" &&
+                  (Date.now() - Date.parse(r.cree_le) < 23 * 3_600_000 ? (
+                    <Relancer fiche={fiche} r={r} apres={apres} />
+                  ) : (
+                    <span className="bo-champ-aide">
+                      {" "}
+                      Plus de 23 heures : vérifiez dans Stripe s&apos;il est
+                      passé avant de rembourser à nouveau.
+                    </span>
+                  ))}
               </li>
             ))}
           </ul>

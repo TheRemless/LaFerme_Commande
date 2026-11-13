@@ -18,6 +18,8 @@ import { exigerGerant } from "@/lib/personnel/session";
 // | { action: "heure", id, heure } | { action: "annuler", id, motif, de? } | { action: "reimprimer", id, station? }
 // | { action: "renvoyer_courriel", id, courriel } (vague 3, src/lib/actions-gestion.ts)
 
+const RELANCE_MAX_MS = 23 * 3_600_000;
+
 export async function POST(requete: Request) {
   const g = await exigerGerant(requete);
   if ("reponse" in g) return g.reponse;
@@ -96,6 +98,13 @@ export async function POST(requete: Request) {
     const m = c.motif.trim().replace(/\s+/g, " ");
     if (m.length < 3 || m.length > 200) return refus("Écrivez un motif (3 à 200 caractères). Le client le reçoit par e-mail.");
     if (typeof c.cle !== "string" || !/^[A-Za-z0-9-]{8,80}$/.test(c.cle)) return refus("Rechargez la fiche de la commande.");
+    // Relance d'un remboursement resté « en cours » : Stripe oublie ses clés d'idempotence après environ
+    // 24 heures. Au-delà de 23 heures, une relance pourrait rembourser une seconde fois : on la refuse.
+    const deja = await fonctionSql<{ remboursements?: { cle: string; cree_le: string }[] } | null>("commande_gestion", { p_id: c.id });
+    const ancien = deja?.remboursements?.find((x) => x.cle === c.cle);
+    if (ancien && Date.now() - Date.parse(ancien.cree_le) > RELANCE_MAX_MS) {
+      return refus("Ce remboursement date de plus de 23 heures. Vérifiez dans Stripe s'il est passé avant de rembourser à nouveau.", 409);
+    }
     const r = await rembourserApresCoup(c.id, montant, /[.!?]$/.test(m) ? m : `${m}.`, c.cle, g.personnel.id);
     // Réponse ambiguë de Stripe : 503, pour que la fiche garde sa clé (un nouvel essai reprend le même
     // remboursement au lieu d'en créer un second ; audit de sécurité 2, S2-04).
