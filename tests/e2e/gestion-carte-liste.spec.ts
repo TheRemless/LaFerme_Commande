@@ -37,6 +37,9 @@ test("la carte en liste : filtres de qualité, recherche, catégorie", async ({}
   await capture("carte-liste", info);
   await gestion.getByRole("button", { name: /^Sans allergènes/ }).click();
   await expect(gestion.getByRole("button", { name: /^Sans allergènes/ })).toHaveAttribute("aria-pressed", "true");
+  await gestion.getByRole("button", { name: /^Bloquent la mise en ligne/ }).click();
+  await expect(gestion.getByRole("button", { name: /^Bloquent la mise en ligne/ })).toHaveAttribute("aria-pressed", "true");
+  await expect(tableau.getByRole("button", { name: "Pizza Margherita" })).toBeVisible();
   await gestion.getByRole("button", { name: /^Tous/ }).click();
   await gestion.getByRole("combobox", { name: "Catégorie" }).selectOption({ label: "Desserts" });
   await expect(tableau.getByRole("button", { name: "Pizza Margherita" })).toHaveCount(0);

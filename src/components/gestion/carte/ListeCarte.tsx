@@ -15,13 +15,15 @@ import { PanneauLateral, TableauDonnees, montant, useConfirmer, useNotifier, use
 
 export type LignePlatListe = PlatGestion & { categorie_slug: string; categorie_nom: string; ordre_categorie: number; ordre: number };
 
-export type FiltreEtat = "tous" | "vente" | "hors" | "epuise" | "a_valider" | "sans_photo" | "sans_allergenes" | "archives";
+export type FiltreEtat = "tous" | "vente" | "hors" | "epuise" | "bloquants" | "a_valider" | "sans_photo" | "sans_allergenes" | "archives";
 
 const FILTRES: { cle: FiltreEtat; titre: string; garde: (p: LignePlatListe) => boolean }[] = [
   { cle: "tous", titre: "Tous", garde: (p) => !p.archive },
   { cle: "vente", titre: "En vente", garde: (p) => !p.archive && p.commandable && !p.rupture_jusqu_au },
   { cle: "hors", titre: "Hors vente", garde: (p) => !p.archive && !p.commandable },
   { cle: "epuise", titre: "Épuisés", garde: (p) => !p.archive && !!p.rupture_jusqu_au },
+  // Plats en vente qui bloquent la mise en ligne (vue plats_bloquants) : à régler avant l'ouverture.
+  { cle: "bloquants", titre: "Bloquent la mise en ligne", garde: (p) => !p.archive && p.bloquants.length > 0 },
   { cle: "a_valider", titre: "Prix à valider", garde: (p) => !p.archive && p.prix_a_valider },
   { cle: "sans_photo", titre: "Sans photo", garde: (p) => !p.archive && !p.photo },
   { cle: "sans_allergenes", titre: "Sans allergènes", garde: (p) => !p.archive && !p.allergenes },
