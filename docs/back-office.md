@@ -77,6 +77,10 @@ Le module d'image `sharp` est déclaré dans `package.json` et se construit pour
 
 Disponibilités, ruptures planifiées, four en panne, groupes d'options, prix en lot, copie d'un plat : voir [carte-gestion.md](carte-gestion.md).
 
+## Codes promo
+
+Construits désactivés, sans montant : voir [codes-promo.md](codes-promo.md).
+
 ## Pas encore fait
 
 - Supprimer une catégorie vide (elle reste invisible des clients tant qu'elle n'a aucun plat en vente).

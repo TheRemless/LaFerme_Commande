@@ -92,6 +92,12 @@ test("l'envoi d'une photo est refusé sans session de gérant", async ({ request
   expect([401, 403]).toContain(rep.status());
 });
 
+test("les codes promo sont fermés sans session de gérant", async ({ request }) => {
+  expect((await request.get("/api/gestion/promotions")).status()).toBe(401);
+  const rep = await request.post("/api/gestion/promotions", { data: { action: "interrupteur", actif: true } });
+  expect([401, 403]).toContain(rep.status());
+});
+
 test("le plat s'archive, quitte la liste, puis se remet", async () => {
   const fiche = gestion.locator(".ges-fiche");
   await fiche.getByRole("button", { name: "Archiver ce plat" }).click();
