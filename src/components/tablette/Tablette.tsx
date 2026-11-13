@@ -539,7 +539,19 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
         </p>
       ))}
 
-      {reglagesOuverts && donnees && <Reglages reglages={donnees.reglages} onChange={charger} />}
+      {reglagesOuverts && donnees && (
+        <Reglages
+          reglages={donnees.reglages}
+          onChange={charger}
+          ouvrirCommande={(numero) => {
+            // Ouverte depuis « Commandes en cours qui les contiennent » : réglages fermés, numéro cherché, détail ouvert.
+            const c = donnees.commandes.find((x) => x.numero === numero && !["terminee", "refusee"].includes(x.statut));
+            setReglagesOuverts(false);
+            setRecherche(String(numero));
+            setOuverte(c?.id ?? null);
+          }}
+        />
+      )}
 
       {resultats && (
         <p className="tab-recherche-info">

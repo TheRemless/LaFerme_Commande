@@ -4,12 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import { heureDe, jourGeneveDe } from "@/lib/heures";
 import { poster } from "@/lib/requete-client";
 import { CoupDeFeu } from "./CoupDeFeu";
-import { Pannes } from "./Pannes";
-import { derniereOptionObligatoire, parGroupe, rupturePlanifiee, texteRupture, type OptionRupture, type PlatRupture } from "./ruptures";
+import { CommandesTouchees, Pannes } from "./Pannes";
+import { derniereOptionObligatoire, parGroupe, rupturePlanifiee, texteRupture, type OptionRupture, type PlatRupture, type Touchee } from "./ruptures";
 
 type Props = {
   reglages: { pause: { active: boolean; jusqua: string | null; livraisonFermee: boolean } | null; preparation_minutes: number; retard_minutes?: number };
   onChange: () => Promise<void>;
+  // Ouvre une commande sur la tablette (réglages fermés, numéro cherché, détail ouvert).
+  ouvrirCommande: (numero: number) => void;
 };
 
 type Plat = PlatRupture;
@@ -20,7 +22,7 @@ type Confirmation = { cle: string; message: string; bouton: string; faire: () =>
 
 
 // Pause des commandes en ligne, livraison, délai de préparation et ruptures du jour.
-export function Reglages({ reglages, onChange }: Props) {
+export function Reglages({ reglages, onChange, ouvrirCommande }: Props) {
   const [plats, setPlats] = useState<Plat[] | null>(null);
   const [recherche, setRecherche] = useState("");
   const [erreur, setErreur] = useState<string | null>(null);
@@ -28,6 +30,8 @@ export function Reglages({ reglages, onChange }: Props) {
 
   const [options, setOptions] = useState<Option[] | null>(null);
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
+  // Après « Épuisé » sur un plat : les commandes en cours qui le contiennent (P1 de produit-gestion).
+  const [touchees, setTouchees] = useState<{ nom: string; commandes: Touchee[] } | null>(null);
   const aujourdHui = jourGeneveDe(new Date());
   async function chargerPlats() {
     const [rep, repOptions] = await Promise.all([
@@ -89,6 +93,12 @@ export function Reglages({ reglages, onChange }: Props) {
     setErreur(null);
     const r = await poster("/api/tablette/plats", { slug: p.slug, rupture: !p.rupture });
     if (!r.ok) setErreur(String(r.donnees.erreur ?? "Pas enregistré. Réessayez."));
+    if (r.ok && !p.rupture) {
+      const rep = await fetch(`/api/tablette/touchees?slug=${p.slug}`, { cache: "no-store" }).catch(() => null);
+      setTouchees(rep?.ok ? { nom: p.nom, commandes: await rep.json() } : null);
+    } else if (r.ok) {
+      setTouchees(null);
+    }
     await chargerPlats();
     setEnvoi(false);
   }
@@ -118,6 +128,7 @@ export function Reglages({ reglages, onChange }: Props) {
           await chargerPlats();
           await onChange();
         }}
+        ouvrirCommande={ouvrirCommande}
       />
 
       <div className="tab-bloc">
@@ -181,6 +192,14 @@ export function Reglages({ reglages, onChange }: Props) {
       <div className="tab-bloc tab-ruptures">
         <h2>Épuisés aujourd&apos;hui</h2>
         {enRupture.length > 0 && <p>{enRupture.map((x) => x.nom).join(", ")}</p>}
+        {touchees && (
+          <>
+            <p>
+              <strong>{touchees.nom}</strong> épuisé.
+            </p>
+            <CommandesTouchees commandes={touchees.commandes} ouvrir={ouvrirCommande} fermer={() => setTouchees(null)} />
+          </>
+        )}
         <div className="champ">
           <label htmlFor="recherche-plat">Chercher un plat ou un supplément</label>
           <input id="recherche-plat" value={recherche} onChange={(e) => setRecherche(e.target.value)} />

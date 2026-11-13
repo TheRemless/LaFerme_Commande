@@ -204,10 +204,11 @@ test("four en panne : deux gestes, la confirmation s'annule sans rien changer", 
   await tablette.getByRole("button", { name: "Pause, délai, ruptures" }).click();
   const bloc = tablette.locator(".tab-pannes");
   await bloc.getByRole("button", { name: "Four en panne" }).click();
-  await expect(bloc.getByRole("button", { name: "Épuiser toutes les pizzas" })).toBeVisible();
+  await expect(bloc.getByRole("button", { name: "Jusqu'à ce soir" })).toBeVisible();
+  await expect(bloc.getByRole("button", { name: "Jusqu'à demain soir" })).toBeVisible();
   await bloc.getByRole("button", { name: "Annuler" }).click();
   await expect(bloc.getByRole("button", { name: "Four en panne" })).toBeVisible();
-  await expect(bloc).not.toContainText("épuisées jusqu'à ce soir");
+  await expect(bloc).not.toContainText(/épuisé jusqu/);
   await tablette.getByRole("button", { name: "Fermer les réglages" }).click();
 });
 

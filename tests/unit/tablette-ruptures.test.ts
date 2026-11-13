@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { baseLocale } from "@/lib/db/locale";
-import { derniereOptionObligatoire, parGroupe, rupturePlanifiee, texteRupture, type OptionRupture } from "@/components/tablette/ruptures";
+import { commandesTouchees, derniereOptionObligatoire, parGroupe, rupturePlanifiee, texteRupture, type OptionRupture } from "@/components/tablette/ruptures";
 
 // Ruptures sur la tablette (vague 3, base de bo-carte #55) : four ou cuisine en panne, ruptures « jusqu'au »,
 // dernière option d'un choix obligatoire.
@@ -11,6 +11,7 @@ vi.mock("@/lib/personnel/session", async (original) => ({
   exigerPersonnel: async () => ({ personnel: session.personnel }),
 }));
 const { GET, POST } = await import("@/app/api/tablette/pannes/route");
+const { GET: touchees } = await import("@/app/api/tablette/touchees/route");
 const poster = (corps: unknown) => POST(new Request("http://localhost/api/tablette/pannes", { method: "POST", body: JSON.stringify(corps) }));
 
 describe("textes et garde-fous", () => {
@@ -43,12 +44,44 @@ describe("four en panne", () => {
     session.personnel = { ...session.personnel, id: (await db.query<{ id: string }>("select id from personnel where role = 'service' and actif limit 1")).rows[0].id };
     const plats = async () => (await db.query<{ p: { slug: string; rupture: boolean; rupture_groupee: string | null; categorie: string }[] }>("select plats_tablette() as p")).rows[0].p;
     const pizza = (await plats()).find((p) => p.slug.startsWith("pizza-"))!;
-    expect((await poster({ poste: "pizza", panne: true })).status).toBe(200);
-    expect(((await (await GET(new Request("http://localhost/api/tablette/pannes"))).json()) as { cible: string }[]).map((r) => r.cible)).toContain("poste:pizza");
+    const pose = await poster({ cible: "poste:pizza", jusqu: "ce-soir" });
+    expect(pose.status).toBe(200);
+    const g = (await (await GET(new Request("http://localhost/api/tablette/pannes"))).json()) as { ruptures: { cible: string }[]; categories: { slug: string; nom: string }[] };
+    expect(g.ruptures.map((r) => r.cible)).toContain("poste:pizza");
+    expect(g.categories.length).toBeGreaterThan(1);
+    expect(g.categories.some((c) => c.slug === "plat-du-jour")).toBe(false);
     const pendant = (await plats()).find((p) => p.slug === pizza.slug)!;
     expect(pendant).toMatchObject({ rupture: true, rupture_groupee: "poste:pizza" });
-    expect((await poster({ poste: "pizza", panne: false })).status).toBe(200);
+    expect((await poster({ cible: "poste:pizza", jusqu: null })).status).toBe(200);
     expect((await plats()).find((p) => p.slug === pizza.slug)).toMatchObject({ rupture: pizza.rupture, rupture_groupee: null });
-    expect((await poster({ poste: "bar", panne: true })).status).toBe(422);
+    expect((await poster({ cible: "poste:bar", jusqu: "ce-soir" })).status).toBe(422);
+    expect((await poster({ cible: "poste:pizza", jusqu: "toujours" })).status).toBe(422);
+  });
+});
+
+describe("commandes touchées", () => {
+  it("repli : commandes à préparer jusqu'à la date, seulement les lignes visées", () => {
+    const c = (numero: number, statut: string, quand_date: string | null, lignes: [string, string][]) => ({
+      id: String(numero), numero, statut, mode: "retrait" as const, quand_date, lignes: lignes.map(([nom, station]) => ({ nom, qte: 1, station })),
+    });
+    const file = [
+      c(12, "acceptee", null, [["Pizza Margherita", "pizza"], ["Lasagne", "cuisine"]]),
+      c(15, "nouvelle", null, [["Lasagne", "cuisine"]]),
+      c(18, "prete", null, [["Pizza Margherita", "pizza"]]),
+      c(20, "acceptee", "2026-11-20", [["Pizza Diavola", "pizza"]]),
+    ];
+    expect(commandesTouchees(file, { noms: new Set(["Pizza Margherita"]), station: null, jusqu: "2026-11-13" })).toEqual([
+      { id: "12", numero: 12, statut: "acceptee", mode: "retrait", lignes: [{ nom: "Pizza Margherita", qte: 1 }] },
+    ]);
+    expect(commandesTouchees(file, { noms: new Set(), station: "pizza", jusqu: "2026-11-21" }).map((x) => x.numero)).toEqual([12, 20]);
+  });
+
+  it("la route répond pour un plat ou une cible, et refuse le reste", async () => {
+    const r = await touchees(new Request("http://localhost/api/tablette/touchees?slug=pizza-margherita"));
+    expect(r.status).toBe(200);
+    expect(Array.isArray(await r.json())).toBe(true);
+    expect((await touchees(new Request("http://localhost/api/tablette/touchees?cible=poste:pizza&jusqu_au=2026-11-14"))).status).toBe(200);
+    expect((await touchees(new Request("http://localhost/api/tablette/touchees?cible=table:1"))).status).toBe(404);
+    expect((await touchees(new Request("http://localhost/api/tablette/touchees"))).status).toBe(400);
   });
 });

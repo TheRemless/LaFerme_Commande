@@ -34,3 +34,17 @@ export function parGroupe(options: OptionRupture[]): { groupe: string; nom: stri
   }
   return [...groupes.values()];
 }
+
+// Commandes en cours qui contiennent un plat épuisé (contrat de bo-carte, commandes_touchees ; repli de la tablette).
+export type Touchee = { id: string; numero: number; statut: string; mode: "livraison" | "retrait"; lignes: { nom: string; qte: number }[] };
+type CommandeFile = { id: string; numero: number; statut: string; mode: "livraison" | "retrait"; quand_date: string | null; lignes: { nom: string; qte: number; station: string }[] };
+const A_PREPARER = new Set(["nouvelle", "acceptee", "en_preparation"]);
+
+export function commandesTouchees(commandes: CommandeFile[], { noms, station, jusqu }: { noms: Set<string>; station: string | null; jusqu: string }): Touchee[] {
+  return commandes
+    .filter((c) => A_PREPARER.has(c.statut) && (c.quand_date === null || c.quand_date <= jusqu))
+    .map((c) => ({ c, lignes: c.lignes.filter((l) => noms.has(l.nom) || (station !== null && l.station === station)) }))
+    .filter(({ lignes }) => lignes.length > 0)
+    .map(({ c, lignes }) => ({ id: c.id, numero: c.numero, statut: c.statut, mode: c.mode, lignes: lignes.map((l) => ({ nom: l.nom, qte: l.qte })) }))
+    .sort((a, b) => a.numero - b.numero);
+}
