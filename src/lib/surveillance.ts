@@ -70,7 +70,11 @@ export function dansUnService(config: ConfigService, maintenant: Date): boolean 
 }
 
 // Paiements dont Stripe n'a pas confirmé l'issue au site (6). Avant la migration 20261204090000, la fonction
-// n'existe pas : rien à rattraper.
+// n'existe pas : rien à rattraper. Budget de temps : un Stripe lent ne retient pas le tour de surveillance
+// (ni la relecture de la tablette qui l'a déclenché) plus de quelques secondes ; le reste attend le tour suivant.
+const BUDGET_RATTRAPAGE_MS = 6000;
+const DELAI_PAR_PAIEMENT_MS = 4000;
+
 export async function rattraperPaiements(): Promise<number> {
   let ids: string[];
   try {
@@ -81,12 +85,18 @@ export async function rattraperPaiements(): Promise<number> {
     return 0;
   }
   let rattrapes = 0;
+  const fin = Date.now() + BUDGET_RATTRAPAGE_MS;
   for (const id of ids) {
+    if (Date.now() >= fin) break;
     try {
       const c = await commandeParId(id);
       if (!c) continue;
-      const apres = await reconcilier(c);
-      if (apres.statut_paiement !== c.statut_paiement) {
+      const apres = await Promise.race([
+        reconcilier(c),
+        new Promise<never>((_, non) => setTimeout(() => non(new Error("Stripe ne répond pas à temps")), DELAI_PAR_PAIEMENT_MS)),
+      ]);
+      // Seul un paiement confirmé compte : une session abandonnée qui expire n'est pas un paiement perdu.
+      if (c.statut_paiement !== "paye" && apres.statut_paiement === "paye") {
         rattrapes += 1;
         console.error(`Commande ${c.numero} : paiement rattrapé par la surveillance (confirmation de Stripe jamais reçue).`);
       }
@@ -105,9 +115,6 @@ export async function executerSurveillance(maintenant = new Date()): Promise<{ f
     console.error(`Impression des commandes à l'avance : ${e instanceof Error ? e.message : e}`);
     return 0;
   });
-
-  // Ensuite les paiements perdus : une commande payée doit arriver sur la tablette.
-  const rattrapes = await rattraperPaiements();
 
   // Premier tour d'un nouveau jour de service (5h, heure de Genève) : livraison rouverte, retard à zéro,
   // pause manuelle sans fin levée (audit du gérant, G06). La pause automatique reste.
@@ -146,5 +153,8 @@ export async function executerSurveillance(maintenant = new Date()): Promise<{ f
       "Les commandes en ligne sont en pause. Rallumez la tablette, puis touchez « Reprendre les commandes ».",
     ]).catch((e) => console.error(`Alerte non envoyée : ${e instanceof Error ? e.message : e}`));
   }
+  // En dernier, les paiements perdus (appels à Stripe) : un Stripe lent ne retarde ni la pause automatique
+  // ni les alertes ci-dessus.
+  const rattrapes = await rattraperPaiements();
   return { fait: true, retards: retards.length, pause, imprimees, rattrapes };
 }
