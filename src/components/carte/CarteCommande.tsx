@@ -22,12 +22,15 @@ export function CarteCommande({
   catalogue,
   preversion,
   populaires,
+  prenomActif = false,
 }: {
   categories: Categorie[];
   catalogue: Catalogue;
   preversion: boolean;
   // Plats les plus commandés et suggestion au panier : éteints tant que Jérémy n'a pas décidé (C7).
   populaires?: DonneesPopulaires;
+  // Prénom par ligne (C5), éteint par défaut.
+  prenomActif?: boolean;
 }) {
   const panier = usePanier();
   const { lignes, charge, ajouter, quantite, remplacer } = panier;
@@ -234,6 +237,7 @@ export function CarteCommande({
           catalogue={catalogue}
           preversion={preversion}
           ferme={ferme}
+          prenomActif={prenomActif}
           initiale={edition !== null ? lignes[edition] : undefined}
           onAjouter={(ligne) => {
             if (edition !== null) {
