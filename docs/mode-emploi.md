@@ -118,6 +118,8 @@ Le remboursement n'est possible qu'une fois la commande prête, partie ou livré
 
 Avec TWINT, Stripe confirme parfois un remboursement plus tard. La fiche le montre « en cours » jusque-là. S'il échoue, le restaurant reçoit une alerte par e-mail et la fiche le montre « échoué ». Il faut alors rappeler le client et le rembourser depuis Stripe ou en espèces.
 
+Le client voit chaque remboursement sur sa page de suivi, avec le montant et l'état (remboursé, en cours, pas abouti), sans le motif. Un remboursement qui n'a pas abouti lui dit d'appeler le restaurant. Une somme déduite au comptoir y figure aussi, avec le reste à payer. Quand l'heure prévue est dépassée de 10 minutes, la page lui dit que le restaurant a du retard et lui donne le numéro.
+
 Client absent à la livraison : la commande est close sans remboursement, avec le motif « Client absent à la livraison. » et une alerte par e-mail au gérant. Ouvrir la commande et décider au cas par cas (rien, une partie ou tout).
 
 ### Équipe
