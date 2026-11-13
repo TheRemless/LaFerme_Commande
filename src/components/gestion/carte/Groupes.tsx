@@ -314,7 +314,7 @@ export function ReglerGroupe({
                   },
                   `« ${renommer.ancien} » s'appelle maintenant « ${renommer.nouveau.trim()} ».`,
                 );
-                if (ok) setRenommer({ ...renommer, nouveau: "" });
+                if (ok) setRenommer({ ancien: renommer.nouveau.trim(), nouveau: "" });
               }}
             >
               <div className="bo-champ">

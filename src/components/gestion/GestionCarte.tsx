@@ -910,7 +910,7 @@ export function GestionSupplements({ donnees, recharger }: { donnees: DonneesCar
       )}
       {groupe && (
         <PanneauLateral titre={groupe.nom} sousTitre={groupe.choix_min > 0 ? "Choix obligatoire" : "Facultatif"} onFermer={() => setRegle(null)} large>
-          <ReglerGroupe key={JSON.stringify(groupe)} groupe={groupe} donnees={donnees} recharger={recharger} />
+          <ReglerGroupe key={groupe.slug} groupe={groupe} donnees={donnees} recharger={recharger} />
         </PanneauLateral>
       )}
     </section>
