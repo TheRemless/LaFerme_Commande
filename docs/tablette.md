@@ -187,3 +187,12 @@ Une commande acceptée dont le client, le téléphone, les consignes ou l'adress
 - `imprimerModification(commandeId, changements)` (`src/lib/impression/modification.ts`), changements `{ champ, avant, apres }` lisibles (« Téléphone », « Consignes », « Adresse »). Appelée par `modifierCommande` (bo-commandes) après `modifier_commande`, seulement si quelque chose a changé ; un échec n'empêche pas la modification.
 - Ticket (`ticketModification`, `src/lib/impression/ticket.ts`) : « MODIFIÉE », mode et numéro, heure de la modification, puis pour chaque changement l'ancienne valeur et la nouvelle en négatif, puis l'état à jour (client, « Pour : … », adresse et consignes).
 - Rien si les premiers tickets ne sont pas sortis (ils porteront les nouvelles valeurs), ni pour une commande terminée, refusée ou annulée, ni sans vrai changement. Renvoie le nombre de tickets créés. Pas de migration (`creer_taches_impression`, comme une réimpression).
+
+## Connexion d'un livreur par code (vague 3, D13 point 3 de produit-gestion, construit désactivé)
+
+Zéro e-mail : le gérant ou un responsable touche « Code de connexion » à côté du livreur (onglet Livraisons), la tablette affiche 8 chiffres en grand, valables 10 minutes et une seule fois. Sur `/livreur`, « J'ai un code du restaurant » : le livreur les tape et sa session s'ouvre pour la soirée (12 heures, comme aujourd'hui).
+
+- Migration `20261203150000_code_livreur.sql` : réglage `connexion_livreur_par_code` (faux, proposition), table `codes_livreur` (code en empreinte HMAC seulement), `creer_code_livreur` (gérant ou responsable actif, livreur actif, journalisé ; un nouveau code annule le précédent), `utiliser_code_livreur` (même frein par connexion que la connexion de l'équipe, `attente_limite('echec_ip')` ; ouvre une session de livreur ordinaire, que « Déconnecter un téléphone perdu » coupe comme les autres).
+- Serveur `src/lib/personnel/code-livreur.ts`, routes `/api/tablette/code-livreur` (GET `{ actif, autorise }`, POST `{ livreur }`) et `/api/personnel/code-livreur` (POST `{ code }`, contrôle d'origine, cookie `HttpOnly` de 12 heures).
+- **Pour l'ouvrir** (décision de Jérémy, après la relecture de sécurité de qualite) : `update reglages set valeur = 'true', proposition = false where cle = 'connexion_livreur_par_code';`
+- Fermé : aucun bouton sur la tablette, rien de plus sur `/livreur`, et les deux fonctions refusent.

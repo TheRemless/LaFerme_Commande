@@ -411,3 +411,22 @@
 .tab-couverts {
   font-weight: 700;
 }
+
+/* « Code de connexion » d'un livreur (vague 3, construit désactivé) : lisible depuis le comptoir. */
+.tab-code-livreur {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 2px solid var(--encre);
+  background: var(--blanc);
+}
+.tab-code-livreur p {
+  margin: 0;
+}
+.tab-code-chiffres {
+  font-size: 48px;
+  font-weight: 700;
+  font-stretch: 62%;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+}
