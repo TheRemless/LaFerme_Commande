@@ -2,14 +2,14 @@
 -- accompagnement), régler son minimum et son maximum, options cochées d'avance, ordre et nom des options,
 -- plats qui portent le groupe (un groupe se réutilise sur autant de plats qu'on veut).
 --
--- Objets partagés recréés, depuis 20261128090000_disponibilites.sql (PR #55) :
+-- Objets partagés recréés, depuis 20261210090000_disponibilites.sql (PR #55) :
 --   vue options_publiques (+ par_defaut en fin de liste), fonction gestion_carte (+ par_defaut de chaque
 --   option, plats de chaque groupe).
 -- Compatible avant et après : par_defaut absent = aucune option cochée d'avance.
 
 alter table options add column par_defaut boolean not null default false;
 
--- Même définition que 20261128090000_disponibilites.sql, + par_defaut en fin de liste.
+-- Même définition que 20261210090000_disponibilites.sql, + par_defaut en fin de liste.
 create or replace view options_publiques with (security_invoker = true) as
 select g.slug as groupe_slug, g.nom as groupe_nom, g.choix_min, g.choix_max,
        o.nom, o.prix_centimes, o.prix_a_valider, o.ordre,
@@ -19,7 +19,7 @@ select g.slug as groupe_slug, g.nom as groupe_nom, g.choix_min, g.choix_max,
 from options o
 join groupes_options g on g.id = o.groupe_id;
 
--- Même définition que 20261128090000_disponibilites.sql, + par_defaut de chaque option et plats de chaque groupe.
+-- Même définition que 20261210090000_disponibilites.sql, + par_defaut de chaque option et plats de chaque groupe.
 create or replace function gestion_carte() returns jsonb
 language sql stable as $$
   with fiches as (

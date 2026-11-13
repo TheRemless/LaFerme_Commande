@@ -65,7 +65,7 @@ Migration `supabase/migrations/20261210090000_disponibilites.sql`. Tests : `test
 
 ## Groupes d'options (vague 3, 13.11.2026)
 
-Migration `supabase/migrations/20261128100000_groupes_options.sql`. Tests : `tests/unit/groupes-options-sql.test.ts`. Écran après la coque ; le serveur accepte déjà les actions `nouveau_groupe`, `groupe`, `defauts`, `ordre_options`, `renommer_option` et `plats_du_groupe` de `/api/gestion/carte`.
+Migration `supabase/migrations/20261210100000_groupes_options.sql`. Tests : `tests/unit/groupes-options-sql.test.ts`. Écran après la coque ; le serveur accepte déjà les actions `nouveau_groupe`, `groupe`, `defauts`, `ordre_options`, `renommer_option` et `plats_du_groupe` de `/api/gestion/carte`.
 
 - **Groupe neuf** (sauce au choix, cuisson, accompagnement) : nom, minimum (0 à 10) et maximum (1 à 20). Il naît sans option ni plat : on lui ajoute ses options (« Ajouter un supplément » existant), puis la liste des plats qui le portent. Un même groupe se pose sur autant de plats qu'on veut ; changer un prix d'option le change partout.
 - **Ticket** : un groupe à choix obligatoire et unique (minimum 1, maximum 1) s'imprime `CHOIX`, les autres `+`, comme aujourd'hui.

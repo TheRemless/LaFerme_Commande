@@ -18,7 +18,7 @@ type LigneOption = {
   ordre: number;
   // Rupture du jour (audit du gérant, G07). Absente tant que la base n'est pas migrée.
   rupture?: boolean;
-  // Cochée d'avance sur la fiche (migration 20261128100000). Absente avant la migration.
+  // Cochée d'avance sur la fiche (migration 20261210100000). Absente avant la migration.
   par_defaut?: boolean;
 };
 type LigneRetrait = { plat_slug: string; nom: string; a_valider: boolean; ordre: number };

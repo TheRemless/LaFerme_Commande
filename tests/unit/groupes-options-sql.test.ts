@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { creerBaseLocale } from "@/lib/db/locale";
 import { champsGroupe, nomOption, nomsOptions } from "@/lib/gestion-options";
 
-// Groupes d'options gérés au back-office (supabase/migrations/20261128100000_groupes_options.sql).
+// Groupes d'options gérés au back-office (supabase/migrations/20261210100000_groupes_options.sql).
 // Montants d'essai, aucun prix de la carte.
 
 let db: PGlite;
