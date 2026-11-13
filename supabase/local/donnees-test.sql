@@ -129,3 +129,6 @@ insert into personnel (email, nom, role) values
   ('ecran-calendrier@laferme.test', 'Écran calendrier', 'gerant'),
   ('ecran-imprimantes@laferme.test', 'Écran imprimantes', 'gerant'),
   ('ecran-messages@laferme.test', 'Écran messages', 'gerant');
+
+-- Bannière des messages aux clients sur le site (client-commande, messages-bandeau.spec.ts).
+insert into personnel (email, nom, role) values ('bandeau-client@laferme.test', 'Bandeau client', 'gerant');

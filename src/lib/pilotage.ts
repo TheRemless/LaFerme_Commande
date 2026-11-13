@@ -160,3 +160,23 @@ export type Analyses = {
     revenus_dans_la_periode: number;
   };
 };
+
+// Temps réels contre temps promis (pilotage_temps). Minutes ; null quand rien n'est mesuré.
+type Ponctualite = {
+  commandes: number;
+  a_l_heure: number;
+  en_retard: number;
+  plus_de_10: number;
+  retard_median_min: number;
+  route_mediane_min: number | null;
+};
+export type TempsReels = {
+  debut: string;
+  fin: string;
+  service: Service | null;
+  acceptation: { commandes: number; mediane_min: number | null; p90_min: number | null };
+  // deduites : heures « prête » déduites du statut de la commande (le poste n'a pas touché « Prête »).
+  postes: { station: "pizza" | "cuisine"; commandes: number; mediane_min: number; p90_min: number; deduites: number }[];
+  ponctualite: { livraison?: Ponctualite; retrait?: Ponctualite };
+  heures: { heure: number; commandes: number; en_retard: number; pizza_mediane_min: number | null; cuisine_mediane_min: number | null; route_mediane_min: number | null }[];
+};

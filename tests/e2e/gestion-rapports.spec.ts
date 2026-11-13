@@ -59,6 +59,7 @@ test("les onglets Plats, Heures, Zones et clients, Livreurs s'ouvrent, avec leur
     ["Heures", /Quand les commandes arrivent|Aucune commande sur cette période/],
     ["Zones et clients", /Nouveaux clients et fidèles/],
     ["Livreurs", /^Livreurs$/],
+    ["Temps", /Temps réels contre temps promis|Aucune commande acceptée/],
   ] as const) {
     await onglets.getByRole("tab", { name: onglet }).click();
     await expect(onglets.getByRole("tab", { name: onglet })).toHaveAttribute("aria-selected", "true");

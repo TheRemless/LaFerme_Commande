@@ -260,7 +260,8 @@ export async function agir(commandeId: string, a: Action, p: Personnel): Promise
 }
 
 // Pages publiques servies depuis le cache de Netlify et ce qu'elles lisent : on les vide avec les données.
-const PAGES_EN_CACHE = { "config-service": ["/"], catalogue: ["/carte", "/panier"] } as const;
+// La carte et le panier lisent aussi la config (messages aux clients) : un message retiré les quitte aussitôt.
+const PAGES_EN_CACHE = { "config-service": ["/", "/carte", "/panier"], catalogue: ["/carte", "/panier"] } as const;
 
 export function rafraichirCaches(quoi: "config-service" | "catalogue"): void {
   try {
