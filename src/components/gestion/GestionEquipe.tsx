@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useState } from "react";
+import { useRoleGestion } from "@/components/gestion/droits";
 import { Chargement, EtatErreur, EtatVide, PanneauLateral, useConfirmer, useNotifier } from "@/components/gestion/ui";
 import { heureDe, jourGeneveDe } from "@/lib/heures";
 import { poster } from "@/lib/requete-client";
@@ -51,6 +52,8 @@ export function GestionEquipe() {
   const [confirmer, setConfirmer] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState(false);
   const [appareilsDe, setAppareilsDe] = useState<Membre | null>(null);
+  // Responsable de service (D1) : la liste et les appareils seulement, jamais ceux d'un gérant (la base refuse aussi).
+  const gerant = useRoleGestion() === "gerant";
 
   const charger = useCallback(async () => {
     const rep = await fetch("/api/gestion/personnel", { cache: "no-store" });
@@ -79,7 +82,11 @@ export function GestionEquipe() {
     <div className="ges-service">
       <section className="ges-bloc">
         <h2>Équipe</h2>
-        <p>Chacun se connecte avec son adresse e-mail et le code à 8 chiffres qu&apos;il reçoit. Retirer quelqu&apos;un coupe son accès tout de suite.</p>
+        {gerant ? (
+          <p>Chacun se connecte avec son adresse e-mail et le code à 8 chiffres qu&apos;il reçoit. Retirer quelqu&apos;un coupe son accès tout de suite.</p>
+        ) : (
+          <p>Un téléphone perdu ou une tablette volée : ouvrez « Appareils » et déconnectez cet appareil. Les accès de l&apos;équipe se changent avec le gérant.</p>
+        )}
         <ul className="aide ges-roles">
           {(Object.keys(ROLES) as Membre["role"][])
             .filter((r) => r !== "responsable" || d.responsable_actif)
@@ -106,26 +113,32 @@ export function GestionEquipe() {
                 <span className="aide">{presence(m)}</span>
               </div>
               <div className="ges-equipe-actions">
-                <label className="sr-only" htmlFor={`${ids}-role-${m.id}`}>
-                  Accès de {m.nom}
-                </label>
-                <select id={`${ids}-role-${m.id}`} value={m.role} disabled={envoi || m.id === d.moi} onChange={(e) => agir({ action: "modifier", id: m.id, role: e.target.value })}>
-                  <option value="service">{ROLES.service}</option>
-                  {(d.responsable_actif || m.role === "responsable") && <option value="responsable">{ROLES.responsable}</option>}
-                  <option value="gerant">{ROLES.gerant}</option>
-                  <option value="livreur">{ROLES.livreur}</option>
-                </select>
-                {m.sessions > 0 && (
+                {gerant ? (
                   <>
-                    <button type="button" className="lien" onClick={() => setAppareilsDe(m)}>
-                      Appareils ({m.sessions})
-                    </button>
-                    <button type="button" className="lien" disabled={envoi} onClick={() => agir({ action: "couper", id: m.id })}>
-                      Déconnecter partout
-                    </button>
+                    <label className="sr-only" htmlFor={`${ids}-role-${m.id}`}>
+                      Accès de {m.nom}
+                    </label>
+                    <select id={`${ids}-role-${m.id}`} value={m.role} disabled={envoi || m.id === d.moi} onChange={(e) => agir({ action: "modifier", id: m.id, role: e.target.value })}>
+                      <option value="service">{ROLES.service}</option>
+                      {(d.responsable_actif || m.role === "responsable") && <option value="responsable">{ROLES.responsable}</option>}
+                      <option value="gerant">{ROLES.gerant}</option>
+                      <option value="livreur">{ROLES.livreur}</option>
+                    </select>
                   </>
+                ) : (
+                  <span>{ROLES[m.role]}</span>
                 )}
-                {m.id === d.moi ? null : confirmer === m.id ? (
+                {m.sessions > 0 && (gerant || m.role !== "gerant") && (
+                  <button type="button" className="lien" onClick={() => setAppareilsDe(m)}>
+                    Appareils ({m.sessions})
+                  </button>
+                )}
+                {gerant && m.sessions > 0 && (
+                  <button type="button" className="lien" disabled={envoi} onClick={() => agir({ action: "couper", id: m.id })}>
+                    Déconnecter partout
+                  </button>
+                )}
+                {!gerant || m.id === d.moi ? null : confirmer === m.id ? (
                   <span className="boutons-ligne">
                     <button type="button" className="bouton-second" disabled={envoi} onClick={() => agir({ action: "modifier", id: m.id, actif: false })}>
                       Oui, retirer {m.nom}
@@ -145,6 +158,7 @@ export function GestionEquipe() {
         </ul>
       </section>
 
+      {gerant && (
       <section className="ges-bloc">
         <h2>Ajouter quelqu&apos;un</h2>
         <form
@@ -184,8 +198,9 @@ export function GestionEquipe() {
           </button>
         </form>
       </section>
+      )}
 
-      {retires.length > 0 && (
+      {gerant && retires.length > 0 && (
         <section className="ges-bloc">
           <h2>Anciens membres</h2>
           <ul className="ges-fermetures">

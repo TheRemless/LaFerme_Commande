@@ -14,7 +14,8 @@ export type Rubrique = {
   /** Place réservée : la rubrique n'apparaît pas tant que sa page n'existe pas. Le propriétaire retire
    *  ce drapeau dans la PR qui ajoute src/app/gestion/<chemin>/page.tsx (tests/unit/gestion-navigation.test.ts le vérifie). */
   aVenir?: true;
-  /** Ouverte aussi au responsable de service (D1, désactivé tant que Jérémy n'a pas tranché) pour ce droit. Sans : gérant seulement. */
+  /** Ouverte aussi au responsable de service (D1, oui de Jérémy le 13.11.2026, actif quand role_responsable_actif
+   *  est posé) pour ce droit. Sans : gérant seulement. */
   droit?: ActionDroit;
 };
 
@@ -28,9 +29,8 @@ export const GROUPES: Groupe[] = [
     titre: "Commandes et clients",
     rubriques: [
       { href: "/gestion/commandes", titre: "Commandes", icone: "commandes", resume: "Retrouver une commande, voir son historique, rembourser.", droit: "voir_commandes" },
-      // bo-commandes. Gérant seulement : /api/gestion/clients et /api/gestion/reclamations restent en exigerGerant
-      // (notes, marque, gestes). À ouvrir au responsable (droit) avec ces routes le jour où D1 est activé.
-      { href: "/gestion/clients", titre: "Clients", icone: "clients", resume: "Les clients, leurs commandes et leurs réclamations." },
+      // bo-commandes. Responsable : lecture (liste, fiche) ; notes, marque et gestes restent au gérant (routes).
+      { href: "/gestion/clients", titre: "Clients", icone: "clients", resume: "Les clients, leurs commandes et leurs réclamations.", droit: "voir_commandes" },
     ],
   },
   {
@@ -70,7 +70,8 @@ export const GROUPES: Groupe[] = [
   },
   {
     titre: "Équipe",
-    rubriques: [{ href: "/gestion/equipe", titre: "Équipe", icone: "equipe", resume: "Qui a accès à la tablette et au back-office." }],
+    // Responsable : seulement déconnecter un appareil perdu (l'écran cache l'ajout, les accès et le retrait).
+    rubriques: [{ href: "/gestion/equipe", titre: "Équipe", icone: "equipe", resume: "Qui a accès à la tablette et au back-office.", droit: "deconnecter_appareil" }],
   },
 ];
 

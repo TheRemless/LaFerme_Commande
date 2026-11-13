@@ -25,6 +25,25 @@ test("messages aux clients : programmer, erreurs, retirer", async ({ page }, inf
   try {
     await expect(page.getByRole("heading", { name: "Programmer un message" })).toBeVisible();
 
+    // Modèles : le modèle remplit le champ ; tant qu'un crochet reste, rien ne part (écran et route).
+    await page.getByRole("button", { name: "Vacances", exact: true }).click();
+    await expect(page.getByLabel("Texte lu par les clients")).toHaveValue(/^Le restaurant est en vacances du \[premier jour\]/);
+    await expect(page.getByLabel("Tout le site : accueil, carte, panier et paiement")).toBeChecked();
+    await page.screenshot({ path: `${CAPTURES}/messages-modeles-1024.png` });
+    await page.getByRole("button", { name: "Programmer le message" }).click();
+    await expect(page.getByText("Remplacez les passages entre crochets ([jour], [localité]…) avant de programmer.")).toBeVisible();
+    const crochets = await page.request.post("/api/gestion/messages", {
+      headers: { Origin: SITE },
+      data: { type: "ajouter", texte: "Fermé le [jour].", fin: new Date(Date.now() + 3600_000).toISOString() },
+    });
+    expect(crochets.status()).toBe(422);
+    // Un autre modèle par-dessus un texte saisi : confirmation avant de remplacer.
+    await page.getByRole("button", { name: "Zone fermée", exact: true }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Remplacer" }).click();
+    await expect(page.getByLabel("Texte lu par les clients")).toHaveValue(/^Pas de livraison à \[localité\] ce soir\./);
+    await expect(page.getByLabel("L'accueil seulement")).toBeChecked();
+    await page.getByLabel("Texte lu par les clients").fill("");
+
     // Erreurs : texte trop court, fin avant le début.
     await page.getByLabel("Texte lu par les clients").fill("Oui");
     await page.getByRole("button", { name: "Programmer le message" }).click();

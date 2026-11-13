@@ -2,7 +2,7 @@ import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { PGlite } from "@electric-sql/pglite";
 import { groupesPour, rubriqueOuverte, RUBRIQUES } from "@/components/gestion/navigation";
 import { baseLocale } from "@/lib/db/locale";
-import { ACTIONS_DROIT } from "@/lib/personnel/droits";
+import { ACTIONS_DROIT, ACTIONS_RESPONSABLE, aLeDroit, type ActionDroit } from "@/lib/personnel/droits";
 
 // Droits fins et rôle « responsable de service » (vague 3, bo-socle, décision D1). Construit désactivé :
 // sans le réglage role_responsable_actif, personne ne peut recevoir ce rôle.
@@ -64,10 +64,20 @@ describe("rôle activé : le tableau D1", () => {
 });
 
 describe("menu du responsable", () => {
-  it("il ne voit que les rubriques qui portent un droit (Commandes aujourd'hui)", () => {
+  it("il ne voit que les rubriques qui portent un droit : Commandes, Clients et Équipe (appareils seulement)", () => {
     const titres = groupesPour("responsable").flatMap((g) => g.rubriques.map((r) => r.titre));
-    expect(titres).toEqual(["Commandes"]);
+    expect(titres).toEqual(["Commandes", "Clients", "Équipe"]);
     expect(groupesPour("gerant").flatMap((g) => g.rubriques).length).toBeGreaterThan(5);
     expect(rubriqueOuverte(RUBRIQUES.find((r) => r.href === "/gestion/carte")!, "responsable")).toBe(false);
+  });
+
+  it("l'écran cache les gestes comme la base : le responsable a ses sept actions, l'équipe de service aucune", () => {
+    expect(ACTIONS_RESPONSABLE).toHaveLength(7);
+    for (const a of Object.keys(ACTIONS_DROIT) as ActionDroit[]) {
+      expect(aLeDroit("gerant", a)).toBe(true);
+      expect(aLeDroit("responsable", a)).toBe(true);
+      expect(aLeDroit("service", a)).toBe(false);
+      expect(aLeDroit("livreur", a)).toBe(false);
+    }
   });
 });
