@@ -1,16 +1,15 @@
-import { SITE } from "./site";
+import { SITE, adresseDuCompte } from "./site";
 import { expect, test, type Page } from "@playwright/test";
 
 // Planning et suivi des livreurs (vague 3, bo-operations) : la route du back-office, sans écran pour l'instant
 // (il attend la coque). Un seul projet : la route n'a pas d'écran, et le planning est commun à la base.
 test.describe.configure({ mode: "serial" });
-// Adresse à part : la limite de 20 codes du personnel par adresse et par heure est commune à tous les fichiers
-// qui se connectent depuis le poste local (x-forwarded-for n'est lu qu'en local, jamais sur Netlify).
-test.use({ extraHTTPHeaders: { "x-forwarded-for": "10.30.0.3" } });
 
 const ORIGINE = { Origin: SITE };
 
 async function connecter(page: Page, email: string) {
+  // Adresse simulée propre au compte : la limite de codes par adresse est commune au poste local.
+  await adresseDuCompte(page, email);
   await page.goto("/gestion");
   await page.getByLabel("E-mail", { exact: true }).fill(email);
   await page.getByRole("button", { name: "Recevoir un code" }).click();
