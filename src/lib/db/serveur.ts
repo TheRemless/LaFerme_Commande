@@ -145,7 +145,7 @@ export type Commande = {
   client_nom: string;
   client_telephone: string;
   client_email: string;
-  adresse: { rue: string; numero: string; npa: string; localite: string; featureId?: string } | null;
+  adresse: { rue: string; numero: string; npa: string; localite: string; featureId?: string; nonVerifiee?: true } | null;
   details_livraison: { etage: string; sonnette: string; code: string; instructions: string } | null;
   quand_type: "asap" | "creneau";
   quand_date: string | null;

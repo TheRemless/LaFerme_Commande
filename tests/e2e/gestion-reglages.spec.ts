@@ -31,8 +31,10 @@ test("réglages généraux : e-mail des alertes, erreur de saisie, accessibilit�
     // Interrupteurs de client-commande : présents et éteints (les allumer changerait la carte des autres tests).
     await expect(page.getByLabel("« Les plus commandés » en tête de la carte")).not.toBeChecked();
     await expect(page.getByLabel("Proposer une boisson ou un dessert au panier")).not.toBeChecked();
-    // Rythme de la cuisine : débits à 0 au départ, la file n'est pas comptée.
+    // Rythme de la cuisine : la base de test garde le four à 0 (donnees-test.sql) ; 15 en production.
     await expect(page.getByLabel("Pizzas que le four sort en 15 minutes")).toHaveValue("0");
+    // Connexion des livreurs par code : case du bloc Équipe (décochée dans la base locale, cochée en production).
+    await expect(page.getByRole("group", { name: "Équipe" }).getByLabel("Connexion des livreurs par un code affiché sur la tablette")).toBeVisible();
     await expect(page.getByText(/^En ce moment : la file n'est pas comptée \(débits à 0\)\. Livraisons pas comptées/)).toBeVisible();
     await expect(page.getByLabel("Livraisons qu'un livreur fait en une heure")).toHaveValue("0");
 

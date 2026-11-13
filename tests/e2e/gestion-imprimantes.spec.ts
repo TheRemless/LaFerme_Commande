@@ -69,6 +69,10 @@ test("imprimantes : dernier ticket, conduite en cas de panne, axe", async ({ pag
     expect((await refus.json()).erreur).toBe("Imprimante désactivée : réactivez-la avant le test.");
     await expect(ligne.getByText("Aujourd'hui : 0 imprimé.")).toBeVisible();
     await expect(page.getByRole("heading", { name: "En cas de panne" })).toBeVisible();
+    // Où coller l'adresse : étapes Star, marquées non vérifiées.
+    await page.getByText("Où coller l'adresse dans l'imprimante (Star)").click();
+    await expect(page.getByText("Non vérifié : à contrôler sur la vraie imprimante. La notice Star n'a pas pu être lue.")).toBeVisible();
+    await expect(page.getByText(/champ « Server URL »/)).toBeVisible();
 
     const axe = await new AxeBuilder({ page }).include(".bo-contenu").analyze();
     expect(axe.violations.map((v) => `${v.id} : ${v.nodes.length}`)).toEqual([]);

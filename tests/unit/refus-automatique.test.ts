@@ -5,12 +5,13 @@ import { baseLocale } from "@/lib/db/locale";
 // est refusée et remboursée, le client prévenu par e-mail, les commandes en ligne en pause, le gérant alerté.
 // La passerelle de paiement est remplacée : aucun appel à Stripe.
 const remboursements: string[] = [];
-const passerelleEnPanne = { oui: false };
+const passerelleEnPanne = { oui: false, bloquee: false };
 vi.mock("@/lib/paiement/passerelle", async (original) => ({
   ...(await original<typeof import("@/lib/paiement/passerelle")>()),
   passerelle: () => ({
     nom: "stripe",
     async rembourser(pi: string) {
+      if (passerelleEnPanne.bloquee) await new Promise((ok) => setTimeout(ok, 6000));
       if (passerelleEnPanne.oui) throw new Error("Stripe indisponible (simulé)");
       remboursements.push(pi);
       return { id: `re_${pi}`, statut: "succeeded" as const };
@@ -72,6 +73,7 @@ async function pause() {
 beforeEach(async () => {
   remboursements.length = 0;
   passerelleEnPanne.oui = false;
+  passerelleEnPanne.bloquee = false;
   const db = await baseLocale();
   // Une commande d'un test précédent qui attend encore ne doit pas compter dans le suivant.
   await db.query("update commandes set statut = 'terminee' where statut = 'nouvelle' and client_email like 'refus%@laferme.test'");
@@ -191,7 +193,7 @@ describe("refus automatique (C13)", () => {
     expect(await reprendreRemboursements()).not.toContain(c.numero);
   });
 
-  it("reprise qui échoue au premier essai : une alerte au gérant", async () => {
+  it("Stripe en panne au refus puis à la reprise : une seule alerte, celle du refus", async () => {
     const db = await baseLocale();
     const c = await payee();
     await vieillir(c.id, 20);
@@ -199,6 +201,31 @@ describe("refus automatique (C13)", () => {
     await refuserCommandesSansReponse();
     await db.query("update evenements_commande set le = now() - interval '150 seconds' where commande_id = $1 and vers = 'refusee'", [c.id]);
     expect(await reprendreRemboursements()).not.toContain(c.numero);
-    expect((await courriels("commande_id is null and sujet = $1", [`Commande ${c.numero} : remboursement à refaire`])).length).toBeGreaterThanOrEqual(1);
+    expect(await reprendreRemboursements()).not.toContain(c.numero);
+    expect(await courriels("commande_id is null and sujet = $1", [`Commande ${c.numero} : remboursement à refaire`])).toHaveLength(1);
   });
+
+  it("coupée avant le remboursement et Stripe en panne : le client et le gérant sont prévenus une fois", async () => {
+    const db = await baseLocale();
+    const c = await payee();
+    // La fonction s'est arrêtée juste après le changement d'état : ni remboursement, ni e-mail, ni alerte.
+    await db.query("select changer_statut($1, 'refusee', 'tablette:Refus automatique', null, $2, 'nouvelle')", [c.id, motifRefusAutomatique(15)]);
+    await db.query("update evenements_commande set le = now() - interval '150 seconds' where commande_id = $1 and vers = 'refusee'", [c.id]);
+    passerelleEnPanne.oui = true;
+    await reprendreRemboursements();
+    await reprendreRemboursements();
+    expect(await courriels("commande_id is null and sujet = $1", [`Commande ${c.numero} : remboursement à refaire`])).toHaveLength(1);
+    const client = await courriels("commande_id = $1", [c.id]);
+    expect(client).toHaveLength(1);
+    expect(client[0].texte).toContain("pas encore parti");
+  });
+
+  it("Stripe qui ne répond pas : le tour rend la main en quelques secondes", async () => {
+    const c = await payee();
+    await vieillir(c.id, 20);
+    passerelleEnPanne.bloquee = true;
+    const debut = Date.now();
+    await refuserCommandesSansReponse();
+    expect(Date.now() - debut).toBeLessThan(5500);
+  }, 15_000);
 });

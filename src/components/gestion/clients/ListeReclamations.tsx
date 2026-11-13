@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { FicheCommande } from "@/components/gestion/commandes/FicheCommande";
+import { useRoleGestion } from "@/components/gestion/droits";
 import { jourCourt } from "@/components/gestion/commandes/libelles";
 import {
   BarreEnregistrer,
@@ -283,6 +284,7 @@ function FicheReclamation({
     onChange();
   }, [charger, onChange]);
   // Un compteur par formulaire : enregistrer un geste ne vide pas un suivi en cours de saisie (qualite, CI #181).
+  const gerant = useRoleGestion() === "gerant";
   const [nGeste, setNGeste] = useState(0);
   const [nSuivi, setNSuivi] = useState(0);
 
@@ -387,10 +389,11 @@ function FicheReclamation({
             }))}
           />
         </section>
-        {fiche.statut !== "close" && !fiche.geste && (
+        {/* Geste et suivi restent au gérant (D1) : le responsable lit le dossier. */}
+        {gerant && fiche.statut !== "close" && !fiche.geste && (
           <Geste key={`g${nGeste}`} fiche={fiche} fait={gesteFait} />
         )}
-        <Suivre key={`s${nSuivi}`} fiche={fiche} fait={suiviFait} />
+        {gerant && <Suivre key={`s${nSuivi}`} fiche={fiche} fait={suiviFait} />}
       </div>
     </div>
   );

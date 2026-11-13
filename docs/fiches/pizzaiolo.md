@@ -38,18 +38,19 @@ Le ticket ne porte pas de prix.
 | Le four est en panne. | Prévenir le gérant. Il touche « Four en panne… » dans le back-office. Les pizzas sortent de la vente. |
 | J'ai trop de tickets. | Le dire au comptoir. Il ajoute du retard ou met les commandes en pause. |
 | L'imprimante ne sort plus rien. | Regarder le papier et le capot. Le comptoir lit les tickets sur la tablette en attendant. Rien n'est perdu. |
+| L'imprimante est dite « en ligne » mais rien ne sort. | Le site ne voit pas un papier coincé ou mal mis. Ouvrir le capot, remettre le rouleau, refermer. Le comptoir touche « Réimprimer » sur la commande, ou « Ticket » pour la lire à l'écran. |
 | Il n'y a plus de papier. | Changer le rouleau. Les tickets en attente sortent tous, dans l'ordre. |
 | Un ticket sort en double. | Regarder le numéro. Ne pas faire la commande deux fois. |
 | Un ticket sort pour 20h alors qu'il est 19h. | C'est une commande passée à l'avance. Son ticket sort avant l'heure promise. Regarder l'heure écrite dessus. |
+| Le comptoir me dit « À lancer ». | Cette commande doit commencer maintenant pour tenir son heure. |
+| Le comptoir me dit « À sortir dans 6 min ». | Dans 6 minutes, elle doit être au comptoir ou partir en livraison. |
 | La pizza est prête, je fais quoi ? | La passer au comptoir avec son ticket. C'est le comptoir qui touche « Prête ». |
 
 ## Si un écran est posé au four
 
 L'écran « Poste pizza » est à l'essai. Les tickets papier continuent de sortir.
 
-- En haut, « Reste à sortir » additionne les pizzas des commandes en cours.
+- En haut, « Reste à sortir » additionne les pizzas des commandes déjà mises en route.
 - Chaque fiche montre vos lignes seulement. « Lancée » puis « Prête ».
 - Une erreur de doigt se rattrape en bas, sous « Dernières sorties », avec « Rouvrir ».
 - « Prête » sur cet écran ne prévient pas le client. Le comptoir garde son bouton.
-
-Le 13.11.2026, cet écran comptait aussi les commandes prévues plusieurs heures plus tard. Tant que ce n'est pas revu, suivre les tickets.

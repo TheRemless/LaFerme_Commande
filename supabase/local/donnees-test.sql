@@ -156,3 +156,11 @@ insert into personnel (email, nom, role) values
 insert into personnel (email, nom, role) values
   ('mise-en-route-bureau@laferme.test', 'Mise en route bureau', 'gerant'),
   ('mise-en-route-mobile@laferme.test', 'Mise en route mobile', 'gerant');
+
+-- Heure promise réaliste et base de test (bo-operations, #241). La base embarquée est commune à tous les tests e2e et
+-- reçoit des centaines de commandes en quelques minutes. Avec le four compté (15 pizzas par quart d'heure, migration
+-- 20261213140000, valeur de production), leur file allongeait toutes les heures promises selon l'ordre des tests :
+-- créneaux et messages des pages à heure simulée, tickets reportés à plus tard, lignes de la tablette. Ici, le four
+-- reste à 0 (ignoré), comme cuisine et livreurs. Le calcul avec 15 est vérifié par les tests qui posent leur propre
+-- débit (tests/unit/heure-reelle-four.test.ts, heure-reelle-sql, charge-postes-sql).
+update reglages set valeur = '0'::jsonb where cle = 'debit_pizza_quart_heure';
