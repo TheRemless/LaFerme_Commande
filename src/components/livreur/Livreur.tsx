@@ -433,7 +433,7 @@ function Arret({
 function TextePartage({ partage, numero }: { partage: EtatPartage; numero: number }) {
   const texte =
     partage.etat === "partage"
-      ? `Le client du n° ${partage.numero ?? numero} voit votre position jusqu'à « Livrée ».`
+      ? `Le client du n° ${partage.numero ?? numero} voit votre position jusqu'à «\u00a0Livrée\u00a0».`
       : partage.etat === "refuse"
         ? "Localisation refusée sur ce téléphone. Le client ne voit pas où vous êtes."
         : partage.etat === "indisponible"

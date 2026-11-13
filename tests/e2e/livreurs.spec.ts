@@ -179,11 +179,11 @@ test("tournée de deux livraisons, ordre proposé, Je pars, Livrée : plus rien 
   // D'une main (vague 3) : en route, l'arrêt en cours a « Livrée » sous le pouce, le suivant est replié.
   await expect(marco.locator(".liv-pouce")).toContainText(`Livrée, n° ${a}`);
   await expect(arret(marco, b)).toHaveClass(/liv-arret-replie/);
-  await expect(marco.locator(".liv-position")).toHaveText(`Le client du n° ${a} voit votre position jusqu'à « Livrée ».`, { timeout: 15_000 });
+  await expect(marco.locator(".liv-position")).toHaveText(`Le client du n° ${a} voit votre position jusqu'à «\u00a0Livrée\u00a0».`, { timeout: 15_000 });
   await marco.screenshot({ path: "test-results/livreurs/livreur-375-position.png" });
   await arret(marco, a).getByRole("button", { name: "Livrée" }).click();
   await expect(arret(marco, a)).toHaveCount(0);
-  await expect(marco.locator(".liv-position")).toHaveText(`Le client du n° ${b} voit votre position jusqu'à « Livrée ».`, { timeout: 15_000 });
+  await expect(marco.locator(".liv-position")).toHaveText(`Le client du n° ${b} voit votre position jusqu'à «\u00a0Livrée\u00a0».`, { timeout: 15_000 });
   await arret(marco, b).getByRole("button", { name: "Livrée" }).click();
   await expect(arret(marco, b)).toHaveCount(0);
   await tablette.getByRole("button", { name: /^Terminées/ }).click();

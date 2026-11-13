@@ -289,6 +289,7 @@ Mesure sur le jeu de rush de qualite (91 commandes en cours, `scripts/tablette/m
 - **Base** (`noter_position_livreur`) : une ligne par livreur (`positions_livreur`), remplacée à chaque envoi, au plus une écriture toutes les 10 secondes, coordonnées arrondies à 4 décimales (une dizaine de mètres), sans historique ni journal. Signal hors de la région de Genève ou précision de plus d'un kilomètre : ignoré.
 - **Suivi** (`position_pour_suivi`, `src/lib/position-livreur.ts`) : la position n'est lue pour une commande que si cette commande est l'arrêt en cours de son livreur, et seulement si elle a moins de 2 minutes. Le 2e client ne voit rien tant que le 1er n'est pas livré.
 - **Effacement** : livrée, client absent clos, annulée, retirée ou donnée à un autre livreur, la position est effacée sur-le-champ (déclencheurs sur `commandes` et `livraisons`). Une position qui n'est plus envoyée est effacée au bout de 15 minutes.
+- **Capture** : `docs/rendus/vague-3/tablette/livreur-position-375.png` (e2e livreurs, téléphone en route).
 - **Interrupteur** : réglage `position_livreur_en_direct` (vrai). À faux, plus rien n'est gardé ni lu, et le téléphone arrête d'envoyer.
 - **En-tête** : `Permissions-Policy` ouvre la géolocalisation pour `/livreur` seulement (`next.config.ts`), elle reste fermée partout ailleurs.
 - **Limite connue** : un navigateur de téléphone n'envoie la position que tant que la page est à l'écran. Si le livreur passe sur l'appli de navigation, la position s'arrête et disparaît du suivi au bout de 2 minutes.
