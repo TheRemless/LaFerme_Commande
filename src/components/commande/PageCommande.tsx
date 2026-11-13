@@ -337,10 +337,11 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
                     autoComplete="off"
                     required
                     aria-invalid={destinataireFaux === "nom" ? true : undefined}
+                    aria-describedby={destinataireFaux === "nom" ? `${ids}-destinataire-nom-erreur` : undefined}
                     onChange={(e) => changerDestinataire({ ...destinataire, nom: e.target.value })}
                   />
                   {destinataireFaux === "nom" && (
-                    <p className="aide aide-erreur" role="alert">
+                    <p className="aide aide-erreur" role="alert" id={`${ids}-destinataire-nom-erreur`}>
                       Indiquez le nom de la personne.
                     </p>
                   )}
@@ -355,14 +356,17 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
                     autoComplete="off"
                     required
                     aria-invalid={destinataireFaux === "telephone" ? true : undefined}
+                    aria-describedby={`${ids}-destinataire-telephone-aide`}
                     onChange={(e) => changerDestinataire({ ...destinataire, telephone: e.target.value })}
                   />
                   {destinataireFaux === "telephone" ? (
-                    <p className="aide aide-erreur" role="alert">
+                    <p className="aide aide-erreur" role="alert" id={`${ids}-destinataire-telephone-aide`}>
                       {MESSAGE_CHAMP.telephone}
                     </p>
                   ) : (
-                    <p className="aide">Pour la joindre au sujet de la commande.</p>
+                    <p className="aide" id={`${ids}-destinataire-telephone-aide`}>
+                      Pour la joindre au sujet de la commande.
+                    </p>
                   )}
                 </div>
               </div>
