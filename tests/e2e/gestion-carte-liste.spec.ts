@@ -109,4 +109,17 @@ test("les étiquettes se posent sur la fiche ; végane coche aussi végétarien"
   await expect(gestion.getByText("Étiquettes enregistrées.").last()).toBeVisible();
   await expect(panneau.getByRole("checkbox", { name: "Végétarien" })).not.toBeChecked();
   await gestion.keyboard.press("Escape");
+
+test("en lot : retirer de la vente puis remettre en vente", async () => {
+  await gestion.goto("/gestion/carte");
+  const tableau = gestion.getByRole("table");
+  const ligne = tableau.getByRole("row", { name: /Pizza Tonno/ }).first();
+  await tableau.getByRole("checkbox", { name: "Sélectionner Pizza Tonno" }).check();
+  await gestion.getByRole("button", { name: "Retirer de la vente" }).click();
+  await expect(gestion.getByText("1 plat retiré de la vente.")).toBeVisible();
+  await expect(ligne).toContainText("Hors vente");
+  await tableau.getByRole("checkbox", { name: "Sélectionner Pizza Tonno" }).check();
+  await gestion.getByRole("button", { name: "Mettre en vente" }).click();
+  await expect(gestion.getByText("1 plat en vente.")).toBeVisible();
+  await expect(ligne).toContainText("En vente");
 });
