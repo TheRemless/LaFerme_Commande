@@ -82,6 +82,9 @@ insert into personnel (email, nom, role) values
   ('sami@laferme.test', 'Sami', 'livreur'),
   ('nora@laferme.test', 'Nora', 'livreur');
 
+-- Écran Réglages généraux (tests/e2e/gestion-reglages.spec.ts, vague 3).
+insert into personnel (email, nom, role) values ('ecran-reglages@laferme.test', 'Écran réglages', 'gerant');
+
 -- Commandes et clients du back-office (vague 3, bo-commandes, tests/e2e/gestion-commandes.spec.ts).
 insert into personnel (email, nom, role) values
   ('commandes-bureau@laferme.test', 'Commandes bureau', 'gerant'),
