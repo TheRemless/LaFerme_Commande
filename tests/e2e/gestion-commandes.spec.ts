@@ -48,7 +48,8 @@ test("la liste se filtre par statut et se cherche par nom, sans erreur d'accessi
   await aAccepter.click();
   await expect(aAccepter).toHaveAttribute("aria-pressed", "true");
   await gestion.getByLabel("Numéro, nom, téléphone ou e-mail").fill(prenom);
-  await expect(gestion.getByText("Recherche sur les 90 derniers jours.")).toBeVisible();
+  // Avec une recherche, le bouton des filtres (replié) rappelle la période : les 90 derniers jours.
+  await expect(gestion.getByText(/^Filtres : 90 derniers jours/)).toBeVisible();
   await expect(gestion.getByRole("row", { name: new RegExp(`${prenom} Essai`) })).toHaveCount(1);
   const r = await new AxeBuilder({ page: gestion }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
   expect(r.violations.map((v) => v.id)).toEqual([]);
@@ -122,4 +123,15 @@ test("« on ferme plus tôt » : deux commandes s'annulent d'un geste, avec un s
   // La pastille « À accepter » du premier test filtre encore : on l'efface pour revoir les deux commandes.
   await gestion.getByRole("button", { name: "Effacer les filtres" }).click();
   await expect(gestion.getByRole("row", { name: new RegExp(nom) }).filter({ hasText: "Refusée ou annulée" })).toHaveCount(2);
+});
+
+test("une alerte de l'accueil ouvre la liste déjà filtrée ; sur plusieurs jours, le jour s'affiche", async () => {
+  await gestion.goto("/gestion/commandes?remboursement=echec&periode=30jours");
+  const filtres = gestion.getByText(/^Filtres : 30 derniers jours, 1 de plus$/);
+  await expect(filtres).toBeVisible();
+  await filtres.click();
+  await expect(gestion.getByLabel("Remboursement")).toHaveValue("echec");
+  // La base de test n'a pas de remboursement en échec : on élargit pour voir la colonne « Jour ».
+  await gestion.getByLabel("Remboursement").selectOption("");
+  await expect(gestion.getByRole("columnheader", { name: /^Jour/ })).toBeVisible();
 });

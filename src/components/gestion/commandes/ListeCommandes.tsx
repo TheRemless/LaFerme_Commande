@@ -1,10 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnnulerLot } from "@/components/gestion/commandes/ActionsLot";
 import { FicheCommande } from "@/components/gestion/commandes/FicheCommande";
 import {
+  RACCOURCIS_PERIODE,
+  raccourciDe,
+  type CleRaccourciPeriode,
+} from "@/components/gestion/ui/periodes";
+import {
   heureCourte,
+  jourCourt,
   MODE,
   ORDRE_STATUTS,
   PAIEMENT,
@@ -187,12 +193,22 @@ const IMPRIMABLE = [
   "terminee",
 ];
 
+// Jour de service : montré dès que la liste couvre plus d'un jour (les numéros repartent à 1 chaque jour).
+const JOUR: Colonne<LigneCommande> = {
+  cle: "jour",
+  titre: "Jour",
+  valeur: (l) => jourCourt(`${l.jour_service}T12:00:00Z`),
+  triable: true,
+  fixe: true,
+};
+
 // Le serveur trie l'heure prévue et le numéro dans l'ordre croissant, le montant dans l'ordre décroissant ;
 // la flèche de l'écran suit donc toujours le sens réel des données.
 function triPermis(t: Tri): Tri {
   if (t.cle === "heure" || t.cle === "numero")
     return { cle: t.cle, sens: "asc" };
-  if (t.cle === "montant") return { cle: t.cle, sens: "desc" };
+  if (t.cle === "montant" || t.cle === "jour")
+    return { cle: t.cle, sens: "desc" };
   return t;
 }
 
@@ -200,7 +216,8 @@ function triPermis(t: Tri): Tri {
 function triServeur(t: Tri): string {
   if (t.cle === "heure") return "heure";
   if (t.cle === "montant") return "montant";
-  if (t.cle === "numero") return "numero";
+  // Jour : le plus récent d'abord, puis numéro croissant (le tri « numero » du serveur).
+  if (t.cle === "numero" || t.cle === "jour") return "numero";
   return t.sens === "asc" ? "ancien" : "recent";
 }
 
@@ -209,7 +226,7 @@ type Filtres = {
   moyen: string;
   paiement: string;
   en_retard: boolean;
-  remboursee: boolean;
+  remboursement: string;
   avec_note: boolean;
   avec_reclamation: boolean;
   service: string;
@@ -223,7 +240,7 @@ const SANS_FILTRE: Filtres = {
   moyen: "",
   paiement: "",
   en_retard: false,
-  remboursee: false,
+  remboursement: "",
   avec_note: false,
   avec_reclamation: false,
   service: "",
@@ -280,7 +297,9 @@ export function ListeCommandes() {
       ...(filtres.moyen ? { moyen: filtres.moyen } : {}),
       ...(filtres.paiement ? { paiements: [filtres.paiement] } : {}),
       ...(filtres.en_retard ? { en_retard: true } : {}),
-      ...(filtres.remboursee ? { remboursee: true } : {}),
+      ...(filtres.remboursement
+        ? { remboursement: filtres.remboursement }
+        : {}),
       ...(filtres.avec_note ? { avec_note: true } : {}),
       ...(filtres.avec_reclamation ? { avec_reclamation: true } : {}),
       ...(filtres.service ? { service: filtres.service } : {}),
@@ -367,15 +386,52 @@ export function ListeCommandes() {
     charger();
   }
 
-  // Filtres repliés sur téléphone (ils repousseraient la liste d'un écran), ouverts sur grand écran.
-  const [filtresOuverts, setFiltresOuverts] = useState(true);
-  useEffect(() => {
-    if (window.matchMedia("(max-width: 767px)").matches)
-      setFiltresOuverts(false);
-  }, []);
+  // Filtres repliés au départ, période comprise : la liste reste visible (retour du chef de produit).
+  const [filtresOuverts, setFiltresOuverts] = useState(false);
+  const multiJour = !!q || periode.debut !== periode.fin;
+  const colonnes = useMemo(
+    () => (multiJour ? [COLONNES[0], JOUR, ...COLONNES.slice(1)] : COLONNES),
+    [multiJour],
+  );
+  const raccourci = raccourciDe(periode, aujourdhui);
+  const periodeTexte = q
+    ? "90 derniers jours"
+    : raccourci
+      ? (RACCOURCIS_PERIODE.find((r) => r.cle === raccourci)?.libelle ?? "")
+      : `du ${jourCourt(`${periode.debut}T12:00:00Z`)} au ${jourCourt(`${periode.fin}T12:00:00Z`)}`;
   const nbFiltres = Object.values(filtres).filter(
     (v) => v !== "" && v !== false,
   ).length;
+
+  // Filtres lus dans l'adresse, une fois, pour qu'une alerte de l'accueil ouvre la liste déjà filtrée.
+  // Seulement des états et des périodes : une recherche (nom, téléphone) n'y passe jamais.
+  useEffect(() => {
+    const a = new URLSearchParams(window.location.search);
+    if (![...a.keys()].length) return;
+    const statutsAdresse = (a.get("statut") ?? "")
+      .split(",")
+      .filter((x) => (ORDRE_STATUTS as readonly string[]).includes(x));
+    if (statutsAdresse.length) setStatuts(statutsAdresse);
+    const r = a.get("periode");
+    if (r && RACCOURCIS_PERIODE.some((x) => x.cle === r))
+      setPeriode(periodeDe(r as CleRaccourciPeriode, aujourdhui));
+    setFiltres((f) => ({
+      ...f,
+      ...(["fait", "en_cours", "echec"].includes(a.get("remboursement") ?? "")
+        ? { remboursement: a.get("remboursement")! }
+        : {}),
+      ...(["midi", "soir"].includes(a.get("service") ?? "")
+        ? { service: a.get("service")! }
+        : {}),
+      ...(["livraison", "retrait"].includes(a.get("mode") ?? "")
+        ? { mode: a.get("mode")! }
+        : {}),
+      ...(a.get("en_retard") === "1" ? { en_retard: true } : {}),
+      ...(a.get("avec_reclamation") === "1" ? { avec_reclamation: true } : {}),
+      ...(a.get("avec_note") === "1" ? { avec_note: true } : {}),
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const compteurs = donnees?.compteurs ?? {};
   const filtresActifs =
@@ -404,7 +460,7 @@ export function ListeCommandes() {
 
       <TableauDonnees<LigneCommande>
         titre="Commandes"
-        colonnes={COLONNES}
+        colonnes={colonnes}
         lignes={donnees?.lignes ?? null}
         cleLigne={(l) => l.id}
         chargement={chargement && donnees !== null}
@@ -431,22 +487,6 @@ export function ListeCommandes() {
         }}
         filtres={
           <div className="bo-filtres-commandes">
-            <div>
-              {q ? (
-                <p className="bo-champ-aide">
-                  Recherche sur les 90 derniers jours.
-                </p>
-              ) : (
-                <SelecteurPeriode
-                  valeur={periode}
-                  futur
-                  onChange={(p) => {
-                    setPeriode(p);
-                    setPage(1);
-                  }}
-                />
-              )}
-            </div>
             <details
               className="bo-filtres-plus"
               open={filtresOuverts}
@@ -455,8 +495,25 @@ export function ListeCommandes() {
               }
             >
               <summary className="bo-bouton bo-bouton-second bo-bouton-petit">
-                Filtres{nbFiltres ? ` (${nbFiltres})` : ""}
+                Filtres : {periodeTexte}
+                {nbFiltres ? `, ${nbFiltres} de plus` : ""}
               </summary>
+              <div>
+                {q ? (
+                  <p className="bo-champ-aide">
+                    Recherche sur les 90 derniers jours.
+                  </p>
+                ) : (
+                  <SelecteurPeriode
+                    valeur={periode}
+                    futur
+                    onChange={(p) => {
+                      setPeriode(p);
+                      setPage(1);
+                    }}
+                  />
+                )}
+              </div>
               <div className="bo-filtres-ligne">
                 <label>
                   Service
@@ -550,13 +607,17 @@ export function ListeCommandes() {
                   />{" "}
                   En retard
                 </label>
-                <label className="bo-case">
-                  <input
-                    type="checkbox"
-                    checked={filtres.remboursee}
-                    onChange={(e) => filtrer("remboursee", e.target.checked)}
-                  />{" "}
-                  Avec remboursement
+                <label>
+                  Remboursement
+                  <select
+                    value={filtres.remboursement}
+                    onChange={(e) => filtrer("remboursement", e.target.value)}
+                  >
+                    <option value="">Peu importe</option>
+                    <option value="fait">Fait</option>
+                    <option value="en_cours">En cours</option>
+                    <option value="echec">En échec</option>
+                  </select>
                 </label>
                 <label className="bo-case">
                   <input

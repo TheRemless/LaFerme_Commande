@@ -139,6 +139,21 @@ describe("liste des commandes : pagination et filtres côté serveur", () => {
     expect(ligneA.localite).toBe("Onex");
   });
 
+  it("filtre par état d'un remboursement : fait, en cours, en échec", async () => {
+    const a = await commande();
+    const b = await commande();
+    await commande();
+    for (const [c, cle, statut] of [[a, "cle-etat-0001", "echec"], [b, "cle-etat-0002", "en_cours"]] as const) {
+      await db.query(
+        "insert into remboursements (commande_id, cle, montant_centimes, motif, moyen, statut, personnel_nom) values ($1, $2, 300, 'Geste.', 'stripe', $3, 'Gérant')",
+        [c, cle, statut],
+      );
+    }
+    expect((await liste({ remboursement: "echec" })).lignes.map((l) => l.id)).toEqual([a]);
+    expect((await liste({ remboursement: "en_cours" })).lignes.map((l) => l.id)).toEqual([b]);
+    expect((await liste({ remboursement: "fait" })).total).toBe(0);
+  });
+
   it("calcule le retard et le filtre « en retard »", async () => {
     const enRetard = await commande();
     const aLHeure = await commande();

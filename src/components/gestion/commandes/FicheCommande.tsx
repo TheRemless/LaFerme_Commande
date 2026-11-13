@@ -382,7 +382,11 @@ function Resume({ fiche }: { fiche: Fiche }) {
             )}
             <tr>
               <th scope="row" colSpan={2}>
-                Total payé
+                {fiche.statut_paiement === "a_encaisser_retrait"
+                  ? "Total à payer au comptoir"
+                  : fiche.statut_paiement === "en_attente"
+                    ? "Total"
+                    : "Total payé"}
               </th>
               <td className="bo-nombre">
                 <strong>{montant(fiche.total_centimes)}</strong>
