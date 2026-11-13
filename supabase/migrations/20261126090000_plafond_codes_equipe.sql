@@ -7,6 +7,7 @@
 --   insert into reglages (cle, valeur, proposition) values ('plafond_codes_personnel_jour', '<nombre>', false)
 --   on conflict (cle) do update set valeur = excluded.valeur, proposition = false;
 -- Compteur à part de celui des clients : un client ne peut jamais bloquer la connexion de l'équipe.
+-- Activé, il s'accompagne de deux limites sur 24 heures : un quart du plafond par adresse, la moitié par IP.
 -- Au plafond : -2 (même réponse qu'une adresse inconnue, aucun code créé), -3 la première fois par
 -- 24 heures (le site prévient alors le restaurant). Seuls les codes réellement créés pour un membre actif
 -- comptent : une adresse inconnue ne consomme rien.
@@ -36,6 +37,15 @@ begin
     attente_limite('envoi_email', p_cle_email, 5, interval '1 hour', 30, 1),
     attente_limite('envoi_ip', p_cle_ip, 20, interval '1 hour', 0, 0)
   );
+  -- Plafond activé : une adresse ne peut prendre qu'un quart du plafond sur 24 heures, une IP la moitié.
+  -- Sans cela, une seule adresse de l'équipe connue (5 codes par heure, 120 par jour) remplirait le plafond
+  -- et couperait la connexion de toute l'équipe (revue de sécurité de cette PR). Il faut alors au moins
+  -- quatre adresses connues et deux réseaux.
+  if plafond is not null then
+    a := greatest(a,
+      attente_limite('envoi_email', p_cle_email, greatest(1, plafond / 4), interval '1 day', 0, 0),
+      attente_limite('envoi_ip', p_cle_ip, greatest(1, plafond / 2), interval '1 day', 0, 0));
+  end if;
   if a > 0 then
     return a;
   end if;

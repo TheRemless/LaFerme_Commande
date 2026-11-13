@@ -58,6 +58,24 @@ describe("plafond global des codes de l'équipe", () => {
     expect(codes.rows[0].n).toBe(0);
   });
 
+  it("activé, une seule adresse ne peut prendre qu'un quart du plafond, une IP la moitié", async () => {
+    await db.query("insert into reglages (cle, valeur, proposition) values ($1, '8', false)", [PLAFOND]);
+    const cle = h();
+    const demanderAvec = async (cleEmail: string, ip: string) =>
+      (await db.query<{ r: number }>("select demander_code_personnel($1, $2, $3, $4, 'ip') as r", [EQUIPE[0], cleEmail, ip, h()])).rows[0].r;
+    // Deux codes (un quart de 8) pour cette adresse, puis attente ; les codes de l'heure ne sont pas en cause
+    // (on efface leur trace entre deux demandes en vieillissant les lignes d'une heure).
+    for (let i = 0; i < 2; i++) {
+      expect(await demanderAvec(cle, h())).toBe(0);
+      await db.query("update tentatives_connexion set le = le - interval '61 minutes' where action = 'envoi_email' and cle = $1 and le > now() - interval '1 minute'", [cle]);
+    }
+    expect(await demanderAvec(cle, h())).toBeGreaterThan(0);
+    // Une IP : quatre codes (la moitié de 8), même sur des adresses différentes.
+    const ip = h();
+    for (let i = 0; i < 4; i++) expect(await demanderAvec(h(), ip)).toBe(0);
+    expect(await demanderAvec(h(), ip)).toBeGreaterThan(0);
+  });
+
   it("un réglage illisible ou inférieur à 1 laisse le plafond désactivé", async () => {
     await db.query("insert into reglages (cle, valeur, proposition) values ($1, '\"beaucoup\"', false)", [PLAFOND]);
     expect((await db.query<{ p: number | null }>("select plafond_codes_personnel() as p")).rows[0].p).toBeNull();
