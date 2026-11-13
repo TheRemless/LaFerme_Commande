@@ -30,7 +30,8 @@ test("réglages généraux : e-mail des alertes, erreur de saisie, accessibilit�
     await expect(page.getByLabel("Proposer une boisson ou un dessert au panier")).not.toBeChecked();
     // Rythme de la cuisine : débits à 0 au départ, la file n'est pas comptée.
     await expect(page.getByLabel("Pizzas que le four sort en 15 minutes")).toHaveValue("0");
-    await expect(page.getByText("En ce moment : la file n'est pas comptée (débits à 0).")).toBeVisible();
+    await expect(page.getByText(/^En ce moment : la file n'est pas comptée \(débits à 0\)\. Livraisons pas comptées/)).toBeVisible();
+    await expect(page.getByLabel("Livraisons qu'un livreur fait en une heure")).toHaveValue("0");
 
     // Erreur de saisie : le champ est signalé, rien ne part.
     await page.getByLabel("Commande à l'avance, jours au plus").fill("30");

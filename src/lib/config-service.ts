@@ -28,7 +28,7 @@ function impressionAvance(reglages: LigneReglage[]): DelaisImpression {
 
 // Tout ce qu'il faut pour décider zone, créneaux et état du restaurant, lu en base.
 async function lireConfigService(): Promise<ConfigService & { plafondComptoirCentimes: number | null }> {
-  const [zones, npa, horaires, fermetures, reglages, ouvertures, chargeBrute, messagesBruts] = await Promise.all([
+  const [zones, npa, horaires, fermetures, reglages, ouvertures, chargeBrute, messagesBruts, livraisonBrute] = await Promise.all([
     lirePublic<Zone>("zones_livraison"),
     lirePublic<ZoneNpa>("zone_npa"),
     lirePublic<Horaire>("horaires"),
@@ -41,6 +41,8 @@ async function lireConfigService(): Promise<ConfigService & { plafondComptoirCen
     fonctionSql<unknown>("charge_cuisine", {}).catch(() => null),
     // Messages d'information aux clients (vague 3). Absents tant que la base n'est pas migrée.
     fonctionSql<unknown>("messages_actifs", {}).catch(() => null),
+    // Attente d'un livreur (version 2). Absente : les livraisons suivent la cuisine seule.
+    fonctionSql<unknown>("charge_livraison", {}).catch(() => null),
   ]);
   // PGlite rend les dates en objets Date, Supabase en texte : on ramène tout au format AAAA-MM-JJ.
   const jour = (d: string | Date) => (typeof d === "string" ? d.slice(0, 10) : d.toISOString().slice(0, 10));
@@ -53,14 +55,19 @@ async function lireConfigService(): Promise<ConfigService & { plafondComptoirCen
   // à partir de lui) : l'allongement n'y entre jamais.
   // Le détail par poste (articles en file) ne va pas dans la config : l'accueil la sert au navigateur, et le
   // nombre de pizzas en cuisine minute par minute dirait les ventes du restaurant. Détail : chargeDuMoment().
-  const allongement = lireCharge(chargeBrute)?.allongement_minutes ?? 0;
+  // En livraison, le plus long de la file de cuisine et de l'attente d'un livreur ; le retrait ne suit que la
+  // cuisine. Même règle de confidentialité : ni livraisons en route ni livreurs présents dans la config.
+  const charge = lireCharge(chargeBrute, livraisonBrute);
+  const allongement = charge?.allongement_minutes ?? 0;
+  const allongementLivraison = charge?.allongement_livraison_minutes ?? allongement;
   const retard = retardManuel + allongement;
+  const retardLivraison = retardManuel + allongementLivraison;
   const preparation = nombre(reglages, "preparation_minutes");
   return {
     zones: zones.map((z) => ({
       ...z,
-      delai_min: z.delai_min + retard,
-      delai_max: z.delai_max + retard,
+      delai_min: z.delai_min + retardLivraison,
+      delai_max: z.delai_max + retardLivraison,
       // PGlite rend un timestamptz en Date, Supabase en texte : toujours du texte ISO (comparé dans le navigateur).
       fermee_jusqu_a: z.fermee_jusqu_a ? new Date(z.fermee_jusqu_a).toISOString() : null,
     })),
@@ -80,6 +87,7 @@ async function lireConfigService(): Promise<ConfigService & { plafondComptoirCen
       preparation_base: preparation,
       retard_minutes: retardManuel,
       allongement_minutes: allongement,
+      allongement_livraison_minutes: allongementLivraison,
       fourchette: lireFourchette(reglages),
       creneau_minutes: nombre(reglages, "creneau_minutes"),
       avance_jours: nombre(reglages, "avance_jours"),
