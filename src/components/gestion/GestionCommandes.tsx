@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { heureDe, jourGeneveDe } from "@/lib/heures";
 import { nouvelleCle } from "@/lib/cle";
 import { prixChf as chf } from "@/lib/prix";
@@ -80,9 +80,14 @@ export function GestionCommandes() {
     if (r.ok) setJours(r.donnees as unknown as Jour[]);
   }, [auj]);
 
+  // Seule la dernière recherche lancée s'affiche : la liste du jour, demandée à l'ouverture et arrivée
+  // après une recherche sur un réseau lent, ne remplace plus son résultat.
+  const derniere = useRef(0);
   const chercher = useCallback(async (corps: { debut?: string; fin?: string; recherche?: string }, libelle: string) => {
+    const n = ++derniere.current;
     setErreur(null);
     const r = await poster("/api/gestion/commandes", { action: "liste", ...corps });
+    if (n !== derniere.current) return;
     if (!r.ok) return setErreur(String(r.donnees.erreur ?? "Recherche impossible."));
     setListe(r.donnees as unknown as Ligne[]);
     setTitre(libelle);

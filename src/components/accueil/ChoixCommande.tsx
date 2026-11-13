@@ -131,8 +131,9 @@ export function ChoixCommande({
       if (w.__laFermeMode === "retrait") montrer();
     }
     delete w.__laFermeMode;
-    const tape = champAdresse.current?.value.trim();
-    if (tape && !c?.adresse) setSaisie(tape);
+    // Texte gardé tel quel : couper l'espace finale (« Avenue du ») collerait le mot tapé ensuite.
+    const tape = champAdresse.current?.value ?? "";
+    if (tape.trim() && !c?.adresse) setSaisie(tape);
   }, []);
 
   // Suggestions geo.admin, 250 ms après la dernière frappe.

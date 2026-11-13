@@ -88,6 +88,24 @@ test("CM-21 : une adresse tapée avant la fin du chargement est gardée et cherc
   await expect(page.getByLabel("Adresse de livraison")).toHaveValue("Avenue du Gros-Chêne 20");
 });
 
+// Test instable signalé le 13.11 : quand la page répondait juste après une espace tapée, l'espace
+// disparaissait (« Avenue duGros-Chêne 20 »). Ici la page répond exactement à ce moment-là.
+test("CM-21 : la page qui répond au milieu de la saisie garde les espaces déjà tapées", async ({ page }) => {
+  let lacher!: () => void;
+  const retenu = new Promise<void>((ok) => (lacher = ok));
+  await page.route("**/_next/static/chunks/**", async (r) => {
+    await retenu;
+    await r.continue();
+  });
+  await page.goto("/?heure=2026-11-10T19:05", { waitUntil: "commit" });
+  const champ = page.getByLabel("Adresse de livraison");
+  await champ.pressSequentially("Avenue du ");
+  lacher();
+  await page.waitForFunction(() => (window as Window & { __laFermePret?: boolean }).__laFermePret === true);
+  await champ.pressSequentially("Gros-Chêne 20");
+  await expect(champ).toHaveValue("Avenue du Gros-Chêne 20");
+});
+
 test("plat épuisé entre le panier et le paiement : le récapitulatif se recalcule après le refus", async ({ page }) => {
   await poser(page, retrait, [L("pizza-margherita", 2)]);
   await page.route("**/api/commandes", (r) => r.fulfill({ status: 422, contentType: "application/json", body: JSON.stringify({ erreur: "Margherita : Épuisé pour aujourd'hui." }) }));
