@@ -10,9 +10,11 @@ const ORIGINE = { Origin: SITE };
 let page: Page;
 const fenetre = () => page.getByRole("dialog", { name: "Recherche dans le back-office" });
 const champ = () => fenetre().getByRole("combobox");
+// Le bouton « Recherche » de l'en-tête (la page Commandes a son propre bouton « Chercher »).
+const bouton = () => page.getByRole("banner").getByRole("button", { name: "Recherche", exact: true });
 
 async function ouvrir() {
-  await page.getByRole("button", { name: /^Chercher/ }).click();
+  await bouton().click();
   await expect(fenetre()).toBeVisible();
   await expect(champ()).toBeFocused();
 }
@@ -89,7 +91,7 @@ test("rien ne correspond : la fenêtre le dit ; Échap la ferme", async () => {
   await expect(fenetre().getByText("Rien ne correspond à « zzzzqqq ».")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(fenetre()).toBeHidden();
-  await expect(page.getByRole("button", { name: /^Chercher/ })).toBeFocused();
+  await expect(bouton()).toBeFocused();
 });
 
 test("⌘K ou Ctrl+K ouvre la recherche", async ({}, info) => {

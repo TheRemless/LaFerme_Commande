@@ -7,10 +7,10 @@ import { IconeGestion, montant, Touches, useDiffere, useRaccourci } from "@/comp
 import { demanderOuverture, type CibleOuverture } from "@/components/gestion/ui/ouverture";
 import { heureDe, jourGeneveDe } from "@/lib/heures";
 import { poster } from "@/lib/requete-client";
-import { normaliser, type ResultatsRecherche } from "@/lib/recherche-gestion";
+import { normaliser, type ResultatsRecherche } from "@/lib/recherche-texte";
 import { jourTexte } from "@/lib/service";
 
-// Recherche globale (⌘K ou Ctrl+K, ou le bouton « Chercher » de l'en-tête) : une commande par numéro, un client
+// Recherche globale (⌘K ou Ctrl+K, ou le bouton « Recherche » de l'en-tête) : une commande par numéro, un client
 // par nom ou téléphone, un plat, une rubrique. Flèches pour choisir, Entrée pour ouvrir, Échap pour fermer.
 
 type Choix = { id: string; groupe: string; titre: string; detail: string; aller: () => void };
@@ -32,7 +32,7 @@ export function RechercheGlobale() {
     <>
       <button type="button" className="bo-chercher" onClick={() => setOuverte(true)} aria-haspopup="dialog">
         <IconeGestion nom="chercher" />
-        <span>Chercher</span>
+        <span>Recherche</span>
         <span className="bo-chercher-touches" aria-hidden="true">
           <Touches touches="mod+k" />
         </span>
@@ -54,7 +54,7 @@ function Fenetre({ fermer }: { fermer: () => void }) {
   const [actif, setActif] = useState(0);
   const sequence = useRef(0);
 
-  // Le focus revient où il était (le bouton « Chercher », ou le champ d'où l'on a tapé ⌘K).
+  // Le focus revient où il était (le bouton « Recherche », ou le champ d'où l'on a tapé ⌘K).
   useEffect(() => {
     const retour = document.activeElement;
     const d = boite.current!;
@@ -149,7 +149,11 @@ function Fenetre({ fermer }: { fermer: () => void }) {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+              // Échap ferme tout de suite (un champ de recherche se viderait d'abord).
+              if (e.key === "Escape") {
+                e.preventDefault();
+                fermer();
+              } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
                 e.preventDefault();
                 if (choix.length) setActif((actifSur + (e.key === "ArrowDown" ? 1 : -1) + choix.length) % choix.length);
               } else if (e.key === "Enter" && choix[actifSur]) {

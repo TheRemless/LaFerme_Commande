@@ -3,25 +3,9 @@
 // La recherche part en POST : un nom ou un téléphone n'apparaît jamais dans une adresse.
 import { chargerCatalogue } from "@/lib/catalogue";
 import { fonctionSql } from "@/lib/db/serveur";
+import { MAX_PAR_GROUPE, normaliser, type ResultatsRecherche } from "@/lib/recherche-texte";
 
-export const MAX_PAR_GROUPE = 5;
-
-export type ResultatCommande = { id: string; numero: number; client: string; mode: "livraison" | "retrait"; statut: string; quand: string; total_centimes: number };
-export type ResultatClient = { email: string; nom: string; telephone: string | null; commandes: number };
-export type ResultatPlat = { slug: string; nom: string; rupture: boolean };
-export type ResultatsRecherche = { commandes: ResultatCommande[] | null; clients: ResultatClient[] | null; plats: ResultatPlat[] | null };
-
-/** Texte cherché : espaces réduits, 60 caractères au plus ; null en dessous de deux caractères. */
-export function texteRecherche(v: unknown): string | null {
-  if (typeof v !== "string") return null;
-  const q = v.trim().replace(/\s+/g, " ").slice(0, 60);
-  return q.length >= 2 || /^\d+$/.test(q) ? q : null;
-}
-
-/** Comparaison sans accents ni majuscules, comme la recherche de la carte côté client. */
-export function normaliser(s: string): string {
-  return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-}
+export { normaliser, texteRecherche, type ResultatsRecherche } from "@/lib/recherche-texte";
 
 type LigneCommande = { id: string; numero: number; client_prenom: string; client_nom: string; mode: "livraison" | "retrait"; statut: string; heure_prevue: string | null; cree_le: string; total_centimes: number };
 type LigneClient = { email: string; prenom: string | null; nom: string | null; telephone: string | null; commandes: number };
