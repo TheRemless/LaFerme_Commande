@@ -239,9 +239,9 @@ test("réseau coupé : Je pars attend, repart seul, un seul e-mail au client", a
   const geste = () => marco.request.post("/api/livreur", { headers: ORIGINE, data: { cle, commande: id, geste: "livree" } });
   expect((await (await geste()).json()).ok).toBe(true);
   expect(await (await geste()).json()).toEqual({ ok: true, deja: true });
-  // Un seul e-mail « en route » pour cette commande (courriels de test de la base embarquée).
+  // Un seul e-mail à la commande (13.11.2026) : « en route » se lit au suivi, aucun e-mail ne part.
   const courriels = await (await request.get(`/dev/courriels?jeton=${jetons.get(c)}`)).text();
-  expect(courriels.match(new RegExp(`<h2>Commande ${c} en route`, "g"))?.length).toBe(1);
+  expect(courriels).not.toContain(`<h2>Commande ${c} en route`);
 });
 
 test("client absent : signalé par le livreur, clos sans remboursement par la tablette", async ({ request }) => {
