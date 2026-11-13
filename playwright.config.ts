@@ -17,7 +17,10 @@ export default defineConfig({
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }], ["list"]] : "list",
   // Rien d'autre à séparer entre deux sessions : chaque worktree a son build (.next) et la base embarquée vit
   // dans la mémoire de chaque serveur. Deux passages du même worktree en même temps restent à éviter (même .next).
-  use: { baseURL: `http://localhost:${PORT}`, channel: process.env.CI ? undefined : "chrome" },
+  // Mouvement réduit : aucune animation d'entrée (fondus du back-office, défilements doux). axe lisait une
+  // notification en plein fondu et signalait un faux défaut de contraste (signalé par bo-pilotage) ; un clic
+  // pendant une animation peut aussi viser un élément qui bouge. Les animations sont décoratives ici.
+  use: { baseURL: `http://localhost:${PORT}`, channel: process.env.CI ? undefined : "chrome", reducedMotion: "reduce" },
   projects: [
     { name: "bureau", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } },
     { name: "mobile", use: { ...devices["Pixel 7"] } },
