@@ -51,9 +51,10 @@ export async function POST(requete: Request) {
   }
   // Remboursement qui finit plus tard (TWINT) : seul « succeeded » le rend fait, « failed » alerte le restaurant
   // (audit de sécurité 2, S2-03). Rejoué ou reçu dans le désordre : la base ne change qu'une ligne en cours.
-  if (evenement.type === "charge.refund.updated" || evenement.type === "refund.updated") {
+  // refund.created : un remboursement réussi tout de suite dont la réponse s'est perdue se rattache ici.
+  if (evenement.type === "charge.refund.updated" || evenement.type === "refund.updated" || evenement.type === "refund.created") {
     const refund = evenement.data.object as Stripe.Refund;
-    await appliquerEtatRemboursement(refund.id, etatRemboursement(refund.status), refund.failure_reason ?? null);
+    await appliquerEtatRemboursement(refund.id, etatRemboursement(refund.status), refund.failure_reason ?? null, refund.metadata?.remboursement_id ?? null);
   }
   return NextResponse.json({ recu: true });
 }
