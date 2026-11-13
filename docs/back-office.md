@@ -108,3 +108,15 @@ Calculés en base, jamais dans le navigateur. Migration `supabase/migrations/202
 Paramètres de la route : `?periode=jour|semaine|mois&jour=AAAA-MM-JJ`, ou `?periode=choisie&debut=…&fin=…` (et `&comp_debut=…&comp_fin=…`). Un an au plus de chaque côté. Les fonctions SQL ne s'exécutent que pour le serveur (`service_role`) et ne rendent aucune donnée personnelle.
 
 Mesure (`npx tsx --conditions=react-server scripts/mesure-pilotage.ts`, base embarquée, 109 500 commandes sur un an, 13.11.2026) : un jour 3 ms, une semaine 5 ms, un mois 19 ms, une année 138 ms, comparaison comprise. Avec un seul service (Mac chargé par les autres sessions, deuxième passage) : un soir 9 ms, un mois de soirs 37 ms ; dans ce même passage, le mois entier 30 ms et l'année 235 ms. Aucune table de cumuls nécessaire à ce volume.
+
+### Clôture du jour (rapport Z)
+
+Migration `supabase/migrations/20261129100000_cloture_jour.sql`, module `src/lib/cloture.ts`, route `/api/gestion/cloture` (gérant). Tests : `tests/unit/cloture-jour-sql.test.ts`, `tests/unit/cloture.test.ts`.
+
+- Un jour de service va de 5h à 5h le lendemain (heure de Genève). Les ventes sont celles du tableau des ventes pour ce jour. Les remboursements sont ceux faits (ou demandés, s'ils ne sont pas faits) dans cette fenêtre. L'export comptable, lui, compte un remboursement au jour civil.
+- Encaissements : en ligne (TWINT et carte ensemble tant que la commande ne garde pas le moyen de Stripe), comptoir (net des manques déduits avant l'encaissement), espèces rendues, et l'attendu au comptoir (comptoir moins espèces rendues).
+- À encaisser : chaque commande au comptoir pas encore encaissée, avec son numéro, son heure et le montant dû.
+- À vérifier : remise au client sans encaissement, remboursement en échec ou pas encore confirmé, commande pas terminée.
+- Clôturer (`POST { jour, especes, carte, note }`, montants en francs, vides si pas comptés) : la base garde une copie du rapport, calcule l'écart (espèces comptées + ticket du terminal de carte − attendu) et journalise (objet `cloture`, sans le rapport). Reclôturer le même jour remplace la clôture ; l'ancienne reste dans le journal. Une clôture ne s'annule pas depuis le journal. Pas de clôture d'un jour à venir.
+- `GET ?jour=…&format=csv` : le rapport en CSV (point-virgule), sans aucune donnée de client, formules neutralisées.
+- Mesure (base embarquée, un jour de 300 commandes dans un an d'historique) : 3 ms.
