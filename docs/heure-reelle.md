@@ -43,7 +43,7 @@ Les débits restent à 0 tant que Jérémy n'a pas donné les vrais chiffres (qu
 ## Pour les autres sessions
 
 - `config.reglages.allongement_minutes` : minutes ajoutées à cause de la file (déjà comprises dans `preparation_minutes` et les délais des zones).
-- `config.reglages.charge` : détail par poste (`articles`, `file_minutes`, `compte`), `preparation_minutes`, `plafond_minutes`, `allongement_minutes`. Aucune donnée de client.
+- `chargeDuMoment()` (`src/lib/heure-reelle-serveur.ts`, serveur seulement) : détail par poste (`articles`, `file_minutes`, `compte`), `preparation_minutes`, `plafond_minutes`, `allongement_minutes`. Aucune donnée de client, mais jamais dans une page publique : l'accueil sert la config au navigateur, et le nombre d'articles en cuisine minute par minute dirait les ventes du restaurant. Seulement dans une route qui a vérifié la session de l'équipe.
 - `raisonCharge(charge)` : texte court pour la tablette et le back-office, par exemple « Four : 22 pizzas en file, 42 min. Heures annoncées +25 min. » ; `null` quand la file n'allonge rien.
 - `fourchette(config, mode, minutes)` : `{ basse, haute }` autour de l'heure promise, arrondie aux 5 minutes, pour l'affichage client (`produit-client`, `client-commande`, `client-compte`).
 

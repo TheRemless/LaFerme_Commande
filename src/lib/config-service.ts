@@ -48,8 +48,9 @@ async function lireConfigService(): Promise<ConfigService & { plafondComptoirCen
   // Allongement dû à la file réelle des postes (heure promise réaliste) : ajouté comme le retard du soir à
   // toutes les heures annoncées. retard_minutes reste le retard posé à la main (la tablette règle +5 et -5
   // à partir de lui) : l'allongement n'y entre jamais.
-  const charge = lireCharge(chargeBrute);
-  const allongement = charge?.allongement_minutes ?? 0;
+  // Le détail par poste (articles en file) ne va pas dans la config : l'accueil la sert au navigateur, et le
+  // nombre de pizzas en cuisine minute par minute dirait les ventes du restaurant. Détail : chargeDuMoment().
+  const allongement = lireCharge(chargeBrute)?.allongement_minutes ?? 0;
   const retard = retardManuel + allongement;
   const preparation = nombre(reglages, "preparation_minutes");
   return {
@@ -70,7 +71,6 @@ async function lireConfigService(): Promise<ConfigService & { plafondComptoirCen
       preparation_base: preparation,
       retard_minutes: retardManuel,
       allongement_minutes: allongement,
-      charge,
       fourchette: lireFourchette(reglages),
       creneau_minutes: nombre(reglages, "creneau_minutes"),
       avance_jours: nombre(reglages, "avance_jours"),

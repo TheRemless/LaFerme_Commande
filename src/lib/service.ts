@@ -37,9 +37,9 @@ export type Reglages = {
   retard_minutes?: number;
   impression_avance?: { livraison: number; retrait: number };
   // Heure promise réaliste (vague 3, src/lib/heure-reelle.ts) : allongement dû à la file réelle des postes,
-  // déjà compris dans preparation_minutes et les délais des zones, comme retard_minutes.
+  // déjà compris dans preparation_minutes et les délais des zones, comme retard_minutes. Le détail par poste
+  // (Charge) reste sur le serveur : chargeDuMoment() dans src/lib/heure-reelle-serveur.ts.
   allongement_minutes?: number;
-  charge?: Charge | null;
   fourchette?: { livraison: number; retrait: number };
 };
 

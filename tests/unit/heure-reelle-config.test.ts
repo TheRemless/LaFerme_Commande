@@ -5,6 +5,7 @@ import { baseLocale } from "@/lib/db/locale";
 // retard posé à la main que la tablette règle par +5 et -5.
 
 const { chargerConfigService } = await import("@/lib/config-service");
+const { chargeDuMoment } = await import("@/lib/heure-reelle-serveur");
 
 async function commandeEnCuisine(pizzas: number): Promise<string> {
   const db = await baseLocale();
@@ -68,7 +69,9 @@ describe("config du service et file réelle", () => {
     const base = c.reglages.preparation_base!;
     // 22 pizzas à 8 par quart d'heure : 42 min de file, moins la préparation habituelle, arrondi aux 5 minutes.
     const attendu = Math.min(45, Math.ceil(Math.max(0, 42 - base) / 5) * 5);
-    expect(c.reglages.charge?.pizza.articles).toBe(22);
+    // Le détail par poste reste sur le serveur : la config est servie au navigateur par l'accueil.
+    expect(JSON.stringify(c)).not.toContain("articles");
+    expect((await chargeDuMoment())?.pizza.articles).toBe(22);
     expect(c.reglages.allongement_minutes).toBe(attendu);
     expect(c.reglages.retard_minutes).toBe(10);
     expect(c.reglages.preparation_minutes).toBe(base + 10 + attendu);
