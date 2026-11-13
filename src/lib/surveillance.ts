@@ -1,6 +1,7 @@
 import "server-only";
 import { chargerConfigService } from "@/lib/config-service";
 import { reconcilier } from "@/lib/commandes";
+import { alerteActive, type GenreAlerte } from "@/lib/alertes-types";
 import { finCoupDeFeuEchue } from "@/lib/coup-de-feu";
 import { courrielConfigure, envoyerParSmtp } from "@/lib/courriel/envoi";
 import { QuotaAtteint, type TypeCourriel } from "@/lib/courriel/quota";
@@ -24,12 +25,15 @@ import { rafraichirCaches } from "@/lib/tablette";
 const TABLETTE_MUETTE_S = 180;
 
 // Courriel au restaurant (adresse des réglages généraux, sinon ALERTE_EMAIL). Sans serveur d'envoi, gardé en base comme les autres courriels de test.
-export async function alerter(sujet: string, lignes: string[], type: TypeCourriel = "alerte"): Promise<void> {
+// genre : le type d'alerte réglable au back-office (vague 3, src/lib/alertes-types.ts). Coupé, l'e-mail ne part
+// pas, mais la copie reste en base (fournisseur « desactivee »). Sans genre : toujours envoyée.
+export async function alerter(sujet: string, lignes: string[], type: TypeCourriel = "alerte", genre?: GenreAlerte): Promise<void> {
   const texte = [...lignes, "", "Site de commande La Ferme"].join("\n");
   const html = `<pre>${texte.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!)}</pre>`;
   // L'adresse saisie au back-office (réglages généraux), sinon la variable ALERTE_EMAIL.
   const destinataire = await destinataireAlertes();
   let fournisseur = courrielConfigure() && destinataire ? "smtp" : "doublure";
+  if (genre && !(await alerteActive(genre))) fournisseur = "desactivee";
   if (fournisseur === "smtp") {
     try {
       await envoyerParSmtp(destinataire!, sujet, texte, html, { type });
@@ -39,7 +43,7 @@ export async function alerter(sujet: string, lignes: string[], type: TypeCourrie
       console.error(`Alerte non envoyée (limite d'e-mails du jour) : ${sujet}`);
       fournisseur = "quota";
     }
-  } else {
+  } else if (fournisseur === "doublure") {
     console.error(`Alerte (aucun courriel configuré) : ${sujet}`);
   }
   await enregistrerCourriel({
@@ -139,7 +143,7 @@ export async function executerSurveillance(maintenant = new Date()): Promise<{ f
     await alerter(retards.length > 1 ? `Commandes ${numeros} pas encore acceptées` : `Commande ${numeros} pas encore acceptée`, [
       `${retards.length > 1 ? "Les commandes" : "La commande"} ${numeros} ${retards.length > 1 ? "attendent" : "attend"} sur la tablette.`,
       "Le client n'a pas encore d'heure confirmée.",
-    ]).catch((e) => console.error(`Alerte non envoyée : ${e instanceof Error ? e.message : e}`));
+    ], "alerte", "commande_en_attente").catch((e) => console.error(`Alerte non envoyée : ${e instanceof Error ? e.message : e}`));
   }
 
   let pause = false;
@@ -151,7 +155,7 @@ export async function executerSurveillance(maintenant = new Date()): Promise<{ f
     await alerter("Tablette injoignable : commandes en ligne en pause", [
       "La tablette ne répond plus depuis plus de 3 minutes.",
       "Les commandes en ligne sont en pause. Rallumez la tablette, puis touchez « Reprendre les commandes ».",
-    ]).catch((e) => console.error(`Alerte non envoyée : ${e instanceof Error ? e.message : e}`));
+    ], "alerte", "tablette_muette").catch((e) => console.error(`Alerte non envoyée : ${e instanceof Error ? e.message : e}`));
   }
   // En dernier, les paiements perdus (appels à Stripe) : un Stripe lent ne retarde ni la pause automatique
   // ni les alertes ci-dessus.

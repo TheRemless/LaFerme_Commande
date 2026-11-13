@@ -24,6 +24,6 @@ export async function POST(requete: Request) {
   await alerter(`Commande ${r.numero} : réclamation du client`, [
     `Le client de la commande ${r.numero} signale un problème (${c.type}) depuis son suivi.`,
     "Le détail est dans le back-office, rubrique Réclamations.",
-  ]).catch((e) => console.error(`Alerte de réclamation non envoyée : ${e instanceof Error ? e.message : e}`));
+  ], "alerte", "reclamation").catch((e) => console.error(`Alerte de réclamation non envoyée : ${e instanceof Error ? e.message : e}`));
   return NextResponse.json({ ok: true, message: "Merci, le restaurant a reçu votre message." }, { headers: { "Cache-Control": "no-store" } });
 }
