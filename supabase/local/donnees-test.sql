@@ -64,3 +64,9 @@ insert into personnel (email, nom, role) values
 
 -- Réglages généraux (tests/e2e/reglages-generaux.spec.ts, vague 3).
 insert into personnel (email, nom, role) values ('reglages-bureau@laferme.test', 'Réglages bureau', 'gerant');
+
+-- Écran Livreurs du back-office (tests/e2e/gestion-livreurs.spec.ts, vague 3) : un gérant et deux livreurs à part.
+insert into personnel (email, nom, role) values
+  ('ecran-livreurs@laferme.test', 'Écran livreurs', 'gerant'),
+  ('sami@laferme.test', 'Sami', 'livreur'),
+  ('nora@laferme.test', 'Nora', 'livreur');

@@ -1,0 +1,197 @@
+/* Rubrique Livreurs du back-office (vague 3, bo-operations). Jetons du kit seulement (back-office.css). */
+
+.bo-liv-jours {
+  display: grid;
+  gap: 12px;
+}
+.bo-liv-jour {
+  display: grid;
+  grid-template-columns: 11rem minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--bo-trait);
+}
+.bo-liv-jour:first-child {
+  border-top: 0;
+}
+.bo-liv-jour-titre {
+  margin: 0;
+  padding-top: 10px;
+  font-size: 16px;
+  font-weight: 700;
+}
+.bo-liv-jour-titre::first-letter {
+  text-transform: uppercase;
+}
+.bo-liv-services {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.bo-liv-service {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 12px;
+  background: var(--bo-surface);
+  border: 1px solid var(--bo-trait);
+  border-radius: var(--bo-rayon);
+}
+.bo-liv-service-tete {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.bo-liv-service-tete h3 {
+  margin: 0;
+  font-size: var(--bo-taille);
+  font-weight: 700;
+}
+/* Le nombre de livreurs prévus : ce qu'on lit d'abord. */
+.bo-liv-compte {
+  margin: 0;
+  color: var(--bo-texte-doux);
+}
+.bo-liv-compte strong {
+  font-size: 28px;
+  font-weight: 700;
+  font-stretch: 75%;
+  font-variant-numeric: tabular-nums;
+  color: var(--bo-texte);
+}
+.bo-liv-liste {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.bo-liv-ligne {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: var(--bo-cible);
+}
+.bo-liv-nom {
+  display: grid;
+  font-weight: 600;
+}
+.bo-liv-etat {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--bo-texte-doux);
+}
+/* Absent : barré et dit en toutes lettres (jamais la couleur seule). */
+.bo-liv-absent .bo-liv-prenom {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+/* Service ouvert sans livreur : cadre d'encre épais, comme une erreur du kit. */
+.bo-liv-manque {
+  margin: 0;
+  padding: 8px 10px;
+  font-weight: 700;
+  border: 2px solid var(--bo-texte);
+  border-radius: var(--bo-rayon);
+}
+.bo-liv-ferme {
+  background: transparent;
+  border-style: dashed;
+}
+.bo-liv-ferme h3 {
+  margin: 0;
+  font-size: var(--bo-taille);
+}
+.bo-liv-ferme .aide {
+  margin: 0;
+}
+.bo-liv-ajout {
+  display: flex;
+  gap: 8px;
+}
+.bo-liv-ajout select {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--bo-cible);
+}
+
+/* ---------- Semaine type ---------- */
+.bo-liv-grille-cadre {
+  overflow-x: auto;
+  border: 1px solid var(--bo-trait);
+  border-radius: var(--bo-rayon);
+  background: var(--bo-surface);
+}
+.bo-liv-grille {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--bo-taille);
+}
+.bo-liv-grille th,
+.bo-liv-grille td {
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--bo-trait);
+  text-align: center;
+  vertical-align: middle;
+}
+.bo-liv-grille thead th {
+  font-weight: 600;
+  color: var(--bo-texte-doux);
+}
+.bo-liv-grille tbody tr:last-child > * {
+  border-bottom: 0;
+}
+.bo-liv-grille .bo-liv-grille-nom {
+  text-align: left;
+  white-space: nowrap;
+}
+.bo-liv-cases {
+  display: grid;
+  gap: 4px;
+}
+.bo-liv-case {
+  min-width: 52px;
+  min-height: var(--bo-cible);
+  padding: 0 6px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--bo-texte-doux);
+  background: var(--bo-surface);
+  border: 1px solid var(--bo-trait);
+  border-radius: var(--bo-rayon);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+/* Prévu : encre pleine, texte blanc. L'état est aussi annoncé (aria-pressed). */
+.bo-liv-case-oui {
+  color: var(--blanc);
+  background: var(--bo-texte);
+  border-color: var(--bo-texte);
+  font-weight: 600;
+}
+.bo-liv-case:focus-visible {
+  outline: 2px solid var(--bo-texte);
+  outline-offset: 2px;
+}
+
+.bo-liv-stats {
+  display: grid;
+  gap: 8px;
+}
+
+@media (max-width: 900px) {
+  .bo-liv-jour {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+  .bo-liv-jour-titre {
+    padding-top: 0;
+  }
+}
+@media (max-width: 560px) {
+  .bo-liv-services {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
