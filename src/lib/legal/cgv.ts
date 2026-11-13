@@ -9,7 +9,7 @@ export const CGV: PageLegale = {
     {
       titre: "À quoi elles s'appliquent",
       contenu: [
-        "Ces conditions s'appliquent aux commandes de plats en livraison ou à emporter passées sur ce site auprès de [raison sociale], Restaurant La Ferme, Route de Chancy 132, 1213 Onex.",
+        "Ces conditions s'appliquent aux commandes de plats en livraison ou à emporter passées sur ce site auprès de Restaurant La Ferme Sàrl, Route de Chancy 132, 1213 Onex.",
       ],
     },
     {

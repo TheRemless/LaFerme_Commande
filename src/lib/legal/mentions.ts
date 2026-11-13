@@ -9,10 +9,10 @@ export const MENTIONS: PageLegale = {
     {
       titre: "Qui vend",
       contenu: [
-        "[Raison sociale exacte, telle qu'inscrite au registre du commerce], [forme juridique].",
-        "Restaurant La Ferme, Route de Chancy 132, 1213 Onex, Suisse.",
+        "Restaurant La Ferme Sàrl, société à responsabilité limitée.",
+        "Route de Chancy 132, 1213 Onex, Suisse.",
         "Téléphone 022 792 16 89. E-mail [adresse e-mail du restaurant].",
-        "Numéro IDE [CHE-…]. Numéro TVA [CHE-… TVA, si le restaurant est assujetti].",
+        "Numéro IDE CHE-103.250.692. Numéro TVA CHE-103.250.692 TVA.",
       ],
     },
     {

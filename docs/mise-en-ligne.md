@@ -6,7 +6,7 @@ Liste de contrôle du site de commande, à suivre dans l'ordre. Rien ne part en 
 
 1. Remplir le tableau `docs/validation-carte.xlsx` : prix, plats commandables, poste pizza ou cuisine, provenances, allergènes, suppléments. Dire si le tiramisù et la terrine sont faits maison.
 2. Valider dans le back-office les zones, frais, minimums, délais, horaires et fermetures.
-3. Donner la raison sociale, la forme juridique, le numéro IDE, le numéro TVA et l'e-mail du restaurant. Demander à la fiduciaire la durée de conservation des commandes.
+3. Donner l'e-mail du restaurant (raison sociale, forme juridique, IDE et TVA donnés le 13.11.2026). Demander à la fiduciaire la durée de conservation des commandes.
 4. Faire relire les trois pages légales par un professionnel.
 5. Annoncer la livraison au SCAV.
 6. Choisir le nom de domaine et donner l'accès à ses réglages DNS.
@@ -35,7 +35,8 @@ Les clés et mots de passe (Stripe, Infomaniak, Supabase) se saisissent directem
 
 ### Entreprise et textes légaux
 
-- [ ] Jérémy : donner la raison sociale, la forme juridique, le numéro IDE, le numéro TVA (si assujetti) et l'adresse e-mail du restaurant (exigée par la LCD). Détail : [legal-sources.md](legal-sources.md).
+- [x] Jérémy : raison sociale, forme juridique, numéro IDE et numéro TVA donnés le 13.11.2026, écrits dans les trois pages légales.
+- [ ] Jérémy : donner l'adresse e-mail du restaurant, celle que les clients liront dans les mentions légales (exigée par la LCD). Détail : [legal-sources.md](legal-sources.md).
 - [ ] Jérémy, avec la fiduciaire : durée de conservation des commandes, annulation avant acceptation, for juridique. Détail : [legal-sources.md](legal-sources.md).
 - [ ] CGV, absence du client à la livraison : la règle est décidée (12.11.2026, PR #35) et le site l'applique déjà (livraison close sans remboursement automatique, e-mail au client, le gérant décide au cas par cas). Le paragraphe entre crochets de `src/lib/legal/cgv.ts` doit la décrire, relu par la fiduciaire. Détail : [legal-sources.md](legal-sources.md).
 - [ ] Jérémy : faire relire `/mentions-legales`, `/cgv` et `/confidentialite` par un professionnel, une fois les informations ci-dessus intégrées par Claude (phase 2). Détail : [legal-sources.md](legal-sources.md).
