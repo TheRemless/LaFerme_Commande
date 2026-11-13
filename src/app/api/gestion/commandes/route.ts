@@ -3,13 +3,15 @@ import { corpsJson, refus } from "@/lib/comptes/api";
 import { rembourserApresCoup } from "@/lib/commandes";
 import { fonctionSql } from "@/lib/db/serveur";
 import { centimes, dateValide } from "@/lib/gestion";
+import { filtresListe, texteNote, UUID } from "@/lib/gestion-commandes";
 import { exigerGerant } from "@/lib/personnel/session";
 
 // Commandes passées et remboursement après coup (audit du gérant, G02 et G04). Tout passe en POST :
 // un nom ou un téléphone cherché ne doit jamais apparaître dans une adresse (journaux, historique).
 // { action: "liste", debut?, fin?, recherche? } | { action: "jours", debut, fin } | { action: "fiche", id }
 // | { action: "rembourser", id, montant, motif, cle }
-const UUID = /^[0-9a-f-]{36}$/;
+// Vague 3 (bo-commandes) : { action: "liste_page", ...filtres (src/lib/gestion-commandes.ts) }
+// | { action: "fiche_complete", id } | { action: "courriel", id, courriel } | { action: "noter", id, texte }
 
 export async function POST(requete: Request) {
   const g = await exigerGerant(requete);
@@ -17,6 +19,12 @@ export async function POST(requete: Request) {
   const c = await corpsJson(requete);
   if (!c) return refus("Requête illisible.", 400);
   const sansCache = { headers: { "Cache-Control": "no-store" } };
+
+  if (c.action === "liste_page") {
+    const f = filtresListe(c);
+    if (!f.ok) return refus(f.erreur);
+    return NextResponse.json(await fonctionSql("liste_commandes_gestion", { p: f.valeur }), sansCache);
+  }
 
   if (c.action === "liste" || c.action === "jours") {
     const debut = c.debut === undefined || c.debut === null || c.debut === "" ? null : dateValide(c.debut);
@@ -36,6 +44,28 @@ export async function POST(requete: Request) {
   if (c.action === "fiche") {
     const fiche = await fonctionSql("commande_gestion", { p_id: c.id });
     return fiche ? NextResponse.json(fiche, sansCache) : refus("Commande inconnue.", 404);
+  }
+
+  if (c.action === "fiche_complete") {
+    const fiche = await fonctionSql("fiche_commande_gestion", { p_id: c.id });
+    return fiche ? NextResponse.json(fiche, sansCache) : refus("Commande inconnue.", 404);
+  }
+
+  if (c.action === "courriel") {
+    if (typeof c.courriel !== "string" || !UUID.test(c.courriel)) return refus("E-mail inconnu.", 404);
+    const m = await fonctionSql("courriel_commande_gestion", { p_commande: c.id, p_courriel: c.courriel });
+    return m ? NextResponse.json(m, sansCache) : refus("E-mail inconnu.", 404);
+  }
+
+  if (c.action === "noter") {
+    const texte = texteNote(c.texte);
+    if (!texte) return refus("Écrivez une note de 2 à 500 caractères.");
+    try {
+      return NextResponse.json(await fonctionSql("ajouter_note_commande", { p_commande: c.id, p_texte: texte, p_personnel: g.personnel.id }), sansCache);
+    } catch (e) {
+      if (e instanceof Error && e.message.includes("commande_inconnue")) return refus("Commande inconnue.", 404);
+      throw e;
+    }
   }
 
   if (c.action === "rembourser") {

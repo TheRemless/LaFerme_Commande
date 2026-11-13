@@ -65,3 +65,14 @@ Le module d'image `sharp` est déclaré dans `package.json` et se construit pour
 - Avant une fermeture, le back-office donne les numéros des commandes déjà prises sur la période (G15).
 - Retour arrière (`annuler_journal`) : refusé si la valeur a changé depuis, refait par les mêmes fonctions que l'écran, ligne d'origine marquée « annulée ». L'équipe, les remboursements, l'import et les imprimantes ne s'annulent pas.
 - La contrainte `journal_gestion_objet_check` est un contrôle de forme (`objet ~ '^[a-z_]{2,30}$'`) et plus une liste fermée.
+
+## Commandes, vague 3 : base et serveur (13.11.2026)
+
+Migration `supabase/migrations/20261127090000_bo_commandes_liste.sql`, aucun objet partagé recréé. Tests : `tests/unit/bo-commandes-sql.test.ts` (base), `tests/unit/bo-commandes.test.ts` (filtres et route). L'écran actuel n'en profite pas encore : il passera à ces fonctions avec la coque du back-office.
+
+- **Liste** (`liste_commandes_gestion`, action `liste_page`). Pagination côté serveur (10 à 100 par page, total et compteurs par statut), filtres : période (jour de service), statut, mode, moyen et état du paiement, zone, livreur en cours, montant (en francs à l'écran), remboursée, en retard, avec note. Tri : plus récentes, plus anciennes, heure prévue, montant, numéro. Recherche : numéro du jour, téléphone (+41 79…, 0041 79… et 079… se valent), e-mail, nom. Sans période : le jour même, ou 90 jours avec une recherche. Mesuré sur 9 000 commandes (30 jours à 300) dans la base embarquée : de 5 à 57 ms par page.
+- **Heure prévue** : heure confirmée par la tablette, sinon le créneau choisi.
+- **En retard** : à accepter au-delà du délai d'alerte ; acceptée ou en préparation après l'heure promise ; partie après l'heure de livraison promise ; livraison terminée après l'heure promise. Une commande prête au comptoir n'est jamais en retard (le client n'est pas encore venu).
+- **Fiche complète** (`fiche_commande_gestion`, action `fiche_complete`) : tout ce que donnait la fiche, plus heure prévue, retard, zone, livreur en cours, e-mails envoyés (sujet et date), tickets et leur état, notes internes, historique du client (même e-mail : commandes, refusées, dépensé, première et dernière) et une chronologie de tous les événements dans l'ordre (création, paiement, statuts, tickets, livreur, livraison, e-mails, remboursements, notes).
+- **Contenu d'un e-mail** (action `courriel`) : le texte seulement, jamais le HTML, et seulement par sa propre commande. Les codes de connexion ne sont jamais gardés en base.
+- **Note interne** (action `noter`, `ajouter_note_commande`) : 2 à 500 caractères, gérant seulement, jamais montrée au client, journalisée (`note_commande`). Une note ne se modifie pas et ne s'efface pas : elle reste comme trace.
