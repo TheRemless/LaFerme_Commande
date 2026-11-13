@@ -12,6 +12,7 @@
     "test:e2e": "playwright test",
     "seed:generer": "python3 -I scripts/seed_carte.py",
     "donnees:rush": "tsx --conditions=react-server scripts/donnees-rush.ts",
+    "courriels:essai": "tsx --conditions=react-server scripts/courriels-essai.mts",
     "charge:vendredi": "tsx scripts/charge/vendredi.ts"
   },
   "dependencies": {

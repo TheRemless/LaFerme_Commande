@@ -121,6 +121,20 @@ export function zonePour(config: Pick<ConfigService, "zones" | "npa">, npa: stri
   return jusqua ? { statut: "zone-fermee", zone, jusqua, motif: zone.fermee_motif ?? null } : { statut: "livrable", zone };
 }
 
+// Registre fédéral des adresses en panne (décision C15) : ni la rue ni la localité ne peuvent être vérifiées,
+// seul le NPA compte. Parmi les zones livrées qui contiennent ce NPA, la plus chère fait foi (frais, puis
+// minimum) : annoncer la localité d'une zone moins chère ne rapporte rien au client.
+export function zonePourNpaSeul(config: Pick<ConfigService, "zones" | "npa">, npa: string, reel = Date.now()): ResultatZone {
+  const numeros = new Set(config.npa.filter((l) => l.npa === npa.trim()).map((l) => l.zone_numero));
+  const zones = config.zones.filter((z) => numeros.has(z.numero) && z.active);
+  if (zones.length === 0) return { statut: "hors-zone" };
+  const zone = zones.reduce((a, b) =>
+    b.frais_centimes > a.frais_centimes || (b.frais_centimes === a.frais_centimes && b.minimum_centimes > a.minimum_centimes) ? b : a,
+  );
+  const jusqua = zoneFermeeJusqua(zone, reel);
+  return jusqua ? { statut: "zone-fermee", zone, jusqua, motif: zone.fermee_motif ?? null } : { statut: "livrable", zone };
+}
+
 // ---------- Temps ----------
 
 export type Instant = { date: string; jour: number; minutes: number };

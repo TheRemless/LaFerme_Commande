@@ -38,6 +38,10 @@ async function envoyerConfirmation(c: Commande): Promise<void> {
 // paiement) : pause, plat épuisé, heure qui ne tient plus. Noté sur la commande pour la tablette (SS-08).
 export function avertissementsPaiement(c: Commande, config: ConfigService, cat: Catalogue | null, maintenant = new Date()): string[] {
   const a: string[] = [];
+  // Registre fédéral en panne au paiement (C15) : adresse acceptée sur son NPA, à contrôler avant d'accepter.
+  if (c.mode === "livraison" && c.adresse?.nonVerifiee) {
+    a.push(`Adresse non vérifiée, le registre fédéral était en panne. Contrôlez la rue et le numéro dans le ${c.adresse.npa} avant d'accepter.`);
+  }
   if (pauseEnCours(config, maintenant, c.mode)) a.push("Payée pendant la pause des commandes en ligne.");
   const epuises = [
     ...new Set([

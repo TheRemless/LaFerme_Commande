@@ -31,6 +31,9 @@ Le fichier « Télécharger mes données » du compte contient aussi les notes q
 ## E-mails aux clients
 
 Chaque e-mail part en deux versions, texte seul et mise en page. La mise en page reste sur fond blanc, même quand le téléphone du client est en mode sombre. Sous le sujet, la boîte de réception montre la première phrase utile, par exemple « Nous avons bien reçu votre commande n° 37. ».
+
+Un seul e-mail à la commande (décision de Jérémy du 13.11.2026) : le récapitulatif, le reçu avec TVA quand la commande est payée en ligne et le lien de suivi. L'heure confirmée, « prête » et « en route » se lisent sur la page de suivi. Le client reçoit encore un e-mail quand quelque chose change pour lui : commande refusée, nouvelle heure, remboursement, plat manquant, commande modifiée par l'équipe, commande non remise. Pour revenir aux e-mails « acceptée », « prête » et « en route », mettre `COURRIELS_ETAPES=1` dans Netlify.
+
 ## Historique du compte
 
 Le compte montre le nombre de commandes passées avec lui et les 30 dernières. « Voir les commandes plus anciennes » charge les 30 suivantes.
@@ -50,3 +53,38 @@ La rubrique « Connexion » du compte liste les appareils connectés, avec un no
 ## Heure et allergie au suivi
 
 Le suivi et les e-mails donnent l'heure confirmée en fourchette, comme l'accueil (« Prête entre 19h35 et 19h45 »), selon les largeurs réglées par le restaurant. À largeur 0, une seule heure (« vers 19h40 »). L'allergie que le client a signalée à la commande est rappelée dans le détail de sa page de suivi. L'e-mail de confirmation dit seulement qu'une allergie est signalée, sans en recopier le texte.
+
+## Envoi d'essai réel des e-mails
+
+Jérémy a accepté le 13.11.2026 de recevoir un essai réel de tous les e-mails à son adresse privée. L'essai part de son Mac, quand le chef le dit. Il n'a pas besoin d'une préversion Netlify et n'écrit rien dans la vraie base. Les plats et les prix viennent de la base embarquée et la commande est fictive (n° 37).
+
+1. Dans le Terminal, aller dans le dossier du projet à jour de `main`, puis lancer `npm ci`.
+2. Taper les réglages de la boîte du restaurant (voir `docs/comptes.md`). Le mot de passe ne s'affiche pas et ne reste pas dans l'historique :
+
+   ```bash
+   read "SMTP_UTILISATEUR?Identifiant SMTP : "; export SMTP_UTILISATEUR
+   read -s "SMTP_MOT_DE_PASSE?Mot de passe SMTP : "; echo; export SMTP_MOT_DE_PASSE
+   read "COURRIEL_EXPEDITEUR?Expéditeur (La Ferme <adresse>) : "; export COURRIEL_EXPEDITEUR
+   ```
+
+3. Essai à blanc, sans envoi. L'adresse publique du site sert au logo :
+
+   ```bash
+   npm run courriels:essai -- <adresse privée> --origine=https://<adresse du site> --etapes
+   ```
+
+4. Même commande avec `--envoyer` à la fin. 15 e-mails partent, un toutes les 2 secondes, chacun avec un sujet qui commence par « [Essai n/15] ». Ils prennent 15 places sur le quota du jour d'Infomaniak. `--etapes` ajoute « acceptée », « prête » et « en route », qui ne partent plus par défaut.
+5. Fermer le Terminal : les réglages tapés disparaissent avec lui.
+
+À regarder dans la boîte de réception :
+
+- les e-mails arrivent dans la boîte principale et pas dans les indésirables (sinon DMARC et DKIM du domaine, toujours à régler) ;
+- le logo, les accents et les montants sont justes ;
+- la lecture tient en mode sombre et sur le téléphone ;
+- le bouton « Suivre la commande » mène à « commande introuvable », comme prévu pour une commande fictive.
+
+Le script refuse de tourner si une variable mène à une vraie base (Supabase, Postgres ou Netlify).
+
+## Allergie effacée après 30 jours
+
+L'allergie ou l'intolérance signalée à la commande est effacée 30 jours après la commande (décision de Jérémy du 13.11.2026). Elle disparaît de la commande et des tickets de cuisine gardés pour la réimpression. Le reste du ticket ne change pas. La surveillance du site s'en charge à chaque tour (migration `20261214090000_allergie_30_jours.sql`). L'effacement ne date pas la commande : une commande terminée il y a un mois ne revient pas dans la journée de la tablette. La déclaration de confidentialité le dit, ainsi que les 30 jours au plus des copies de sauvegarde chiffrées.
