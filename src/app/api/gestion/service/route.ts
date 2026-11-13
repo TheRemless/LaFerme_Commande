@@ -8,20 +8,24 @@ import { raisonCharge } from "@/lib/heure-reelle";
 import { chargeDuMoment } from "@/lib/heure-reelle-serveur";
 import { lireReglagesGeneraux, reglerReglageGeneral } from "@/lib/reglages-generaux";
 import { simulerAdresse } from "@/lib/simulateur-adresse";
+import { lireTypesAlertes, reglerTypeAlerte } from "@/lib/alertes-types";
 import { rafraichirCaches } from "@/lib/tablette";
 import { fermerZone, reglerServicesZone, rouvrirZone } from "@/lib/zones-operations";
 
 export async function GET(requete: Request) {
   const g = await exigerGerant(requete, { lecture: true });
   if ("reponse" in g) return g.reponse;
-  const [service, reglages, generaux, charge] = await Promise.all([
+  const [service, reglages, generauxBase, charge, typesAlertes] = await Promise.all([
     fonctionSql<Record<string, unknown>>("gestion_service", {}),
     lirePublic<{ cle: string; valeur: unknown; proposition: boolean }>("reglages"),
     // Réglages généraux (vague 3). Absents tant que la base n'est pas migrée.
     lireReglagesGeneraux().catch(() => null),
     // File de la cuisine en ce moment (heure promise réaliste) : gérant seulement, jamais une page publique.
     chargeDuMoment(),
+    // Alertes réglables par type (vague 3). Absentes tant que la base n'est pas migrée (20261130260000).
+    lireTypesAlertes().catch(() => null),
   ]);
+  const generaux = generauxBase ? { ...generauxBase, ...(typesAlertes ? { types_alertes: typesAlertes } : {}) } : null;
   const cap = (cle: string) => reglages.find((r) => r.cle === cle);
   const capacites = {
     livraison: Number(cap("capacite_livraisons_par_creneau")?.valeur ?? 0),
@@ -77,6 +81,11 @@ export async function POST(requete: Request) {
   } else if (c.type === "reglage-general") {
     // E-mail des alertes, codes par jour, longueur d'un créneau, jours à l'avance (vague 3).
     const r = await reglerReglageGeneral(g.personnel, c.cle, c.valeur);
+    if (!r.ok) return refus(r.erreur);
+    return NextResponse.json({ enregistre: true });
+  } else if (c.type === "type-alerte") {
+    // Un type d'e-mail d'alerte coupé ou remis (vague 3). Gérant revérifié et journalisé en base.
+    const r = await reglerTypeAlerte(g.personnel, c.cle, c.actif);
     if (!r.ok) return refus(r.erreur);
     return NextResponse.json({ enregistre: true });
   } else if (c.type === "horaire") {

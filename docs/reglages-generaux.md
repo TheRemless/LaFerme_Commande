@@ -61,3 +61,25 @@ Avant la migration, `generaux` vaut null, l'enregistrement répond une erreur (a
 ## Restent dans le code
 
 Le téléphone (022 792 16 89) et l'adresse du restaurant figurent dans les pages légales, le JSON-LD, les e-mails et les messages du site : ce sont des faits validés par Jérémy (registre de faits). Les rendre réglables touche les textes de plusieurs sessions et le référencement. C'est à décider avec Jérémy, et ce n'est pas fait ici.
+
+## Alertes par type
+
+Le gérant ne réglait que l'adresse qui reçoit les alertes. Il choisit désormais, type par type, les e-mails d'alerte qu'il reçoit : bloc « Alertes », « E-mails d'alerte envoyés ». P1 de `produit-gestion`. Migration `20261130260000_types_alertes.sql`, serveur `src/lib/alertes-types.ts`.
+
+| Type | Envoyée par |
+|---|---|
+| Commande pas encore acceptée | surveillance, après le délai réglé dans Imprimantes |
+| Tablette injoignable pendant le service | surveillance (pause automatique) |
+| Ticket pas imprimé | imprimante (CloudPRNT) |
+| Remboursement à refaire ou refusé par Stripe | tablette, annulation par le client, Stripe |
+| Client absent à la livraison | téléphone du livreur |
+| Réclamation d'un client | suivi de commande |
+| E-mails : 80 % de la limite du jour | quota d'e-mails |
+| Codes de connexion : plafond du jour atteint | connexion des clients ou de l'équipe |
+| Adresse de l'équipe bloquée 24 heures | connexion de l'équipe |
+
+- Tous sont envoyés au départ, comme avant. Décoché, un type n'envoie plus d'e-mail, mais sa copie reste en base (`courriels`, fournisseur `desactivee`) : rien ne se perd.
+- `alerter(sujet, lignes, type, genre)` : le quatrième argument est le type réglable. Sans lui, l'alerte part toujours. Base absente ou en panne : envoyée, comme avant.
+- Gérant seulement, journalisé (objet `type_alerte`). Route `/api/gestion/service` `{ type: "type-alerte", cle, actif }`.
+- Tests : `tests/unit/types-alertes-sql.test.ts`, `types-alertes.test.ts`, `tests/e2e/gestion-reglages.spec.ts`.
+
