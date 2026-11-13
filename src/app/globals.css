@@ -3661,6 +3661,21 @@ body.fiche-ouverte {
   background: var(--papier);
   border-radius: 4px;
 }
+
+/* Consignes d'une adresse enregistrée, modifiables dans le compte (vague 3, client-compte). */
+.adresses li {
+  flex-wrap: wrap;
+}
+.adresses .adresse-actions {
+  flex-direction: row;
+  gap: 16px;
+}
+.form-adresse {
+  display: grid;
+  flex-basis: 100%;
+  gap: 4px;
+  padding-top: 8px;
+}
 /* Historique du compte au-delà des 30 dernières commandes. */
 .espace-plus {
   margin-top: 16px;
