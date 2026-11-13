@@ -2,7 +2,7 @@ import type { PGlite } from "@electric-sql/pglite";
 import { beforeAll, describe, expect, it } from "vitest";
 import { creerBaseLocale } from "@/lib/db/locale";
 import { pngTicket } from "@/lib/impression/png";
-import { sansAccents, texteTicket, ticketsDeCommande, type CommandePourTicket, type LigneTicket } from "@/lib/impression/ticket";
+import { sansAccents, svgTicket, texteTicket, ticketsDeCommande, type CommandePourTicket, type LigneTicket } from "@/lib/impression/ticket";
 
 const commande: CommandePourTicket = {
   numero: 7,
@@ -57,6 +57,26 @@ describe("ticket 80 mm", () => {
     const piege = { ...commande, lignes: [{ ...commande.lignes[0], details: ["« \u0001\u001b<svg onload=x> & \"ok\" »"] }] };
     const png = await pngTicket(ticketsDeCommande(piege, { accepteLe: new Date() })[0].contenu);
     expect([...png.slice(1, 4)].map((c) => String.fromCharCode(c)).join("")).toBe("PNG");
+  });
+
+  it("allergie en tête des deux tickets, en négatif, juste sous le numéro ; rien si le client n'en signale pas", () => {
+    const t = ticketsDeCommande({ ...commande, allergie: " Arachides et fruits à coque " }, { accepteLe: new Date() });
+    for (const x of t) {
+      expect(x.contenu[1]).toEqual({ t: "texte", texte: "ALLERGIE : Arachides et fruits à coque", taille: 2, gras: true, inverse: true });
+    }
+    for (const allergie of ["", "  ", null, undefined]) {
+      expect(textes(ticketsDeCommande({ ...commande, allergie }, { accepteLe: new Date() })[0].contenu)).not.toContain("ALLERGIE");
+    }
+  });
+
+  it("note du client en négatif et en gras ; encadrée de >> << dans le texte de secours", () => {
+    const avecNote = { ...commande, lignes: [{ ...commande.lignes[0], details: ["SANS œuf", "« bien cuite »"] }] };
+    const contenu = ticketsDeCommande(avecNote, { accepteLe: new Date() })[0].contenu;
+    expect(contenu).toContainEqual({ t: "texte", texte: "« bien cuite »", retrait: true, gras: true, inverse: true });
+    expect(contenu).toContainEqual({ t: "texte", texte: "SANS œuf", retrait: true, gras: true, inverse: false });
+    expect(texteTicket(contenu)).toContain('>> " bien cuite " <<');
+    const svg = svgTicket(contenu);
+    expect(svg).toContain('fill="#fff">« bien cuite »</text>');
   });
 
   it("l'image fait 576 points de large (80 mm à 203 dpi)", async () => {

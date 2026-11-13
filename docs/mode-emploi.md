@@ -21,6 +21,7 @@ Ne pas toucher « Continuer sans son ». Sans son, personne n'entend les command
 - La tablette sonne toutes les 4 secondes et un bandeau jaune s'affiche.
 - L'heure proposée est écrite en grand. Les boutons −5, +5 et +15 la changent.
 - Toucher « Accepter pour… ». Les tickets sortent aux postes pizza et cuisine.
+- Une ligne en blanc sur noir en haut du ticket, « ALLERGIE : … », veut dire que le client a signalé une allergie : la lire avant de préparer. Une note du client sur un plat est aussi en blanc sur noir.
 - La commande passe dans l'onglet « En cours ». Aller la chercher là.
 - Pour refuser, toucher « Refuser », choisir un motif puis confirmer. Le client reçoit le motif par e-mail. Une commande payée en ligne est remboursée en entier.
 

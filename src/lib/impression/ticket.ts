@@ -3,7 +3,8 @@
 // sur la tablette. Pas de prix sur les tickets de poste. Fonctions pures, sans base ni réseau.
 
 export type LigneTicket =
-  | { t: "texte"; texte: string; taille?: 1 | 2 | 3; gras?: boolean; retrait?: boolean }
+  // inverse : blanc sur noir, pour ce qui ne doit pas être manqué (allergie, note du client).
+  | { t: "texte"; texte: string; taille?: 1 | 2 | 3; gras?: boolean; retrait?: boolean; inverse?: boolean }
   | { t: "deux"; gauche: string; droite: string; taille?: 1 | 2 | 3; gras?: boolean }
   | { t: "filet" };
 
@@ -19,7 +20,12 @@ export type CommandePourTicket = {
   statut_paiement: string;
   moyen_paiement: string;
   lignes: { nom: string; qte: number; station: "pizza" | "cuisine"; details: string[] }[];
+  // Allergie ou intolérance signalée par le client pour toute la commande (vide ou absent : rien de signalé).
+  allergie?: string | null;
 };
+
+// Note du client sur un plat : écrite « … » par detailsTablette.
+const estNote = (d: string) => d.startsWith("« ");
 
 const HEURE = new Intl.DateTimeFormat("fr-CH", { timeZone: "Europe/Zurich", hour: "2-digit", minute: "2-digit" });
 const JOUR = new Intl.DateTimeFormat("fr-CH", { timeZone: "Europe/Zurich", weekday: "long", day: "2-digit", month: "2-digit", year: "numeric" });
@@ -49,6 +55,9 @@ export function ticketsDeCommande(
     const contenu: LigneTicket[] = [];
     if (reimpression) contenu.push({ t: "texte", texte: "RÉIMPRESSION", gras: true });
     contenu.push({ t: "deux", gauche: station === "pizza" ? "PIZZA" : "CUISINE", droite: `N° ${String(c.numero).padStart(3, "0")}`, taille: 3, gras: true });
+    // Allergie en tête des deux postes, en négatif : c'est la seule ligne qui peut blesser un client.
+    const allergie = c.allergie?.trim();
+    if (allergie) contenu.push({ t: "texte", texte: `ALLERGIE : ${allergie}`, taille: 2, gras: true, inverse: true });
     contenu.push({
       t: "deux",
       gauche: c.mode === "livraison" ? "LIVRAISON" : "À EMPORTER",
@@ -71,7 +80,8 @@ export function ticketsDeCommande(
     contenu.push({ t: "filet" });
     for (const l of lignes) {
       contenu.push({ t: "texte", texte: `${l.qte} x ${l.nom}`, taille: 2, gras: true });
-      for (const d of l.details) contenu.push({ t: "texte", texte: d, retrait: true, gras: d.startsWith("SANS") });
+      // Retraits en gras, note du client en négatif : lisibles à un mètre.
+      for (const d of l.details) contenu.push({ t: "texte", texte: d, retrait: true, gras: d.startsWith("SANS") || estNote(d), inverse: estNote(d) });
     }
     contenu.push({ t: "filet" });
     if (ailleurs > 0) contenu.push({ t: "texte", texte: `Aussi ${autre === "pizza" ? "aux pizzas" : "en cuisine"} : ${ailleurs} article${ailleurs > 1 ? "s" : ""}` });
@@ -135,8 +145,10 @@ export function texteTicket(lignes: LigneTicket[], colonnes = 48): string {
       const d = sansAccents(l.droite);
       sortie.push(g + " ".repeat(Math.max(1, colonnes - g.length - d.length)) + d);
     } else {
+      // Sans négatif en mode texte : la ligne est encadrée de « >> » et « << ».
       const marge = l.retrait ? "    " : "";
-      for (const x of couper(sansAccents(l.texte), colonnes - marge.length)) sortie.push(marge + x);
+      const t = l.inverse ? `>> ${l.texte} <<` : l.texte;
+      for (const x of couper(sansAccents(t), colonnes - marge.length)) sortie.push(marge + x);
     }
   }
   return sortie.join("\n") + "\n\n\n";
@@ -160,8 +172,8 @@ export function svgTicket(lignes: LigneTicket[]): string {
   const marge = 8;
   let y = 10;
   const elements: string[] = [];
-  const texte = (x: number, base: number, t: string, taille: number, gras: boolean, ancre: "start" | "end" = "start") =>
-    `<text x="${x}" y="${base}" font-family="DejaVu Sans Condensed" font-size="${taille}" font-weight="${gras ? 700 : 400}" text-anchor="${ancre}">${echapperXml(t)}</text>`;
+  const texte = (x: number, base: number, t: string, taille: number, gras: boolean, ancre: "start" | "end" = "start", blanc = false) =>
+    `<text x="${x}" y="${base}" font-family="DejaVu Sans Condensed" font-size="${taille}" font-weight="${gras ? 700 : 400}" text-anchor="${ancre}"${blanc ? ' fill="#fff"' : ""}>${echapperXml(t)}</text>`;
   for (const l of lignes) {
     if (l.t === "filet") {
       y += 10;
@@ -177,8 +189,8 @@ export function svgTicket(lignes: LigneTicket[]): string {
       if (l.droite) elements.push(texte(LARGEUR_POINTS - marge, y - Math.round(taille * 0.25), l.droite, taille, Boolean(l.gras), "end"));
       continue;
     }
-    const x = marge + (l.retrait ? 32 : 0);
-    const parLigne = Math.max(8, Math.floor((LARGEUR_POINTS - x - marge) / (taille * CHASSE)));
+    const x = marge + (l.retrait ? 32 : 0) + (l.inverse ? 8 : 0);
+    const parLigne = Math.max(8, Math.floor((LARGEUR_POINTS - x - marge - (l.inverse ? 8 : 0)) / (taille * CHASSE)));
     const mots = l.texte.split(" ");
     let cur = "";
     const morceaux: string[] = [];
@@ -190,8 +202,10 @@ export function svgTicket(lignes: LigneTicket[]): string {
     }
     if (cur) morceaux.push(cur);
     for (const morceau of morceaux) {
+      // Négatif : un pavé noir sur toute la largeur imprimable, le texte en blanc dessus.
+      if (l.inverse) elements.push(`<rect x="${x - 8}" y="${y + 2}" width="${LARGEUR_POINTS - marge - (x - 8)}" height="${hauteur}"/>`);
       y += hauteur;
-      elements.push(texte(x, y - Math.round(taille * 0.25), morceau, taille, Boolean(l.gras)));
+      elements.push(texte(x, y - Math.round(taille * 0.25), morceau, taille, Boolean(l.gras), "start", Boolean(l.inverse)));
     }
   }
   const hauteur = y + 40;
