@@ -6,13 +6,17 @@ Joué le 13.11.2026 sur la version `423270eb`, en local, avec le jeu de commande
 
 Les fiches à imprimer pour l'équipe sont dans [fiches/](fiches/).
 
+<a id="appareils"></a>
+
 ## Réponses courtes aux trois questions de Jérémy
 
 | Question | Réponse |
 |---|---|
-| Peut-on accepter les commandes depuis n'importe quel téléphone ou tablette ? | Oui. La tablette est une page du site, `/tablette`. Elle s'ouvre sur tout appareil qui a un navigateur récent et Internet (tablette, téléphone, ordinateur). Il faut un compte de l'équipe avec l'accès « Tablette ». L'appareil ne sonne qu'après « Démarrer le service ». |
+| Peut-on accepter les commandes depuis n'importe quel téléphone ou tablette ? | Oui ([pannes.md](pannes.md), « La tablette est figée », prévoit déjà un téléphone en secours). La tablette est une page du site, `/tablette`. Elle s'ouvre sur tout appareil qui a un navigateur récent et Internet (tablette, téléphone, ordinateur). Il faut un compte de l'équipe avec l'accès « Tablette ». L'appareil ne sonne qu'après « Démarrer le service ». |
 | Comment régler les imprimantes ? | Chaque imprimante reçoit une adresse créée dans le back-office, rubrique « Imprimantes ». On colle cette adresse dans les réglages CloudPRNT de l'imprimante. Détail à l'étape 4. |
 | Comment ça se passe pour les livreurs ? | Chaque livreur a un compte « Livreur » et ouvre `/livreur` sur son propre téléphone. Le comptoir lui donne ses livraisons depuis l'onglet « Livraisons ». Il touche « Je pars » puis « Livrée ». Détail à l'étape 7. |
+
+<a id="materiel"></a>
 
 ## Ce qu'il faut avoir en main
 
@@ -28,7 +32,22 @@ Les fiches à imprimer pour l'équipe sont dans [fiches/](fiches/).
 | Un téléphone en 4G, hors Wi-Fi du restaurant | Passer la commande d'essai comme un client. Sert aussi de tablette de secours | |
 | Les pages imprimées : [pannes.md](pannes.md) et les six fiches | Près de la tablette et à chaque poste | Le numéro à appeler reste à écrire dessus |
 
+<a id="avant"></a>
+
+## Avant de commencer : e-mails et paiement
+
+Ces deux points se règlent hors du restaurant ([mise-en-ligne.md](mise-en-ligne.md), phases 1, 2 et 4). Sans eux, rien de la suite ne marche.
+
+| Point | Pourquoi | Comment le voir |
+|---|---|---|
+| L'envoi d'e-mails est branché (boîte Infomaniak) | Sans e-mail, aucun code de connexion n'arrive, ni à l'équipe ni aux livreurs | Un code de connexion arrive dans la boîte de Jérémy |
+| Le paiement en ligne est branché (Stripe) | La livraison se paie en ligne | La commande d'essai de l'étape 9 est payée puis remboursée |
+
+Le back-office coche ces étapes d'après l'état réel du site dans sa rubrique « Mise en route ». Ce guide suit le même contenu, dans l'ordre où on le fait sur place.
+
 ## La veille ou le matin (environ 1h30)
+
+<a id="reglages"></a>
 
 ### 1. Vérifier les réglages du restaurant (20 min)
 
@@ -43,6 +62,8 @@ Back-office, `/gestion`, avec le compte gérant.
 | Réglages généraux, « E-mail qui reçoit les alertes » | Une adresse lue pendant le service. Le champ est vide au départ |
 | Réglages généraux, « Rythme de la cuisine et des livraisons » | Les débits. À zéro, la file n'allonge pas les heures annoncées. Voir le manque M6 |
 | Imprimantes, « Alerte de commande en attente » | Le délai en minutes avant l'e-mail d'alerte (5 par défaut) |
+
+<a id="equipe"></a>
 
 ### 2. Créer les comptes de l'équipe (15 min)
 
@@ -59,6 +80,8 @@ Back-office, rubrique « Équipe », cadre « Ajouter quelqu'un » en bas de pag
 - La tablette du comptoir reste connectée 60 jours. Chaque geste est signé du prénom du compte connecté.
 - Un livreur reste connecté 12 heures. Il se reconnecte à chaque service.
 
+<a id="tablette"></a>
+
 ### 3. Installer la tablette (10 min)
 
 1. Brancher la tablette à poste fixe, sur le Wi-Fi du restaurant.
@@ -66,6 +89,8 @@ Back-office, rubrique « Équipe », cadre « Ajouter quelqu'un » en bas de pag
 3. Ajouter la page à l'écran d'accueil. Elle s'ouvre alors en plein écran.
 4. Monter le volume au maximum. Toucher « Démarrer le service ». Ne pas toucher « Continuer sans son ».
 5. Lire la première ligne. « Commandes ouvertes » doit s'afficher, avec le temps de préparation.
+
+<a id="imprimantes"></a>
 
 ### 4. Brancher les imprimantes (30 min par imprimante)
 
@@ -85,9 +110,13 @@ Si la ligne dit « en ligne » mais que rien ne sort, toucher « Nouvelle adress
 
 Sans imprimante pour un poste, les tickets de ce poste s'affichent sur la tablette (bouton « Ticket »). Le service reste possible avec une seule imprimante, ou sans.
 
+<a id="postes"></a>
+
 ### 5. Écrans de poste, si on les essaie (5 min)
 
 Un écran au four ou en cuisine se règle comme la tablette, avec un compte « Tablette », sur `/tablette/poste/pizza` ou `/tablette/poste/cuisine`. Les tickets papier continuent de sortir. Voir M2 avant de s'y fier.
+
+<a id="planning-livreurs"></a>
 
 ### 6. Planning des livreurs (5 min)
 
@@ -95,6 +124,8 @@ Back-office, rubrique « Livreurs ».
 
 1. Dans l'onglet « Semaine type », cocher les services de chaque livreur, puis « Enregistrer » au bout de sa ligne.
 2. Dans l'onglet « Les 7 prochains jours », chaque service doit afficher au moins un livreur. Un service ouvert sans livreur est encadré.
+
+<a id="livreurs"></a>
 
 ### 7. Préparer chaque livreur (5 min par livreur)
 
@@ -107,6 +138,8 @@ La connexion par un code affiché sur la tablette (sans e-mail) est construite. 
 
 ## Le jour J, une heure avant l'ouverture (environ 40 min)
 
+<a id="essai-emporter"></a>
+
 ### 8. Commande d'essai à emporter (10 min)
 
 1. Avec le téléphone en 4G, commander un plat pizza et un plat cuisine, à emporter, payés au comptoir.
@@ -114,6 +147,8 @@ La connexion par un code affiché sur la tablette (sans e-mail) est construite. 
 3. Un ticket sort au four, un autre en cuisine. Chacun ne porte que ses lignes.
 4. Onglet « En cours ». Toucher « Prête ». L'e-mail « prête » arrive sur le téléphone.
 5. Toucher « Retirée, espèces ». La commande passe dans « Terminées ».
+
+<a id="essai-livraison"></a>
 
 ### 9. Commande d'essai en livraison (15 min)
 
@@ -124,9 +159,13 @@ La connexion par un code affiché sur la tablette (sans e-mail) est construite. 
 5. Il touche « Livrée ». La commande passe dans « Terminées ».
 6. Back-office, « Commandes », ouvrir la commande, onglet « Gestes », « Rembourser », « Tout ce qui reste ». Vérifier que le remboursement arrive.
 
+<a id="essai-refus"></a>
+
 ### 10. Essai de refus (5 min)
 
 Commander une troisième fois, payée en ligne. Toucher « Refuser », choisir un motif, confirmer. Le client reçoit le motif et le remboursement part.
+
+<a id="controles"></a>
 
 ### 11. Derniers contrôles avant d'ouvrir (10 min)
 
