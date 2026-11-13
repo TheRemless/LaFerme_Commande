@@ -139,6 +139,30 @@ export type CalculPanier = { reponse: ReponsePanier | null; lent: boolean; echec
 
 const DELAI_LENT_MS = 1200;
 
+// Allergie de la commande en cours : gardée dans l'onglet (rechargement, paiement annulé), effacée une fois
+// la commande passée. Jamais dans le compte ni dans le localStorage (donnée de santé, nLPD art. 5).
+// Oubliée après deux heures : une commande abandonnée ne prête pas son allergie à la suivante.
+const CLE_ALLERGIE = "laferme.allergie";
+const DUREE_ALLERGIE_MS = 2 * 60 * 60 * 1000;
+
+export function lireAllergie(): string {
+  try {
+    const m = JSON.parse(window.sessionStorage.getItem(CLE_ALLERGIE) ?? "null") as { texte?: unknown; le?: unknown } | null;
+    return m && typeof m.texte === "string" && typeof m.le === "number" && Date.now() - m.le < DUREE_ALLERGIE_MS ? m.texte : "";
+  } catch {
+    return "";
+  }
+}
+
+export function noterAllergie(texte: string): void {
+  try {
+    if (texte) window.sessionStorage.setItem(CLE_ALLERGIE, JSON.stringify({ texte, le: Date.now() }));
+    else window.sessionStorage.removeItem(CLE_ALLERGIE);
+  } catch {
+    // Stockage bloqué : le champ reste rempli à l'écran.
+  }
+}
+
 // Créneau pour lequel ce navigateur a déjà envoyé une commande (onglet seulement) : voir /api/panier.
 const CLE_PLACE = "laferme.place-envoyee";
 const place = (mode: Mode, quand: Quand) => (quand.type === "creneau" ? `${mode} ${quand.date} ${quand.minutes}` : null);
@@ -240,6 +264,7 @@ export function viderPanier(): void {
     window.localStorage.removeItem(CLE);
     window.sessionStorage.removeItem("laferme.cle-commande");
     window.sessionStorage.removeItem(CLE_PLACE);
+    window.sessionStorage.removeItem(CLE_ALLERGIE);
   } catch {
     // Stockage bloqué : rien à vider.
   }

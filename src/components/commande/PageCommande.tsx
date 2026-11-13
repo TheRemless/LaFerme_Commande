@@ -5,14 +5,14 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 import { lireChoix, type Choix } from "@/lib/choix";
 import { platDe, type Catalogue } from "@/lib/panier";
-import { noterPlaceEnvoyee, useCalculPanier, usePanier, type ReponsePanier } from "@/lib/panier-local";
+import { lireAllergie, noterAllergie, noterPlaceEnvoyee, useCalculPanier, usePanier, type ReponsePanier } from "@/lib/panier-local";
 import { comptoirPermis } from "@/lib/plafond-comptoir";
 import { prixChf, prixCourt, prixPhrase } from "@/lib/prix";
 import { heureTexte, jourTexte } from "@/lib/service";
 import { plageTexte } from "@/lib/plage-heure";
 import { ContenuPanier, EtatCalcul } from "@/components/panier/ContenuPanier";
 import { nomAffiche } from "@/components/Plat";
-import { champClientInvalide, MESSAGE_CHAMP, type ChampClient } from "@/lib/validation";
+import { champClientInvalide, LIMITE_ALLERGIE, MESSAGE_CHAMP, type ChampClient } from "@/lib/validation";
 
 type Moyen = "en_ligne" | "comptoir";
 
@@ -84,6 +84,8 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
     email: compte?.email ?? "",
   });
   const [creerCompte, setCreerCompte] = useState(false);
+  // Allergie ou intolérance pour toute la commande, transmise à la cuisine (vague 3, P0).
+  const [allergie, setAllergie] = useState("");
   const [moyen, setMoyen] = useState<Moyen>("en_ligne");
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -92,6 +94,7 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
   const [champFaux, setChampFaux] = useState<ChampClient | null>(null);
 
   useEffect(() => setChoix(lireChoix()), []);
+  useEffect(() => setAllergie(lireAllergie()), []);
 
   // Coordonnées gardées dans l'onglet : un paiement refusé ou un rechargement ne les efface plus (CM-04).
   // sessionStorage seulement, elles disparaissent avec l'onglet. Un client connecté a déjà les siennes.
@@ -149,7 +152,8 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          cle: cleCommande(JSON.stringify([lignes, choix, auComptoir, client])),
+          // L'allergie fait partie du contenu : la corriger après un refus donne une nouvelle commande.
+          cle: cleCommande(JSON.stringify([lignes, choix, auComptoir, client, allergie.trim()])),
           lignes,
           mode: choix.mode,
           adresse: choix.adresse,
@@ -157,6 +161,7 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
           quand: choix.quand,
           heure: choix.heureSimulee,
           client,
+          allergie,
           moyen: auComptoir ? "comptoir" : "en_ligne",
           creerCompte: !compte && creerCompte,
         }),
@@ -272,6 +277,29 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
                 {erreurChamp("email")}
                 <p className="aide">Pour la confirmation et le suivi de la commande.</p>
               </div>
+            </div>
+            <div className="champ">
+              <label htmlFor={`${ids}-allergie`}>
+                Allergie ou intolérance <span className="facultatif">facultatif</span>
+              </label>
+              <input
+                id={`${ids}-allergie`}
+                value={allergie}
+                maxLength={LIMITE_ALLERGIE}
+                autoComplete="off"
+                aria-describedby={`${ids}-allergie-aide`}
+                onChange={(e) => {
+                  setAllergie(e.target.value);
+                  noterAllergie(e.target.value);
+                }}
+              />
+              <p className="aide" id={`${ids}-allergie-aide`}>
+                Pour toute la commande. Nous la transmettons à la cuisine, sans pouvoir garantir l&apos;absence de traces. Une question ? Appelez-nous au{" "}
+                <a href="tel:+41227921689" className="sans-coupure">
+                  022 792 16 89
+                </a>
+                .
+              </p>
             </div>
             {compte ? (
               <p className="aide">
