@@ -15,7 +15,7 @@ import { depuisHeureGeneve, MESSAGE_CRENEAU_COMPLET, messagePause, messageSansCr
 import { requeteDuSite } from "@/lib/comptes/origine-requete";
 import { compteCourant, jetonSession } from "@/lib/comptes/session";
 import { empreinte, ipDe } from "@/lib/comptes/securite";
-import { allergieValide, champClientInvalide, cleValide, LIMITE_ALLERGIE, clientValide, MESSAGE_CHAMP, detailsValides, lignesValides, quandValide } from "@/lib/validation";
+import { allergieValide, champClientInvalide, destinataireValide, cleValide, LIMITE_ALLERGIE, clientValide, MESSAGE_CHAMP, detailsValides, lignesValides, quandValide } from "@/lib/validation";
 import { messageZoneFermee, SUITE_ZONE_FERMEE } from "@/lib/zone-fermee";
 import { zoneServeur, type AdresseRetenue } from "@/lib/zone-serveur";
 import { nomClient } from "@/lib/nom-plat";
@@ -57,6 +57,9 @@ export async function POST(requete: Request) {
   if (!client) return refus(MESSAGE_CHAMP[champClientInvalide(corps.client) ?? "telephone"]);
   const allergie = allergieValide(corps.allergie);
   if (allergie === null) return refus(`Allergie ou intolérance trop longue, ${LIMITE_ALLERGIE} caractères au plus.`);
+  const destinataire = destinataireValide(corps.destinataire);
+  if (destinataire === "nom") return refus("Indiquez le nom de la personne qui reçoit la commande.");
+  if (destinataire === "telephone") return refus("Vérifiez le téléphone de la personne qui reçoit la commande, il faut au moins neuf chiffres.");
   // Paiement à la livraison désactivé (décision du prompt) : au comptoir seulement pour un retrait.
   if (moyen === "comptoir" && mode !== "retrait") return refus("Le paiement au comptoir n'est possible qu'à emporter.");
   // Préversion branchée sur la vraie base : aucun paiement, même simulé (audit de sécurité, S2).
@@ -151,6 +154,7 @@ export async function POST(requete: Request) {
       compte_id: compte?.id ?? null,
       compte_demande: creerCompte,
       allergie,
+      destinataire,
       lignes: totaux.lignes.map((l) => ({
         slug: l.slug,
         nom: l.nom,

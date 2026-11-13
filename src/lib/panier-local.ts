@@ -141,6 +141,9 @@ const DELAI_LENT_MS = 1200;
 
 // Allergie de la commande en cours : gardée dans l'onglet (rechargement, paiement annulé), effacée une fois
 // la commande passée. Jamais dans le compte ni dans le localStorage (donnée de santé, nLPD art. 5).
+// Commande pour quelqu'un d'autre : nom et téléphone de la personne, gardés dans l'onglet comme les coordonnées.
+export const CLE_DESTINATAIRE = "laferme.destinataire";
+
 // Oubliée après deux heures : une commande abandonnée ne prête pas son allergie à la suivante.
 const CLE_ALLERGIE = "laferme.allergie";
 const DUREE_ALLERGIE_MS = 2 * 60 * 60 * 1000;
@@ -265,6 +268,7 @@ export function viderPanier(): void {
     window.sessionStorage.removeItem("laferme.cle-commande");
     window.sessionStorage.removeItem(CLE_PLACE);
     window.sessionStorage.removeItem(CLE_ALLERGIE);
+    window.sessionStorage.removeItem(CLE_DESTINATAIRE);
   } catch {
     // Stockage bloqué : rien à vider.
   }
