@@ -223,6 +223,10 @@ Coup de feu (en tête de la rubrique) et zones livrées le soir seulement ou fer
 
 - Codes promo, désactivés tant que l'offre n'est pas décidée par Jérémy : créer un code par support (flyer, autocollant), l'activer, voir ce qu'il a rapporté. Détail : [codes-promo.md](codes-promo.md#écran-promotions-back-office).
 
+### Menus et formules
+
+- Préparer des menus à prix fixe (une pizza, un dessert, une boisson) : rubrique « Menus et formules ». Ils ne sont proposés aux clients qu'avec l'accord de Jérémy. Détail : [menus.md](menus.md#écran).
+
 ### Importer le tableau
 
 - Remplir seulement les cases jaunes de `validation-carte.xlsx`. Prix en chiffres (18 ou 18.50, sans « .- » ni « CHF »). Commandable « oui » ou « non ».
