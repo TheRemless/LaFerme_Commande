@@ -15,6 +15,7 @@ import { commandeParJeton } from "@/lib/db/serveur";
 import { nomClient } from "@/lib/nom-plat";
 import { prixChf, prixCourt } from "@/lib/prix";
 import { PRIVE } from "@/lib/site";
+import { enRetard, libellePaiement, PHRASE_RETARD, phraseRemboursement, remboursementsSuivi, resteComptoir } from "@/lib/suivi";
 import { MOTIF_CLIENT_ABSENT } from "@/lib/livraisons-textes";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +27,11 @@ const ETAPES = {
 } as const;
 
 const POSITION: Record<string, number> = { nouvelle: 0, acceptee: 1, en_preparation: 2, prete: 3, partie: 3, terminee: 4 };
+
+// « CHF 5.00 » et le numéro de téléphone ne se coupent pas en fin de ligne sur un petit écran.
+function insecable(t: string): string {
+  return t.replace(/CHF /g, "CHF\u00a0").replace(/(\d{3}) (\d{3}) (\d{2}) (\d{2})/g, "$1\u00a0$2\u00a0$3\u00a0$4");
+}
 
 function heureLocale(iso: string): string {
   return new Intl.DateTimeFormat("fr-CH", { timeZone: "Europe/Zurich", hour: "2-digit", minute: "2-digit" }).format(new Date(iso)).replace(":", "h");
@@ -46,22 +52,18 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
   const position = nonRemise ? -1 : (POSITION[c.statut] ?? -1);
   const termine = ["terminee", "refusee", "annulee"].includes(c.statut);
   const enregistree = c.statut !== "paiement_en_attente" && c.statut !== "annulee";
-  const paiement =
-    c.statut_paiement === "paye"
-      ? "Payée en ligne"
-      : c.statut_paiement === "a_encaisser_retrait"
-        ? "À payer au comptoir"
-        : c.statut_paiement === "rembourse"
-          ? "Remboursée"
-          : c.statut_paiement === "encaisse"
-            ? "Payée au comptoir"
-            : "Paiement en attente";
+  const remboursements = enregistree ? await remboursementsSuivi(c.id) : [];
+  const paiement = libellePaiement(c, remboursements);
+  const reste = resteComptoir(c, remboursements);
+  const retard = enRetard(c);
+  // Un remboursement attendu chez Stripe garde la page à jour, même commande terminée.
+  const attente = remboursements.some((r) => r.moyen === "stripe" && r.statut === "en_cours");
 
   return (
     <>
       <EnTete />
       <main id="contenu" className="page-suivi">
-        <Actualiser actif={!termine} commandeEnregistree={enregistree} />
+        <Actualiser actif={!termine || attente} commandeEnregistree={enregistree} />
         <div className="suivi">
           <p className="suivi-num">
             Commande {c.numero}, {c.client_prenom}
@@ -83,7 +85,7 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
               <h1>Commande refusée</h1>
               <p className="suivi-change">
                 {c.motif ?? "Le restaurant ne peut pas préparer cette commande."}
-                {c.statut_paiement === "rembourse" ? " Le montant vous est remboursé." : ""}
+                {paiement === "Remboursée" ? " Le montant vous est remboursé." : ""}
               </p>
             </>
           )}
@@ -121,8 +123,29 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
                   </li>
                 ))}
               </ol>
-              <p className="suivi-info">Un e-mail vous prévient si l&apos;heure change.</p>
+              {retard ? (
+                <p className="suivi-retard" role="status">
+                  {PHRASE_RETARD}
+                </p>
+              ) : (
+                <p className="suivi-info">Un e-mail vous prévient si l&apos;heure change.</p>
+              )}
             </>
+          )}
+          {remboursements.length > 0 && (
+            <section className="suivi-remboursements" aria-labelledby="titre-remboursements">
+              <h2 id="titre-remboursements">{remboursements.length > 1 ? "Remboursements" : "Remboursement"}</h2>
+              <ul>
+                {remboursements.map((r, i) => {
+                  const p = phraseRemboursement(r);
+                  return (
+                    <li key={`${r.cree_le}-${i}`} className={`remb-${p.etat}`}>
+                      {insecable(p.texte)}
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
           )}
           {c.compte_demande && enregistree && <CreerCompte jeton={c.jeton_suivi} rattachee={Boolean(c.compte_id)} />}
           <section className="suivi-detail">
@@ -157,6 +180,12 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
                 <dt>{paiement}</dt>
                 <dd>{prixChf(c.total_centimes)}</dd>
               </div>
+              {reste !== null && (
+                <div>
+                  <dt>Reste à payer au comptoir</dt>
+                  <dd>{prixChf(reste)}</dd>
+                </div>
+              )}
             </dl>
             <p>
               Une question ? <a href="tel:+41227921689">022 792 16 89</a>

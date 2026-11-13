@@ -3530,3 +3530,38 @@ body.fiche-ouverte {
 .liv-tablette .liv-carte p {
   font-size: 16px;
 }
+
+/* Suivi (vague 3, client-compte) : retard et remboursements. Le retard se lit comme une alerte, sans rouge. */
+.suivi-retard {
+  margin: 12px 0 20px;
+  padding: 10px 14px;
+  font-weight: 700;
+  color: var(--encre);
+  background: var(--alerte-fond);
+  border-left: 6px solid var(--alerte-trait);
+  border-radius: 4px;
+}
+.suivi-remboursements {
+  margin-top: 24px;
+  padding: 20px 16px;
+  color: var(--encre);
+  background: var(--papier);
+  border-radius: 4px;
+}
+.suivi-remboursements h2 {
+  font-size: 28px;
+}
+.suivi-remboursements ul {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.suivi-remboursements li {
+  padding: 10px 0;
+  border-top: 1px solid var(--filet);
+}
+.suivi-remboursements li.remb-echec {
+  padding-left: 12px;
+  font-weight: 700;
+  border-left: 6px solid var(--alerte-trait);
+}
