@@ -24,3 +24,6 @@ Le lien « Reçu avec TVA » est en bas de la page de suivi d'une commande payé
 ## Annuler sa commande depuis le suivi
 
 Désactivé tant que Jérémy ne l'a pas décidé (réglage `annulation_client_active`). Activé, le bouton « Annuler ma commande » apparaît tant que la commande n'est pas acceptée, avec une confirmation. Le suivi dit ensuite « Vous avez annulé la commande. ».
+## E-mails aux clients
+
+Chaque e-mail part en deux versions, texte seul et mise en page. La mise en page reste sur fond blanc, même quand le téléphone du client est en mode sombre. Sous le sujet, la boîte de réception montre la première phrase utile, par exemple « Nous avons bien reçu votre commande n° 37. ».
