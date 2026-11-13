@@ -1,6 +1,6 @@
 -- Réglages généraux au back-office (vague 3, bo-operations). Des valeurs que le gérant devait faire changer
 -- par un développeur : e-mail qui reçoit les alertes (variable ALERTE_EMAIL), plafond des codes de connexion
--- des clients par jour, longueur d'un créneau, jours de commande à l'avance.
+-- des clients par jour, longueur d'un créneau, jours de commande à l'avance, annulation par le client.
 --
 -- La table reglages est lisible par tous (le site en a besoin pour les créneaux). Une adresse e-mail n'y va
 -- pas : reglages_prives, sans aucun droit pour anon ni authenticated, lue par le serveur seulement.
@@ -23,7 +23,9 @@ insert into reglages_prives (cle, valeur) values ('alerte_email', 'null') on con
 --     confirmations comprises : au-delà, les codes videraient le quota) ;
 --   creneau_minutes : 10, 15, 20 ou 30 ;
 --   avance_jours : 0 à 14 ;
---   alerte_email : une adresse e-mail.
+--   alerte_email : une adresse e-mail ;
+--   annulation_client_active : true ou false (bouton « Annuler ma commande » du suivi, décision C1 de Jérémy,
+--     faux au départ ; réglage créé par 20261127110000_annulation_client.sql).
 create function regler_reglage_general(p_cle text, p_valeur text, p_personnel uuid) returns jsonb
 language plpgsql as $$
 declare
@@ -49,6 +51,19 @@ begin
         case when avant is null or avant = 'null'::jsonb then to_jsonb('variable ALERTE_EMAIL'::text) else to_jsonb('adresse saisie'::text) end,
         case when apres = 'null'::jsonb then to_jsonb('variable ALERTE_EMAIL'::text) else to_jsonb('adresse saisie'::text) end);
     return apres;
+  end if;
+
+  if p_cle = 'annulation_client_active' then
+    if p_valeur is null or p_valeur not in ('true', 'false') then
+      raise exception 'Oui ou non';
+    end if;
+    select valeur into avant from reglages where cle = p_cle for update;
+    if not found then
+      raise exception 'Réglage inconnu';
+    end if;
+    update reglages set valeur = to_jsonb(p_valeur::boolean), proposition = false where cle = p_cle;
+    perform journaliser(p_personnel, 'reglage', p_cle, avant, to_jsonb(p_valeur::boolean));
+    return to_jsonb(p_valeur::boolean);
   end if;
 
   if p_cle is null or p_cle not in ('plafond_codes_clients_jour', 'creneau_minutes', 'avance_jours') then
@@ -77,7 +92,8 @@ language sql stable as $$
     'plafond_codes_clients_jour', (select valeur from reglages where cle = 'plafond_codes_clients_jour'),
     'creneau_minutes', (select valeur from reglages where cle = 'creneau_minutes'),
     'avance_jours', (select valeur from reglages where cle = 'avance_jours'),
-    'alerte_email', (select valeur from reglages_prives where cle = 'alerte_email')
+    'alerte_email', (select valeur from reglages_prives where cle = 'alerte_email'),
+    'annulation_client_active', coalesce((select valeur from reglages where cle = 'annulation_client_active'), 'false'::jsonb)
   );
 $$;
 

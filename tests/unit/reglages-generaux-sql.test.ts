@@ -23,7 +23,7 @@ beforeAll(async () => {
 
 describe("réglages généraux", () => {
   it("valeurs de départ : celles du site, e-mail vide (la variable ALERTE_EMAIL sert)", async () => {
-    expect(await generaux()).toEqual({ plafond_codes_clients_jour: 150, creneau_minutes: 15, avance_jours: 7, alerte_email: null });
+    expect(await generaux()).toEqual({ plafond_codes_clients_jour: 150, creneau_minutes: 15, avance_jours: 7, alerte_email: null, annulation_client_active: false });
   });
 
   it("le gérant règle chaque valeur dans ses bornes, journalisé", async () => {
@@ -50,6 +50,14 @@ describe("réglages généraux", () => {
     await expect(regler("preparation_minutes", 30)).rejects.toThrow(/inconnu/);
     await expect(regler("avance_jours", 3, ids.service)).rejects.toThrow(/gérant/);
     expect((await generaux()).avance_jours).toBe(7);
+  });
+
+  it("annulation par le client : oui ou non, faux au départ", async () => {
+    expect(await regler("annulation_client_active", true)).toBe(true);
+    expect((await generaux()).annulation_client_active).toBe(true);
+    await expect(regler("annulation_client_active", "oui")).rejects.toThrow(/Oui ou non/);
+    await expect(regler("annulation_client_active", false, ids.service)).rejects.toThrow(/gérant/);
+    expect(await regler("annulation_client_active", false)).toBe(false);
   });
 
   it("e-mail des alertes : rangé à part, jamais recopié dans le journal", async () => {

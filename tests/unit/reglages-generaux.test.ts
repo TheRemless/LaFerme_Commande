@@ -9,6 +9,7 @@ describe("validerReglage", () => {
     expect(validerReglage("plafond_codes_clients_jour", 450)).toEqual({ ok: true, cle: "plafond_codes_clients_jour", valeur: 450 });
     expect(validerReglage("alerte_email", " Gerant@Exemple.ch ")).toEqual({ ok: true, cle: "alerte_email", valeur: "gerant@exemple.ch" });
     expect(validerReglage("alerte_email", "")).toEqual({ ok: true, cle: "alerte_email", valeur: null });
+    expect(validerReglage("annulation_client_active", true)).toEqual({ ok: true, cle: "annulation_client_active", valeur: true });
   });
   it.each([
     ["creneau_minutes", 25, /10, 15, 20 ou 30/],
@@ -17,6 +18,7 @@ describe("validerReglage", () => {
     ["plafond_codes_clients_jour", 500, /20 à 450/],
     ["alerte_email", "gerant@", /illisible/],
     ["preparation_minutes", 20, /inconnu/],
+    ["annulation_client_active", "true", /oui ou non/],
   ])("refuse %s = %j", (cle, valeur, erreur) => {
     const r = validerReglage(cle, valeur);
     expect(r.ok).toBe(false);

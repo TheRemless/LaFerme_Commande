@@ -8,16 +8,17 @@ Des valeurs que le gérant devait faire changer par un développeur. Migration `
 | Codes de connexion des clients par jour (`plafond_codes_clients_jour`) | 150 (décision de Jérémy du 12.11.2026) | de 20 à 450 | Au-delà, plus de code pour les clients jusqu'au lendemain. La boîte d'envoi est limitée à 500 e-mails par jour, confirmations comprises : d'où 450 au plus |
 | Longueur d'un créneau (`creneau_minutes`) | 15 | 10, 15, 20 ou 30 | Heures proposées au client. La capacité par créneau compte par créneau : passer de 15 à 30 minutes double le temps couvert par la même capacité. Les commandes déjà prises hors de la nouvelle grille (19h15 après le passage à 30 minutes) ne comptent plus dans la capacité des créneaux voisins : changer un jour sans réservation, jamais pendant un service |
 | Commande à l'avance (`avance_jours`) | 7 | de 0 à 14 jours | 0 : seulement le jour même |
+| Annulation par le client (`annulation_client_active`) | non (décision C1 de Jérémy en attente) | oui ou non | Bouton « Annuler ma commande » du suivi (bo-commandes et client-compte). La règle d'annulation elle-même est dans `20261127110000_annulation_client.sql` |
 
 - **Où vit l'e-mail** : la table `reglages` est lisible par tous (le site en a besoin pour les créneaux). L'adresse va donc dans `reglages_prives`, sans aucun droit pour les visiteurs. Elle n'est jamais recopiée dans le journal, qui note seulement « adresse saisie » ou « variable ALERTE_EMAIL ».
-- **Journal** : objet `reglage`, comme les autres réglages. Ces quatre-là n'ont pas d'« Annuler ».
+- **Journal** : objet `reglage`, comme les autres réglages. Ces cinq-là n'ont pas d'« Annuler ».
 - **Effet** : le créneau et les jours à l'avance s'appliquent en moins d'une minute (cache de la config vidé). Le plafond des codes s'applique tout de suite. L'e-mail sert dès l'alerte suivante.
 - **Panne de la base ou base pas encore migrée** : l'alerte part à `ALERTE_EMAIL`, comme avant.
 
 ## Route
 
-- `POST /api/gestion/service`, `{ "type": "reglage-general", "cle": "alerte_email" | "plafond_codes_clients_jour" | "creneau_minutes" | "avance_jours", "valeur": … }`. Pour revenir à la variable, `valeur: null` sur l'e-mail.
-- `GET /api/gestion/service` renvoie `generaux: { plafond_codes_clients_jour, creneau_minutes, avance_jours, alerte_email }`.
+- `POST /api/gestion/service`, `{ "type": "reglage-general", "cle": "alerte_email" | "plafond_codes_clients_jour" | "creneau_minutes" | "avance_jours" | "annulation_client_active", "valeur": … }`. Pour revenir à la variable, `valeur: null` sur l'e-mail.
+- `GET /api/gestion/service` renvoie `generaux: { plafond_codes_clients_jour, creneau_minutes, avance_jours, alerte_email, annulation_client_active }`.
 
 ## Avant et après la migration
 

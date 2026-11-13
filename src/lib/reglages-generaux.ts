@@ -11,6 +11,7 @@ export type ReglagesGeneraux = {
   creneau_minutes: number | null;
   avance_jours: number | null;
   alerte_email: string | null;
+  annulation_client_active: boolean;
 };
 export type CleGenerale = keyof ReglagesGeneraux;
 
@@ -33,7 +34,10 @@ export async function destinataireAlertes(): Promise<string | undefined> {
   return saisie || process.env.ALERTE_EMAIL || undefined;
 }
 
-export function validerReglage(cle: unknown, valeur: unknown): { ok: true; cle: CleGenerale; valeur: number | string | null } | { ok: false; erreur: string } {
+export function validerReglage(cle: unknown, valeur: unknown): { ok: true; cle: CleGenerale; valeur: number | string | boolean | null } | { ok: false; erreur: string } {
+  if (cle === "annulation_client_active") {
+    return typeof valeur === "boolean" ? { ok: true, cle, valeur } : { ok: false, erreur: "Annulation par le client : oui ou non." };
+  }
   if (cle === "alerte_email") {
     if (valeur === null || valeur === "") return { ok: true, cle, valeur: null };
     const v = typeof valeur === "string" ? valeur.trim().toLowerCase() : "";
@@ -57,7 +61,7 @@ export async function reglerReglageGeneral(p: Personnel, cle: unknown, valeur: u
   const v = validerReglage(cle, valeur);
   if (!v.ok) return v;
   await fonctionSql("regler_reglage_general", { p_cle: v.cle, p_valeur: v.valeur === null ? null : String(v.valeur), p_personnel: p.id });
-  // Créneau et jours à l'avance : lus par l'accueil et le paiement (config en cache).
-  if (v.cle === "creneau_minutes" || v.cle === "avance_jours") rafraichirCaches("config-service");
+  // Créneau, jours à l'avance, annulation par le client : lus dans la config du service (en cache).
+  if (v.cle !== "plafond_codes_clients_jour" && v.cle !== "alerte_email") rafraichirCaches("config-service");
   return { ok: true };
 }
