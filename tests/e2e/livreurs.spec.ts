@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { adresseDuCompte, SITE } from "./site";
+import { adresseDuCompte, codeDuPersonnel, SITE } from "./site";
 import { expect, test, type APIRequestContext, type Browser, type BrowserContext, type Page } from "@playwright/test";
 
 // Livreurs : la tablette (1024 px) donne les commandes, deux téléphones (375 px tactiles) les livrent.
@@ -21,10 +21,7 @@ async function connecter(page: Page, url: string, email: string) {
   await adresseDuCompte(page, email);
   await page.goto(url);
   await page.getByLabel("E-mail", { exact: true }).fill(email);
-  await page.getByRole("button", { name: "Recevoir un code" }).click();
-  const code = page.locator(".note-preversion strong");
-  await expect(code).toHaveText(/^\d{8}$/);
-  await page.getByLabel("Code à 8 chiffres").fill(await code.innerText());
+  await page.getByLabel("Code à 8 chiffres").fill(await codeDuPersonnel(page));
   await page.getByRole("button", { name: "Me connecter" }).click();
 }
 
@@ -194,7 +191,8 @@ test("deux livreurs et réattribution : l'ancien ne voit plus l'adresse", async 
   await ines.reload();
   await expect(arret(ines, c)).toHaveCount(0);
 
-  await tournee("Marco").getByRole("button", { name: "Donner à Inès" }).click();
+  // La ligne de cette commande : au réessai, la tournée de Marco garde celles du premier passage.
+  await tournee("Marco").locator("li.liv-arret-tab", { has: tablette.getByText(`N° ${c}`, { exact: true }) }).getByRole("button", { name: "Donner à Inès" }).click();
   await marco.reload();
   await expect(arret(marco, c)).toHaveCount(0);
   await expect(marco.locator(".liv-retiree")).toContainText(`N° ${c} donnée à un autre livreur. Si vous avez le sac, appelez le restaurant.`);

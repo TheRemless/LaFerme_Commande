@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
-import { adresseDuCompte, SITE } from "./site";
+import { adresseDuCompte, codeDuPersonnel, SITE } from "./site";
 
 // Tablette du restaurant : connexion du personnel, file, accepter, statuts, refus et remboursement, rupture.
 // Un membre d'équipe par projet (supabase/local/donnees-test.sql) : un seul code par e-mail toutes les 30 s.
@@ -67,10 +67,7 @@ test.beforeAll(async ({ browser }, info) => {
   await adresseDuCompte(tablette, `equipe-${info.project.name}@laferme.test`);
   await tablette.goto("/tablette");
   await tablette.getByLabel("E-mail", { exact: true }).fill(`equipe-${info.project.name}@laferme.test`);
-  await tablette.getByRole("button", { name: "Recevoir un code" }).click();
-  const code = tablette.locator(".note-preversion strong");
-  await expect(code).toHaveText(/^\d{8}$/);
-  await tablette.getByLabel("Code à 8 chiffres").fill(await code.innerText());
+  await tablette.getByLabel("Code à 8 chiffres").fill(await codeDuPersonnel(tablette));
   await tablette.getByRole("button", { name: "Me connecter" }).click();
   await tablette.getByRole("button", { name: "Continuer sans son" }).click();
   await expect(tablette.getByRole("button", { name: /^À accepter/ })).toBeVisible();
