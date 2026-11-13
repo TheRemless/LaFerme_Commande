@@ -11,6 +11,10 @@ describe("csv", () => {
     expect(celluleCsv("@pirate")).toBe("'@pirate");
     expect(celluleCsv("-12.50")).toBe("-12.50");
     expect(celluleCsv(-3)).toBe("-3");
+    // Commence par un nombre mais reste une formule Excel.
+    expect(celluleCsv("-2+3+cmd|' /C calc'!A0+1")).toBe("'-2+3+cmd|' /C calc'!A0+1");
+    expect(celluleCsv("\tcaché")).toBe("'\tcaché");
+    expect(celluleCsv("ligne\r")).toBe('"ligne\r"');
   });
   it("met entre guillemets ce qui contient ; \" ou un retour à la ligne", () => {
     expect(celluleCsv('Pizza "La Ferme"; grande')).toBe('"Pizza ""La Ferme""; grande"');

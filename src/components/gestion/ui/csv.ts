@@ -1,10 +1,12 @@
 // Fichiers CSV du back-office : même format que l'export comptable (src/lib/gestion.ts), lisible par Excel
 // en Suisse : séparateur « ; », BOM UTF-8, fins de ligne CRLF, formules neutralisées.
 
-/** Une cellule : guillemets si besoin, et « ' » devant = + - @ (sauf un nombre négatif) pour qu'Excel n'exécute rien. */
+/** Une cellule : guillemets si besoin, et « ' » devant = + - @ tabulation ou retour, sauf un nombre complet
+ *  (« -12.50 »), pour qu'Excel n'exécute rien. « -2+3+cmd|… » commence par un chiffre mais reste une formule :
+ *  seule une cellule entièrement numérique est exemptée (revue de sécurité de bo-pilotage, PR #83). */
 export function celluleCsv(x: string | number | boolean | null | undefined): string {
   const brut = x === null || x === undefined ? "" : String(x);
-  const s = /^[=+\-@\t\r]/.test(brut) && !/^-?\d/.test(brut) ? `'${brut}` : brut;
+  const s = /^[=+\-@\t\r]/.test(brut) && !/^-?\d+(\.\d+)?$/.test(brut) ? `'${brut}` : brut;
   return /[;"\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
