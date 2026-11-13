@@ -1,10 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
 import { useCarte } from "@/components/gestion/contexte-carte";
 import { GROUPES_VISIBLES } from "@/components/gestion/navigation";
-import { CarteChiffre, Chargement, EtatErreur, IconeGestion, montant, nombre } from "@/components/gestion/ui";
+import { CarteChiffre, Chargement, EtatErreur, IconeGestion, montant, nombre, useRelecture } from "@/components/gestion/ui";
 import type { Alerte, DonneesAccueil, EtatRestaurant } from "@/lib/accueil-gestion";
 import { heureDe } from "@/lib/heures";
 import { heureTexte, jourTexte } from "@/lib/service";
@@ -18,36 +17,20 @@ const RELECTURE_MS = 20_000;
 
 export function AccueilGestion() {
   const { carte } = useCarte();
-  const [d, setD] = useState<Reponse | null>(null);
-  const [erreur, setErreur] = useState<string | null>(null);
-  const enCours = useRef(false);
-
-  const charger = useCallback(async () => {
-    if (enCours.current) return;
-    enCours.current = true;
-    try {
-      const r = await fetch("/api/gestion/accueil", { cache: "no-store" });
-      if (r.status === 401) return window.location.reload();
-      if (!r.ok) throw new Error();
-      setD(await r.json());
-      setErreur(null);
-    } catch {
-      setErreur("Les chiffres du jour n'ont pas pu être chargés.");
-    } finally {
-      enCours.current = false;
-    }
-  }, []);
-
-  useEffect(() => {
-    charger();
-    const t = setInterval(() => document.visibilityState === "visible" && charger(), RELECTURE_MS);
-    const vu = () => document.visibilityState === "visible" && charger();
-    document.addEventListener("visibilitychange", vu);
-    return () => {
-      clearInterval(t);
-      document.removeEventListener("visibilitychange", vu);
-    };
-  }, [charger]);
+  const { donnees: d, erreur, recharger } = useRelecture<Reponse>(
+    async (signal) => {
+      const r = await fetch("/api/gestion/accueil", { cache: "no-store", signal });
+      if (r.status === 401) {
+        window.location.reload();
+        throw new Error("Session terminée.");
+      }
+      if (!r.ok) throw new Error(String(r.status));
+      return r.json();
+    },
+    [],
+    { intervalleMs: RELECTURE_MS, messageErreur: "Les chiffres du jour n'ont pas pu être chargés." },
+  );
+  const charger = recharger;
 
   return (
     <div className="bo-accueil">
