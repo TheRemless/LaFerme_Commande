@@ -27,13 +27,13 @@ describe("filtres de la liste", () => {
     const r = filtresListe({
       action: "liste_page", debut: "2026-11-01", fin: "2026-11-17", recherche: "  079  555 ", statuts: ["acceptee", "acceptee", "partie"],
       paiements: ["paye"], mode: "livraison", moyen: "en_ligne", zone: "2", montant_min: "20", montant_max: 45.5,
-      remboursee: true, en_retard: false, tri: "heure", page: 2, par_page: 25, inconnu: "ignoré",
+      remboursee: true, en_retard: false, avec_reclamation: true, tri: "heure", page: 2, par_page: 25, inconnu: "ignoré",
     });
     expect(r).toEqual({
       ok: true,
       valeur: {
         debut: "2026-11-01", fin: "2026-11-17", recherche: "079 555", statuts: ["acceptee", "partie"], paiements: ["paye"], mode: "livraison",
-        moyen: "en_ligne", zone: 2, montant_min: 2000, montant_max: 4550, remboursee: true, tri: "heure", page: 2, par_page: 25,
+        moyen: "en_ligne", zone: 2, montant_min: 2000, montant_max: 4550, remboursee: true, avec_reclamation: true, tri: "heure", page: 2, par_page: 25,
       },
     });
   });

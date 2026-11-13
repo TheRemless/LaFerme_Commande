@@ -66,7 +66,7 @@ export function filtresListe(c: Record<string, unknown>): Resultat<Record<string
   if (typeof p.montant_min === "number" && typeof p.montant_max === "number" && p.montant_max < p.montant_min) {
     return { ok: false, erreur: "Le montant maximum est plus petit que le minimum." };
   }
-  for (const cle of ["remboursee", "en_retard", "avec_note"] as const) {
+  for (const cle of ["remboursee", "en_retard", "avec_note", "avec_reclamation"] as const) {
     if (vide(c[cle]) || c[cle] === false) continue;
     if (c[cle] !== true) return { ok: false, erreur: "Filtre illisible." };
     p[cle] = true;

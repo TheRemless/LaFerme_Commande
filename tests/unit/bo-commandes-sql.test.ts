@@ -184,6 +184,20 @@ describe("liste des commandes : pagination et filtres côté serveur", () => {
   });
 });
 
+describe("liste : réclamations ouvertes", () => {
+  it("filtre les commandes avec une réclamation ouverte et en donne le nombre", async () => {
+    const a = await commande();
+    await commande();
+    const gerantId = gerant;
+    const r = await f<{ id: string }>("ouvrir_reclamation($1, $2)", [{ commande_id: a, source: "telephone", type: "froid", description: "Arrivée froide." }, gerantId]);
+    const p = await liste({ avec_reclamation: true });
+    expect(p.lignes.map((l) => l.id)).toEqual([a]);
+    expect(p.lignes[0].reclamations).toBe(1);
+    await f("suivre_reclamation($1, $2, $3)", [r.id, { statut: "close", resolution: "Excuses." }, gerantId]);
+    expect((await liste({ avec_reclamation: true })).total).toBe(0);
+  });
+});
+
 describe("fiche complète d'une commande", () => {
   it("rassemble chronologie, e-mails, livreur, tickets, notes et l'historique du client", async () => {
     const ancienne = await commande({ mode: "livraison", email: "fidele@laferme.test", total: 3000 });
