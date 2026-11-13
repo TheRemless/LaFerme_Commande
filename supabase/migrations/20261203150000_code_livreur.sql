@@ -28,7 +28,8 @@ alter table codes_livreur enable row level security;
 revoke all on codes_livreur from anon, authenticated;
 grant select, insert, update, delete on codes_livreur to service_role;
 
--- Gérant ou responsable actif, réglage ouvert, livreur actif. Un nouveau code annule le précédent de ce livreur.
+-- Gérant, ou responsable dont le rôle est ouvert (droit « deconnecter_appareil » du tableau D1, droit_personnel de
+-- 20261210230000 : relu à l'exécution), réglage ouvert, livreur actif. Un nouveau code annule le précédent.
 -- Renvoie l'heure d'expiration. Erreurs nommées : connexion_par_code_desactivee, reserve_gerant, livreur_inconnu.
 create function creer_code_livreur(p_livreur uuid, p_code_hache text, p_personnel uuid) returns timestamptz
 language plpgsql as $$
@@ -40,7 +41,8 @@ begin
     raise exception 'connexion_par_code_desactivee';
   end if;
   select nom into qui from personnel where id = p_personnel and actif and role in ('gerant', 'responsable');
-  if qui is null then
+  -- Un responsable reste dans l'équipe quand role_responsable_actif est coupé : son droit, lui, est relu ici.
+  if qui is null or not droit_personnel(p_personnel, 'deconnecter_appareil') then
     raise exception 'reserve_gerant';
   end if;
   if not exists (select 1 from personnel where id = p_livreur and actif and role = 'livreur') then
@@ -58,7 +60,11 @@ end;
 $$;
 
 -- Le livreur tape le code. Même frein par connexion que l'équipe ; un code ne sert qu'une fois, dans ses 10 minutes,
--- pour un livreur encore actif. Renvoie { statut: 'ok' | 'invalide' | 'attente' | 'desactive', attente? }.
+-- pour un livreur encore actif. Frein global en plus (relecture de qualite) : un code de livreur n'est lié à aucun
+-- e-mail, donc au-delà de 100 codes faux en 10 minutes, toutes connexions confondues, plus aucun code n'est accepté
+-- jusqu'à ce que la fenêtre passe ; le 100e échec renvoie alerte = vrai (le serveur prévient le restaurant, une fois).
+-- Compteur : tentatives_connexion, action 'echec_ip' (déjà admise), clé 'code-livreur:tout'.
+-- Renvoie { statut: 'ok' | 'invalide' | 'attente' | 'desactive', attente?, alerte? }.
 create function utiliser_code_livreur(p_code_hache text, p_cle_ip text, p_session_hache text) returns jsonb
 language plpgsql as $$
 declare
@@ -73,12 +79,17 @@ begin
   if a > 0 then
     return jsonb_build_object('statut', 'attente', 'attente', a);
   end if;
+  a := attente_limite('echec_ip', 'code-livreur:tout', 100, interval '10 minutes', 0, 100);
+  if a > 0 then
+    return jsonb_build_object('statut', 'attente', 'attente', a);
+  end if;
   select * into c from codes_livreur
     where code_hache = p_code_hache and utilise_le is null and expire_le > now()
     for update;
   if not found or not exists (select 1 from personnel where id = c.livreur_id and actif and role = 'livreur') then
-    insert into tentatives_connexion (action, cle) values ('echec_ip', p_cle_ip);
-    return jsonb_build_object('statut', 'invalide');
+    insert into tentatives_connexion (action, cle) values ('echec_ip', p_cle_ip), ('echec_ip', 'code-livreur:tout');
+    return jsonb_build_object('statut', 'invalide', 'alerte',
+      (select count(*) from tentatives_connexion where action = 'echec_ip' and cle = 'code-livreur:tout' and le > now() - interval '10 minutes') = 100);
   end if;
   update codes_livreur set utilise_le = now() where id = c.id;
   insert into sessions_personnel (personnel_id, jeton_hache, expire_le) values (c.livreur_id, p_session_hache, now() + interval '12 hours');

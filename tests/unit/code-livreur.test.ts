@@ -68,6 +68,27 @@ describe("code de connexion d'un livreur", () => {
     expect(r.attente).toBeGreaterThan(0);
   });
 
+  it("responsable : refusé quand son rôle est coupé (role_responsable_actif faux), accepté quand il est ouvert", async () => {
+    const resp = (await db.query<{ id: string }>("insert into personnel (email, nom, role, actif) values ('resp-code@laferme.test', 'Resp', 'responsable', true) returning id")).rows[0].id;
+    await db.query("insert into reglages (cle, valeur, proposition) values ('role_responsable_actif', 'false', true) on conflict (cle) do update set valeur = 'false'");
+    await expect(creer("r1", resp)).rejects.toThrow(/reserve_gerant/);
+    await db.query("update reglages set valeur = 'true' where cle = 'role_responsable_actif'");
+    expect(await creer("r2", resp)).toBeTruthy();
+    await db.query("update reglages set valeur = 'false' where cle = 'role_responsable_actif'");
+  });
+
+  it("frein global : au 100e code faux en 10 minutes, alerte ; au-delà, plus aucun code accepté", async () => {
+    await db.query("delete from tentatives_connexion where cle = 'code-livreur:tout'");
+    await db.query("insert into tentatives_connexion (action, cle) select 'echec_ip', 'code-livreur:tout' from generate_series(1, 98)");
+    expect(await utiliser("g98")).toMatchObject({ statut: "invalide", alerte: false });
+    expect(await utiliser("g99")).toMatchObject({ statut: "invalide", alerte: true });
+    await creer("g-bon");
+    const r = await utiliser("g-bon");
+    expect(r.statut).toBe("attente");
+    await db.query("delete from tentatives_connexion where cle = 'code-livreur:tout'");
+    expect(await utiliser("g-bon")).toMatchObject({ statut: "ok" });
+  });
+
   it("aucun droit pour anon ni authenticated", async () => {
     const r = (await db.query<{ r: boolean }>("select has_table_privilege('anon', 'codes_livreur', 'select') or has_function_privilege('anon', 'utiliser_code_livreur(text, text, text)', 'execute') as r")).rows[0].r;
     expect(r).toBe(false);

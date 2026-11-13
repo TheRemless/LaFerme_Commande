@@ -3,12 +3,20 @@ import { empreinte, ipDe, nouveauCode, nouveauJeton } from "@/lib/comptes/securi
 import { lirePublic } from "@/lib/db/lecture";
 import { fonctionSql } from "@/lib/db/serveur";
 import type { Personnel } from "@/lib/personnel/session";
+import { alerter } from "@/lib/surveillance";
 
 // Connexion d'un livreur par un code affiché sur la tablette (vague 3, D13 point 3) : construit désactivé
 // (réglage connexion_livreur_par_code). Base : 20261203150000_code_livreur.sql. Le code (8 chiffres, 10 minutes,
 // une seule fois) n'est gardé qu'en empreinte HMAC ; la session ouverte est une session de livreur de 12 heures.
 
 const hache = (code: string) => empreinte("code", `livreur:${code}`);
+
+// Gérant, ou responsable dont le rôle est ouvert : droit « deconnecter_appareil » (tableau D1), relu en base.
+export async function peutCreerCode(p: Personnel): Promise<boolean> {
+  if (p.role === "gerant") return true;
+  if (p.role !== "responsable") return false;
+  return fonctionSql<boolean>("droit_personnel", { p_personnel: p.id, p_action: "deconnecter_appareil" }).catch(() => false);
+}
 
 export async function connexionParCodeActive(): Promise<boolean> {
   const reglages = await lirePublic<{ cle: string; valeur: unknown }>("reglages").catch(() => []);
@@ -40,11 +48,18 @@ export async function utiliserCodeLivreur(
   requete: Request,
 ): Promise<{ statut: "ok"; jeton: string } | { statut: "invalide" | "desactive" } | { statut: "attente"; attente: number }> {
   const jeton = nouveauJeton();
-  const r = await fonctionSql<{ statut: string; attente?: number }>("utiliser_code_livreur", {
+  const r = await fonctionSql<{ statut: string; attente?: number; alerte?: boolean }>("utiliser_code_livreur", {
     p_code_hache: hache(code),
     p_cle_ip: empreinte("ip", ipDe(requete)),
     p_session_hache: empreinte("session-personnel", jeton),
   });
+  // 100 codes faux en 10 minutes, toutes connexions confondues : on prévient le restaurant (une fois, au 100e).
+  if (r.alerte) {
+    await alerter("Codes de livreur : trop d'essais faux", [
+      "Plus de 100 codes de connexion de livreur faux en 10 minutes, depuis plusieurs connexions.",
+      "La connexion par code est bloquée 10 minutes. Les livreurs peuvent demander un code par e-mail.",
+    ]).catch((e) => console.error(`Alerte des codes de livreur non envoyée : ${e instanceof Error ? e.message : e}`));
+  }
   if (r.statut === "ok") return { statut: "ok", jeton };
   if (r.statut === "attente") return { statut: "attente", attente: r.attente ?? 60 };
   return { statut: r.statut === "desactive" ? "desactive" : "invalide" };

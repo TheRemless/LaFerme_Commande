@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { corpsJson, refus } from "@/lib/comptes/api";
-import { connexionParCodeActive, creerCodeLivreur } from "@/lib/personnel/code-livreur";
+import { connexionParCodeActive, creerCodeLivreur, peutCreerCode } from "@/lib/personnel/code-livreur";
 import { exigerPersonnel } from "@/lib/personnel/session";
 
 // « Code de connexion » d'un livreur sur la tablette (vague 3, D13 point 3, construit désactivé). GET : { actif,
@@ -12,7 +12,7 @@ export async function GET(requete: Request) {
   const g = await exigerPersonnel(requete, { lecture: true });
   if ("reponse" in g) return g.reponse;
   const actif = await connexionParCodeActive();
-  return NextResponse.json({ actif, autorise: actif && (g.personnel.role === "gerant" || g.personnel.role === "responsable") }, { headers: SANS_CACHE });
+  return NextResponse.json({ actif, autorise: actif && (await peutCreerCode(g.personnel)) }, { headers: SANS_CACHE });
 }
 
 export async function POST(requete: Request) {
