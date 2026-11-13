@@ -126,3 +126,7 @@ Bloc en tête de « Pause, délai, ruptures ». Mêmes fonctions que le back-off
 - Qui : le gérant toujours. L'équipe de service seulement si le réglage `coup_de_feu_par_equipe` est vrai. **Construit désactivé** (migration `20261203100000_tablette_coup_de_feu.sql`, décision de Jérémy). Le réglage est relu à chaque requête : le couper agit tout de suite. Pour l'ouvrir : `update reglages set valeur = 'true', proposition = false where cle = 'coup_de_feu_par_equipe';`
 - Réglage faux : l'équipe de service ne voit pas le bloc, sauf pour lire qu'un coup de feu lancé par le gérant est en cours (sans bouton). Le rôle « responsable » n'y a pas accès (la base le refuse, `equipe_nom`).
 - Captures : `docs/rendus/vague-3/tablette/coup-de-feu-*.png` (`scripts/tablette/coup-de-feu.mjs`, compte gérant de test). Tests : `tests/unit/tablette-coup-de-feu.test.ts`.
+
+## Numéro d'un autre jour (vague 3, relevé par qualite)
+
+Les numéros recommencent chaque jour. Une commande reçue un autre jour (refusée dont le remboursement n'est pas passé, commande à l'avance) porte sa date sous le numéro, « du 4 nov. », dans la liste comme dans le détail : on ne la confond plus avec le 130 du soir. Classe `tab-autre-jour` sur la ligne et la carte (les tests e2e visent `:not(.tab-autre-jour)`). Capture : `docs/rendus/vague-3/tablette/numero-autre-jour-paysage-1024.png` (`scripts/tablette/numero-autre-jour.mjs`, jeu de rush).

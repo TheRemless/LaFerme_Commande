@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { SITE, adresseDuCompte } from "./site";
+import { adresseDuCompte, codeDuPersonnel, SITE } from "./site";
 import { expect, test, type Page } from "@playwright/test";
 
 // Rubrique Livreurs du back-office (vague 3, bo-operations) : semaine type, absence et renfort du jour,
@@ -13,11 +13,7 @@ async function connecter(page: Page, email: string) {
   await adresseDuCompte(page, email);
   await page.goto("/gestion/livreurs");
   await page.getByLabel("E-mail", { exact: true }).fill(email);
-  await page.getByRole("button", { name: "Recevoir un code" }).click();
-  const code = page.locator(".note-preversion strong");
-  // Premier appel après le démarrage du serveur : la page compile, d'où un délai plus large.
-  await expect(code).toHaveText(/^\d{8}$/, { timeout: 20_000 });
-  await page.getByLabel("Code à 8 chiffres").fill(await code.innerText());
+  await page.getByLabel("Code à 8 chiffres").fill(await codeDuPersonnel(page));
   await page.getByRole("button", { name: "Me connecter" }).click();
   await expect(page.getByLabel("Code à 8 chiffres")).toHaveCount(0);
 }

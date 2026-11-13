@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { adresseDuCompte } from "./site";
+import { adresseDuCompte, codeDuPersonnel } from "./site";
 
 // Coque du back-office (vague 3) : une adresse par rubrique, retour arrière, connexion qui garde la page
 // demandée, menu latéral repliable, tiroir sur téléphone. Gérant de test à part (un code par 30 s et par e-mail).
@@ -12,10 +12,7 @@ async function connecter(page: Page, email: string) {
   // Une adresse simulée par compte : la limite de 20 codes par heure et par IP n'est pas partagée (tests/e2e/site.ts).
   await adresseDuCompte(page, email);
   await page.getByLabel("E-mail", { exact: true }).fill(email);
-  await page.getByRole("button", { name: "Recevoir un code" }).click();
-  const code = page.locator(".note-preversion strong");
-  await expect(code).toHaveText(/^\d{8}$/);
-  await page.getByLabel("Code à 8 chiffres").fill(await code.innerText());
+  await page.getByLabel("Code à 8 chiffres").fill(await codeDuPersonnel(page));
   await page.getByRole("button", { name: "Me connecter" }).click();
 }
 

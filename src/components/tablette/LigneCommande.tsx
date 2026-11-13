@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { CommandeTablette } from "@/lib/tablette";
 import { heureDe as heure, jourCourtDe as jourCourt, jourGeneveDe as jourGeneve } from "@/lib/heures";
 import { prixChf } from "@/lib/prix";
-import { gestesPrincipaux, resumePlats, type EtatTemps, type Geste } from "@/components/tablette/rush";
+import { gestesPrincipaux, jourDuNumero, resumePlats, type EtatTemps, type Geste } from "@/components/tablette/rush";
 
 // Une commande sur une ligne du tableau (vague 3) : de quoi décider à un mètre, et le geste suivant sous le doigt.
 // Le reste (heure, manque, annulation, tickets) s'ouvre au toucher, sur le côté.
@@ -29,6 +29,7 @@ export function LigneCommande({
   const gestes = gestesPrincipaux(c);
   const promise = c.heure_confirmee ?? c.heure_proposee;
   const autreJour = jourGeneve(promise) !== aujourdHui;
+  const recueLe = jourDuNumero(c.cree_le, aujourdHui);
   const deduit = c.deduit_centimes ?? 0;
   const client = `${c.client_prenom} ${c.client_nom.charAt(0)}.`;
 
@@ -39,9 +40,12 @@ export function LigneCommande({
   }
 
   return (
-    <li className={`tab-ligne tab-niveau-${etat.niveau}${ouverte ? " tab-ligne-ouverte" : ""}`}>
+    <li className={`tab-ligne tab-niveau-${etat.niveau}${ouverte ? " tab-ligne-ouverte" : ""}${recueLe ? " tab-autre-jour" : ""}`}>
       <button type="button" className="tab-ligne-corps" aria-expanded={ouverte} onClick={ouvrir}>
-        <span className="tab-ligne-num">{c.numero}</span>
+        <span className="tab-ligne-num">
+          {c.numero}
+          {recueLe && <small className="tab-num-jour">{recueLe}</small>}
+        </span>
         <span className="tab-ligne-temps">
           <span className="tab-ligne-heure">
             {autreJour && <small>{jourCourt(promise)} </small>}
