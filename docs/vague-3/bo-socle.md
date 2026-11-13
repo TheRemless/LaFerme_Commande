@@ -8,3 +8,13 @@ Ce que `bo-socle` a construit, pour l'équipe et pour les autres sessions. Le ki
   `insert into reglages (cle, valeur, proposition) values ('plafond_codes_personnel_jour', '<nombre>', false) on conflict (cle) do update set valeur = excluded.valeur, proposition = false;`
 - **Adresse bloquée après 15 codes faux** : si la limite d'envoi du jour refuse le courriel au membre, l'alerte au restaurant part quand même. Elle précise que le membre n'a rien reçu.
 - Tests : `tests/unit/codes-equipe.test.ts`.
+
+## Recherche globale (⌘K)
+
+Le bouton « Recherche » de l'en-tête, ou ⌘K sur Mac et Ctrl+K sur PC. Il trouve :
+- une commande par son numéro, le nom ou le téléphone du client ;
+- un client par son nom ou son téléphone ;
+- un plat ;
+- une rubrique par son nom ou ce qu'on y fait.
+
+Les flèches choisissent, Entrée ouvre, Échap ferme. Le texte cherché part en POST (`/api/gestion/recherche`, gérant seulement) et n'apparaît jamais dans l'adresse. La recherche ne refait aucune requête : elle demande cinq résultats aux listes de `bo-commandes` (`liste_commandes_gestion`, `clients_gestion`) et au catalogue. La fiche visée s'ouvre en arrivant sur la rubrique par `useOuverture` (kit) : Commandes, Clients et Carte doivent l'appeler pour leurs fiches.
