@@ -213,6 +213,10 @@ Qui livre les sept prochains jours, absence et renfort en un geste, semaine type
 
 Coup de feu (en tête de la rubrique) et zones livrées le soir seulement ou fermées pour quelques heures : `docs/coup-de-feu.md` et `docs/zones-services.md`, « Écran du back-office ».
 
+### Messages aux clients
+
+Une bannière sur le site, programmée, qui s'arrête seule (fermeture, retard général, nouveauté) : `docs/messages-clients.md`, « L'écran ».
+
 ### Réglages généraux
 
 E-mail des alertes, longueur d'un créneau, commande à l'avance, annulation par le client, codes de connexion par jour : `docs/reglages-generaux.md`, « Mode d'emploi ».

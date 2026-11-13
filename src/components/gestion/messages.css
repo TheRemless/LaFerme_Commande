@@ -1,0 +1,144 @@
+/* Rubrique Messages aux clients du back-office (vague 3, bo-operations). Jetons du kit seulement. */
+.bo-msg {
+  display: grid;
+  gap: 16px;
+  max-width: 48rem;
+}
+.bo-msg-bloc {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  background: var(--bo-surface);
+  border: 1px solid var(--bo-trait);
+  border-radius: var(--bo-rayon);
+}
+.bo-msg-bloc h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+.bo-msg-tete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.bo-msg-tete .aide {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.bo-msg-liste {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* Une ligne : le texte tel que les clients le lisent, puis où et quand, puis le geste. */
+.bo-msg-ligne {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 16px;
+  align-items: center;
+  padding: 12px 12px 12px 14px;
+  border: 1px solid var(--bo-trait);
+  border-left: 4px solid var(--bo-trait-fort);
+  border-radius: var(--bo-rayon);
+}
+.bo-msg-ligne[data-etat="en-cours"] {
+  border-left-color: var(--bo-texte);
+}
+.bo-msg-ligne[data-etat="a-venir"] {
+  border-left-style: dashed;
+}
+.bo-msg-liste-passes .bo-msg-ligne {
+  color: var(--bo-texte-doux);
+  border-left-color: var(--bo-trait);
+}
+.bo-msg-texte {
+  grid-column: 1;
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.bo-msg-meta {
+  grid-column: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  color: var(--bo-texte-doux);
+  font-size: 0.9rem;
+}
+.bo-msg-etiquette {
+  color: var(--bo-texte);
+  font-weight: 700;
+}
+.bo-msg-ligne .bo-bouton {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+.bo-msg-form {
+  display: grid;
+  gap: 16px;
+}
+.bo-msg-compte {
+  margin: 4px 0 0;
+  color: var(--bo-texte-doux);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.bo-msg-choix {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.bo-msg-choix legend {
+  margin-bottom: 4px;
+  padding: 0;
+  font-weight: 600;
+}
+.bo-msg-choix > label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--bo-cible);
+  cursor: pointer;
+}
+.bo-msg-choix input[type="radio"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--bo-texte);
+}
+.bo-msg-choix > .aide {
+  margin: 0 0 4px;
+}
+.bo-msg-heure {
+  display: grid;
+  align-items: start;
+  grid-template-columns: repeat(2, minmax(0, 12rem));
+  gap: 12px;
+}
+.bo-msg-resume {
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--bo-fond);
+  border-radius: var(--bo-rayon);
+}
+@media (max-width: 600px) {
+  .bo-msg-ligne {
+    grid-template-columns: 1fr;
+  }
+  .bo-msg-ligne .bo-bouton {
+    grid-column: 1;
+    grid-row: auto;
+    justify-self: start;
+  }
+  .bo-msg-heure {
+    grid-template-columns: 1fr 1fr;
+  }
+}
