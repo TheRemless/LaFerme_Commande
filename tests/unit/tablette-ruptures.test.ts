@@ -71,7 +71,7 @@ describe("commandes touchées", () => {
       c(20, "acceptee", "2026-11-20", [["Pizza Diavola", "pizza"]]),
     ];
     expect(commandesTouchees(file, { noms: new Set(["Pizza Margherita"]), station: null, jusqu: "2026-11-13" })).toEqual([
-      { id: "12", numero: 12, statut: "acceptee", mode: "retrait", lignes: [{ nom: "Pizza Margherita", qte: 1 }] },
+      { id: "12", numero: 12, jour: null, statut: "acceptee", mode: "retrait", lignes: [{ nom: "Pizza Margherita", qte: 1 }] },
     ]);
     expect(commandesTouchees(file, { noms: new Set(), station: "pizza", jusqu: "2026-11-21" }).map((x) => x.numero)).toEqual([12, 20]);
   });

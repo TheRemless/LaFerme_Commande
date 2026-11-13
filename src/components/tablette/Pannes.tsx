@@ -27,7 +27,7 @@ function libelle(cible: string, categories: Categorie[]): string {
   return `Toute la catégorie « ${categories.find((c) => `categorie:${c.slug}` === cible)?.nom ?? cible.slice(10)} »`;
 }
 
-export function Pannes({ onChange, ouvrirCommande }: { onChange: () => Promise<void>; ouvrirCommande: (numero: number) => void }) {
+export function Pannes({ onChange, ouvrirCommande }: { onChange: () => Promise<void>; ouvrirCommande: (c: { id: string; numero: number }) => void }) {
   const [etat, setEtat] = useState<{ ruptures: Rupture[]; categories: Categorie[] } | null>(null);
   const [choix, setChoix] = useState<string | null>(null);
   const [categoriesOuvertes, setCategoriesOuvertes] = useState(false);
@@ -130,7 +130,8 @@ export function Pannes({ onChange, ouvrirCommande }: { onChange: () => Promise<v
 }
 
 // « Commandes en cours qui les contiennent » : à prévenir ou à corriger (manque), chacune s'ouvre sur la tablette.
-export function CommandesTouchees({ commandes, ouvrir, fermer }: { commandes: Touchee[]; ouvrir: (numero: number) => void; fermer: () => void }) {
+export function CommandesTouchees({ commandes, ouvrir, fermer }: { commandes: Touchee[]; ouvrir: (c: { id: string; numero: number }) => void; fermer: () => void }) {
+  const aujourdHui = jourGeneveDe(new Date());
   return (
     <div className="tab-touchees" role="status">
       {commandes.length === 0 ? (
@@ -143,10 +144,11 @@ export function CommandesTouchees({ commandes, ouvrir, fermer }: { commandes: To
           <ul>
             {commandes.map((c) => (
               <li key={c.id}>
-                <button type="button" className="bouton-second" onClick={() => ouvrir(c.numero)}>
+                <button type="button" className="bouton-second" onClick={() => ouvrir(c)}>
                   N° {c.numero}
                 </button>
                 <span>
+                  {c.jour && c.jour !== aujourdHui ? `${jourLong(c.jour)}, ` : ""}
                   {c.statut === "nouvelle" ? "à accepter" : "en cours"}, {c.lignes.map((l) => `${l.qte} × ${l.nom}`).join(", ")}
                 </span>
               </li>

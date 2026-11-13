@@ -36,7 +36,9 @@ export function parGroupe(options: OptionRupture[]): { groupe: string; nom: stri
 }
 
 // Commandes en cours qui contiennent un plat épuisé (contrat de bo-carte, commandes_touchees ; repli de la tablette).
-export type Touchee = { id: string; numero: number; statut: string; mode: "livraison" | "retrait"; lignes: { nom: string; qte: number }[] };
+// jour : jour de service (AAAA-MM-JJ), fourni par commandes_touchees de bo-carte ; le numéro repart à 1 chaque jour,
+// la commande s'ouvre donc par son id.
+export type Touchee = { id: string; numero: number; jour?: string | null; statut: string; mode: "livraison" | "retrait"; lignes: { nom: string; qte: number }[] };
 type CommandeFile = { id: string; numero: number; statut: string; mode: "livraison" | "retrait"; quand_date: string | null; lignes: { nom: string; qte: number; station: string }[] };
 const A_PREPARER = new Set(["nouvelle", "acceptee", "en_preparation"]);
 
@@ -45,6 +47,6 @@ export function commandesTouchees(commandes: CommandeFile[], { noms, station, ju
     .filter((c) => A_PREPARER.has(c.statut) && (c.quand_date === null || c.quand_date <= jusqu))
     .map((c) => ({ c, lignes: c.lignes.filter((l) => noms.has(l.nom) || (station !== null && l.station === station)) }))
     .filter(({ lignes }) => lignes.length > 0)
-    .map(({ c, lignes }) => ({ id: c.id, numero: c.numero, statut: c.statut, mode: c.mode, lignes: lignes.map((l) => ({ nom: l.nom, qte: l.qte })) }))
+    .map(({ c, lignes }) => ({ id: c.id, numero: c.numero, jour: c.quand_date, statut: c.statut, mode: c.mode, lignes: lignes.map((l) => ({ nom: l.nom, qte: l.qte })) }))
     .sort((a, b) => a.numero - b.numero);
 }

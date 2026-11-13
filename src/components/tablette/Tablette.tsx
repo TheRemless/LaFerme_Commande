@@ -543,12 +543,12 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
         <Reglages
           reglages={donnees.reglages}
           onChange={charger}
-          ouvrirCommande={(numero) => {
-            // Ouverte depuis « Commandes en cours qui les contiennent » : réglages fermés, numéro cherché, détail ouvert.
-            const c = donnees.commandes.find((x) => x.numero === numero && !["terminee", "refusee"].includes(x.statut));
+          ouvrirCommande={(c) => {
+            // Ouverte depuis « Commandes en cours qui les contiennent » : réglages fermés, numéro cherché, détail de
+            // cette commande-là ouvert (par son id : le numéro repart à 1 chaque jour).
             setReglagesOuverts(false);
-            setRecherche(String(numero));
-            setOuverte(c?.id ?? null);
+            setRecherche(String(c.numero));
+            setOuverte(c.id);
           }}
         />
       )}

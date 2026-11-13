@@ -11,7 +11,7 @@ type Props = {
   reglages: { pause: { active: boolean; jusqua: string | null; livraisonFermee: boolean } | null; preparation_minutes: number; retard_minutes?: number };
   onChange: () => Promise<void>;
   // Ouvre une commande sur la tablette (réglages fermés, numéro cherché, détail ouvert).
-  ouvrirCommande: (numero: number) => void;
+  ouvrirCommande: (c: { id: string; numero: number }) => void;
 };
 
 type Plat = PlatRupture;
