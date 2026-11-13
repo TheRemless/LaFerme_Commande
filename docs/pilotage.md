@@ -33,3 +33,14 @@ Migration `supabase/migrations/20261210190000_cloture_jour.sql`, module `src/lib
 - Clôturer (`POST { jour, especes, carte, note }`, montants en francs, vides si pas comptés) : la base garde une copie du rapport, calcule l'écart (espèces comptées + ticket du terminal de carte − attendu) et journalise (objet `cloture`, sans le rapport). Reclôturer le même jour remplace la clôture ; l'ancienne reste dans le journal. Un jour clôturé se relit tel qu'il était à la clôture ; si une commande ou un remboursement du jour a changé depuis (`change_depuis`), l'écran et le CSV le disent : il faut reclôturer. Une clôture ne s'annule pas depuis le journal. Pas de clôture d'un jour à venir.
 - `GET ?jour=…&format=csv` : le rapport en CSV (point-virgule), sans aucune donnée de client, formules neutralisées.
 - Mesure (base embarquée, un jour de 300 commandes dans un an d'historique) : 3 ms.
+
+## Analyses
+
+Migration `supabase/migrations/20261210200000_pilotage_analyses.sql`, route `GET /api/gestion/pilotage/analyses` (mêmes paramètres que les ventes, sans comparaison). Tests : `tests/unit/pilotage-analyses-sql.test.ts`.
+
+- Plats : quantité et montant TTC des lignes (suppléments compris, frais de livraison non), sous le nom actuel de la carte. Un plat qui n'est plus à la carte garde son dernier nom vendu, dans « Hors carte ».
+- Catégories : la même chose par catégorie de la carte.
+- Heures : carte de chaleur par jour de la semaine (1 = lundi) et heure de service à Genève (heure confirmée, sinon créneau, sinon heure de la commande), avec le nombre de ces jours dans la période pour une moyenne.
+- Zones : commandes livrées, montant, frais et panier moyen par zone.
+- Clients : un client se reconnaît à son e-mail (sans majuscules) à l'intérieur de la base. Nouveau : aucune commande prise avant la période. Fidèle : au moins une. Seuls des nombres sortent.
+- Mesure (base embarquée, 109 500 commandes et 328 500 lignes sur un an) : un mois en 61 ms, une année en environ 1 s. Pas de table de cumuls : une année entière reste une demande rare, l'écran montre un chargement.

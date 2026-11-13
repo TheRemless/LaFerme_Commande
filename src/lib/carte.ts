@@ -30,6 +30,8 @@ export type LignePlat = {
   dispo_mode?: string | null;
   dispo_jours?: number[] | null;
   rupture_jusqu_au?: string | Date | null;
+  // Étiquettes posées par le gérant (migration 20261210150000) : vegetarien, vegane, epice. Absente avant.
+  etiquettes?: string[];
 };
 
 export type Categorie = { slug: string; nom: string; plats: LignePlat[] };

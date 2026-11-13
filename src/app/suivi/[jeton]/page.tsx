@@ -6,6 +6,7 @@ import { Icone } from "@/components/Icone";
 import { PiedDePage } from "@/components/PiedDePage";
 import { Actualiser } from "@/components/suivi/Actualiser";
 import { AnnulerCommande } from "@/components/suivi/AnnulerCommande";
+import { Reclamation } from "@/components/suivi/Reclamation";
 import { CreerCompte } from "@/components/suivi/CreerCompte";
 import { chargerCatalogue } from "@/lib/catalogue";
 import { chargerConfigService } from "@/lib/config-service";
@@ -73,6 +74,9 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
   // Arbitrage C1 (Jérémy) : désactivé par défaut. La route revérifie le réglage et le statut.
   const annulable = c.statut === "nouvelle" && config?.reglages.annulation_client_active === true;
   const parClient = Boolean(c.annulee_par_client_le) || c.motif === MOTIF_DEMANDE_CLIENT;
+  // Réclamation possible sur une commande acceptée, de moins de 14 jours (mêmes règles que la base, #87).
+  const reclamable =
+    ["acceptee", "en_preparation", "prete", "partie", "terminee"].includes(c.statut) && Date.now() - new Date(c.cree_le).getTime() < 14 * 86_400_000;
   // Un remboursement attendu chez Stripe garde la page à jour, même commande terminée.
   const attente = remboursements.some((r) => r.moyen === "stripe" && r.statut === "en_cours");
 
@@ -173,6 +177,7 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
           )}
           {annulable && <AnnulerCommande jeton={c.jeton_suivi} numero={c.numero} payeeEnLigne={c.statut_paiement === "paye"} />}
           {c.compte_demande && enregistree && !c.detachee_du_compte && <CreerCompte jeton={c.jeton_suivi} rattachee={Boolean(c.compte_id)} />}
+          {reclamable && <Reclamation jeton={c.jeton_suivi} livraison={c.mode === "livraison"} />}
           <section className="suivi-detail">
             <h2>{c.mode === "livraison" && c.adresse ? `Livraison à ${c.adresse.localite}` : "À emporter, Route de Chancy 132, Onex"}</h2>
             <ul className="lignes">

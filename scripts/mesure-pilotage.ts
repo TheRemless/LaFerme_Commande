@@ -35,6 +35,11 @@ async function main() {
     select id, 'mesure-r-' || id, 500, 'Mesure', 'stripe', case when numero % 400 = 3 then 'echec' else 'fait' end, 'Mesure',
       termine_le, case when numero % 400 <> 3 then termine_le end
     from commandes where numero % 50 = 3 and statut = 'terminee';
+    -- Trois lignes par commande, prises parmi les plats de la carte.
+    insert into commande_lignes (commande_id, position, plat_slug, nom, station, qte, unitaire_centimes, total_centimes)
+    select o.id, i, p.slug, p.nom, p.station, 1, p.prix_centimes, p.prix_centimes
+    from commandes o cross join generate_series(0, 2) i
+    join lateral (select slug, nom, station, prix_centimes from plats order by slug offset ((o.numero * 7 + i * 13) % 40) limit 1) p on true;
     analyze;
   `);
   const nb = (await db.query<{ n: number }>("select count(*)::int as n from commandes")).rows[0].n;
@@ -57,6 +62,16 @@ async function main() {
     }
     temps.sort((a, b) => a - b);
     console.log(`pilotage_ventes ${nom.padEnd(16)} médiane ${Math.round(temps[2])} ms (min ${Math.round(temps[0])}, max ${Math.round(temps[4])})`);
+  }
+  for (const [nom, debut, fin] of [["mois", "2026-12-01", FIN], ["année", "2026-01-01", FIN]]) {
+    const t2: number[] = [];
+    for (let i = 0; i < 5; i += 1) {
+      const t = performance.now();
+      await db.query("select pilotage_analyses($1::date, $2::date)", [debut, fin]);
+      t2.push(performance.now() - t);
+    }
+    t2.sort((x, y) => x - y);
+    console.log(`pilotage_analyses ${nom.padEnd(14)} médiane ${Math.round(t2[2])} ms (min ${Math.round(t2[0])}, max ${Math.round(t2[4])})`);
   }
   const temps: number[] = [];
   for (let i = 0; i < 5; i += 1) {
