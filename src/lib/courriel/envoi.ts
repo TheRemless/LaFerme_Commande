@@ -78,6 +78,7 @@ function prevenirQuota(): void {
           "Pour relever la limite, il faut la demander à Infomaniak, puis changer COURRIELS_PLAFOND_JOUR dans Netlify.",
         ],
         "alerte_quota",
+        "quota_courriels",
       ),
     )
     .catch((e) => console.error(`Alerte de quota non envoyée : ${e instanceof Error ? e.message : e}`));

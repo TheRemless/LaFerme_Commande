@@ -151,7 +151,7 @@ export async function agirLivraison(a: ActionLivraison, p: Personnel): Promise<{
         await alerter(`Commande ${c.numero} : client absent à la livraison`, [
           `La commande ${c.numero} (${prixChf(c.total_centimes)}) n'a pas pu être remise : client absent. Elle n'est pas remboursée.`,
           "Ouvrez-la dans le back-office, rubrique « Commandes », pour décider d'un remboursement total, partiel ou d'aucun.",
-        ]).catch((e) => console.error(`Alerte non envoyée : ${e instanceof Error ? e.message : e}`));
+        ], "alerte", "client_absent").catch((e) => console.error(`Alerte non envoyée : ${e instanceof Error ? e.message : e}`));
       }
       message = "Livraison close sans remboursement. Le client est prévenu, le gérant décide dans le back-office.";
       break;

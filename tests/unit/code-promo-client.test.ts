@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { baseLocale } from "@/lib/db/locale";
 import { appliquerRemise, codesActifs, codeTape, evaluerCode, messageCode } from "@/lib/code-promo";
@@ -8,6 +8,15 @@ import { appliquerRemise, codesActifs, codeTape, evaluerCode, messageCode } from
 
 vi.mock("next/headers", () => ({ cookies: async () => ({ get: () => undefined }) }));
 process.env.SANS_LIMITE_COMPTOIR = "1";
+
+// Un client d'essai = un e-mail et son téléphone. La règle « une fois par client » compare aussi le téléphone
+// (evaluer_code) : tiré au hasard parmi 899 numéros à chaque appel, il retombait parfois sur celui d'une autre
+// commande du fichier, et la première commande était refusée (CI de la #183). Dérivé de l'e-mail, il est unique
+// par client et identique d'un essai à l'autre du même client, comme dans la vraie vie.
+function telephoneDe(email: string): string {
+  const n = String(createHash("sha256").update(email).digest().readUInt32BE(0) % 10_000_000).padStart(7, "0");
+  return `079 ${n.slice(0, 3)} ${n.slice(3, 5)} ${n.slice(5)}`;
+}
 
 async function commander(code: string | undefined, email = `code-${randomUUID().slice(0, 8)}@laferme.test`, cle = randomUUID()) {
   const { POST } = await import("@/app/api/commandes/route");
@@ -21,7 +30,7 @@ async function commander(code: string | undefined, email = `code-${randomUUID().
         mode: "retrait",
         quand: { type: "asap" },
         heure: "2026-11-10T19:05",
-        client: { prenom: "Test", nom: "Code", telephone: `079 ${100 + Math.floor(Math.random() * 899)} 00 00`, email },
+        client: { prenom: "Test", nom: "Code", telephone: telephoneDe(email), email },
         moyen: "comptoir",
         code,
       }),
