@@ -597,3 +597,80 @@
   border: 2px solid var(--encre);
   border-radius: 4px;
 }
+
+
+/* Tableau plus compact (P1 du contrôle de produit-gestion, objectif 12 à 15 commandes par écran) : bouton de geste à
+   44 px (taille tactile minimale), une ligne de 46 px, 3 px entre deux lignes. */
+.tab-tableau-liste {
+  gap: 3px;
+  margin-top: 8px;
+}
+.tab-ligne {
+  min-height: 46px;
+}
+.tab-ligne-corps {
+  grid-template-columns: 52px 150px minmax(0, 1fr);
+  gap: 10px;
+  min-height: 44px;
+  padding: 1px 10px;
+}
+.tab-ligne-num {
+  font-size: 30px;
+}
+.tab-ligne-heure {
+  font-size: 24px;
+}
+.tab-ligne-etat {
+  font-size: 14px;
+}
+.tab-ligne-infos {
+  font-size: 15px;
+  line-height: 1.25;
+}
+.tab-ligne-gestes {
+  margin: 1px 6px 1px 0;
+}
+.tablette .tab-ligne-geste {
+  min-height: 44px;
+}
+.tab-alerte-courte {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tab-alerte-courte a {
+  font-weight: 700;
+}
+@media (max-width: 599px) {
+  .tab-alerte-courte {
+    white-space: normal;
+  }
+}
+/* En retard, compact : même cadre et même fond noir, sans marge verticale qui grandirait la ligne. */
+.tablette .tab-niveau-retard {
+  border-width: 2px;
+}
+.tab-niveau-retard .tab-ligne-temps {
+  margin: 0;
+  padding: 1px 8px;
+}
+.tab-ligne-temps {
+  line-height: 1.05;
+}
+/* Lien du bandeau : cible de 44 px sans grandir le bandeau. */
+.tab-alerte-courte a {
+  display: inline-block;
+  margin: -12px 0;
+  padding: 12px 4px;
+}
+/* 46 px pour toutes les lignes : bouton de 44 px sans marge verticale, cadre de 1 px ; le retard se marque par un
+   contour (outline), qui ne prend pas de place, au lieu d'un cadre plus épais. */
+.tab-ligne-gestes {
+  align-self: center;
+  margin: 0 6px 0 0;
+}
+.tablette .tab-niveau-retard {
+  border-width: 1px;
+  outline: 2px solid var(--encre);
+  outline-offset: -1px;
+}

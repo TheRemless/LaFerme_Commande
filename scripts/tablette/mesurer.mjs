@@ -28,7 +28,7 @@ for (const [nomVue, viewport] of [
 ]) {
   const ctx = await navigateur.newContext({ viewport, hasTouch: true });
   const page = await ctx.newPage();
-  await connecter(page, "cuisine-bureau@laferme.test");
+  await connecter(page, process.env.COMPTE ?? "cuisine-bureau@laferme.test");
   const vue = {};
   for (const [onglet, titre] of [["traiter", /^À accepter/], ["cours", /^En cours/], ["avance", /^À l'avance/], ["terminees", /^Terminées/]]) {
     await page.getByRole("button", { name: titre }).click();
@@ -71,7 +71,7 @@ for (const [nomVue, viewport] of [
 // Temps des gestes : accepter la plus ancienne, puis « Prête » sur la première en cours, jusqu'à la carte à jour.
 const ctx = await navigateur.newContext({ viewport: { width: 1180, height: 820 }, hasTouch: true });
 const page = await ctx.newPage();
-await connecter(page, "cuisine-bureau@laferme.test");
+await connecter(page, process.env.COMPTE ?? "cuisine-bureau@laferme.test");
 const gestes = {};
 const premiere = page.locator(".tab-liste > li").first();
 const num = await premiere.locator(".tab-num").innerText();

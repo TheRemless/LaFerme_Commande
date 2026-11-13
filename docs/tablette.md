@@ -265,3 +265,17 @@ Avant : un bouton « À <livreur> » pour chaque livreur et chaque commande, et 
 - Au-delà : en boutons, les livreurs **prévus au planning du service** en cours (bo-operations, `livreursDuService` ; midi avant 15h, soir après, heure de Genève) et ceux dont la page est ouverte sur le téléphone depuis moins de 6 heures ; les autres dans un menu « Donner à… » par commande et par arrêt. En tête de colonne : « Prévus ce soir : Marco, Inès. » ou « Personne au planning de ce soir : choisissez dans « Donner à… ». »
 - Tournées affichées : les livreurs prévus et ceux qui ont encore une livraison (sans planning pour ce service : tout le monde).
 - Sur le jeu de rush de qualite (sans planning ce midi) : 25 boutons et 50 menus au lieu de 420 boutons. Capture : `docs/rendus/vague-3/tablette/livraisons-apres-1180.png`.
+
+## Tableau compact et bandeau des remboursements court (P1 du contrôle de produit-gestion)
+
+Mesure sur le jeu de rush de qualite (91 commandes en cours, `scripts/tablette/mesurer.mjs` avec `COMPTE=lea.rush@exemple.test`) :
+
+| Écran | Commandes visibles sans défiler, avant | Après |
+|---|---|---|
+| Paysage 1024 × 768 | 7 | 11 |
+| Paysage 1180 × 820 | 7 | 12 |
+| Portrait 820 × 1180 | 11 | 19 |
+
+- Ligne de 46 px au lieu de 68 : bouton de geste à 44 px (taille tactile minimale, aucune cible plus petite), interligne et marges réduits, retard marqué par un contour qui ne prend pas de place, « à encaisser » sur la ligne du client (deux lignes par commande au plus).
+- Bandeau des remboursements pas passés sur une ligne : les numéros du jour, puis le nombre des jours d'avant avec leurs dates, et « Voir au back-office » (`/gestion/commandes?remboursement=echec`). Avant : 18 numéros sans date, en permanence (les numéros recommencent chaque jour).
+- Captures : `docs/rendus/vague-3/tablette/compact-avant-*.png` et `compact-apres-*.png`, mesures `compact-mesures.json`.

@@ -118,3 +118,23 @@ describe("Numéro d'un autre jour", () => {
     expect(jourDuNumero("2026-11-12T22:30:00Z", "2026-11-13")).toBe("du 12 nov.");
   });
 });
+
+describe("Bandeau des remboursements pas passés", () => {
+  it("numéros du jour, puis le nombre des jours d'avant avec leurs dates", async () => {
+    const { texteRemboursements } = await import("@/components/tablette/rush");
+    expect(texteRemboursements([], "2026-11-13")).toBeNull();
+    expect(
+      texteRemboursements(
+        [
+          { numero: 34, cree_le: "2026-11-13T18:00:00Z" },
+          { numero: 130, cree_le: "2026-11-04T18:00:00Z" },
+          { numero: 113, cree_le: "2026-11-06T18:00:00Z" },
+        ],
+        "2026-11-13",
+      ),
+    ).toBe("Remboursement pas passé : n° 34 aujourd'hui, 2 commandes des jours d'avant (du 4 nov. au 6 nov.).");
+    expect(texteRemboursements([{ numero: 7, cree_le: "2026-11-10T18:00:00Z" }], "2026-11-13")).toBe(
+      "Remboursement pas passé : 1 commande des jours d'avant (le 10 nov.).",
+    );
+  });
+});
