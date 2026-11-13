@@ -40,6 +40,8 @@ test.afterAll(async () => {
 test("un plat se modifie, ce qui bloque s'affiche, la modification va au journal", async () => {
   await expect(gestion.locator(".ges-bloquants")).toContainText("bloquent la mise en ligne");
   await rubrique(gestion, "Carte");
+  // La carte s'ouvre en liste (vague 3) ; ce test suit la vue par catégorie et sa fiche dépliée.
+  await gestion.getByRole("tab", { name: "Par catégorie et ordre" }).click();
   await gestion.getByLabel("Chercher un plat").fill("tonno");
   await gestion.getByRole("button", { name: /^Pizza Tonno/ }).click();
   const fiche = gestion.locator(".ges-fiche");

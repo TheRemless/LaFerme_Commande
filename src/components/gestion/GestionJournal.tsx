@@ -170,7 +170,9 @@ function valeurLisible(cle: string, v: unknown): string {
   return String(v);
 }
 
-const ROLE: Record<string, string> = { service: "tablette", gerant: "tablette et back-office", livreur: "livreur" };
+const ROLE: Record<string, string> = { service: "tablette", gerant: "tablette et back-office", livreur: "livreur", responsable: "responsable de service" };
+// Un rôle ajouté plus tard sans libellé s'affiche sous son nom, jamais « undefined ».
+const role = (r: string | undefined) => (r ? (ROLE[r] ?? r) : "aucun");
 
 function jourCourt(d: unknown): string {
   return jourTexte(String(d).slice(0, 10));
@@ -208,9 +210,9 @@ function resume(e: Entree): string {
     const av = (e.avant ?? {}) as { nom?: string; role?: string; actif?: boolean };
     const ap = (e.apres ?? {}) as { nom?: string; role?: string; actif?: boolean; sessions_coupees?: number };
     if (ap.sessions_coupees !== undefined) return `Déconnecté de ${ap.sessions_coupees} appareil${ap.sessions_coupees > 1 ? "s" : ""}`;
-    if (!e.avant || av.actif === false) return `Ajouté : ${ap.nom}, accès ${ROLE[ap.role ?? ""] ?? ap.role}`;
+    if (!e.avant || av.actif === false) return `Ajouté : ${ap.nom}, accès ${role(ap.role)}`;
     if (ap.actif === false) return `Retiré : ${av.nom}`;
-    const ch = [av.nom !== ap.nom ? `nom ${av.nom} → ${ap.nom}` : "", av.role !== ap.role ? `accès ${ROLE[av.role ?? ""]} → ${ROLE[ap.role ?? ""]}` : ""].filter(Boolean);
+    const ch = [av.nom !== ap.nom ? `nom ${av.nom} → ${ap.nom}` : "", av.role !== ap.role ? `accès ${role(av.role)} → ${role(ap.role)}` : ""].filter(Boolean);
     return ch.length ? ch.join(" ; ") : "Enregistré sans changement";
   }
   if (!e.avant || !e.apres || Array.isArray(e.avant) || Array.isArray(e.apres)) {

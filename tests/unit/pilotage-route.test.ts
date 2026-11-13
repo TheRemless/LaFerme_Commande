@@ -14,6 +14,8 @@ vi.mock("@/lib/personnel/session", () => ({
 
 const { GET } = await import("@/app/api/gestion/pilotage/ventes/route");
 const analysesRoute = await import("@/app/api/gestion/pilotage/analyses/route");
+const exportRoute = await import("@/app/api/gestion/export/route");
+const remboursementsRoute = await import("@/app/api/gestion/pilotage/remboursements/route");
 const appel = (q: string) => GET(new Request(`http://localhost:3000/api/gestion/pilotage/ventes?${q}`));
 
 beforeEach(() => {
@@ -55,5 +57,17 @@ describe("GET /api/gestion/pilotage/ventes", () => {
     expect((await lire("periode=choisie&debut=2026-12-10&fin=2026-12-01")).status).toBe(422);
     acces.gerant = false;
     expect((await lire("periode=jour")).status).toBe(403);
+  });
+
+  it("export par jour et par taux en fichier, remboursements à suivre en JSON, gérant seulement", async () => {
+    const csv = await exportRoute.GET(new Request("http://localhost:3000/api/gestion/export?debut=2026-12-01&fin=2026-12-31&format=jours"));
+    expect(csv.status).toBe(200);
+    expect(csv.headers.get("content-disposition")).toContain("la-ferme-jours-2026-12-01-2026-12-31.csv");
+    expect(new Uint8Array(await csv.clone().arrayBuffer()).slice(0, 3)).toEqual(new Uint8Array([0xef, 0xbb, 0xbf]));
+    expect(await csv.text()).toMatch(/^\uFEFF?Jour;Taux TVA %/);
+    const liste = await remboursementsRoute.GET(new Request("http://localhost:3000/api/gestion/pilotage/remboursements"));
+    expect(Array.isArray(await liste.json())).toBe(true);
+    acces.gerant = false;
+    expect((await remboursementsRoute.GET(new Request("http://localhost:3000/api/gestion/pilotage/remboursements"))).status).toBe(403);
   });
 });

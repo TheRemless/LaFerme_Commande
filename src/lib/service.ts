@@ -182,7 +182,9 @@ export function fermeturePour(config: Pick<ConfigService, "fermetures">, date: s
   return config.fermetures.find((f) => !f.service && f.debut <= date && date <= f.fin);
 }
 
-function servicesDu(config: ConfigService, date: string): Horaire[] {
+// Services ouverts un jour donné, fermetures et ouvertures exceptionnelles comprises (exportée pour le
+// calendrier du back-office, src/lib/calendrier.ts).
+export function servicesDu(config: ConfigService, date: string): Horaire[] {
   if (fermeturePour(config, date)) return [];
   const fermes = new Set(config.fermetures.filter((f) => f.service && f.debut <= date && date <= f.fin).map((f) => f.service));
   const ouverts = (config.ouvertures ?? []).filter((o) => o.jour === date);

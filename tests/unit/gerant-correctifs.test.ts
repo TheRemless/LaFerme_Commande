@@ -70,7 +70,7 @@ describe("G02 : rembourser après coup", () => {
     expect(r1).toEqual({ ok: true, message: "CHF 21.00 remboursés. Le client reçoit un e-mail." });
     const r2 = await rembourserApresCoup(c.id, 2100, "Pizza arrivée froide.", "geste-test-0001", gerant);
     expect(r2.ok).toBe(true);
-    expect(stripe.appels).toEqual([{ pi: `pi_vrai_${n}`, montantCentimes: 2100, cle: "geste-test-0001" }]);
+    expect(stripe.appels).toEqual([{ pi: `pi_vrai_${n}`, montantCentimes: 2100, cle: "geste-test-0001", remboursementId: expect.any(String) }]);
     const m = await courriels(c.id);
     const remb = m.filter((x) => x.sujet.startsWith("Remboursement"));
     expect(remb).toHaveLength(1);

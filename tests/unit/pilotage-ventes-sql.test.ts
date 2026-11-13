@@ -199,6 +199,19 @@ describe("synthèse des ventes d'une période", () => {
   });
 });
 
+describe("annulations par le client", () => {
+  it("ne sont pas des refus du restaurant : comptées à part, hors motifs et hors refus par jour", async () => {
+    await commande({ jour: "2026-12-04", total: 2000, statut: "refusee", motif: "Trop de monde" });
+    const annulee = await commande({ jour: "2026-12-04", total: 3500, statut: "refusee", motif: "Annulée à votre demande.", paiement: "rembourse" });
+    await db.query("update commandes set annulee_par_client_le = now() where id = $1", [annulee]);
+    const t = await ventes("2026-12-04", "2026-12-04");
+    expect(t.periode.refusees).toEqual({ commandes: 1, ttc_centimes: 2000, motifs: [{ motif: "Trop de monde", commandes: 1, ttc_centimes: 2000 }] });
+    expect(t.periode.annulees_client).toEqual({ commandes: 1, ttc_centimes: 3500 });
+    expect(t.periode.commandes).toBe(0);
+    expect(t.jours[0].refusees).toBe(1);
+  });
+});
+
 describe("comparaison et jours", () => {
   it("compare un jour au même jour de la semaine précédente, un mois à la même durée juste avant", async () => {
     await commande({ jour: "2026-12-04", total: 5000 });

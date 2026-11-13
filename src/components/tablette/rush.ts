@@ -151,3 +151,15 @@ export function annuleesParClient(commandes: Pick<CommandeTablette, "id" | "nume
   const t = new Date(maintenant).getTime();
   return commandes.filter((c) => c.statut === "refusee" && c.annulee_par_client_le && t - new Date(c.annulee_par_client_le).getTime() < 20 * MIN);
 }
+
+// Coup de feu (vague 3) : « +20 min sur les heures annoncées, 2 livraisons et 2 retraits par créneau, livraison fermée »
+export function resumeCoupDeFeu(r: { retard?: number; livraisons?: number | null; retraits?: number | null; fermee?: boolean }): string {
+  const parts: string[] = [];
+  if (r.retard) parts.push(`+${r.retard} min sur les heures annoncées`);
+  const creneau = [r.livraisons ? `${r.livraisons} livraison${r.livraisons > 1 ? "s" : ""}` : null, r.retraits ? `${r.retraits} retrait${r.retraits > 1 ? "s" : ""}` : null]
+    .filter(Boolean)
+    .join(" et ");
+  if (creneau) parts.push(`${creneau} par créneau`);
+  if (r.fermee) parts.push("livraison fermée");
+  return parts.join(", ");
+}

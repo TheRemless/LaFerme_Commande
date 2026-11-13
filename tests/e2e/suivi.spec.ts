@@ -6,7 +6,9 @@ import { adresseDuCompte, SITE } from "./site";
 test.describe.configure({ mode: "serial" });
 
 const ORIGINE = { Origin: SITE };
-const RENDUS = "docs/rendus/vague-3/client-compte";
+// Captures pour le bilan : dans docs/rendus seulement avec RENDUS=1, sinon avec les résultats du test.
+// Écrire à chaque passage dans des fichiers suivis par git salissait le worktree de toutes les sessions.
+const capture = (nom: string) => (process.env.RENDUS === "1" ? `docs/rendus/vague-3/client-compte/${nom}` : test.info().outputPath(nom));
 let gestion: Page;
 
 test.beforeAll(async ({ browser }, info) => {
@@ -76,7 +78,7 @@ test("remboursement partiel : visible au suivi, puis son échec chez Stripe", as
   await expect(client.locator("main")).not.toContainText("Geste pour le retard");
   await expect(client.locator(".somme-totale dt")).toHaveText("Payée en ligne");
   await bloc.scrollIntoViewIfNeeded();
-  await client.screenshot({ path: `${RENDUS}/suivi-rembourse-375.png`, fullPage: true });
+  await client.screenshot({ path: capture("suivi-rembourse-375.png"), fullPage: true });
 
   // Stripe annonce l'échec (doublure) : la page le dit, avec le numéro à appeler.
   const echec = await gestion.request.post("/api/paiement-test", { data: { remboursement: `re_doublure_${cle}`, issue: "echec" } });
@@ -87,7 +89,7 @@ test("remboursement partiel : visible au suivi, puis son échec chez Stripe", as
   await expect(petit.locator(".suivi-remboursements .remb-echec")).toHaveText(
     "Le remboursement de CHF 5.00 n'a pas abouti. Le restaurant est prévenu. Appelez-nous au 022 792 16 89.",
   );
-  await petit.screenshot({ path: `${RENDUS}/suivi-echec-320.png`, fullPage: true });
+  await petit.screenshot({ path: capture("suivi-echec-320.png"), fullPage: true });
   // Rien ne déborde à 320 px.
   expect(await petit.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
   await petit.close();
@@ -186,5 +188,43 @@ test("réclamation depuis le suivi : le client dit ce qui manque, le restaurant 
   await client.screenshot({ path: `${RENDUS}/suivi-reclamation-375.png`, fullPage: true });
   await bloc.getByRole("button", { name: "Envoyer au restaurant" }).click();
   await expect(bloc.getByRole("status")).toHaveText("Merci, le restaurant a reçu votre message.");
+  await client.close();
+});
+
+test("allergie rappelée au suivi, heure confirmée en fourchette comme à l'accueil", async ({ browser }, info) => {
+  const prenom = `Allerg${info.project.name}`;
+  const rep = await gestion.request.post("/api/commandes", {
+    headers: ORIGINE,
+    data: {
+      cle: `allergie-${prenom}-${Date.now()}`,
+      mode: "retrait",
+      moyen: "en_ligne",
+      quand: { type: "asap" },
+      heure: "2026-11-10T19:05",
+      allergie: "Arachides, allergie sévère",
+      client: { prenom, nom: "Test", telephone: "079 000 00 00", email: `${prenom.toLowerCase()}@laferme.test` },
+      lignes: [{ slug: "pizza-margherita", qte: 1, choix: {}, retraits: [], note: "" }],
+    },
+  });
+  expect(rep.ok(), await rep.text()).toBe(true);
+  const id = ((await rep.json()) as { redirection: string }).redirection.match(/paiement-test\/([0-9a-f-]+)/)![1];
+  const paye = await gestion.request.post("/api/paiement-test", { data: { commande: id, issue: "paye" } });
+  const lien = ((await paye.json()) as { redirection: string }).redirection;
+  const file = (await (await gestion.request.get("/api/tablette/file")).json()) as { commandes: { id: string; client_prenom: string; heure_proposee: string }[] };
+  const c = file.commandes.find((x) => x.client_prenom === prenom)!;
+  expect((await gestion.request.post("/api/tablette/action", { headers: ORIGINE, data: { commande: c.id, action: "accepter", heure: c.heure_proposee, de: "nouvelle" } })).ok()).toBe(true);
+
+  const client = await browser.newPage({ baseURL: SITE, viewport: { width: 375, height: 812 } });
+  await client.goto(lien);
+  await expect(client.locator(".suivi-allergie")).toContainText("Allergie signalée");
+  await expect(client.locator(".suivi-allergie")).toContainText("Arachides, allergie sévère");
+  // Largeur par défaut à emporter : 10 minutes, « Prête entre … et … ».
+  await expect(client.getByRole("heading", { level: 1 })).toContainText(/Prête entre \d{1,2}h\d{2}\s*et \d{1,2}h\d{2}/);
+  await client.screenshot({ path: `${RENDUS}/suivi-fourchette-allergie-375.png`, fullPage: true });
+  // L'e-mail de confirmation mentionne l'allergie sans recopier le texte.
+  const jeton = lien.match(/suivi\/([A-Za-z0-9_-]+)/)![1];
+  const courriels = await (await client.request.get(`/dev/courriels?jeton=${jeton}`)).text();
+  expect(courriels).toContain("Vous avez signalé une allergie.");
+  expect(courriels).not.toContain("Arachides");
   await client.close();
 });

@@ -79,7 +79,7 @@ export function ContenuPanier({
                 <span className="ligne-nom">{plat ? nomAffiche({ nom: plat.nom, categorie_slug: plat.categorie_slug }) : "Plat indisponible"}</span>
                 <span className="ligne-prix">{prixCourt(calcul?.total_centimes ?? 0)}</span>
               </div>
-              {(details.length > 0 || l.note) && (
+              {(details.length > 0 || l.note || l.pour) && (
                 <ul className="ligne-opts">
                   {details.map((d) => (
                     <li key={d.texte}>
@@ -88,6 +88,7 @@ export function ContenuPanier({
                     </li>
                   ))}
                   {l.note && <li className="opt-note">« {l.note} »</li>}
+                  {l.pour && <li>Pour {l.pour}</li>}
                 </ul>
               )}
               {onModifier && plat && (
