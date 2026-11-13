@@ -17,7 +17,7 @@ import { nouvelleCle } from "@/lib/cle";
 import type { DonneesLivraisons } from "@/lib/livreur";
 import { MOTIF_CLIENT_ABSENT } from "@/lib/livraisons-textes";
 import { OngletLivraisons, livraisonsEnCours, problemeTexte } from "@/components/tablette/Livraisons";
-import { annuleesParClient, chercherCommandes, etatTemps, lignesImprimantes, minutesDeRetard, minutesRestantes, ordreStable, type Rythme } from "@/components/tablette/rush";
+import { annuleesParClient, chercherCommandes, etatTemps, jourDuNumero, lignesImprimantes, minutesDeRetard, minutesRestantes, ordreStable, type Rythme } from "@/components/tablette/rush";
 import { LigneCommande } from "@/components/tablette/LigneCommande";
 import "./tablette.css";
 
@@ -684,6 +684,7 @@ function CarteCommande({
   const [motif, setMotif] = useState("");
   const [envoi, setEnvoi] = useState(false);
   // Un autre jour qu'aujourd'hui : le jour s'écrit à côté de l'heure (revue de la tablette, D05).
+  const recueLe = jourDuNumero(c.cree_le, aujourdHui);
   const jourDe = (iso: string) => (jourGeneve(iso) === aujourdHui ? "" : `${jourCourt(iso)} à `);
   // Commande acceptée pas encore imprimée : ses tickets sortiront à cette heure (SS-11). Déjà prête ou partie,
   // la surveillance ne l'imprime plus (commandes_a_imprimer).
@@ -744,9 +745,12 @@ function CarteCommande({
   );
 
   return (
-    <li className={`tab-commande tab-${c.statut}${retard !== null ? " tab-en-retard" : ""}`}>
+    <li className={`tab-commande tab-${c.statut}${retard !== null ? " tab-en-retard" : ""}${recueLe ? " tab-autre-jour" : ""}`}>
       <div className="tab-tete">
-        <p className="tab-num">{c.numero}</p>
+        <p className="tab-num">
+          {c.numero}
+          {recueLe && <small className="tab-num-jour">{recueLe}</small>}
+        </p>
         <div>
           <p className="tab-mode">
             <strong>{c.mode === "livraison" ? "Livraison" : "À emporter"}</strong>, demandée {demande}
