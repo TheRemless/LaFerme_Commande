@@ -22,7 +22,7 @@ import {
 import { jourGeneveDe } from "@/lib/heures";
 import type { JourPlanning, LivreurPlanifie, SemaineLivreur, Service, StatsLivreur } from "@/lib/planning-livreurs";
 import { poster } from "@/lib/requete-client";
-import { ouvertureDe, type Horaires, type Ouverture } from "@/lib/ouverture-service";
+import type { JourCalendrier } from "@/lib/calendrier";
 import { ajouterJours, jourTexte } from "@/lib/service";
 import "./livreurs.css";
 
@@ -51,14 +51,15 @@ export function GestionLivreurs() {
     messageErreur: "Planning pas à jour. Vérifiez le réseau.",
   });
 
-  // Horaires du restaurant, lus une fois : un service fermé n'a pas besoin de livreur.
-  const [horaires, setHoraires] = useState<Horaires | null>(null);
+  // Jours vus par le client (calendrier du back-office, même règle que le site), lus une fois : un service
+  // fermé n'a pas besoin de livreur.
+  const [calendrier, setCalendrier] = useState<JourCalendrier[] | null>(null);
   useEffect(() => {
-    fetch("/api/gestion/service", { cache: "no-store" })
+    fetch(`/api/gestion/calendrier?debut=${aujourdHui}&fin=${ajouterJours(aujourdHui, 6)}`, { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
-      .then((h: Horaires | null) => setHoraires(h ? { horaires: h.horaires ?? [], fermetures: h.fermetures ?? [], ouvertures: h.ouvertures ?? [] } : null))
-      .catch(() => setHoraires(null));
-  }, []);
+      .then((c: { jours?: JourCalendrier[] } | null) => setCalendrier(c?.jours ?? null))
+      .catch(() => setCalendrier(null));
+  }, [aujourdHui]);
 
   if (!donnees && erreur) return <EtatErreur texte={erreur} reessayer={recharger} />;
   if (!donnees) return <Chargement libelle="Chargement du planning…" />;
@@ -92,7 +93,7 @@ export function GestionLivreurs() {
         actif={onglet}
         onChange={setOnglet}
       >
-        {onglet === "jours" && <ProchainsJours d={donnees} horaires={horaires} aujourdHui={aujourdHui} recharger={recharger} />}
+        {onglet === "jours" && <ProchainsJours d={donnees} calendrier={calendrier} aujourdHui={aujourdHui} recharger={recharger} />}
         {onglet === "semaine" && <SemainesTypes semaines={donnees.semaines} recharger={recharger} />}
         {onglet === "stats" && <Statistiques stats={donnees.stats} periode={periodeStats} onPeriode={setPeriodeStats} />}
       </Onglets>
@@ -102,9 +103,17 @@ export function GestionLivreurs() {
 
 // ---------- Les 7 prochains jours ----------
 
+type Ouverture = { ouvert: true } | { ouvert: false; motif: string | null };
+// Le restaurant sert-il ce service ce jour-là ? Lu dans le calendrier ; null tant qu'il n'est pas lu.
+function ouvertureDe(calendrier: JourCalendrier[] | null, jour: string, service: Service): Ouverture | null {
+  const s = calendrier?.find((j) => j.date === jour)?.services.find((x) => x.service === service);
+  if (!s) return null;
+  return s.ouvert ? { ouvert: true } : { ouvert: false, motif: s.motif ?? null };
+}
+
 type Geste = { livreur: { id: string; nom: string }; jour: string; service: Service; present: boolean | null };
 
-function ProchainsJours({ d, horaires, aujourdHui, recharger }: { d: Donnees; horaires: Horaires | null; aujourdHui: string; recharger: () => void }) {
+function ProchainsJours({ d, calendrier, aujourdHui, recharger }: { d: Donnees; calendrier: JourCalendrier[] | null; aujourdHui: string; recharger: () => void }) {
   const notifier = useNotifier();
   const [absence, setAbsence] = useState<{ livreur: LivreurPlanifie; jour: string; service: Service } | null>(null);
   const jours = useMemo(() => Array.from({ length: 7 }, (_, i) => ajouterJours(aujourdHui, i)), [aujourdHui]);
@@ -142,7 +151,7 @@ function ProchainsJours({ d, horaires, aujourdHui, recharger }: { d: Donnees; ho
                 jour={jour}
                 service={service}
                 entree={d.planning.find((p) => p.jour === jour && p.service === service)}
-                ouverture={ouvertureDe(horaires, jour, service)}
+                ouverture={ouvertureDe(calendrier, jour, service)}
                 tous={d.semaines}
                 envoyer={envoyer}
                 demanderAbsence={(livreur) => setAbsence({ livreur, jour, service })}
