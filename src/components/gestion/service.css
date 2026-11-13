@@ -1,0 +1,124 @@
+/* Rubrique Livraison et horaires, parties de la vague 3 (bo-operations) : coup de feu, services et fermeture
+   d'une zone. Jetons du kit seulement (back-office.css). */
+
+.bo-cdf {
+  border: 2px solid var(--bo-texte);
+}
+.bo-cdf-encours ul {
+  margin: 4px 0 8px;
+  padding-left: 20px;
+}
+.bo-cdf-titre {
+  margin: 0;
+  font-size: 18px;
+}
+.bo-cdf-titre strong {
+  font-size: 24px;
+  font-stretch: 75%;
+  font-variant-numeric: tabular-nums;
+}
+.bo-cdf-form {
+  display: grid;
+  gap: 12px;
+}
+.bo-cdf-champs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 12px;
+}
+.bo-cdf-case,
+.bo-zone-ops label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.bo-cdf-case {
+  min-height: var(--bo-cible);
+  font-weight: 600;
+  cursor: pointer;
+}
+.bo-cdf-case input {
+  width: 22px;
+  height: 22px;
+}
+.bo-cdf-form .bo-bouton {
+  justify-self: start;
+}
+
+.bo-zone-ops {
+  display: grid;
+  gap: 10px;
+  margin: 8px 0;
+  padding: 10px 0;
+  border-top: 1px solid var(--bo-trait);
+  border-bottom: 1px solid var(--bo-trait);
+}
+.bo-zone-services {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.bo-zone-services legend {
+  float: left;
+  margin-right: 4px;
+  font-weight: 600;
+}
+.bo-zone-case {
+  min-width: 64px;
+  min-height: var(--bo-cible);
+  padding: 0 10px;
+  font: inherit;
+  color: var(--bo-texte-doux);
+  background: var(--bo-surface);
+  border: 1px solid var(--bo-trait);
+  border-radius: var(--bo-rayon);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+/* Livrée : encre pleine. L'état est aussi annoncé (aria-pressed). */
+.bo-zone-case-oui {
+  color: var(--blanc);
+  background: var(--bo-texte);
+  border-color: var(--bo-texte);
+  font-weight: 600;
+}
+.bo-zone-case:focus-visible {
+  outline: 2px solid var(--bo-texte);
+  outline-offset: 2px;
+}
+.bo-zone-fermee {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 2px solid var(--bo-texte);
+  border-radius: var(--bo-rayon);
+}
+.bo-zone-fermee p {
+  margin: 0;
+}
+.bo-zone-fermer summary {
+  min-height: var(--bo-cible);
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  cursor: pointer;
+}
+.bo-zone-fermer-form {
+  display: grid;
+  gap: 8px;
+}
+.bo-zone-fermer-champs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.bo-zone-fermer input {
+  min-height: var(--bo-cible);
+}
+.bo-zone-fermer .bo-bouton {
+  justify-self: start;
+}
