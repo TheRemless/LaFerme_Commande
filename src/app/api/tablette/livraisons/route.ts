@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { corpsJson, refus } from "@/lib/comptes/api";
 import { agirLivraison, livraisonsTablette, type ActionLivraison } from "@/lib/livreur";
 import { exigerPersonnel } from "@/lib/personnel/session";
+import { livreursDuService } from "@/lib/planning-livreurs";
+import { instantGeneve } from "@/lib/service";
 
 // Livraisons vues de la tablette : livreurs, attributions, ordre de passage, problèmes signalés.
 const UUID = /^[0-9a-f-]{36}$/;
@@ -31,7 +33,12 @@ function actionValide(c: Record<string, unknown>): ActionLivraison | null {
 export async function GET(requete: Request) {
   const g = await exigerPersonnel(requete, { lecture: true });
   if ("reponse" in g) return g.reponse;
-  return NextResponse.json(await livraisonsTablette(), { headers: { "Cache-Control": "no-store" } });
+  // Livreurs prévus au planning du service en cours (midi avant 15h, soir après, heure de Genève).
+  const ici = instantGeneve(new Date());
+  const service = ici.minutes < 15 * 60 ? "midi" : "soir";
+  const [donnees, planning] = await Promise.all([livraisonsTablette(), livreursDuService(ici.date, service).catch(() => null)]);
+  const prevus = planning ? { service, ids: planning.filter((l) => l.present).map((l) => l.id) } : null;
+  return NextResponse.json({ ...donnees, prevus }, { headers: { "Cache-Control": "no-store" } });
 }
 
 export async function POST(requete: Request) {

@@ -586,3 +586,14 @@
 .tab-differe .bouton-principal {
   min-width: 120px;
 }
+
+/* « Donner à… » (P1 du contrôle de produit-gestion) : menu des livreurs qui ne sont pas au planning du service. */
+.liv-donner {
+  min-height: 48px;
+  padding: 0 12px;
+  font: inherit;
+  font-weight: 600;
+  background: var(--blanc);
+  border: 2px solid var(--encre);
+  border-radius: 4px;
+}
