@@ -411,3 +411,25 @@
 .tab-couverts {
   font-weight: 700;
 }
+
+/* Acceptation en série (vague 3). */
+.tab-serie {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 2px solid var(--encre);
+  background: var(--blanc);
+}
+.tab-serie p {
+  margin: 0;
+}
+.tab-serie > .bouton-second {
+  justify-self: start;
+}
+.tab-serie .boutons-ligne button {
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 48px;
+  padding: 0 20px;
+}

@@ -187,3 +187,18 @@ Une commande acceptée dont le client, le téléphone, les consignes ou l'adress
 - `imprimerModification(commandeId, changements)` (`src/lib/impression/modification.ts`), changements `{ champ, avant, apres }` lisibles (« Téléphone », « Consignes », « Adresse »). Appelée par `modifierCommande` (bo-commandes) après `modifier_commande`, seulement si quelque chose a changé ; un échec n'empêche pas la modification.
 - Ticket (`ticketModification`, `src/lib/impression/ticket.ts`) : « MODIFIÉE », mode et numéro, heure de la modification, puis pour chaque changement l'ancienne valeur et la nouvelle en négatif, puis l'état à jour (client, « Pour : … », adresse et consignes).
 - Rien si les premiers tickets ne sont pas sortis (ils porteront les nouvelles valeurs), ni pour une commande terminée, refusée ou annulée, ni sans vrai changement. Renvoie le nombre de tickets créés. Pas de migration (`creer_taches_impression`, comme une réimpression).
+
+## Sons distincts et acceptation en série (vague 3)
+
+Module `src/components/tablette/sons.ts`. Le navigateur n'autorise le son qu'après « Commencer le service ».
+
+| Ce qui arrive | Son | Combien de fois |
+|---|---|---|
+| Nouvelle commande à accepter | Deux notes (aiguë, puis plus basse) | Toutes les 4 s tant qu'elle attend, toutes les 2 s dès 3 minutes d'attente |
+| Commande qui passe en retard | Trois notes graves rapprochées | Une fois par commande |
+| Imprimante hors ligne, sans papier, capot ouvert ; problème signalé par un livreur | Deux notes qui descendent | Une fois par problème (un nouvel état de l'imprimante sonne de nouveau) |
+| Annulation par le client | Une note grave et longue | Une fois par commande (#115) |
+
+Au chargement de la page, rien ne sonne pour ce qui était déjà là.
+
+**Acceptation en série** : dans « À accepter », à partir de deux commandes, « Accepter les N à l'heure proposée… » puis « Accepter les N ». Chacune est acceptée à son heure proposée, comme le bouton de sa carte. Une commande avec une allergie ou un avertissement (adresse, créneau) n'entre pas dans la série : elle se lit et s'accepte seule. Le retour dit combien sont passées et combien restent à lire. L'acceptation automatique, côté serveur, reste une décision de Jérémy (non construite ici). Capture : `docs/rendus/vague-3/tablette/serie-confirmer-1180.png` (`scripts/tablette/serie.mjs`).

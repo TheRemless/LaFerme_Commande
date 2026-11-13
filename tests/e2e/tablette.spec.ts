@@ -198,6 +198,18 @@ test("supplément épuisé : refusé à la commande, puis revient", async ({ req
   await tablette.getByRole("button", { name: "Fermer les réglages" }).click();
 });
 
+test("acceptation en série : deux commandes à accepter, la confirmation s'annule sans rien accepter", async ({ request }) => {
+  // Pas de vraie série : elle accepterait aussi les commandes des autres tests qui tournent en même temps.
+  await commander(request, "Serie", "en_ligne");
+  await commander(request, "Suite", "en_ligne");
+  await tablette.getByRole("button", { name: /^À accepter/ }).click();
+  const serie = tablette.locator(".tab-serie");
+  await serie.getByRole("button", { name: /^Accepter les \d+ à l'heure proposée/ }).click();
+  await expect(serie).toContainText(/Accepter \d+ commandes, chacune à son heure proposée/);
+  await serie.getByRole("button", { name: "Annuler" }).click();
+  await expect(serie.getByRole("button", { name: /^Accepter les \d+ à l'heure proposée/ })).toBeVisible();
+});
+
 test("rupture du jour : le plat est grisé sur la carte, puis revient", async ({ page }) => {
   await tablette.getByRole("button", { name: "Pause, délai, ruptures" }).click();
   const { recherchePlat, plat, slug } = rupturesDuProjet();
