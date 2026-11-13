@@ -33,3 +33,8 @@ insert into personnel (email, nom, role) values
   ('cdf-mobile@laferme.test', 'Coup de feu mobile', 'gerant'),
   ('cdf-service-bureau@laferme.test', 'Service bureau', 'service'),
   ('cdf-service-mobile@laferme.test', 'Service mobile', 'service');
+
+-- Zones par service et zone fermée (tests/e2e/zones-services.spec.ts, vague 3) : un compte par projet Playwright.
+insert into personnel (email, nom, role) values
+  ('zones-bureau@laferme.test', 'Zones bureau', 'gerant'),
+  ('zones-mobile@laferme.test', 'Zones mobile', 'gerant');

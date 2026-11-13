@@ -12,6 +12,11 @@ export type Zone = {
   delai_max: number;
   active: boolean;
   proposition: boolean;
+  // Services où la zone est livrée (absent : les deux). Zone fermée jusqu'à une heure (ISO), avec son motif
+  // (vague 3, migration 20261130110000) : elle rouvre seule à l'heure dite.
+  services?: ("midi" | "soir")[];
+  fermee_jusqu_a?: string | null;
+  fermee_motif?: string | null;
 };
 export type ZoneNpa = { npa: string; localite: string; zone_numero: number };
 export type Horaire = {
@@ -69,7 +74,8 @@ export type ConfigService = {
 export type ResultatZone =
   | { statut: "livrable"; zone: Zone }
   | { statut: "hors-zone" }
-  | { statut: "zone-fermee"; zone: Zone };
+  // jusqua : fermée jusqu'à cette heure (ISO), puis rouvre seule ; absent : zone fermée sans date.
+  | { statut: "zone-fermee"; zone: Zone; jusqua?: string; motif?: string | null };
 
 function normaliser(texte: string): string {
   return texte
@@ -80,7 +86,13 @@ function normaliser(texte: string): string {
     .trim();
 }
 
-export function zonePour(config: Pick<ConfigService, "zones" | "npa">, npa: string, localite: string): ResultatZone {
+// Zone fermée jusqu'à une heure encore à venir : cette heure (ISO), sinon null. Comparée à l'heure réelle,
+// comme la pause : l'heure simulée des préversions (?heure=) ne la lève pas.
+export function zoneFermeeJusqua(zone: Zone, reel = Date.now()): string | null {
+  return zone.fermee_jusqu_a && new Date(zone.fermee_jusqu_a).getTime() > reel ? zone.fermee_jusqu_a : null;
+}
+
+export function zonePour(config: Pick<ConfigService, "zones" | "npa">, npa: string, localite: string, reel = Date.now()): ResultatZone {
   const lignes = config.npa.filter((l) => l.npa === npa.trim());
   let numero = lignes.find((l) => normaliser(l.localite) === normaliser(localite))?.zone_numero;
   // Localité écrite autrement (saisie à la main) : le NPA suffit s'il ne désigne qu'une zone.
@@ -89,7 +101,9 @@ export function zonePour(config: Pick<ConfigService, "zones" | "npa">, npa: stri
   }
   const zone = config.zones.find((z) => z.numero === numero);
   if (!zone) return { statut: "hors-zone" };
-  return zone.active ? { statut: "livrable", zone } : { statut: "zone-fermee", zone };
+  if (!zone.active) return { statut: "zone-fermee", zone };
+  const jusqua = zoneFermeeJusqua(zone, reel);
+  return jusqua ? { statut: "zone-fermee", zone, jusqua, motif: zone.fermee_motif ?? null } : { statut: "livrable", zone };
 }
 
 // ---------- Temps ----------
@@ -188,6 +202,12 @@ function servicesDu(config: ConfigService, date: string): Horaire[] {
   return services.filter((h) => !fermes.has(h.service)).sort((a, b) => enMinutes(a.premiere_heure) - enMinutes(b.premiere_heure));
 }
 
+// Services d'un jour pour ce mode : en livraison, seulement ceux où la zone est livrée.
+function servicesPour(config: ConfigService, date: string, mode: Mode, zone?: Zone): Horaire[] {
+  const tous = servicesDu(config, date);
+  return mode === "livraison" && zone?.services ? tous.filter((h) => zone.services!.includes(h.service)) : tous;
+}
+
 // Temps entre la commande et la remise : préparation au retrait, délai le plus court de la zone en livraison.
 function delaiMinimum(config: ConfigService, mode: Mode, zone?: Zone): number {
   return mode === "livraison" && zone ? zone.delai_min : config.reglages.preparation_minutes;
@@ -218,7 +238,7 @@ export function creneaux(config: ConfigService, maintenant: Date, mode: Mode, zo
   const liste: Creneau[] = [];
   for (let d = 0; d <= config.reglages.avance_jours; d++) {
     const date = ajouterJours(ici.date, d);
-    for (const h of servicesDu(config, date)) {
+    for (const h of servicesPour(config, date, mode, zone)) {
       const { finCommande, finRemise } = bornes(config, h, mode, zone, pizzas);
       let debut = enMinutes(h.premiere_heure);
       if (d === 0) {
@@ -284,7 +304,7 @@ export function etatService(config: ConfigService, maintenant: Date, mode: Mode,
     return { etat: "fermeture", fermeture, reouverture: reouvertureApres(config, fermeture) };
   }
   const delai = delaiMinimum(config, mode, zone);
-  for (const h of servicesDu(config, ici.date)) {
+  for (const h of servicesPour(config, ici.date, mode, zone)) {
     const { finCommande, finRemise } = bornes(config, h, mode, zone, pizzas);
     // « Dès que possible » quand la cuisine peut lancer la commande maintenant.
     // Le retard du soir allonge l'heure promise, pas la fenêtre d'avant service (revue du lot gérant).
