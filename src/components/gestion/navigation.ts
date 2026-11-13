@@ -64,6 +64,7 @@ export const GROUPES: Groupe[] = [
       { href: "/gestion/calendrier", titre: "Calendrier", icone: "jour", resume: "Le mois vu par les clients : services, fermetures, fériés et commandes déjà prises." },
       { href: "/gestion/livreurs", titre: "Livreurs", icone: "livreurs", resume: "Qui livre ce soir, la semaine type et les livraisons de chacun." },
       { href: "/gestion/imprimantes", titre: "Imprimantes", icone: "imprimante", resume: "Les deux postes d'impression et leur état." },
+      { href: "/gestion/messages", titre: "Messages aux clients", icone: "message", resume: "Une bannière programmée sur le site, qui s'arrête seule." },
       { href: "/gestion/reglages", titre: "Réglages généraux", icone: "reglages", resume: "E-mail des alertes, créneaux, commande à l'avance, annulation par le client." },
     ],
   },

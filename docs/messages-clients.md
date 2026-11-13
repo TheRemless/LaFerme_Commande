@@ -1,6 +1,6 @@
 # Messages d'information aux clients (vague 3, bo-operations)
 
-Une bannière sur le site, par exemple pour une fermeture, un retard général ou une nouveauté. Le gérant la programme et elle disparaît seule à sa fin. Migration `supabase/migrations/20261130160000_messages_clients.sql`, logique `src/lib/messages-clients.ts`, route `/api/gestion/messages` (gérant). L'écran du back-office attend le kit. L'affichage sur le site est fait par la session `client-commande`.
+Une bannière sur le site, par exemple pour une fermeture, un retard général ou une nouveauté. Le gérant la programme et elle disparaît seule à sa fin. Migration `supabase/migrations/20261130160000_messages_clients.sql`, logique `src/lib/messages-clients.ts`, route `/api/gestion/messages` (gérant), écran `/gestion/messages` (`src/components/gestion/GestionMessages.tsx`). L'affichage sur le site est fait par la session `client-commande`.
 
 ## Règles
 
@@ -12,6 +12,14 @@ Une bannière sur le site, par exemple pour une fermeture, un retard général o
 - **Retirer** : retiré avant sa fin, le message quitte le site en moins d'une minute (cache de la config vidé).
 - **Journal** : objet `message_client`, avec le texte, les dates et l'emplacement. `apres` est vide quand le message est retiré.
 - Le nom de qui l'a écrit reste au back-office : il n'est jamais envoyé au site.
+
+## L'écran (rubrique « Messages aux clients »)
+
+- **Sur le site** : les messages en ligne et à venir, avec où, quand et qui les a programmés. « Retirer » demande confirmation, puis le message quitte le site en moins d'une minute.
+- **Programmer un message** : le texte (compteur sur 200), l'emplacement (accueil seulement ou tout le site), le début (tout de suite ou une date et une heure) et la fin. Un résumé dit ce que verront les clients (« Visible sur l'accueil. Dès maintenant, jusqu'à aujourd'hui à 23h00. »). Avec cinq messages prévus, le formulaire laisse la place à une consigne : en retirer un d'abord.
+- **Les 30 derniers jours** : les messages finis ou retirés.
+- L'aide du champ rappelle la règle des textes : faire valider par Jérémy, jamais un nom ni un numéro de commande.
+- Test : `tests/e2e/gestion-messages.spec.ts` (compte `ecran-messages@laferme.test`), captures `docs/rendus/vague-3/bo-operations/messages-*.png`.
 
 ## Pour l'affichage (`client-commande`)
 
