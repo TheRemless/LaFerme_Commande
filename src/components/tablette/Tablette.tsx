@@ -17,6 +17,7 @@ import { nouvelleCle } from "@/lib/cle";
 import type { DonneesLivraisons } from "@/lib/livreur";
 import { MOTIF_CLIENT_ABSENT } from "@/lib/livraisons-textes";
 import { OngletLivraisons, livraisonsEnCours, problemeTexte } from "@/components/tablette/Livraisons";
+import { PanneauModifier } from "@/components/tablette/PanneauModifier";
 import { annuleesParClient, chercherCommandes, etatTemps, jourDuNumero, lignesImprimantes, minutesDeRetard, minutesRestantes, ordreStable, type Rythme } from "@/components/tablette/rush";
 import { LigneCommande } from "@/components/tablette/LigneCommande";
 import "./tablette.css";
@@ -327,6 +328,15 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
     await charger();
   }
 
+  // « Modifier… » sur les cartes : gérant, ou équipe si le réglage modification_par_equipe est vrai (lu une fois).
+  const [modifiable, setModifiable] = useState(false);
+  useEffect(() => {
+    fetch("/api/tablette/modifier", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setModifiable(d?.autorise === true))
+      .catch(() => undefined);
+  }, []);
+
   const [confirmerDeconnexion, setConfirmerDeconnexion] = useState(false);
   async function agirLivraison(corps: Record<string, unknown>) {
     setMessage(null);
@@ -593,6 +603,8 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
                   gerant={gerant}
                   agir={(corps) => agir(detail.id, corps)}
                   recharger={charger}
+                  modifiable={modifiable}
+                  annoncer={(texte) => setMessage({ texte, echec: false })}
                 />
               </ol>
             </aside>
@@ -612,6 +624,8 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
               gerant={gerant}
               agir={(corps) => agir(c.id, corps)}
               recharger={charger}
+              modifiable={modifiable}
+              annoncer={(texte) => setMessage({ texte, echec: false })}
             />
           ))}
         </ol>
@@ -651,6 +665,8 @@ function CarteCommande({
   gerant,
   agir,
   recharger,
+  modifiable = false,
+  annoncer,
 }: {
   c: CommandeTablette;
   aujourdHui: string;
@@ -661,6 +677,9 @@ function CarteCommande({
   gerant: boolean;
   agir: (corps: Record<string, unknown>) => Promise<void>;
   recharger: () => Promise<void>;
+  // Geste « Modifier… » permis (gérant, ou équipe si modification_par_equipe) et retour d'action en bas d'écran.
+  modifiable?: boolean;
+  annoncer?: (texte: string) => void;
 }) {
   const [tickets, setTickets] = useState<{ station: string; contenu: LigneTicket[] }[] | null>(null);
 
@@ -675,7 +694,7 @@ function CarteCommande({
     .filter((t): t is Tache => Boolean(t));
   // Depuis le paiement en ligne, ou la création pour le comptoir : le temps passé sur la page de paiement ne compte pas.
   const attente = Math.floor((new Date(maintenant).getTime() - new Date(c.attend_depuis ?? c.cree_le).getTime()) / 60_000);
-  const [panneau, setPanneau] = useState<"aucun" | "refuser" | "heure" | "manque">("aucun");
+  const [panneau, setPanneau] = useState<"aucun" | "refuser" | "heure" | "manque" | "modifier">("aucun");
   // Décalage choisi à la main, appliqué à l'heure de base : celle-ci suit la proposition recalculée à chaque
   // vérification, pour ne jamais accepter avec une heure déjà passée.
   const [decalage, setDecalage] = useState(0);
@@ -946,6 +965,11 @@ function CarteCommande({
           <button type="button" className="bouton-second" onClick={() => setPanneau("heure")}>
             Changer l&apos;heure
           </button>
+          {modifiable && ["nouvelle", "acceptee", "en_preparation"].includes(c.statut) && (
+            <button type="button" className="bouton-second" onClick={() => setPanneau("modifier")}>
+              Modifier…
+            </button>
+          )}
           {["paye", "encaisse", "a_encaisser_retrait"].includes(c.statut_paiement) && (
             <button type="button" className="bouton-second" onClick={() => setPanneau("manque")}>
               Il manque…
@@ -988,6 +1012,17 @@ function CarteCommande({
           c={c}
           fermer={async () => {
             setPanneau("aucun");
+            await recharger();
+          }}
+        />
+      )}
+
+      {panneau === "modifier" && (
+        <PanneauModifier
+          c={c}
+          fermer={async (texte) => {
+            setPanneau("aucun");
+            if (texte) annoncer?.(texte);
             await recharger();
           }}
         />

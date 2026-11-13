@@ -411,3 +411,14 @@
 .tab-couverts {
   font-weight: 700;
 }
+
+/* « Modifier… » sur la carte (vague 3, contrat de bo-commandes). */
+.tab-modifier-champs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px 12px;
+}
+.tab-modifier-champs input {
+  width: 100%;
+  min-height: 48px;
+}

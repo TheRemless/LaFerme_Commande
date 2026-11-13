@@ -187,3 +187,10 @@ Une commande acceptée dont le client, le téléphone, les consignes ou l'adress
 - `imprimerModification(commandeId, changements)` (`src/lib/impression/modification.ts`), changements `{ champ, avant, apres }` lisibles (« Téléphone », « Consignes », « Adresse »). Appelée par `modifierCommande` (bo-commandes) après `modifier_commande`, seulement si quelque chose a changé ; un échec n'empêche pas la modification.
 - Ticket (`ticketModification`, `src/lib/impression/ticket.ts`) : « MODIFIÉE », mode et numéro, heure de la modification, puis pour chaque changement l'ancienne valeur et la nouvelle en négatif, puis l'état à jour (client, « Pour : … », adresse et consignes).
 - Rien si les premiers tickets ne sont pas sortis (ils porteront les nouvelles valeurs), ni pour une commande terminée, refusée ou annulée, ni sans vrai changement. Renvoie le nombre de tickets créés. Pas de migration (`creer_taches_impression`, comme une réimpression).
+
+## « Modifier… » une commande depuis la tablette (vague 3, contrat de bo-commandes #65)
+
+Le client appelle pour corriger son téléphone, son nom ou les consignes de livraison. Bouton « Modifier… » sur la carte (à accepter, acceptée, en préparation), panneau prérempli, seuls les champs changés partent. Route `/api/tablette/modifier` sur `modifierCommande` : le client reçoit le nouveau récapitulatif par e-mail et, si les tickets sont déjà sortis, un ticket « MODIFIÉE » sort au poste du sac. L'adresse se change au back-office (recherche d'adresse et zone).
+
+- Qui : le gérant toujours ; l'équipe de service seulement si `modification_par_equipe` est vrai. **Construit désactivé** (réglage de bo-commandes, décision de Jérémy). La base revérifie.
+- Capture : `docs/rendus/vague-3/tablette/modifier-1180.png` (`scripts/tablette/modifier.mjs`, compte gérant, n'enregistre rien).
