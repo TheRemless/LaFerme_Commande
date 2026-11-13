@@ -49,3 +49,4 @@ npm run donnees:rush -- --maintenant=2026-11-13T19:45 --graine=7 --echelle=0.1 -
 - Les montants passent par le vrai calcul du panier (`src/lib/panier.ts`) sur la carte de la base : aucun prix n'est écrit dans le script.
 - Pas encore dans le jeu : courriels envoyés, tâches d'impression et imprimantes, sessions et codes de connexion.
 - Code : `scripts/donnees-rush.ts` (lanceur et refus), `scripts/rush/` (génération), test `tests/unit/donnees-rush.test.ts`.
+- Charge d'un vendredi soir sur ce jeu : `docs/charge.md` (`npm run charge:vendredi`).

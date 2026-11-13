@@ -17,6 +17,7 @@ import {
   SelecteurPeriode,
   TableauDonnees,
   useDiffere,
+  useOuverture,
   useRelecture,
   type Colonne,
   type Periode,
@@ -212,7 +213,13 @@ export function ListeCommandes() {
   const q = useDiffere(recherche.trim(), 300);
   const [tri, setTri] = useState<Tri>({ cle: "cree_le", sens: "desc" });
   const [page, setPage] = useState(1);
-  const [ouverte, setOuverte] = useState<LigneCommande | null>(null);
+  // Fiche ouverte : depuis une ligne, ou depuis la recherche globale (⌘K) qui ne donne que l'identifiant.
+  const [ouverte, setOuverte] = useState<{
+    id: string;
+    titre: string;
+    sousTitre?: string;
+  } | null>(null);
+  useOuverture("commande", (id) => setOuverte({ id, titre: "Commande" }));
 
   const corps = useCallback(
     (extra: Record<string, unknown> = {}) => ({
@@ -422,7 +429,13 @@ export function ListeCommandes() {
             </div>
           </div>
         }
-        onOuvrir={setOuverte}
+        onOuvrir={(l) =>
+          setOuverte({
+            id: l.id,
+            titre: `Commande ${l.numero}`,
+            sousTitre: `${l.client_prenom} ${l.client_nom}, ${MODE[l.mode].toLowerCase()}`,
+          })
+        }
         csv={{ toutes }}
         memoire="commandes"
         vide={
@@ -441,8 +454,8 @@ export function ListeCommandes() {
       {ouverte && (
         <PanneauLateral
           large
-          titre={`Commande ${ouverte.numero}`}
-          sousTitre={`${ouverte.client_prenom} ${ouverte.client_nom}, ${MODE[ouverte.mode].toLowerCase()}`}
+          titre={ouverte.titre}
+          sousTitre={ouverte.sousTitre}
           onFermer={() => setOuverte(null)}
         >
           <FicheCommande id={ouverte.id} onChange={charger} />

@@ -36,6 +36,8 @@ export type LignePanier = {
   choix: Record<string, string[]>;
   retraits: string[];
   note: string;
+  // Prénom de la personne à qui va le plat (« pour Léa »), quand le restaurant l'active (C5).
+  pour?: string;
 };
 
 export type LigneCalculee = LignePanier & { nom: string; unitaire_centimes: number; total_centimes: number; erreur?: string };
@@ -140,6 +142,6 @@ export function calculerPanier(cat: Catalogue, lignes: LignePanier[], livraison:
 // Deux lignes identiques (même plat, mêmes options, même note) se fusionnent.
 export function memeLigne(a: LignePanier, b: LignePanier): boolean {
   const cle = (l: LignePanier) =>
-    JSON.stringify([l.slug, Object.entries(l.choix).map(([g, n]) => [g, [...n].sort()]).sort(), [...l.retraits].sort(), l.note.trim()]);
+    JSON.stringify([l.slug, Object.entries(l.choix).map(([g, n]) => [g, [...n].sort()]).sort(), [...l.retraits].sort(), l.note.trim(), (l.pour ?? "").trim()]);
   return cle(a) === cle(b);
 }

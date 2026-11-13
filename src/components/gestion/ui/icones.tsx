@@ -109,6 +109,12 @@ const TRACES = {
       <path d="M8 9h8M8 12h5" />
     </>
   ),
+  promotions: (
+    <>
+      <path d="M4 4h7l9 9-7 7-9-9Z" />
+      <circle cx="8.5" cy="8.5" r="1.5" />
+    </>
+  ),
   tablette: (
     <>
       <rect x="5" y="3" width="14" height="18" rx="1.5" />

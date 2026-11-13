@@ -123,6 +123,20 @@ Chaque rubrique a sa propre adresse, par exemple `/gestion/carte` ou `/gestion/c
 - « Je n'ai rien reçu » : onglet « E-mails », « Renvoyer au client ». L'e-mail repart tel quel, avec « (nouvel envoi) » dans le sujet.
 - « Il manque le tiramisù », « c'est arrivé froid » : onglet « Réclamations », choisir ce qui ne va pas, écrire ce que dit le client, « Noter la réclamation ». Elle reste sur la commande et le client n'en voit rien. Le client peut aussi la signaler lui-même depuis son suivi.
 
+### Clients
+
+- Un client est une adresse e-mail, avec ou sans compte : ceux qui commandent en invité y sont aussi. Recherche par nom, téléphone ou e-mail, sur tout l'historique.
+- La liste dit pour chacun ses commandes, ce qu'il a dépensé (remboursements déduits), sa dernière commande et s'il a un compte. Tri par dépensé, commandes, dernière commande ou nom. Filtres : avec compte, marque, sans commande depuis 30, 60 ou 90 jours. « Exporter en CSV » télécharge la liste filtrée.
+- Toucher un client ouvre sa fiche : contact, habitudes (livraisons, à emporter, plats préférés), adresses de livraison, commandes (toucher une commande l'ouvre, « Retour à… » revient au client), remboursements, notes de l'équipe.
+- Une note sur un client n'est jamais affichée au client, mais il peut la lire s'il demande ses données : l'écrire comme s'il la lisait.
+- Marquer un client « à surveiller » ou « bloqué » n'est pas encore activé : c'est une décision du restaurant.
+
+### Réclamations (rubrique Clients, onglet « Réclamations »)
+
+- Une réclamation se note depuis la fiche d'une commande (onglet « Réclamations ») ou arrive du suivi du client. La liste montre d'abord les ouvertes et celles en cours.
+- Ouvrir une réclamation : ce que dit le client, la commande (« Ouvrir la commande »), le suivi du dossier. Noter un geste : un remboursement déjà fait (il se fait depuis la commande, onglet « Gestes »), ou « Pas de geste » avec la raison. « Offert à la prochaine commande » n'est pas encore activé.
+- « Suivre » ajoute un mot au dossier, la passe « en cours » ou la clôt avec la façon dont elle s'est réglée. Une réclamation close peut se rouvrir.
+
 ### Rembourser un client mécontent
 
 1. Ouvrir la commande dans « Commandes », onglet « Gestes ».
@@ -148,14 +162,16 @@ Client absent à la livraison : la commande est close sans remboursement, avec l
 
 ### Carte
 
+La carte s'ouvre en « Liste » : un plat par ligne, ce qui reste à compléter, les gestes en lot. Mode d'emploi de la liste : [carte-gestion.md](carte-gestion.md#écran-la-carte-en-liste). « Par catégorie et ordre » garde l'ordre des plats, les catégories et les archives.
+
 - Changer un prix. Chercher le plat, toucher sa ligne, écrire le prix (18 ou 18.50), recocher « Prix validé » (la case se décoche dès que le prix change), toucher « Enregistrer le plat ». Le site change tout de suite.
 - Retirer un plat de la vente. Décocher « Commandable sur le site » puis enregistrer. Pour la journée seulement, utiliser « Épuisé » sur la tablette.
-- Retirer un plat de la carte pour de bon. Ouvrir sa fiche, toucher « Archiver ce plat » puis confirmer. Il part dans « Plats archivés » en bas de la page. Les anciennes commandes et l'export comptable ne changent pas. « Remettre à la carte » le ramène, hors de la vente : cocher « Commandable » pour le revendre.
+- Retirer un plat de la carte pour de bon. Ouvrir sa fiche, toucher « Archiver ce plat » puis confirmer. Il part dans « Plats archivés », en bas de « Par catégorie et ordre ». Les anciennes commandes et l'export comptable ne changent pas. « Remettre à la carte » le ramène, hors de la vente : cocher « Commandable » pour le revendre.
 - Ajouter un plat. Toucher « Ajouter un plat » en haut. Catégorie, poste (pizza ou cuisine), nom, prix, puis les options (suppléments, choix des pâtes), les retraits gratuits, la provenance et les allergènes. Toucher « Créer le plat ». Il reste hors de la vente tant qu'il manque le prix validé, les allergènes ou une provenance à fournir. Sa fiche dit ce qui manque.
 - Envoyer une photo. Sur la fiche du plat, toucher « Envoyer une photo » et choisir une photo du téléphone ou de l'ordinateur. Elle est recadrée comme les photos du shooting et s'affiche tout de suite. Une photo trop petite est refusée. « Retirer la photo » l'enlève. Seulement des photos du restaurant : jamais une image trouvée sur Internet ou sur Uber Eats.
 - Une photo du shooting se choisit encore dans la liste « Photo du shooting ».
 - Changer un plat de catégorie. Choisir la catégorie sur sa fiche puis enregistrer. Il se range à la fin.
-- Changer l'ordre des plats. Toucher « Changer l'ordre » à côté du nom de la catégorie, puis « Monter » ou « Descendre ». Toucher « Terminer l'ordre » à la fin.
+- Changer l'ordre des plats. Dans « Par catégorie et ordre », toucher « Changer l'ordre » à côté du nom de la catégorie, puis « Monter » ou « Descendre ». Toucher « Terminer l'ordre » à la fin.
 - Catégories. Toucher « Catégories et leur ordre ». On y renomme une catégorie, on la monte ou la descend, on en ajoute une. Une catégorie neuve s'affiche sur le site dès qu'un de ses plats est en vente.
 - Allergènes, provenance et description se changent sur la même fiche.
 - Retraits gratuits. Les écrire séparés par des virgules puis toucher « Enregistrer les retraits ». Ce bouton est à part du bouton du plat.
@@ -176,6 +192,7 @@ Client absent à la livraison : la commande est close sans remboursement, avec l
 - Chaque supplément a son prix, sa case « Validé » et sa case « Proposé ». Décocher « Proposé » le retire du site jusqu'à ce qu'on le recoche.
 - Toucher « Enregistrer » sur la ligne du supplément.
 - Ajouter un supplément. Sous la liste, écrire le nom et le prix puis toucher « Ajouter ». Il est proposé tout de suite sur les plats qui ont cette option. Sans « Prix validé », il bloque la mise en ligne.
+- Nouveau groupe d'options (sauce, cuisson, accompagnement), options cochées d'avance, plats qui le proposent, option épuisée jusqu'à une date : toucher « Nouveau groupe » ou « Régler le groupe ». Détail : [carte-gestion.md](carte-gestion.md#écran-les-groupes-doptions-vague-3).
 
 ### Livraison et horaires
 
@@ -190,6 +207,12 @@ Client absent à la livraison : la commande est close sans remboursement, avec l
 - Communes d'une zone. Sous chaque zone, « Retirer » une commune, ou écrire un NPA et une localité puis « Ajouter à la zone ». Écrire la localité comme sur l'adresse officielle (Petit-Lancy, Le Lignon).
 - Paiement au comptoir. Le montant le plus haut qu'un client peut payer au comptoir (100 francs au départ). Au-delà, il paie en ligne.
 
+### Livreurs
+
+Qui livre les sept prochains jours, absence et renfort en un geste, semaine type, livraisons de chacun : `docs/planning-livreurs.md`, « Mode d'emploi ».
+
+Coup de feu (en tête de la rubrique) et zones livrées le soir seulement ou fermées pour quelques heures : `docs/coup-de-feu.md` et `docs/zones-services.md`, « Écran du back-office ».
+
 ### Réglages généraux
 
 E-mail des alertes, longueur d'un créneau, commande à l'avance, annulation par le client, codes de connexion par jour : `docs/reglages-generaux.md`, « Mode d'emploi ».
@@ -199,6 +222,10 @@ E-mail des alertes, longueur d'un créneau, commande à l'avance, annulation par
 - La rubrique montre l'état de chaque imprimante.
 - « Nouvelle adresse » et « Désactiver » demandent une confirmation, car l'imprimante s'arrête aussitôt. Appeler le numéro ci-dessus avant d'y toucher.
 - « Alerte de commande en attente » règle après combien de minutes un e-mail part quand une commande n'est pas acceptée.
+
+### Promotions
+
+- Codes promo, désactivés tant que l'offre n'est pas décidée par Jérémy : créer un code par support (flyer, autocollant), l'activer, voir ce qu'il a rapporté. Détail : [codes-promo.md](codes-promo.md#écran-promotions-back-office).
 
 ### Importer le tableau
 

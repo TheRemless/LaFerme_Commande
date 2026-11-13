@@ -12,6 +12,13 @@ import { prixChf, prixCourt } from "@/lib/prix";
 import { nomAffiche } from "@/components/Plat";
 import { Icone } from "@/components/Icone";
 
+// Étiquettes posées par le restaurant (bo-carte) ; végane suffit quand le plat l'est (il est aussi végétarien).
+const NOMS_ETIQUETTES: Record<string, string> = { vegane: "Végane", vegetarien: "Végétarien", epice: "Épicé" };
+function ordreEtiquettes(e: string[]): string[] {
+  const liste = e.includes("vegane") ? e.filter((x) => x !== "vegetarien") : e;
+  return ["vegane", "vegetarien", "epice"].filter((x) => liste.includes(x)).map((x) => NOMS_ETIQUETTES[x]);
+}
+
 // Suppléments affichés d'office ; les autres derrière « Voir les … suppléments ».
 const SUPPLEMENTS_VISIBLES = 8;
 
@@ -20,6 +27,7 @@ export function FichePlat({
   catalogue,
   preversion,
   ferme = false,
+  prenomActif = false,
   initiale,
   onAjouter,
   onFermer,
@@ -29,6 +37,8 @@ export function FichePlat({
   preversion: boolean;
   // Aucun moment de commande possible (fermeture) : la fiche se lit, rien ne s'ajoute (CM-08).
   ferme?: boolean;
+  // Prénom par ligne (« pour Léa »), quand le restaurant l'active (C5, éteint par défaut).
+  prenomActif?: boolean;
   // Ligne du panier à modifier : la fiche s'ouvre avec ses choix, et le bouton la met à jour.
   initiale?: LignePanier;
   onAjouter: (l: LignePanier) => void;
@@ -39,9 +49,20 @@ export function FichePlat({
   const info = catalogue.plats[plat.slug];
   const groupes = (info?.groupes ?? []).map((g) => catalogue.groupes[g]).filter(Boolean);
   const [qte, setQte] = useState(initiale?.qte ?? 1);
-  const [choix, setChoix] = useState<Record<string, string[]>>(initiale?.choix ?? {});
+  // Options cochées d'avance par le restaurant (bo-carte, par_defaut), jamais une option épuisée, et jamais
+  // plus que le maximum du groupe. Une ligne rouverte par « Modifier » garde ses propres choix.
+  const [choix, setChoix] = useState<Record<string, string[]>>(() => {
+    if (initiale) return initiale.choix;
+    const depart: Record<string, string[]> = {};
+    for (const g of groupes) {
+      const noms = g.options.filter((o) => o.par_defaut && !o.rupture).map((o) => o.nom).slice(0, g.choix_max);
+      if (noms.length > 0) depart[g.slug] = noms;
+    }
+    return depart;
+  });
   const [retraits, setRetraits] = useState<string[]>(initiale?.retraits ?? []);
   const [note, setNote] = useState(initiale?.note ?? "");
+  const [pour, setPour] = useState(initiale?.pour ?? "");
   const [tous, setTous] = useState(false);
 
   useEffect(() => {
@@ -71,7 +92,7 @@ export function FichePlat({
     };
   }, [onFermer]);
 
-  const ligne: LignePanier = { slug: plat.slug, qte, choix, retraits, note: note.trim() };
+  const ligne: LignePanier = { slug: plat.slug, qte, choix, retraits, note: note.trim(), ...(prenomActif && pour.trim() ? { pour: pour.trim() } : {}) };
   // Plat épuisé depuis l'ajout, rouvert par « Modifier » : la carte le bloque, la fiche aussi.
   // Rouverte depuis le panier, la fiche applique les mêmes disponibilités que la carte et le serveur
   // (service, mode, jours, rupture planifiée) pour le moment et le mode choisis.
@@ -129,6 +150,12 @@ export function FichePlat({
                     <li key={p}>{p}</li>
                   ))}
                 </ul>
+              </div>
+            )}
+            {(plat.etiquettes ?? []).length > 0 && (
+              <div>
+                <h3>Indications</h3>
+                <p>{ordreEtiquettes(plat.etiquettes ?? []).join(", ")}</p>
               </div>
             )}
             <div>
@@ -203,6 +230,14 @@ export function FichePlat({
             </fieldset>
           )}
 
+          {prenomActif && (
+            <div className="champ">
+              <label htmlFor={`${ids}-pour`}>
+                Pour qui ? <span className="facultatif">facultatif</span>
+              </label>
+              <input id={`${ids}-pour`} maxLength={30} value={pour} autoComplete="off" placeholder="Prénom" onChange={(e) => setPour(e.target.value)} />
+            </div>
+          )}
           <div className="champ">
             <label htmlFor={`${ids}-note`}>
               Note pour la cuisine <span className="facultatif">facultatif</span>

@@ -46,3 +46,7 @@ Dans son compte, le client corrige les consignes d'une adresse : étage, nom sur
 ## Appareils connectés
 
 La rubrique « Connexion » du compte liste les appareils connectés, avec un nom court tiré du navigateur (« Safari sur iPhone ») et la date de connexion. Le client peut en déconnecter un seul, par exemple un téléphone perdu, ou tous à la fois.
+
+## Heure et allergie au suivi
+
+Le suivi et les e-mails donnent l'heure confirmée en fourchette, comme l'accueil (« Prête entre 19h35 et 19h45 »), selon les largeurs réglées par le restaurant. À largeur 0, une seule heure (« vers 19h40 »). L'allergie que le client a signalée à la commande est rappelée dans le détail de sa page de suivi. L'e-mail de confirmation dit seulement qu'une allergie est signalée, sans en recopier le texte.

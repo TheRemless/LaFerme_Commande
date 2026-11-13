@@ -47,7 +47,12 @@ export interface Passerelle {
   creerSession(d: DemandeSession): Promise<{ id: string; url: string }>;
   lireSession(id: string): Promise<EtatSession>;
   // Sans montant : tout ce qui reste. Avec une clé : un remboursement partiel précis, rejouable sans doublon.
-  rembourser(paymentIntent: string, options?: { montantCentimes?: number; cle?: string }): Promise<Remboursement>;
+  // remboursementId (notre ligne remboursements) part dans les metadata de Stripe : on la retrouve même si
+  // la réponse de Stripe s'est perdue.
+  rembourser(paymentIntent: string, options?: { montantCentimes?: number; cle?: string; remboursementId?: string }): Promise<Remboursement>;
+  // Le remboursement déjà créé chez Stripe pour cette ligne, s'il existe. Stripe oublie ses clés
+  // d'idempotence au bout de 24 heures : une relance plus tardive en créerait un second.
+  retrouverRemboursement?(paymentIntent: string, remboursementId: string): Promise<Remboursement | null>;
   expirerSession(id: string): Promise<void>;
 }
 
@@ -105,10 +110,20 @@ const passerelleStripe = (s: Stripe): Passerelle => ({
   },
   async rembourser(paymentIntent, options = {}) {
     const r = await s.refunds.create(
-      { payment_intent: paymentIntent, ...(options.montantCentimes ? { amount: options.montantCentimes } : {}) },
+      {
+        payment_intent: paymentIntent,
+        ...(options.montantCentimes ? { amount: options.montantCentimes } : {}),
+        ...(options.remboursementId ? { metadata: { remboursement_id: options.remboursementId } } : {}),
+      },
       { idempotencyKey: options.cle ? `remboursement-geste-${options.cle}` : `remboursement-${paymentIntent}` },
     );
     return { id: r.id, statut: etatRemboursement(r.status) };
+  },
+  async retrouverRemboursement(paymentIntent, remboursementId) {
+    for await (const r of s.refunds.list({ payment_intent: paymentIntent, limit: 100 })) {
+      if (r.metadata?.remboursement_id === remboursementId) return { id: r.id, statut: etatRemboursement(r.status) };
+    }
+    return null;
   },
   async expirerSession(id) {
     const session = await s.checkout.sessions.retrieve(id);
