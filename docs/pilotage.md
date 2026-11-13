@@ -14,7 +14,7 @@ Calculés en base, jamais dans le navigateur. Migration `supabase/migrations/202
 | Remboursements faits | Au jour de service où ils sont faits (de 5h à 5h, heure de Genève), comme les ventes, sans ceux d'une commande refusée. L'export comptable garde le jour civil |
 | Remboursements en cours, en échec | Au jour de service de la demande, refusées comprises |
 | Net TTC | TTC moins remboursements faits. TVA par taux : ventes, remboursements et net |
-| Refus | Nombre, montant et les huit motifs les plus fréquents (majuscules et espaces ignorés) |
+| Refus | Refus du restaurant seulement : nombre, montant et les huit motifs les plus fréquents (majuscules et espaces ignorés). Une annulation par le client avant l'acceptation (`annulee_par_client_le`) se compte à part (`annulees_client`), migration `20261210170000_annulation_client_chiffres.sql` |
 | Service | `&service=midi` ou `&service=soir` : un seul service, comparé au même service. Une commande est du soir si son heure confirmée, sinon son créneau, sinon l'heure où elle a été passée, est à 15h ou plus tard (même bascule que le plat du jour). Un remboursement suit l'heure où il a été fait |
 | Comparaison | Sans choix : les mêmes jours de la semaine précédente pour moins de 7 jours, sinon la même durée juste avant. Le mois se compare au mois civil précédent. La semaine va du lundi au dimanche |
 
