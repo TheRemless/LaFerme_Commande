@@ -5,8 +5,6 @@
 
 create function pilotage_analyses(p_debut date, p_fin date, p_service text default null) returns jsonb
 language plpgsql stable as $$
-declare
-  debut_instant timestamptz := (p_debut + time '05:00') at time zone 'Europe/Zurich';
 begin
   if p_debut is null or p_fin is null or p_fin < p_debut or p_fin - p_debut + 1 > 366 then
     raise exception 'Période invalide (un an au plus)';
@@ -42,12 +40,13 @@ begin
       left join plats pl on pl.slug = pp.plat_slug
       left join categories c on c.id = pl.categorie_id
     ),
-    -- Index commandes_email_idx (lower(client_email), cree_le) : une recherche par client.
+    -- Index commandes_email_idx (lower(client_email), …) : une recherche par client. « Avant » = jour de service
+    -- antérieur à la période (une commande passée à l'avance pour un jour de la période ne compte pas).
     clients as (
       select e.email, count(*) as commandes, sum(e.total)::bigint as ttc,
         not exists (
           select 1 from commandes a
-          where lower(a.client_email) = e.email and a.cree_le < debut_instant
+          where lower(a.client_email) = e.email and a.jour_service < p_debut
             and a.statut not in ('paiement_en_attente', 'annulee', 'refusee')
         ) as nouveau
       from (select lower(client_email) as email, total_centimes as total from prises) e

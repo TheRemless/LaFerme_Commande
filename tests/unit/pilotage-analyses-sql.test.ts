@@ -98,7 +98,8 @@ describe("nouveaux clients et fidèles", () => {
     await commande({ jour: "2026-12-04", email: "ana@exemple.ch", lignes: [marg()] });
     await commande({ jour: "2026-12-04", email: "refus@exemple.ch", lignes: [lasagne] });
     await commande({ jour: "2026-12-04", email: "neuf@exemple.ch", lignes: [marg()] });
-    await commande({ jour: "2026-12-05", email: "neuf@exemple.ch", lignes: [lasagne] });
+    // Passée le 30.11 pour le 5.12 : pas une commande d'avant la période.
+    await commande({ jour: "2026-12-05", email: "neuf@exemple.ch", lignes: [lasagne], cree: "2026-11-30T18:00:00Z" });
     const a = await analyses("2026-12-01", "2026-12-07");
     expect(a.clients).toEqual({
       clients: 3,
