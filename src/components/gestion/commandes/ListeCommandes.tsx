@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnnulerLot } from "@/components/gestion/commandes/ActionsLot";
+import { useDroit, useRoleGestion } from "@/components/gestion/droits";
 import { FicheCommande } from "@/components/gestion/commandes/FicheCommande";
 import {
   RACCOURCIS_PERIODE,
@@ -283,6 +284,9 @@ export function ListeCommandes() {
   // Les montants partent 500 ms après la dernière frappe (pas une requête par chiffre).
   const montantMin = useDiffere(filtres.montant_min.trim(), 500);
   const montantMax = useDiffere(filtres.montant_max.trim(), 500);
+  // Responsable de service (D1) : il annule en lot, la réimpression reste au gérant.
+  const gerant = useRoleGestion() === "gerant";
+  const peutAnnuler = useDroit("annuler_apres_prete");
   const [annulerLot, setAnnulerLot] = useState<{
     lignes: LigneCommande[];
     vider: () => void;
@@ -706,22 +710,26 @@ export function ListeCommandes() {
           );
           return (
             <>
-              <button
-                type="button"
-                className="bo-bouton bo-bouton-second bo-bouton-petit"
-                disabled={aImprimer.length === 0}
-                onClick={() => reimprimerLot(aImprimer, vider)}
-              >
-                Réimprimer ({aImprimer.length})
-              </button>
-              <button
-                type="button"
-                className="bo-bouton bo-bouton-second bo-bouton-petit"
-                disabled={aAnnuler.length === 0}
-                onClick={() => setAnnulerLot({ lignes: aAnnuler, vider })}
-              >
-                Annuler… ({aAnnuler.length})
-              </button>
+              {gerant && (
+                <button
+                  type="button"
+                  className="bo-bouton bo-bouton-second bo-bouton-petit"
+                  disabled={aImprimer.length === 0}
+                  onClick={() => reimprimerLot(aImprimer, vider)}
+                >
+                  Réimprimer ({aImprimer.length})
+                </button>
+              )}
+              {peutAnnuler && (
+                <button
+                  type="button"
+                  className="bo-bouton bo-bouton-second bo-bouton-petit"
+                  disabled={aAnnuler.length === 0}
+                  onClick={() => setAnnulerLot({ lignes: aAnnuler, vider })}
+                >
+                  Annuler… ({aAnnuler.length})
+                </button>
+              )}
             </>
           );
         }}

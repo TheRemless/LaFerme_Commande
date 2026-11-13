@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { MARQUE } from "@/components/gestion/clients/libelles";
+import { useRoleGestion } from "@/components/gestion/droits";
 import { FicheCommande } from "@/components/gestion/commandes/FicheCommande";
 import {
   heureCourte,
@@ -89,6 +90,7 @@ export function FicheClient({
   const [fiche, setFiche] = useState<Fiche | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [onglet, setOnglet] = useState("resume");
+  const gerant = useRoleGestion() === "gerant";
   const [commande, setCommande] = useState<{
     id: string;
     numero: number;
@@ -202,7 +204,8 @@ export function FicheClient({
             titre: "Notes",
             badge: fiche.notes.length || undefined,
           },
-          { cle: "marque", titre: "Marque" },
+          // La marque se pose au gérant seulement (D1).
+          ...(gerant ? [{ cle: "marque", titre: "Marque" }] : []),
         ]}
       >
         {onglet === "resume" && <Resume fiche={fiche} />}
@@ -211,7 +214,7 @@ export function FicheClient({
         )}
         {onglet === "remboursements" && <Remboursements fiche={fiche} />}
         {onglet === "notes" && <Notes fiche={fiche} apres={apres} />}
-        {onglet === "marque" && (
+        {gerant && onglet === "marque" && (
           <Marque
             key={JSON.stringify(fiche.marque)}
             fiche={fiche}
@@ -237,8 +240,14 @@ function Resume({ fiche }: { fiche: Fiche }) {
           </p>
         ))}
         {/* Les dates abrégées finissent déjà par un point (« mer. 10 déc. ») : pas de point final. */}
-        <p className="bo-champ-aide">{fiche.compte ? `Compte créé le ${jourCourt(fiche.compte.cree_le)}` : "Sans compte : commandes en invité"}</p>
-        <p className="bo-champ-aide">Première commande le {jourCourt(fiche.premiere_le)}</p>
+        <p className="bo-champ-aide">
+          {fiche.compte
+            ? `Compte créé le ${jourCourt(fiche.compte.cree_le)}`
+            : "Sans compte : commandes en invité"}
+        </p>
+        <p className="bo-champ-aide">
+          Première commande le {jourCourt(fiche.premiere_le)}
+        </p>
       </section>
       <section aria-labelledby="fcl-habitudes">
         <h3 id="fcl-habitudes">Habitudes</h3>
@@ -350,16 +359,20 @@ function Remboursements({ fiche }: { fiche: Fiche }) {
 
 function Notes({ fiche, apres }: { fiche: Fiche; apres: () => Promise<void> }) {
   const [n, setN] = useState(0);
+  // Écrire une note reste au gérant (D1) ; le responsable les lit.
+  const gerant = useRoleGestion() === "gerant";
   return (
     <div className="bo-fiche-sections">
-      <NouvelleNote
-        key={n}
-        email={fiche.email}
-        fait={async () => {
-          setN((x) => x + 1);
-          await apres();
-        }}
-      />
+      {gerant && (
+        <NouvelleNote
+          key={n}
+          email={fiche.email}
+          fait={async () => {
+            setN((x) => x + 1);
+            await apres();
+          }}
+        />
+      )}
       {fiche.notes.length > 0 && (
         <ul className="bo-fiche-liste">
           {fiche.notes.map((note) => (

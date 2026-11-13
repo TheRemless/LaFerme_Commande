@@ -34,6 +34,8 @@ describe("réglages généraux", () => {
         expect.objectContaining({ cle: "suggestion_panier_active", valeur: false }),
         expect.objectContaining({ cle: "couverts_actifs", libelle: "Proposer couverts et serviettes au paiement", valeur: false }),
         expect.objectContaining({ cle: "prenom_par_ligne_actif", valeur: false }),
+        // Case du bloc Équipe (20261213140000) ; la valeur est posée en production par le chef.
+        expect.objectContaining({ cle: "connexion_livreur_par_code", valeur: false }),
       ]),
     });
   });

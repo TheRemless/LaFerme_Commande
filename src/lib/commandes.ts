@@ -38,6 +38,10 @@ async function envoyerConfirmation(c: Commande): Promise<void> {
 // paiement) : pause, plat épuisé, heure qui ne tient plus. Noté sur la commande pour la tablette (SS-08).
 export function avertissementsPaiement(c: Commande, config: ConfigService, cat: Catalogue | null, maintenant = new Date()): string[] {
   const a: string[] = [];
+  // Registre fédéral en panne au paiement (C15) : adresse acceptée sur son NPA, à contrôler avant d'accepter.
+  if (c.mode === "livraison" && c.adresse?.nonVerifiee) {
+    a.push(`Adresse non vérifiée, le registre fédéral était en panne. Contrôlez la rue et le numéro dans le ${c.adresse.npa} avant d'accepter.`);
+  }
   if (pauseEnCours(config, maintenant, c.mode)) a.push("Payée pendant la pause des commandes en ligne.");
   const epuises = [
     ...new Set([
@@ -170,6 +174,8 @@ const ERREURS_REMBOURSEMENT: Record<string, string> = {
   commande_inconnue: "Commande introuvable.",
   sans_paiement_en_ligne: "Paiement en ligne introuvable pour cette commande : vérifiez dans Stripe.",
   "Réservé au gérant": "Réservé au gérant.",
+  // Responsable de service sans le droit « rembourser », ou rôle éteint (D1, auteur_droit).
+  droit_refuse: "Réservé au gérant.",
 };
 
 // Erreurs où Stripe a répondu et refusé : rien n'est parti (requête invalide, droits, carte).

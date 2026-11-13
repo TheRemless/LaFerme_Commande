@@ -106,6 +106,20 @@ export function GestionImprimantes() {
           Chaque imprimante a sa propre adresse, à coller dans ses réglages CloudPRNT. L&apos;adresse contient un code secret : elle ne s&apos;affiche
           qu&apos;une fois. En cas de doute, générez-en une nouvelle, l&apos;ancienne ne marche plus.
         </p>
+        {/* Étapes génériques des imprimantes Star, données par le chef. NON VÉRIFIÉES : la notice Star (star-m.jp) a
+            refusé la connexion le 13.11.2026 et aucune imprimante n'est encore branchée. À vérifier sur la vraie
+            imprimante, puis retirer l'avertissement (docs/imprimantes-gestion.md). */}
+        <details className="ges-imp-ou">
+          <summary>Où coller l&apos;adresse dans l&apos;imprimante (Star)</summary>
+          <p className="aide-forte">Non vérifié : à contrôler sur la vraie imprimante. La notice Star n&apos;a pas pu être lue.</p>
+          <ol>
+            <li>Trouver l&apos;adresse IP de l&apos;imprimante. L&apos;éteindre, puis la rallumer en tenant le bouton FEED : elle imprime une page d&apos;autotest qui donne son adresse IP.</li>
+            <li>Sur un ordinateur ou la tablette branchés au même réseau, ouvrir un navigateur à cette adresse IP (précédée de http://). C&apos;est la page de réglages de l&apos;imprimante.</li>
+            <li>Ouvrir la rubrique CloudPRNT, l&apos;activer, et coller l&apos;adresse ci-dessus dans le champ « Server URL ».</li>
+            <li>Régler l&apos;intervalle de relève (le temps entre deux passages), puis enregistrer. Redémarrer l&apos;imprimante si la page le demande.</li>
+            <li>Ici, « Imprimer un ticket de test » : le ticket « TEST » doit sortir.</li>
+          </ol>
+        </details>
         {url && (
           <div className="ges-url" role="status">
             <p className="aide-forte">Adresse CloudPRNT, à copier maintenant :</p>

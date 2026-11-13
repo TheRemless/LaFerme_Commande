@@ -38,6 +38,7 @@ Le ticket ne porte pas de prix.
 | Un supplément est fini. | Pareil. Le comptoir peut épuiser un supplément seul. |
 | J'ai trop de tickets. | Le dire au comptoir. Il ajoute du retard ou met les commandes en pause. |
 | L'imprimante ne sort plus rien. | Regarder le papier et le capot. Le comptoir lit les tickets sur la tablette en attendant. Rien n'est perdu. |
+| L'imprimante est dite « en ligne » mais rien ne sort. | Le site ne voit pas un papier coincé ou mal mis. Ouvrir le capot, remettre le rouleau, refermer. Le comptoir touche « Réimprimer » sur la commande, ou « Ticket » pour la lire à l'écran. |
 | Un ticket sort en double. | Regarder le numéro. Ne pas faire la commande deux fois. |
 | Un ticket sort pour plus tard. | C'est une commande passée à l'avance. Regarder l'heure écrite dessus. |
 | Le plat est prêt, je fais quoi ? | Le passer au comptoir avec son ticket. C'est le comptoir qui touche « Prête ». |

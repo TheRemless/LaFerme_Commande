@@ -13,6 +13,14 @@ vi.mock("@/lib/personnel/session", async (original) => ({
     if (session.personnel.role !== "gerant") return { reponse: refus("Réservé au gérant.", 403) };
     return { personnel: session.personnel };
   },
+  // D1 : le gérant, ou le responsable sur ses actions (tableau de src/lib/personnel/droits.ts).
+  exigerDroit: async (_r: Request, action: import("@/lib/personnel/droits").ActionDroit) => {
+    const { refus } = await import("@/lib/comptes/api");
+    const { aLeDroit } = await import("@/lib/personnel/droits");
+    if (!session.personnel) return { reponse: refus("Connectez-vous.", 401) };
+    if (!aLeDroit(session.personnel.role, action)) return { reponse: refus("Réservé au gérant.", 403) };
+    return { personnel: session.personnel };
+  },
 }));
 const { POST } = await import("@/app/api/gestion/clients/route");
 

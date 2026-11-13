@@ -9,6 +9,7 @@ import { heureDe as heure } from "@/lib/heures";
 import { prixChf } from "@/lib/prix";
 import { lienNavigation, plateformeDe, type Plateforme } from "@/lib/navigation";
 import { PROBLEME_LIBELLE, TELEPHONE_RESTAURANT } from "@/lib/livraisons-textes";
+import { usePartagePosition, type EtatPartage } from "./partage-position";
 
 // Téléphone du livreur, tenu d'une main. Ses livraisons en cours dans l'ordre de passage, trois gestes.
 // Un geste part avec une clé : sans réseau, il attend dans le téléphone (clé, commande, geste, sans
@@ -228,6 +229,8 @@ export function Livreur({ nom, supabase }: { nom: string; supabase: { url: strin
   const estPartie = (l: LivraisonLivreur) => l.statut === "partie" || enAttentePour(l.commande_id).some((g) => g.geste === "partie");
   const courant = pasLivrees[0] ?? null;
   const enRoute = !!courant && estPartie(courant);
+  // Position en direct : seulement pendant le trajet vers l'arrêt en cours (la base revérifie).
+  const partage = usePartagePosition(enRoute && courant ? courant.commande_id : null);
 
   return (
     <div className="livreur">
@@ -316,6 +319,7 @@ export function Livreur({ nom, supabase }: { nom: string; supabase: { url: strin
       {/* En route, d'une main : l'arrêt en cours a ses deux gestes sous le pouce, en bas de l'écran. */}
       {enRoute && courant && (
         <div className="liv-pouce">
+          <TextePartage partage={partage} numero={courant.numero} />
           <a className="bouton-second" href={lienNavigation(courant.adresse, plateforme)} target="_blank" rel="noreferrer noopener">
             Itinéraire
           </a>
@@ -500,4 +504,21 @@ function Arret({
       )}
     </li>
   );
+}
+
+// Ce que le livreur sait de sa position partagée, sous le pouce. Rien quand le partage est coupé par le restaurant.
+function TextePartage({ partage, numero }: { partage: EtatPartage; numero: number }) {
+  const texte =
+    partage.etat === "partage"
+      ? `Le client du n° ${partage.numero ?? numero} voit votre position jusqu'à «\u00a0Livrée\u00a0».`
+      : partage.etat === "refuse"
+        ? "Localisation refusée sur ce téléphone. Le client ne voit pas où vous êtes."
+        : partage.etat === "indisponible"
+          ? "Position introuvable pour le moment. Le client ne voit pas où vous êtes."
+          : null;
+  return texte ? (
+    <p className="liv-position" role="status">
+      {texte}
+    </p>
+  ) : null;
 }

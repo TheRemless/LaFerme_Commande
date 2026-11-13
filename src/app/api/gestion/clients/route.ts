@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { corpsJson, refus } from "@/lib/comptes/api";
 import { fonctionSql } from "@/lib/db/serveur";
 import { emailClient, filtresClients, MARQUES, motifMarque, texteNote } from "@/lib/gestion-clients";
-import { exigerGerant } from "@/lib/personnel/session";
+import type { ActionDroit } from "@/lib/personnel/droits";
+import { exigerDroit, exigerGerant } from "@/lib/personnel/session";
 
 // Clients du back-office (vague 3, bo-commandes) : un client est un e-mail, avec ou sans compte. Tout passe en
 // POST : un e-mail, un nom ou un téléphone n'apparaît jamais dans une adresse.
@@ -22,10 +23,14 @@ function erreurConnue(e: unknown): NextResponse | null {
   return cle ? refus(ERREURS[cle][0], ERREURS[cle][1]) : null;
 }
 
+// Responsable de service (D1) : la liste et la fiche d'un client ; notes et marque restent au gérant.
+const DROITS: Record<string, ActionDroit> = { liste: "voir_commandes", fiche: "voir_commandes" };
+
 export async function POST(requete: Request) {
-  const g = await exigerGerant(requete);
-  if ("reponse" in g) return g.reponse;
   const c = await corpsJson(requete);
+  const droit = typeof c?.action === "string" && Object.hasOwn(DROITS, c.action) ? DROITS[c.action] : undefined;
+  const g = droit ? await exigerDroit(requete, droit) : await exigerGerant(requete);
+  if ("reponse" in g) return g.reponse;
   if (!c) return refus("Requête illisible.", 400);
   const sansCache = { headers: { "Cache-Control": "no-store" } };
 
