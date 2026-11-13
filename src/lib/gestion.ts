@@ -340,7 +340,8 @@ export function csvVentes(ventes: Vente[], remboursements: Remboursement[] = [])
 
 // Cellule de CSV (point-virgule). Une cellule qui commence par = + - @, une tabulation ou un retour serait
 // lue comme une formule par Excel : on la neutralise. Partagée avec la clôture du jour (src/lib/cloture.ts).
+// Seul un nombre entier ou décimal (« -5.00 ») garde son signe : « -2+3… » est une formule et se neutralise.
 export function celluleCsv(x: string): string {
-  const s = /^[=+\-@\t\r]/.test(x) && !/^-?\d/.test(x) ? `'${x}` : x;
-  return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  const s = /^[=+\-@\t\r]/.test(x) && !/^-?\d+(\.\d+)?$/.test(x) ? `'${x}` : x;
+  return /[;"\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }

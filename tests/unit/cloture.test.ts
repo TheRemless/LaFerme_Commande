@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { baseLocale } from "@/lib/db/locale";
 import { csvCloture, montantCompte, type ClotureJour } from "@/lib/cloture";
+import { celluleCsv } from "@/lib/gestion";
 import { jourDeService } from "@/lib/pilotage";
 
 // Clôture du jour côté serveur : saisie des montants, CSV, route (gérant seulement, erreurs lisibles).
@@ -39,6 +40,14 @@ describe("montants comptés", () => {
 });
 
 describe("CSV du rapport Z", () => {
+  it("une cellule ne garde son signe que si c'est un nombre", () => {
+    expect(celluleCsv("-5.00")).toBe("-5.00");
+    expect(celluleCsv("-12")).toBe("-12");
+    expect(celluleCsv("-1+1.")).toBe("'-1+1.");
+    expect(celluleCsv("+41 79")).toBe("'+41 79");
+    expect(celluleCsv("a\rb")).toBe('"a\rb"');
+  });
+
   it("neutralise une formule dans un motif et ne contient aucune donnée de client", async () => {
     const c = await (await lire(`jour=${jourDeService()}`)).json() as ClotureJour;
     c.rapport.remboursements.push({
@@ -48,6 +57,8 @@ describe("CSV du rapport Z", () => {
     const csv = csvCloture(c);
     expect(csv.startsWith("﻿Clôture du jour;")).toBe(true);
     expect(csv).toContain(`"'=HYPERLINK(""x"")"`);
+    c.rapport.remboursements[c.rapport.remboursements.length - 1].motif = "-2+3+cmd|' /C calc'!A0+1.";
+    expect(csvCloture(c)).toContain(";'-2+3+cmd|' /C calc'!A0+1.;");
     expect(csv).toContain("Attendu au comptoir;;");
     expect(csv).toContain(";12;19:40;espèces;fait;3.00;");
     c.cloture = { jour: c.rapport.jour, especes_comptees_centimes: 0, carte_comptoir_centimes: null, attendu_comptoir_centimes: 0,
