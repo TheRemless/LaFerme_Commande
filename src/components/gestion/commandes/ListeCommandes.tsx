@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { AnnulerLot } from "@/components/gestion/commandes/ActionsLot";
 import { FicheCommande } from "@/components/gestion/commandes/FicheCommande";
 import {
   heureCourte,
@@ -17,6 +18,7 @@ import {
   SelecteurPeriode,
   TableauDonnees,
   useDiffere,
+  useNotifier,
   useOuverture,
   useRelecture,
   type Colonne,
@@ -54,6 +56,7 @@ export type LigneCommande = {
   rembourse_centimes: number;
   retard_minutes: number | null;
   notes: number;
+  reclamations?: number;
   compte: boolean;
 };
 type Page = {
@@ -166,6 +169,22 @@ const COLONNES: Colonne<LigneCommande>[] = [
     nombre: true,
     cacheeParDefaut: true,
   },
+  {
+    cle: "reclamations",
+    titre: "Réclamations",
+    valeur: (l) => (l.reclamations ? l.reclamations : ""),
+    nombre: true,
+  },
+];
+
+// Gestes en lot : seulement ce qui se fait commande par commande sur la tablette, sans montant à choisir.
+const ANNULABLE = ["nouvelle", "acceptee", "en_preparation"];
+const IMPRIMABLE = [
+  "acceptee",
+  "en_preparation",
+  "prete",
+  "partie",
+  "terminee",
 ];
 
 // Le serveur trie l'heure prévue et le numéro dans l'ordre croissant, le montant dans l'ordre décroissant ;
@@ -192,6 +211,7 @@ type Filtres = {
   en_retard: boolean;
   remboursee: boolean;
   avec_note: boolean;
+  avec_reclamation: boolean;
 };
 const SANS_FILTRE: Filtres = {
   mode: "",
@@ -200,6 +220,7 @@ const SANS_FILTRE: Filtres = {
   en_retard: false,
   remboursee: false,
   avec_note: false,
+  avec_reclamation: false,
 };
 
 export function ListeCommandes() {
@@ -220,6 +241,11 @@ export function ListeCommandes() {
     sousTitre?: string;
   } | null>(null);
   useOuverture("commande", (id) => setOuverte({ id, titre: "Commande" }));
+  const notifier = useNotifier();
+  const [annulerLot, setAnnulerLot] = useState<{
+    lignes: LigneCommande[];
+    vider: () => void;
+  } | null>(null);
 
   const corps = useCallback(
     (extra: Record<string, unknown> = {}) => ({
@@ -232,6 +258,7 @@ export function ListeCommandes() {
       ...(filtres.en_retard ? { en_retard: true } : {}),
       ...(filtres.remboursee ? { remboursee: true } : {}),
       ...(filtres.avec_note ? { avec_note: true } : {}),
+      ...(filtres.avec_reclamation ? { avec_reclamation: true } : {}),
       tri: triServeur(tri),
       page,
       par_page: PAR_PAGE,
@@ -290,6 +317,25 @@ export function ListeCommandes() {
       if (lignes.length >= d.total || d.lignes.length === 0) break;
     }
     return lignes;
+  }
+
+  // Réimprimer plusieurs commandes : une à une, comme sur la tablette ; le résultat est dit en une phrase.
+  async function reimprimerLot(lignes: LigneCommande[], vider: () => void) {
+    let ok = 0;
+    for (const l of lignes) {
+      const r = await poster("/api/gestion/commandes", {
+        action: "reimprimer",
+        id: l.id,
+      });
+      if (r.ok) ok += 1;
+    }
+    const rate = lignes.length - ok;
+    notifier({
+      texte: `${ok} commande${ok > 1 ? "s" : ""} réimprimée${ok > 1 ? "s" : ""}.${rate ? ` ${rate} sans ticket à renvoyer.` : ""}`,
+      ton: ok ? "succes" : "erreur",
+    });
+    vider();
+    charger();
   }
 
   const compteurs = donnees?.compteurs ?? {};
@@ -413,6 +459,16 @@ export function ListeCommandes() {
                 />{" "}
                 Avec note
               </label>
+              <label className="bo-case">
+                <input
+                  type="checkbox"
+                  checked={filtres.avec_reclamation}
+                  onChange={(e) =>
+                    filtrer("avec_reclamation", e.target.checked)
+                  }
+                />{" "}
+                Avec réclamation ouverte
+              </label>
               {filtresActifs && (
                 <button
                   type="button"
@@ -437,6 +493,35 @@ export function ListeCommandes() {
           })
         }
         csv={{ toutes }}
+        actionsLot={(cles, vider) => {
+          const choisies = (donnees?.lignes ?? []).filter((l) =>
+            cles.includes(l.id),
+          );
+          const aAnnuler = choisies.filter((l) => ANNULABLE.includes(l.statut));
+          const aImprimer = choisies.filter((l) =>
+            IMPRIMABLE.includes(l.statut),
+          );
+          return (
+            <>
+              <button
+                type="button"
+                className="bo-bouton bo-bouton-second bo-bouton-petit"
+                disabled={aImprimer.length === 0}
+                onClick={() => reimprimerLot(aImprimer, vider)}
+              >
+                Réimprimer ({aImprimer.length})
+              </button>
+              <button
+                type="button"
+                className="bo-bouton bo-bouton-second bo-bouton-petit"
+                disabled={aAnnuler.length === 0}
+                onClick={() => setAnnulerLot({ lignes: aAnnuler, vider })}
+              >
+                Annuler… ({aAnnuler.length})
+              </button>
+            </>
+          );
+        }}
         memoire="commandes"
         vide={
           q || filtresActifs
@@ -450,6 +535,23 @@ export function ListeCommandes() {
               }
         }
       />
+
+      {annulerLot && (
+        <PanneauLateral
+          titre={`Annuler ${annulerLot.lignes.length} commande${annulerLot.lignes.length > 1 ? "s" : ""}`}
+          sousTitre={annulerLot.lignes.map((l) => `n° ${l.numero}`).join(", ")}
+          onFermer={() => setAnnulerLot(null)}
+        >
+          <AnnulerLot
+            lignes={annulerLot.lignes}
+            fait={() => {
+              annulerLot.vider();
+              setAnnulerLot(null);
+              charger();
+            }}
+          />
+        </PanneauLateral>
+      )}
 
       {ouverte && (
         <PanneauLateral

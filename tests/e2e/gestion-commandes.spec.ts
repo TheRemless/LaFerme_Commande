@@ -88,3 +88,34 @@ test("la fiche montre la commande, garde une note et enregistre un changement de
   await gestion.keyboard.press("Escape");
   await expect(fiche).toHaveCount(0);
 });
+
+test("« on ferme plus tôt » : deux commandes s'annulent d'un geste, avec un seul motif", async ({}, info) => {
+  const nom = `Lot${info.project.name}${Date.now() % 100000}`;
+  for (const i of [1, 2]) {
+    const rep = await gestion.request.post("/api/commandes", {
+      headers: { Origin: SITE },
+      data: {
+        cle: `bo-lot-${info.project.name}-${i}-${Date.now()}`,
+        mode: "retrait",
+        moyen: "comptoir",
+        quand: { type: "asap" },
+        heure: "2026-11-10T19:05",
+        client: { prenom: `P${i}`, nom, telephone: "079 123 45 67", email: `lot${i}-${info.project.name}@laferme.test` },
+        lignes: [{ slug: "pizza-margherita", qte: 1, choix: {}, retraits: [], note: "" }],
+      },
+    });
+    expect(rep.ok()).toBe(true);
+  }
+  await gestion.getByLabel("Numéro, nom, téléphone ou e-mail").fill(nom);
+  await expect(gestion.getByRole("row", { name: new RegExp(nom) })).toHaveCount(2);
+  await gestion.getByRole("checkbox", { name: "Tout sélectionner sur cette page" }).check();
+  await gestion.getByRole("region", { name: "Actions sur la sélection" }).getByRole("button", { name: "Annuler… (2)" }).click();
+  const panneau = gestion.getByRole("dialog");
+  await panneau.getByLabel("Motif d'annulation").fill("Nous fermons plus tôt ce soir");
+  await panneau.getByRole("button", { name: "Annuler ces commandes" }).click();
+  await gestion.getByRole("button", { name: "Annuler 2 commandes" }).click();
+  await expect(gestion.getByText("2 commandes annulées.")).toBeVisible();
+  // La pastille « À accepter » du premier test filtre encore : on l'efface pour revoir les deux commandes.
+  await gestion.getByRole("button", { name: "Effacer les filtres" }).click();
+  await expect(gestion.getByRole("row", { name: new RegExp(nom) }).filter({ hasText: "Refusée ou annulée" })).toHaveCount(2);
+});
