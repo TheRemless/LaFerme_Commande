@@ -72,3 +72,6 @@ insert into personnel (email, nom, role) values ('reglages-bureau@laferme.test',
 insert into personnel (email, nom, role) values
   ('commandes-bureau@laferme.test', 'Commandes bureau', 'gerant'),
   ('commandes-mobile@laferme.test', 'Commandes mobile', 'gerant');
+
+-- Écran Livraison et horaires, parties de la vague 3 (tests/e2e/gestion-service-v3.spec.ts).
+insert into personnel (email, nom, role) values ('ecran-service@laferme.test', 'Écran service', 'gerant');
