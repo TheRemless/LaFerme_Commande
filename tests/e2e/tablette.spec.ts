@@ -200,8 +200,10 @@ test("supplément épuisé : refusé à la commande, puis revient", async ({ req
 
 test("acceptation en série : deux commandes à accepter, la confirmation s'annule sans rien accepter", async ({ request }) => {
   // Pas de vraie série : elle accepterait aussi les commandes des autres tests qui tournent en même temps.
-  await commander(request, "Serie", "en_ligne");
-  await commander(request, "Suite", "en_ligne");
+  // Au comptoir : payée en ligne hors des heures de service, une commande porte un avertissement et sort (à juste
+  // titre) de la série.
+  await commander(request, "Serie", "comptoir");
+  await commander(request, "Suite", "comptoir");
   await tablette.getByRole("button", { name: /^À accepter/ }).click();
   const serie = tablette.locator(".tab-serie");
   await serie.getByRole("button", { name: /^Accepter les \d+ à l'heure proposée/ }).click();
