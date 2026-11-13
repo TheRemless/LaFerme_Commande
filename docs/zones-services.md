@@ -48,3 +48,14 @@ Captures : `docs/rendus/vague-3/bo-operations/horaires-zone-fermee-1024.png`.
 ## Pas encore fait
 
 Le bouton de la tablette (session `tablette`).
+
+## Tester une adresse
+
+Rubrique Livraison et horaires, sous les zones. On saisit une adresse et l'écran montre ce que le site répondrait maintenant à un client qui la donne. Rien n'est enregistré ni journalisé.
+
+- **Avec la rue** : l'adresse est cherchée dans le registre fédéral, comme au paiement, et l'adresse officielle s'affiche. **Sans la rue** : seuls le NPA et la localité comptent, comme à l'accueil quand le client choisit sa commune.
+- **Livrée** : zone, frais, commande minimum, délai annoncé en ce moment (retard du soir et allongement compris), services livrés aujourd'hui, puis l'état de la livraison (dès que possible et l'heure, ou le premier créneau, la pause, la fermeture).
+- **Fermée** : jusqu'à quelle heure et pour quel motif, ou « Zone ouverte à la livraison » décochée. **Hors zone** : retrait seulement.
+- Même calcul que le site (`zoneServeur`, `zonePour` et `etatService`), sur la même config. Serveur `src/lib/simulateur-adresse.ts`, route `/api/gestion/service` `{ type: "simuler-adresse", adresse }` (gérant). L'adresse passe dans le corps de la requête, jamais dans l'URL.
+- Tests : `tests/unit/simulateur-adresse.test.ts`, `tests/e2e/gestion-service-v3.spec.ts`. Capture : `docs/rendus/vague-3/bo-operations/horaires-tester-adresse-1024.png`.
+

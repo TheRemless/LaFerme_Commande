@@ -15,7 +15,9 @@ import { nomAffiche } from "@/components/Plat";
 import { Icone } from "@/components/Icone";
 import { FichePlat } from "@/components/carte/FichePlat";
 import { ContenuPanier } from "@/components/panier/ContenuPanier";
+import { oublierPlatDeLAdresse, platDeLAdresse } from "@/lib/plat-adresse";
 import { platsPopulaires, suggestionPanier, type DonneesPopulaires } from "@/lib/suggestion";
+import { retenirCodeDeLUrl } from "@/lib/code-client";
 
 export function CarteCommande({
   categories,
@@ -43,7 +45,14 @@ export function CarteCommande({
   const fermer = useCallback(() => {
     setOuvert(null);
     setEdition(null);
+    oublierPlatDeLAdresse();
   }, []);
+  // Fiche ouverte depuis l'adresse (/carte#pizza-tonno) : un plat partagé ou vu depuis le back-office.
+  useEffect(() => {
+    const slug = platDeLAdresse();
+    const plat = slug ? categories.flatMap((c) => c.plats).find((p) => p.slug === slug) : undefined;
+    if (plat) setOuvert(plat);
+  }, [categories]);
   const modifier = useCallback(
     (i: number) => {
       const plat = categories.flatMap((c) => c.plats).find((p) => p.slug === lignes[i]?.slug);
@@ -59,7 +68,11 @@ export function CarteCommande({
   const [recherche, setRecherche] = useState("");
   const [seulementVege, setSeulementVege] = useState(false);
 
-  useEffect(() => setChoix(lireChoix()), []);
+  // Code apporté par un QR (?code=) : gardé dans l'onglet, retiré de l'adresse.
+  useEffect(() => {
+    setChoix(lireChoix());
+    retenirCodeDeLUrl();
+  }, []);
 
   // Après la dernière commande de la carte, seules les pizzas restent commandables pour l'heure choisie.
   const seulementPizzas = Boolean(choix?.pizzasSeulement);

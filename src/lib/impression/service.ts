@@ -18,7 +18,7 @@ export async function imprimerCommande(
   const tickets = ticketsDeCommande(
     {
       ...c,
-      lignes: c.lignes.map((l) => ({ nom: l.nom, qte: l.qte, station: l.station, details: detailsTablette(cat, l) })),
+      lignes: c.lignes.map((l) => ({ nom: l.nom, qte: l.qte, station: l.station, details: detailsTablette(cat, l), pour: (l as { pour?: string }).pour })),
     },
     // Ticket d'une commande à l'avance imprimé le jour J : il dit quand elle a été acceptée, pas quand il sort.
     { accepteLe: c.accepte_le ?? new Date(), reimpression },

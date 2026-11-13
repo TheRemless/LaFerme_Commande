@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { adresseDuCompte } from "./site";
+import { adresseDuCompte, codeDuPersonnel } from "./site";
 
 // Clôture du jour (vague 3, bo-pilotage) : compter la caisse, confirmer, clôturer, reclôturer ; montants
 // illisibles refusés près du champ ; réseau coupé. Les calculs sont vérifiés en base (tests/unit/cloture-jour-sql.test.ts).
@@ -11,14 +11,11 @@ let gestion: Page;
 test.beforeAll(async ({ browser }, info) => {
   gestion = await (await browser.newContext({ ...info.project.use, baseURL: info.project.use.baseURL })).newPage();
   const email = `cloture-${info.project.name}@laferme.test`;
-  await gestion.goto("/gestion/cloture");
+  // Connexion commune (tests/e2e/site.ts) : codeDuPersonnel attend le délai d'un code quand la CI réessaie.
   await adresseDuCompte(gestion, email);
+  await gestion.goto("/gestion/cloture");
   await gestion.getByLabel("E-mail", { exact: true }).fill(email);
-  await gestion.getByRole("button", { name: "Recevoir un code" }).click();
-  const code = gestion.locator(".note-preversion strong");
-  // Serveur qui vient de démarrer : le code peut mettre plus de 5 s (un second clic tomberait sur la limite de 30 s).
-  await expect(code).toHaveText(/^\d{8}$/, { timeout: 30000 });
-  await gestion.getByLabel("Code à 8 chiffres").fill(await code.innerText());
+  await gestion.getByLabel("Code à 8 chiffres").fill(await codeDuPersonnel(gestion));
   await gestion.getByRole("button", { name: "Me connecter" }).click();
   await expect(gestion.getByRole("heading", { level: 1, name: "Clôture du jour" })).toBeVisible();
 });

@@ -33,7 +33,8 @@ async function passer(mode, quand = { type: "asap" }) {
   const prenom = PRENOMS[n % PRENOMS.length];
   const lignes = PANIERS[n % PANIERS.length];
   n += 1;
-  const moyen = mode === "livraison" || n % 3 === 0 ? "en_ligne" : "comptoir";
+  // Deux commandes à payer au comptoir au plus par client (limite anti-abus) : les autres sont payées en ligne.
+  const moyen = mode === "livraison" || n > 2 ? "en_ligne" : "comptoir";
   const r = await commander({ etiquette: prenom, mode, moyen, lignes, quand });
   if (r.status !== 200) throw new Error(`Commande ${prenom} refusée : ${r.status} ${r.erreur}`);
   if (r.idPaiement) await payer(r.idPaiement);

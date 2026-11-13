@@ -152,6 +152,10 @@ test("axe : tablette et back-office connectés", async ({ page }, info) => {
   await controler(page, "tablette-reglages");
   await page.getByRole("button", { name: /^Livraisons/ }).click();
   await controler(page, "tablette-livraisons");
+  // Vue par poste (vague 3, D12 à l'essai, derrière un lien).
+  await page.goto("/tablette/poste/pizza");
+  await expect(page.locator(".poste-tete p")).not.toHaveText("Chargement…");
+  await controler(page, "tablette-poste");
   await page.goto("/gestion");
   await expect(page.locator("h1").first()).toBeVisible();
   await controler(page, "gestion");

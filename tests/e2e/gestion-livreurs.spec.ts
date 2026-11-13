@@ -37,7 +37,8 @@ test("semaine type, absence, renfort, statistiques", async ({ page }, info) => {
       await page.getByRole("button", { name: `Sami, ${jour} soir` }).click();
     }
     await expect(page.getByRole("button", { name: "Sami, vendredi soir" })).toHaveAttribute("aria-pressed", "true");
-    const ligneSami = page.getByRole("row", { name: /^Sami/ });
+    // Prénom exact : le jeu de rush a aussi « Samir ».
+    const ligneSami = page.getByRole("row").filter({ has: page.getByRole("rowheader", { name: "Sami", exact: true }) });
     await ligneSami.getByRole("button", { name: "Enregistrer" }).click();
     await expect(page.getByText("Semaine de Sami enregistrée.")).toBeVisible();
     await expect(ligneSami.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
@@ -48,8 +49,8 @@ test("semaine type, absence, renfort, statistiques", async ({ page }, info) => {
     jourTest = ((await jour.locator("h2").getAttribute("id")) ?? "").replace("liv-", "");
     expect(jourTest).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     const soir = jour.locator(".bo-liv-service").nth(1);
-    await expect(soir.getByText("Sami")).toBeVisible();
-    await soir.locator(".bo-liv-ligne", { hasText: "Sami" }).getByRole("button", { name: "Absent" }).click();
+    await expect(soir.getByText("Sami", { exact: true })).toBeVisible();
+    await soir.locator(".bo-liv-ligne").filter({ has: page.getByText("Sami", { exact: true }) }).getByRole("button", { name: "Absent" }).click();
     await page.getByLabel("Motif").fill("Malade");
     await page.getByRole("button", { name: "Noter l'absence" }).click();
     await expect(soir.getByText("absence : Malade")).toBeVisible();
@@ -75,7 +76,7 @@ test("semaine type, absence, renfort, statistiques", async ({ page }, info) => {
 
     // Retour à la semaine type.
     await page.setViewportSize({ width: 1024, height: 900 });
-    await soir.locator(".bo-liv-ligne", { hasText: "Sami" }).getByRole("button", { name: "Comme d'habitude" }).click();
+    await soir.locator(".bo-liv-ligne").filter({ has: page.getByText("Sami", { exact: true }) }).getByRole("button", { name: "Comme d'habitude" }).click();
     await expect(soir.getByText("semaine type")).toBeVisible();
   } finally {
     const poster = (data: Record<string, unknown>) => page.request.post("/api/gestion/livreurs", { headers: ORIGINE, data });

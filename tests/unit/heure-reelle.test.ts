@@ -8,6 +8,7 @@ const CHARGE: Charge = {
   preparation_minutes: 20,
   plafond_minutes: 45,
   allongement_minutes: 25,
+  allongement_livraison_minutes: 25,
 };
 
 describe("lireCharge", () => {
@@ -24,6 +25,27 @@ describe("lireCharge", () => {
   });
 });
 
+describe("lireCharge, attente d'un livreur (version 2)", () => {
+  const LIVRAISON = { livraisons: 4, livreurs: 1, attente_minutes: 60, compte: true, allongement_minutes: 40 };
+  it("livraison : le plus long de la cuisine et de l'attente d'un livreur", () => {
+    const c = lireCharge(CHARGE, LIVRAISON);
+    expect(c?.livraison).toEqual({ livraisons: 4, livreurs: 1, attente_minutes: 60, compte: true });
+    expect(c?.allongement_minutes).toBe(25);
+    expect(c?.allongement_livraison_minutes).toBe(40);
+    // Cuisine plus chargée que la livraison : la livraison suit la cuisine.
+    expect(lireCharge({ ...CHARGE, allongement_minutes: 45 }, LIVRAISON)?.allongement_livraison_minutes).toBe(45);
+  });
+  it("pas comptée, absente ou illisible : la livraison suit la cuisine", () => {
+    expect(lireCharge(CHARGE, { ...LIVRAISON, compte: false })?.allongement_livraison_minutes).toBe(25);
+    expect(lireCharge(CHARGE)?.allongement_livraison_minutes).toBe(25);
+    expect(lireCharge(CHARGE)?.livraison).toBeUndefined();
+    expect(lireCharge(CHARGE, { ...LIVRAISON, livreurs: -1 })?.livraison).toBeUndefined();
+  });
+  it("plafond de la cuisine aussi pour la livraison", () => {
+    expect(lireCharge(CHARGE, { ...LIVRAISON, allongement_minutes: 90 })?.allongement_livraison_minutes).toBe(45);
+  });
+});
+
 describe("raisonCharge", () => {
   it("dit le poste chargé et l'allongement", () => {
     expect(raisonCharge(CHARGE)).toBe("Four : 22 pizzas en file, 42 min. Heures annoncées +25 min.");
@@ -31,8 +53,18 @@ describe("raisonCharge", () => {
   it("signale le plafond atteint", () => {
     expect(raisonCharge({ ...CHARGE, allongement_minutes: 45 })).toBe("Four : 22 pizzas en file, 42 min. Heures annoncées +45 min (au plus).");
   });
+  it("livreurs en retard : livraisons et retraits séparés", () => {
+    const livraison = { livraisons: 4, livreurs: 1, attente_minutes: 60, compte: true };
+    expect(raisonCharge({ ...CHARGE, livraison, allongement_livraison_minutes: 40 })).toBe(
+      "Four : 22 pizzas en file, 42 min. Livraison : 1 livreur pour 4 livraisons, 60 min. Livraisons +40 min, retraits +25 min.",
+    );
+    const calme = { ...CHARGE, pizza: { ...CHARGE.pizza, file_minutes: 10 }, allongement_minutes: 0 };
+    expect(raisonCharge({ ...calme, livraison, allongement_livraison_minutes: 40 })).toBe(
+      "Livraison : 1 livreur pour 4 livraisons, 60 min. Livraisons +40 min, retraits à l'heure habituelle.",
+    );
+  });
   it("rien quand la file n'allonge rien", () => {
-    expect(raisonCharge({ ...CHARGE, allongement_minutes: 0 })).toBeNull();
+    expect(raisonCharge({ ...CHARGE, allongement_minutes: 0, allongement_livraison_minutes: 0 })).toBeNull();
     expect(raisonCharge(null)).toBeNull();
   });
 });
@@ -77,5 +109,16 @@ describe("allongement dans l'heure annoncée", () => {
     const tot = new Date("2026-11-20T17:05:00Z");
     const avec = etatService({ ...base, reglages: { ...base.reglages, preparation_minutes: 45, allongement_minutes: 25 } }, tot, "retrait");
     expect(avec.etat).toBe("ferme");
+  });
+  it("livraison : l'attente d'un livreur allonge la zone, pas l'ouverture avant le service", () => {
+    const zone = { numero: 1, nom: "Zone 1", frais_centimes: 0, minimum_centimes: 0, delai_min: 30, delai_max: 40, active: true, proposition: false };
+    // config-service.ts ajoute 40 min aux délais de zone (attente d'un livreur), rien au retrait.
+    const config = { ...base, zones: [{ ...zone, delai_min: 70, delai_max: 80 }], reglages: { ...base.reglages, allongement_minutes: 0, allongement_livraison_minutes: 40 } };
+    expect(etatService(config, maintenant, "livraison", config.zones[0])).toEqual({ etat: "ouvert", desQuePossible: 19 * 60 + 75 });
+    expect(etatService(config, maintenant, "retrait")).toEqual({ etat: "ouvert", desQuePossible: 19 * 60 + 20 });
+    // 18h05 : sans allongement la livraison ouvre à 18h00 (18h30 moins 30 min). L'allongement ne l'avance pas.
+    const tot = new Date("2026-11-20T17:05:00Z");
+    expect(etatService(config, tot, "livraison", config.zones[0]).etat).toBe("ouvert");
+    expect(etatService(config, new Date("2026-11-20T16:55:00Z"), "livraison", config.zones[0]).etat).toBe("ferme");
   });
 });

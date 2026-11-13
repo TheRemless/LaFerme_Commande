@@ -1,0 +1,176 @@
+/* Vue par poste (vague 3, D12 à l'essai) : écran au poste, lu à un mètre, mains occupées. Direction Béton :
+   encre sur papier, filets épais, pas d'ombre. Paysage 1024 et 1180, portrait 820. */
+.poste {
+  display: grid;
+  gap: 16px;
+  padding: 16px 16px 32px;
+}
+.poste-tete {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.poste-tete h1 {
+  margin: 0;
+  font-size: 40px;
+  font-stretch: 62%;
+  line-height: 1;
+}
+.poste-tete p {
+  flex: 1;
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+.poste h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.poste-reste ul,
+.poste-sorties ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.poste-reste li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 14px;
+  font-size: 22px;
+  border: 2px solid var(--encre);
+  background: var(--blanc);
+}
+.poste-reste strong {
+  font-size: 34px;
+  font-stretch: 62%;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.poste-file {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.poste-commande {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border: 2px solid var(--encre);
+  background: var(--blanc);
+}
+.poste-retard {
+  border-width: 5px;
+}
+.poste-commande-tete {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.poste-num {
+  margin: 0;
+  font-size: 56px;
+  font-weight: 700;
+  font-stretch: 62%;
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+}
+.poste-quand {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.35;
+}
+.poste-retard-texte {
+  display: inline-block;
+  margin-top: 2px;
+  padding: 2px 8px;
+  font-weight: 700;
+  color: var(--blanc);
+  background: var(--encre);
+}
+.poste-lignes {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 22px;
+  line-height: 1.25;
+}
+.poste-lignes > li {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 8px;
+  align-items: start;
+}
+.poste-qte {
+  font-size: 30px;
+  font-weight: 700;
+  font-stretch: 62%;
+  line-height: 1;
+  text-align: right;
+}
+.poste-detail,
+.poste-note {
+  display: block;
+  font-size: 18px;
+}
+.poste-note {
+  margin-top: 4px;
+  padding: 2px 6px;
+  font-weight: 700;
+  color: var(--blanc);
+  background: var(--encre);
+}
+.poste-client {
+  margin: auto 0 0;
+  color: var(--encre-douce);
+}
+.poste-gestes {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 8px;
+}
+.poste-gestes button {
+  min-height: 56px;
+  font-size: 20px;
+}
+.poste-lancee {
+  align-self: center;
+  font-weight: 600;
+}
+
+.poste-sorties li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 6px 6px 12px;
+  font-size: 18px;
+  border: 1px solid var(--filet);
+  background: var(--papier);
+}
+.poste-sorties button {
+  min-height: 44px;
+}
+.poste-allergie {
+  margin: 0;
+  padding: 6px 10px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--blanc);
+  background: var(--encre);
+}
+.poste-pour {
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+}

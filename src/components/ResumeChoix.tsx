@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { lireChoix, type Choix } from "@/lib/choix";
+import { ancrePlat } from "@/lib/plat-adresse";
 import { heureTexte, jourTexte } from "@/lib/service";
 
 // Rappel du mode, de l'adresse et de l'heure en haut de la carte. Sans choix, retour à l'accueil :
@@ -15,7 +16,8 @@ export function ResumeChoix() {
   useEffect(() => {
     const c = lireChoix();
     setChoix(c);
-    if (!c) router.replace("/");
+    // Un plat partagé (/carte#pizza-tonno) suit le client à l'accueil, puis s'ouvre sur la carte.
+    if (!c) router.replace(`/${window.location.pathname === "/carte" ? ancrePlat() : ""}`);
   }, [router]);
 
   if (!choix) return null;

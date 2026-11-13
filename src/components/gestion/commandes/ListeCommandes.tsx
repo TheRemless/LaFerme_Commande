@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { AnnulerLot } from "@/components/gestion/commandes/ActionsLot";
 import { FicheCommande } from "@/components/gestion/commandes/FicheCommande";
 import {
   heureCourte,
@@ -17,6 +18,7 @@ import {
   SelecteurPeriode,
   TableauDonnees,
   useDiffere,
+  useNotifier,
   useOuverture,
   useRelecture,
   type Colonne,
@@ -54,6 +56,7 @@ export type LigneCommande = {
   rembourse_centimes: number;
   retard_minutes: number | null;
   notes: number;
+  reclamations?: number;
   compte: boolean;
 };
 type Page = {
@@ -166,6 +169,22 @@ const COLONNES: Colonne<LigneCommande>[] = [
     nombre: true,
     cacheeParDefaut: true,
   },
+  {
+    cle: "reclamations",
+    titre: "Réclamations",
+    valeur: (l) => (l.reclamations ? l.reclamations : ""),
+    nombre: true,
+  },
+];
+
+// Gestes en lot : seulement ce qui se fait commande par commande sur la tablette, sans montant à choisir.
+const ANNULABLE = ["nouvelle", "acceptee", "en_preparation"];
+const IMPRIMABLE = [
+  "acceptee",
+  "en_preparation",
+  "prete",
+  "partie",
+  "terminee",
 ];
 
 // Le serveur trie l'heure prévue et le numéro dans l'ordre croissant, le montant dans l'ordre décroissant ;
@@ -192,6 +211,12 @@ type Filtres = {
   en_retard: boolean;
   remboursee: boolean;
   avec_note: boolean;
+  avec_reclamation: boolean;
+  service: string;
+  zone: string;
+  livreur: string;
+  montant_min: string;
+  montant_max: string;
 };
 const SANS_FILTRE: Filtres = {
   mode: "",
@@ -200,6 +225,16 @@ const SANS_FILTRE: Filtres = {
   en_retard: false,
   remboursee: false,
   avec_note: false,
+  avec_reclamation: false,
+  service: "",
+  zone: "",
+  livreur: "",
+  montant_min: "",
+  montant_max: "",
+};
+type Options = {
+  zones: { numero: number; nom: string }[];
+  livreurs: { id: string; nom: string; actif: boolean }[];
 };
 
 export function ListeCommandes() {
@@ -220,6 +255,21 @@ export function ListeCommandes() {
     sousTitre?: string;
   } | null>(null);
   useOuverture("commande", (id) => setOuverte({ id, titre: "Commande" }));
+  const notifier = useNotifier();
+  // Zones et livreurs pour les listes de choix, lus une fois.
+  const [options, setOptions] = useState<Options>({ zones: [], livreurs: [] });
+  useEffect(() => {
+    poster("/api/gestion/commandes", { action: "options_filtres" }).then(
+      (r) => r.ok && setOptions(r.donnees as unknown as Options),
+    );
+  }, []);
+  // Les montants partent 500 ms après la dernière frappe (pas une requête par chiffre).
+  const montantMin = useDiffere(filtres.montant_min.trim(), 500);
+  const montantMax = useDiffere(filtres.montant_max.trim(), 500);
+  const [annulerLot, setAnnulerLot] = useState<{
+    lignes: LigneCommande[];
+    vider: () => void;
+  } | null>(null);
 
   const corps = useCallback(
     (extra: Record<string, unknown> = {}) => ({
@@ -232,12 +282,18 @@ export function ListeCommandes() {
       ...(filtres.en_retard ? { en_retard: true } : {}),
       ...(filtres.remboursee ? { remboursee: true } : {}),
       ...(filtres.avec_note ? { avec_note: true } : {}),
+      ...(filtres.avec_reclamation ? { avec_reclamation: true } : {}),
+      ...(filtres.service ? { service: filtres.service } : {}),
+      ...(filtres.zone ? { zone: Number(filtres.zone) } : {}),
+      ...(filtres.livreur ? { livreur: filtres.livreur } : {}),
+      ...(montantMin ? { montant_min: montantMin } : {}),
+      ...(montantMax ? { montant_max: montantMax } : {}),
       tri: triServeur(tri),
       page,
       par_page: PAR_PAGE,
       ...extra,
     }),
-    [q, periode, statuts, filtres, tri, page],
+    [q, periode, statuts, filtres, tri, page, montantMin, montantMax],
   );
 
   // Relecture du kit : la dernière demande gagne (PR #72), le minuteur ne double jamais une requête.
@@ -291,6 +347,35 @@ export function ListeCommandes() {
     }
     return lignes;
   }
+
+  // Réimprimer plusieurs commandes : une à une, comme sur la tablette ; le résultat est dit en une phrase.
+  async function reimprimerLot(lignes: LigneCommande[], vider: () => void) {
+    let ok = 0;
+    for (const l of lignes) {
+      const r = await poster("/api/gestion/commandes", {
+        action: "reimprimer",
+        id: l.id,
+      });
+      if (r.ok) ok += 1;
+    }
+    const rate = lignes.length - ok;
+    notifier({
+      texte: `${ok} commande${ok > 1 ? "s" : ""} réimprimée${ok > 1 ? "s" : ""}.${rate ? ` ${rate} sans ticket à renvoyer.` : ""}`,
+      ton: ok ? "succes" : "erreur",
+    });
+    vider();
+    charger();
+  }
+
+  // Filtres repliés sur téléphone (ils repousseraient la liste d'un écran), ouverts sur grand écran.
+  const [filtresOuverts, setFiltresOuverts] = useState(true);
+  useEffect(() => {
+    if (window.matchMedia("(max-width: 767px)").matches)
+      setFiltresOuverts(false);
+  }, []);
+  const nbFiltres = Object.values(filtres).filter(
+    (v) => v !== "" && v !== false,
+  ).length;
 
   const compteurs = donnees?.compteurs ?? {};
   const filtresActifs =
@@ -362,71 +447,150 @@ export function ListeCommandes() {
                 />
               )}
             </div>
-            <div className="bo-filtres-ligne">
-              <label>
-                Mode
-                <select
-                  value={filtres.mode}
-                  onChange={(e) => filtrer("mode", e.target.value)}
-                >
-                  <option value="">Tous</option>
-                  <option value="livraison">Livraison</option>
-                  <option value="retrait">À emporter</option>
-                </select>
-              </label>
-              <label>
-                Paiement
-                <select
-                  value={filtres.paiement}
-                  onChange={(e) => filtrer("paiement", e.target.value)}
-                >
-                  <option value="">Tous</option>
-                  <option value="paye">Payée en ligne</option>
-                  <option value="a_encaisser_retrait">
-                    À encaisser au comptoir
-                  </option>
-                  <option value="encaisse">Payée au comptoir</option>
-                  <option value="rembourse">Remboursée</option>
-                </select>
-              </label>
-              <label className="bo-case">
-                <input
-                  type="checkbox"
-                  checked={filtres.en_retard}
-                  onChange={(e) => filtrer("en_retard", e.target.checked)}
-                />{" "}
-                En retard
-              </label>
-              <label className="bo-case">
-                <input
-                  type="checkbox"
-                  checked={filtres.remboursee}
-                  onChange={(e) => filtrer("remboursee", e.target.checked)}
-                />{" "}
-                Avec remboursement
-              </label>
-              <label className="bo-case">
-                <input
-                  type="checkbox"
-                  checked={filtres.avec_note}
-                  onChange={(e) => filtrer("avec_note", e.target.checked)}
-                />{" "}
-                Avec note
-              </label>
-              {filtresActifs && (
-                <button
-                  type="button"
-                  className="bo-bouton bo-bouton-discret bo-bouton-petit"
-                  onClick={() => {
-                    setStatuts([]);
-                    setFiltres(SANS_FILTRE);
-                    setPage(1);
-                  }}
-                >
-                  Effacer les filtres
-                </button>
-              )}
-            </div>
+            <details
+              className="bo-filtres-plus"
+              open={filtresOuverts}
+              onToggle={(e) =>
+                setFiltresOuverts((e.target as HTMLDetailsElement).open)
+              }
+            >
+              <summary className="bo-bouton bo-bouton-second bo-bouton-petit">
+                Filtres{nbFiltres ? ` (${nbFiltres})` : ""}
+              </summary>
+              <div className="bo-filtres-ligne">
+                <label>
+                  Service
+                  <select
+                    value={filtres.service}
+                    onChange={(e) => filtrer("service", e.target.value)}
+                  >
+                    <option value="">Midi et soir</option>
+                    <option value="midi">Midi</option>
+                    <option value="soir">Soir</option>
+                  </select>
+                </label>
+                <label>
+                  Mode
+                  <select
+                    value={filtres.mode}
+                    onChange={(e) => filtrer("mode", e.target.value)}
+                  >
+                    <option value="">Tous</option>
+                    <option value="livraison">Livraison</option>
+                    <option value="retrait">À emporter</option>
+                  </select>
+                </label>
+                <label>
+                  Paiement
+                  <select
+                    value={filtres.paiement}
+                    onChange={(e) => filtrer("paiement", e.target.value)}
+                  >
+                    <option value="">Tous</option>
+                    <option value="paye">Payée en ligne</option>
+                    <option value="a_encaisser_retrait">
+                      À encaisser au comptoir
+                    </option>
+                    <option value="encaisse">Payée au comptoir</option>
+                    <option value="rembourse">Remboursée</option>
+                  </select>
+                </label>
+                <label>
+                  Zone
+                  <select
+                    value={filtres.zone}
+                    onChange={(e) => filtrer("zone", e.target.value)}
+                  >
+                    <option value="">Toutes</option>
+                    {options.zones.map((z) => (
+                      <option key={z.numero} value={String(z.numero)}>
+                        {z.nom}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Livreur
+                  <select
+                    value={filtres.livreur}
+                    onChange={(e) => filtrer("livreur", e.target.value)}
+                  >
+                    <option value="">Tous</option>
+                    {options.livreurs.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.nom}
+                        {l.actif ? "" : " (ancien)"}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Total dès (CHF)
+                  <input
+                    className="bo-filtre-montant"
+                    inputMode="decimal"
+                    value={filtres.montant_min}
+                    onChange={(e) => filtrer("montant_min", e.target.value)}
+                  />
+                </label>
+                <label>
+                  Total jusqu&apos;à (CHF)
+                  <input
+                    className="bo-filtre-montant"
+                    inputMode="decimal"
+                    value={filtres.montant_max}
+                    onChange={(e) => filtrer("montant_max", e.target.value)}
+                  />
+                </label>
+                <label className="bo-case">
+                  <input
+                    type="checkbox"
+                    checked={filtres.en_retard}
+                    onChange={(e) => filtrer("en_retard", e.target.checked)}
+                  />{" "}
+                  En retard
+                </label>
+                <label className="bo-case">
+                  <input
+                    type="checkbox"
+                    checked={filtres.remboursee}
+                    onChange={(e) => filtrer("remboursee", e.target.checked)}
+                  />{" "}
+                  Avec remboursement
+                </label>
+                <label className="bo-case">
+                  <input
+                    type="checkbox"
+                    checked={filtres.avec_note}
+                    onChange={(e) => filtrer("avec_note", e.target.checked)}
+                  />{" "}
+                  Avec note
+                </label>
+                <label className="bo-case">
+                  <input
+                    type="checkbox"
+                    checked={filtres.avec_reclamation}
+                    onChange={(e) =>
+                      filtrer("avec_reclamation", e.target.checked)
+                    }
+                  />{" "}
+                  Avec réclamation ouverte
+                </label>
+              </div>
+            </details>
+            {filtresActifs && (
+              <button
+                type="button"
+                className="bo-bouton bo-bouton-discret bo-bouton-petit"
+                onClick={() => {
+                  setStatuts([]);
+                  setFiltres(SANS_FILTRE);
+                  setPage(1);
+                }}
+              >
+                Effacer les filtres
+              </button>
+            )}
           </div>
         }
         onOuvrir={(l) =>
@@ -437,6 +601,35 @@ export function ListeCommandes() {
           })
         }
         csv={{ toutes }}
+        actionsLot={(cles, vider) => {
+          const choisies = (donnees?.lignes ?? []).filter((l) =>
+            cles.includes(l.id),
+          );
+          const aAnnuler = choisies.filter((l) => ANNULABLE.includes(l.statut));
+          const aImprimer = choisies.filter((l) =>
+            IMPRIMABLE.includes(l.statut),
+          );
+          return (
+            <>
+              <button
+                type="button"
+                className="bo-bouton bo-bouton-second bo-bouton-petit"
+                disabled={aImprimer.length === 0}
+                onClick={() => reimprimerLot(aImprimer, vider)}
+              >
+                Réimprimer ({aImprimer.length})
+              </button>
+              <button
+                type="button"
+                className="bo-bouton bo-bouton-second bo-bouton-petit"
+                disabled={aAnnuler.length === 0}
+                onClick={() => setAnnulerLot({ lignes: aAnnuler, vider })}
+              >
+                Annuler… ({aAnnuler.length})
+              </button>
+            </>
+          );
+        }}
         memoire="commandes"
         vide={
           q || filtresActifs
@@ -450,6 +643,23 @@ export function ListeCommandes() {
               }
         }
       />
+
+      {annulerLot && (
+        <PanneauLateral
+          titre={`Annuler ${annulerLot.lignes.length} commande${annulerLot.lignes.length > 1 ? "s" : ""}`}
+          sousTitre={annulerLot.lignes.map((l) => `n° ${l.numero}`).join(", ")}
+          onFermer={() => setAnnulerLot(null)}
+        >
+          <AnnulerLot
+            lignes={annulerLot.lignes}
+            fait={() => {
+              annulerLot.vider();
+              setAnnulerLot(null);
+              charger();
+            }}
+          />
+        </PanneauLateral>
+      )}
 
       {ouverte && (
         <PanneauLateral

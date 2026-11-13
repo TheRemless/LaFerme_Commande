@@ -286,6 +286,12 @@ function Arret({
         </ul>
       )}
       {d?.instructions && <p className="liv-consigne">« {d.instructions} »</p>}
+      {/* Commandée pour quelqu'un d'autre : c'est cette personne qui ouvre la porte (client-commande). */}
+      {l.destinataire?.nom && (
+        <p className="liv-consigne">
+          Pour : <strong>{l.destinataire.nom}</strong>, commandée par {l.prenom}.
+        </p>
+      )}
       <p className="liv-contenu">
         {l.articles} {l.articles > 1 ? "articles" : "article"}
         {l.pizzas > 0 ? `, dont ${l.pizzas} ${l.pizzas > 1 ? "pizzas" : "pizza"}` : ""}. {l.paye ? "Payée en ligne, rien à encaisser." : `À encaisser : ${prixChf(l.total_centimes)}.`}
@@ -303,9 +309,15 @@ function Arret({
         <a className="bouton-second" href={lienNavigation(l.adresse, plateforme)} target="_blank" rel="noreferrer noopener">
           Itinéraire
         </a>
-        <a className="bouton-second" href={telLien(l.telephone)}>
-          Appeler {l.prenom}
-        </a>
+        {l.destinataire?.nom ? (
+          <a className="bouton-second" href={telLien(l.destinataire.telephone)}>
+            Appeler {l.destinataire.nom.split(" ")[0]}
+          </a>
+        ) : (
+          <a className="bouton-second" href={telLien(l.telephone)}>
+            Appeler {l.prenom}
+          </a>
+        )}
       </div>
 
       {!livreeEnAttente && !ouvert && (

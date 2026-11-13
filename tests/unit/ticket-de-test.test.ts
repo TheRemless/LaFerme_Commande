@@ -67,3 +67,25 @@ describe("imprimerTicketTest", () => {
     expect(await imprimerTicketTest(70000, p)).toEqual({ ok: false, erreur: "Imprimante inconnue." });
   });
 });
+
+describe("ticket de test et imprimante désactivée", () => {
+  it("l'essai en attente est annulé, pas renvoyé vers l'autre imprimante du poste", async () => {
+    const un = await f<number>("ajouter_imprimante('Cuisine 1', 'cuisine', $1, $2)", ["d".repeat(64), gerant]);
+    const deux = await f<number>("ajouter_imprimante('Cuisine 2', 'cuisine', $1, $2)", ["e".repeat(64), gerant]);
+    const tache = await f<string>("ticket_de_test($1::smallint, $2)", [un, gerant]);
+    await f("modifier_imprimante($1::smallint, null, false, $2)", [un, gerant]);
+    const t = (await db.query<{ etat: string; imprimante_id: number | null }>("select etat, imprimante_id from taches_impression where id = $1", [tache])).rows[0];
+    expect(t.etat).toBe("annulee");
+    // Cuisine 2 ne reçoit rien.
+    await f("passage_imprimante($1, $2, '200 OK')", ["e".repeat(64), "00:11:62:aa:bb:ee"]);
+    expect(await f("passage_imprimante($1, $2, '200 OK')", ["e".repeat(64), "00:11:62:aa:bb:ee"])).toMatchObject({ tache: null });
+    expect(deux).toBeGreaterThan(0);
+  });
+
+  it("une imprimante supprimée : l'essai est annulé sans erreur", async () => {
+    const imp = await f<number>("ajouter_imprimante('Pizza 9', 'pizza', $1, $2)", ["f".repeat(64), gerant]);
+    const tache = await f<string>("ticket_de_test($1::smallint, $2)", [imp, gerant]);
+    await db.query("delete from imprimantes where id = $1", [imp]);
+    expect((await db.query<{ etat: string }>("select etat from taches_impression where id = $1", [tache])).rows[0].etat).toBe("annulee");
+  });
+});

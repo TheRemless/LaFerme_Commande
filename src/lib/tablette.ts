@@ -47,7 +47,12 @@ export type CommandeTablette = {
   annulee_par_client_le?: string | null;
   // Paiement en ligne confirmé, ou création pour le comptoir : point de départ de « Attend depuis ».
   attend_depuis: string;
-  lignes: { nom: string; qte: number; station: "pizza" | "cuisine"; choix: Record<string, string[]>; retraits: string[]; note: string; details: string[] }[];
+  // pour : prénom de la personne à qui va le plat (client-commande, vide si le réglage est éteint).
+  lignes: { nom: string; qte: number; station: "pizza" | "cuisine"; choix: Record<string, string[]>; retraits: string[]; note: string; details: string[]; pour?: string }[];
+  // Vague 3 (client-commande, migration 20261212110000) : facultatifs, absents avant la migration.
+  allergie?: string;
+  destinataire?: { nom: string; telephone: string } | null;
+  couverts?: boolean;
   // Calculée ici : heure demandée par le client, ou au plus tôt pour « dès que possible ».
   heure_proposee: string;
   // Manques signalés (audit du gérant, G07) : montant remboursé ou déduit, et ce qui manquait.
@@ -168,7 +173,8 @@ export async function agir(commandeId: string, a: Action, p: Personnel): Promise
         } else {
           message = `Acceptée. Tickets prévus ${momentTexte(imprimerA, maintenant)}.`;
         }
-        await prevenir(avant, courrielAcceptation(avant, a.heure));
+        // Fourchette d'heure (« entre 19h35 et 19h50 »), comme l'accueil et le suivi (client-compte, #143).
+        await prevenir(avant, courrielAcceptation(avant, a.heure, config));
       }
       break;
     case "refuser": {
@@ -225,7 +231,7 @@ export async function agir(commandeId: string, a: Action, p: Personnel): Promise
       break;
     case "heure":
       ok = await fonctionSql<boolean>("changer_heure", { p_commande: commandeId, p_heure: a.heure, p_par: par });
-      if (ok) await prevenir(avant, courrielNouvelleHeure(avant, a.heure));
+      if (ok) await prevenir(avant, courrielNouvelleHeure(avant, a.heure, await chargerConfigService().catch(() => null)));
       break;
     case "encaisser":
       ok = await encaisser(commandeId, par, a.moyen);

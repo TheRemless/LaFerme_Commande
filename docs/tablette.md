@@ -153,4 +153,29 @@ Le gérant vérifie qu'une imprimante sort un ticket sans passer de vraie comman
 - `imprimerTicketTest(imprimanteId, personnel)` : `{ ok: true, tache }` ou `{ ok: false, erreur }` en français (« Réservé au gérant. », « Imprimante inconnue. », « Imprimante désactivée : réactivez-la avant le test. »). Le bouton est au back-office (bo-operations).
 - Base : `ticket_de_test(p_imprimante smallint, p_personnel uuid)`, gérant revérifié, imprimante active, journalisé (`journal_gestion`, objet `imprimante`, clé `ticket_de_test`). Tâche `essai` sans commande : `taches_impression.commande_id` devient nullable, contrainte « commande ou essai ».
 - Ticket : « TEST », poste et nom de l'imprimante, date et heure de Genève, qui l'a demandé, « Si ce ticket sort, l'imprimante est bien branchée. ». CloudPRNT l'envoie et le confirme comme les autres, fonctions inchangées.
+- Imprimante désactivée ou supprimée avant que l'essai sorte : l'essai est annulé, jamais renvoyé vers une autre imprimante du poste (déclencheur `essai_jamais_deplace`, migration `20261203130000`, relevé par bo-operations).
 - La tablette ne montre pas les essais (la file ne garde que les tickets des commandes actives). Pour lire `taches_impression` ailleurs sans les compter : `commande_id is not null`.
+
+## Vue par poste (vague 3, décision D12 à l'essai)
+
+Un écran au poste pizza ou cuisine, **derrière un lien** : `/tablette/poste/pizza` et `/tablette/poste/cuisine`, même connexion que la tablette, pas d'entrée dans le menu tant que Jérémy n'a pas tranché D12 (recommandé : à l'essai au poste pizza, tickets gardés). Route `/api/tablette/poste`, logique pure dans `src/components/tablette/poste.ts`, base `commande_postes` (section « Horodatage par poste »).
+
+- En haut : « Reste à sortir », la somme par plat des commandes en cours du poste (« 12 Margherita »). Au poste pizza, le mot « Pizza » est retiré des noms.
+- Au milieu : une fiche par commande, dans l'ordre des tickets. Numéro, mode et heure promise, « Reçue il y a N min » ou « En retard », seulement les lignes du poste avec CHOIX, +, SANS et la note du client en négatif. « Lancée » (facultatif) puis « Prête ».
+- En bas : les six dernières sorties (30 minutes), « Rouvrir » en cas d'erreur de doigt tant que la commande est en cuisine.
+- « Prête » sur un poste ne change pas le statut de la commande : le comptoir garde « Prête au comptoir ». Les tickets papier continuent de sortir.
+- Relecture toutes les 5 s. Hors connexion : « Les tickets papier restent la référence. »
+- Captures : `docs/rendus/vague-3/tablette/poste-*.png` (`scripts/tablette/vue-poste.mjs` après `scripts/tablette/rush.mjs`).
+
+## Nouveautés de la commande client (vague 3, colonnes de client-commande)
+
+Migration `20261212110000_tablette_nouveautes_client.sql` (après les colonnes de client-commande, `20261210130000` à `20261210210000` : le préfixe `20261203` passerait avant elles). Elle recrée `file_tablette` (depuis `20261203090000`) et `livraisons_livreur` (depuis `20261119090000`) avec seulement les champs nouveaux. Le code les lit comme facultatifs.
+
+| Donnée | Tablette | Vue par poste | Ticket | Page livreur |
+|---|---|---|---|---|
+| Allergie | En négatif sur la carte, avant les plats, et sur la ligne du tableau | En négatif en tête de la fiche | « ALLERGIE : … » en tête des deux postes (depuis #74) | Rien |
+| Personne qui reçoit (`destinataire`) | « Pour : nom », son téléphone cliquable | Rien | « Pour : nom   téléphone » sous le client | « Pour : nom, commandée par … », « Appeler » la joint elle |
+| Couverts et serviettes | « Couverts et serviettes » | Rien | « + COUVERTS ET SERVIETTES » sur le ticket du poste qui fait le sac | Rien |
+| Prénom par ligne (`pour`) | « pour Hugo » sous le plat | Sous le plat | « pour Hugo » sous le plat | Rien |
+
+Couverts et prénoms restent éteints côté client (réglages `couverts_actifs` et `prenom_par_ligne_actif`, décisions C8 et C5) : la tablette les montre dès qu'ils arrivent. Captures : `docs/rendus/vague-3/tablette/nouveautes-*.png` (`scripts/tablette/nouveautes-client.mjs`, après `scripts/tablette/rush.mjs`).

@@ -736,6 +736,7 @@ function Gestes({
       {ANNULABLE.includes(fiche.statut) && (
         <Annuler key={fiche.statut} fiche={fiche} apres={apres} />
       )}
+      <Recreer fiche={fiche} />
     </div>
   );
 }
@@ -1421,5 +1422,52 @@ function NouvelleReclamation({
         libelle="Noter la réclamation"
       />
     </form>
+  );
+}
+
+// « La même que vendredi » : une nouvelle commande à emporter, payée au comptoir, aux prix du jour (#98).
+// Désactivé tant que Jérémy n'a pas activé commande_telephone_active : le serveur le dit, l'écran l'affiche.
+function Recreer({ fiche }: { fiche: Fiche }) {
+  const notifier = useNotifier();
+  const confirmer = useConfirmer();
+  const cle = useRef(nouvelleCle());
+  const [envoi, setEnvoi] = useState(false);
+  async function recreer() {
+    const ok = await confirmer({
+      titre: `Recréer la commande ${fiche.numero} ?`,
+      texte: `Une nouvelle commande à emporter, dès que possible, payée au comptoir, aux prix du jour, au nom de ${fiche.client_prenom} ${fiche.client_nom}. Elle arrive sur la tablette à accepter.`,
+      oui: "Recréer la commande",
+    });
+    if (!ok) return;
+    setEnvoi(true);
+    const r = await poster("/api/gestion/commandes", {
+      action: "recreer",
+      id: fiche.id,
+      quand: { type: "asap" },
+      cle: cle.current,
+    });
+    setEnvoi(false);
+    if (r.ok) cle.current = nouvelleCle();
+    notifier({
+      texte: messageDe(r, "Pas recréée."),
+      ton: r.ok ? "succes" : "erreur",
+    });
+  }
+  return (
+    <section aria-labelledby="fc-recreer">
+      <h3 id="fc-recreer">Le client veut la même</h3>
+      <p className="bo-champ-aide">
+        À emporter, payée au comptoir, aux prix du jour. Pas encore activé si le
+        restaurant ne l&apos;a pas décidé.
+      </p>
+      <button
+        type="button"
+        className="bo-bouton bo-bouton-second"
+        disabled={envoi}
+        onClick={recreer}
+      >
+        {envoi ? "Création…" : "Recréer cette commande"}
+      </button>
+    </section>
   );
 }

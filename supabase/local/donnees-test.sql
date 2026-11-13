@@ -122,3 +122,10 @@ insert into personnel (email, nom, role) values
 insert into personnel (email, nom, role) values
   ('cloture-bureau@laferme.test', 'Clôture bureau', 'gerant'),
   ('cloture-mobile@laferme.test', 'Clôture mobile', 'gerant');
+
+-- bo-operations, écrans de la vague 3 : un compte par écran (gestion-calendrier, gestion-imprimantes et
+-- gestion-messages.spec.ts). Bloc identique dans chacune de mes PR : elles fusionnent sans conflit entre elles.
+insert into personnel (email, nom, role) values
+  ('ecran-calendrier@laferme.test', 'Écran calendrier', 'gerant'),
+  ('ecran-imprimantes@laferme.test', 'Écran imprimantes', 'gerant'),
+  ('ecran-messages@laferme.test', 'Écran messages', 'gerant');
