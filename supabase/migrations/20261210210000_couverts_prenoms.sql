@@ -3,7 +3,7 @@
 -- Éteints, le site n'affiche rien et le serveur enregistre « pas de couverts » et des lignes sans prénom.
 -- Lus par la tablette et les tickets (session `tablette`).
 --
--- Objet partagé recréé : creer_commande, repris de 20261201100000_destinataire_commande.sql, avec la colonne
+-- Objet partagé recréé : creer_commande, repris de 20261210140000_destinataire_commande.sql, avec la colonne
 -- couverts et le prénom de chaque ligne en plus. Avant cette migration, l'ancienne fonction ignore les deux
 -- champs (réglages absents, donc éteints) : à lancer avec la fusion.
 
