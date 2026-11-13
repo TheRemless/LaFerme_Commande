@@ -149,12 +149,14 @@ const MOTIFS_REFUS = [
 const NOTES = ["Bien cuite", "Coupée en 8", "Peu de sel", "Sauce à part", "Pour un enfant"] as const;
 const INSTRUCTIONS = ["", "", "", "Sonner deux fois", "Derrière le bâtiment", "Ne pas sonner, bébé qui dort", "Appeler en arrivant"] as const;
 
+// Suffixe « (rush) », comme l'équipe : jamais le prénom d'un compte de test (« Nora » faisait deux options
+// identiques dans le planning des livreurs et bloquait gestion-livreurs.spec sur le jeu).
 const LIVREURS = [
-  ["Alba", "alba.rush@exemple.test"],
-  ["Dario", "dario.rush@exemple.test"],
-  ["Elio", "elio.rush@exemple.test"],
-  ["Nora", "nora.rush@exemple.test"],
-  ["Samir", "samir.rush@exemple.test"],
+  ["Alba (rush)", "alba.rush@exemple.test"],
+  ["Dario (rush)", "dario.rush@exemple.test"],
+  ["Elio (rush)", "elio.rush@exemple.test"],
+  ["Nora (rush)", "nora.rush@exemple.test"],
+  ["Samir (rush)", "samir.rush@exemple.test"],
 ] as const;
 const SERVICE = [
   ["Léa (rush)", "lea.rush@exemple.test", "service"],

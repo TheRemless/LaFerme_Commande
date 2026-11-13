@@ -32,7 +32,7 @@ Build de production local : `BASE_LOCALE=1 BASE_LOCALE_INSTANTANE=$PWD/.pglite/r
 | Carte | deux plats et un supplément en rupture aujourd'hui |
 | Back-office | journal (ruptures, retard, horaires, remboursements) des 30 derniers jours |
 
-Comptes factices pour se connecter en local (le code s'affiche à l'écran) : `gerant.rush@exemple.test` (gérant), `lea.rush@exemple.test`, `tom.rush@exemple.test`, `yanis.rush@exemple.test` (service), `alba.rush@exemple.test` et quatre autres livreurs. Les clients sont en `prenom.nom@exemple.test`, téléphones en `+41 00 000 …`, rues inventées (« Rue du Rush », « Chemin des Essais »…) dans les NPA des zones actives.
+Comptes factices pour se connecter en local (le code s'affiche à l'écran) : `gerant.rush@exemple.test` (gérant), `lea.rush@exemple.test`, `tom.rush@exemple.test`, `yanis.rush@exemple.test` (service), `alba.rush@exemple.test` et quatre autres livreurs (prénoms suffixés « (rush) », jamais ceux des comptes de test). Les clients sont en `prenom.nom@exemple.test`, téléphones en `+41 00 000 …`, rues inventées (« Rue du Rush », « Chemin des Essais »…) dans les NPA des zones actives.
 
 ## Options
 
