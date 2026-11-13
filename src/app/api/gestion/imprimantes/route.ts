@@ -35,7 +35,7 @@ export async function GET(requete: Request) {
 }
 
 // { type: "ajouter", nom, station } | { type: "jeton", id } | { type: "actif", id, actif } | { type: "alerte", minutes }
-// | { type: "test", id } (ticket de test, vague 3)
+// | { type: "test", id } (ticket de test, vague 3) | { type: "renvoyer", id, vers } (tickets sur une autre, vague 3)
 export async function POST(requete: Request) {
   const g = await exigerGerant(requete);
   if ("reponse" in g) return g.reponse;
@@ -72,6 +72,22 @@ export async function POST(requete: Request) {
     // Base revérifie le gérant et l'imprimante active, et journalise (ticket_de_test, session tablette).
     const r = await imprimerTicketTest(id, g.personnel);
     return r.ok ? NextResponse.json({ enregistre: true, tache: r.tache }, { headers: { "Cache-Control": "no-store" } }) : refus(r.erreur);
+  }
+  if (c.type === "renvoyer") {
+    // Imprimante en panne : ses tickets en attente partent sur une autre (vague 3). Base : renvoyer_tickets,
+    // gérant revérifié et journalisé.
+    const vers = Number.isInteger(c.vers) && (c.vers as number) > 0 && (c.vers as number) < 1000 ? (c.vers as number) : null;
+    if (!id || !vers) return refus("Imprimante inconnue.", 404);
+    try {
+      const n = await fonctionSql<number>("renvoyer_tickets", { p_de: id, p_vers: vers, p_personnel: qui });
+      return NextResponse.json({ enregistre: true, tickets: n }, { headers: { "Cache-Control": "no-store" } });
+    } catch (e) {
+      const m = e instanceof Error ? e.message : "";
+      if (/autre imprimante/.test(m)) return refus("Choisissez une autre imprimante.");
+      if (/désactivée/.test(m)) return refus("L'imprimante choisie est désactivée : réactivez-la ou choisissez-en une autre.");
+      if (/inconnue/.test(m)) return refus("Imprimante inconnue.", 404);
+      throw e;
+    }
   }
   if (c.type === "alerte") {
     if (!Number.isInteger(c.minutes) || (c.minutes as number) < 2 || (c.minutes as number) > 60) return refus("Délai entre 2 et 60 minutes.");
