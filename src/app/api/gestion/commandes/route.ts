@@ -4,6 +4,7 @@ import { rembourserApresCoup } from "@/lib/commandes";
 import { fonctionSql } from "@/lib/db/serveur";
 import { centimes, dateValide } from "@/lib/gestion";
 import { filtresListe, texteNote, UUID } from "@/lib/gestion-commandes";
+import { modifierCommande } from "@/lib/modifier-commande";
 import { exigerGerant } from "@/lib/personnel/session";
 
 // Commandes passées et remboursement après coup (audit du gérant, G02 et G04). Tout passe en POST :
@@ -12,6 +13,7 @@ import { exigerGerant } from "@/lib/personnel/session";
 // | { action: "rembourser", id, montant, motif, cle }
 // Vague 3 (bo-commandes) : { action: "liste_page", ...filtres (src/lib/gestion-commandes.ts) }
 // | { action: "fiche_complete", id } | { action: "courriel", id, courriel } | { action: "noter", id, texte }
+// | { action: "modifier", id, de?, prenom?, nom?, telephone?, details?, adresse? } (vague 3, sans toucher au montant)
 
 export async function POST(requete: Request) {
   const g = await exigerGerant(requete);
@@ -66,6 +68,12 @@ export async function POST(requete: Request) {
       if (e instanceof Error && e.message.includes("commande_inconnue")) return refus("Commande inconnue.", 404);
       throw e;
     }
+  }
+
+  if (c.action === "modifier") {
+    const de = typeof c.de === "string" ? c.de : undefined;
+    const r = await modifierCommande(c.id, { prenom: c.prenom, nom: c.nom, telephone: c.telephone, details: c.details, adresse: c.adresse }, g.personnel, { de, depuis: "gestion" });
+    return NextResponse.json(r, { status: r.ok ? 200 : 409, ...sansCache });
   }
 
   if (c.action === "rembourser") {

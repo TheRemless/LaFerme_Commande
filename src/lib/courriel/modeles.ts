@@ -250,6 +250,24 @@ export function courrielNouvelleHeure(c: Commande, heureIso: string) {
   return courrielCourt(c, `Commande ${c.numero}, nouvelle heure`, [`L'heure de votre commande n° ${c.numero} change.`, heurePhrase(c, heureIso)]);
 }
 
+// Commande modifiée par l'équipe à la demande du client (vague 3, bo-commandes) : nouveau récapitulatif
+// des seuls champs changés. c est la commande déjà modifiée. Le montant ne change jamais par ce chemin.
+export function courrielModification(c: Commande, champs: string[]) {
+  const phrases = [`Votre commande n° ${c.numero} a été modifiée.`];
+  if (champs.includes("adresse") && c.adresse) {
+    phrases.push(`Adresse de livraison : ${[c.adresse.rue, c.adresse.numero].filter(Boolean).join(" ")}, ${c.adresse.npa} ${c.adresse.localite}.`);
+  }
+  if (champs.includes("details_livraison") && c.details_livraison) {
+    const d = c.details_livraison;
+    const morceaux = [`Sonnette : ${d.sonnette}`, d.etage && `Étage : ${d.etage}`, d.code && `Code : ${d.code}`].filter(Boolean);
+    phrases.push(`${morceaux.join(". ")}.`);
+    if (d.instructions) phrases.push(`Instructions : ${d.instructions}`);
+  }
+  if (champs.includes("client_prenom") || champs.includes("client_nom")) phrases.push(`Commande au nom de ${c.client_prenom} ${c.client_nom}.`);
+  if (champs.includes("client_telephone")) phrases.push(`Téléphone : ${c.client_telephone}.`);
+  return courrielCourt(c, `Commande ${c.numero} modifiée, La Ferme`, phrases);
+}
+
 export function courrielPrete(c: Commande) {
   if (c.mode === "livraison") {
     return courrielCourt(c, `Commande ${c.numero} en route, La Ferme`, [`Votre commande n° ${c.numero} est partie. Le livreur est en route.`]);
