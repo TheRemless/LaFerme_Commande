@@ -85,7 +85,7 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
               <h1>Commande refusée</h1>
               <p className="suivi-change">
                 {c.motif ?? "Le restaurant ne peut pas préparer cette commande."}
-                {c.statut_paiement === "rembourse" && remboursements.length === 0 ? " Le montant vous est remboursé." : ""}
+                {paiement === "Remboursée" ? " Le montant vous est remboursé." : ""}
               </p>
             </>
           )}
@@ -136,10 +136,10 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
             <section className="suivi-remboursements" aria-labelledby="titre-remboursements">
               <h2 id="titre-remboursements">{remboursements.length > 1 ? "Remboursements" : "Remboursement"}</h2>
               <ul>
-                {remboursements.map((r) => {
+                {remboursements.map((r, i) => {
                   const p = phraseRemboursement(r);
                   return (
-                    <li key={r.cree_le} className={`remb-${p.etat}`}>
+                    <li key={`${r.cree_le}-${i}`} className={`remb-${p.etat}`}>
                       {insecable(p.texte)}
                     </li>
                   );

@@ -32,7 +32,11 @@ export type PhraseRemboursement = { texte: string; etat: "fait" | "en_cours" | "
 
 export function phraseRemboursement(r: RemboursementSuivi): PhraseRemboursement {
   const montant = prixChf(r.montant_centimes);
-  if (r.moyen === "deduction") return { etat: "fait", texte: `${montant} déduits du montant à payer au comptoir.` };
+  if (r.moyen === "deduction") {
+    return r.statut === "fait"
+      ? { etat: "fait", texte: `${montant} déduits du montant à payer au comptoir.` }
+      : { etat: r.statut, texte: `${montant} à déduire du montant à payer au comptoir.` };
+  }
   if (r.moyen === "especes") {
     return r.statut === "fait"
       ? { etat: "fait", texte: `${montant} rendus au comptoir.` }
