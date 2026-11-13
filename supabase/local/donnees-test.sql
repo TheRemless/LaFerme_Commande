@@ -51,3 +51,6 @@ insert into personnel (email, nom, role) values
 insert into personnel (email, nom, role) values
   ('planning-bureau@laferme.test', 'Planning bureau', 'gerant'),
   ('planning-livreur@laferme.test', 'Livreur planning', 'livreur');
+
+-- Réglages généraux (tests/e2e/reglages-generaux.spec.ts, vague 3).
+insert into personnel (email, nom, role) values ('reglages-bureau@laferme.test', 'Réglages bureau', 'gerant');
