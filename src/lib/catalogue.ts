@@ -3,6 +3,7 @@ import { unstable_cache } from "next/cache";
 import type { LignePlat } from "@/lib/carte";
 import { lirePublic } from "@/lib/db/lecture";
 import type { Catalogue, GroupeCatalogue } from "@/lib/panier";
+import { dispoDe } from "@/lib/disponibilite";
 import { dateDe } from "@/lib/plat-du-jour";
 
 type LigneGroupe = { plat_slug: string; groupe_slug: string; ordre: number };
@@ -72,6 +73,8 @@ function construireCatalogue({ plats, liens, options, retraits, reglages }: Donn
       station: p.station,
       rupture_motif: p.rupture_motif,
       jour: p.jour && p.jour_service ? { date: dateDe(p.jour as string | Date), service: p.jour_service } : null,
+      dispo: dispoDe(p),
+      rupture_jusqu_au: p.rupture_jusqu_au ? dateDe(p.rupture_jusqu_au) : null,
       groupes: liens
         .filter((l) => l.plat_slug === p.slug)
         .sort((a, b) => a.ordre - b.ordre)
