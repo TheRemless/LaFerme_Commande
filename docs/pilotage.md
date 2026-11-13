@@ -44,3 +44,11 @@ Migration `supabase/migrations/20261210200000_pilotage_analyses.sql`, route `GET
 - Zones : commandes livrées, montant, frais et panier moyen par zone.
 - Clients : un client se reconnaît à son e-mail (sans majuscules) à l'intérieur de la base. Nouveau : aucune commande prise avant la période. Fidèle : au moins une. Seuls des nombres sortent.
 - Mesure (base embarquée, 109 500 commandes et 328 500 lignes sur un an) : un mois en 61 ms, une année en environ 1 s. Pas de table de cumuls : une année entière reste une demande rare, l'écran montre un chargement.
+
+## Export pour la fiduciaire et remboursements à suivre
+
+Migration `supabase/migrations/20261129120000_export_compta.sql`, module `src/lib/export-compta.ts`. Tests : `tests/unit/export-compta-sql.test.ts`.
+
+- `GET /api/gestion/export?debut=…&fin=…&format=jours` : une ligne par jour et par taux de TVA (ventes, en ligne, comptoir, dont livraison, TTC, TVA, remboursé en ligne, rendu en espèces, déduit au comptoir, TVA remboursée, net TTC, TVA nette, net HT), puis le total de la période par taux. Mêmes règles que le détail (`export_ventes`, `export_remboursements`) : une vente au jour de la commande, un remboursement au jour civil où il est fait. Les totaux tombent juste avec le détail, au centime (testé).
+- Aucun numéro de compte tant que la fiduciaire n'a pas dit quel logiciel et quel plan de comptes elle utilise (question D9). Le fichier s'ouvre dans un tableur et s'importe dans un logiciel comptable qui lit un CSV à point-virgule.
+- `GET /api/gestion/pilotage/remboursements` : remboursements en échec, ou demandés à Stripe il y a plus de 24 heures sans confirmation, les plus anciens d'abord, avec l'identifiant de la commande pour ouvrir sa fiche.
