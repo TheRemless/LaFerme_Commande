@@ -119,6 +119,9 @@ Chaque rubrique a sa propre adresse, par exemple `/gestion/carte` ou `/gestion/c
 - Toucher une commande ouvre sa fiche à droite : statut, heure prévue, paiement, livreur, puis les onglets « Commande » (plats avec suppléments au prix payé et retraits, client, adresse et consignes, tickets), « Historique » (tout ce qui est arrivé, dans l'ordre, avec qui l'a fait), « E-mails » (chaque e-mail envoyé, « Lire » montre son texte), « Notes » et « Gestes ».
 - Note interne (onglet « Notes ») : lue par l'équipe seulement, jamais montrée au client.
 - Le client appelle pour corriger son nom, son téléphone, l'étage, le code, la sonnette ou l'adresse dans le même quartier : onglet « Gestes », changer le champ, « Enregistrer les changements ». Le montant ne change pas et le client reçoit un e-mail avec ce qui a changé. Une adresse dans une autre zone est refusée : annuler et faire recommander.
+- Onglet « Gestes », selon l'état de la commande : « Changer l'heure » (le client reçoit la nouvelle heure par e-mail), « Réimprimer » (tous les tickets, ou seulement pizza ou cuisine), « Annuler la commande » avec un motif (payée en ligne, elle est remboursée en entier ; les postes qui ont déjà leur ticket reçoivent « ANNULÉE »). Chaque geste demande une confirmation quand il ne se défait pas.
+- « Je n'ai rien reçu » : onglet « E-mails », « Renvoyer au client ». L'e-mail repart tel quel, avec « (nouvel envoi) » dans le sujet.
+- « Il manque le tiramisù », « c'est arrivé froid » : onglet « Réclamations », choisir ce qui ne va pas, écrire ce que dit le client, « Noter la réclamation ». Elle reste sur la commande et le client n'en voit rien. Le client peut aussi la signaler lui-même depuis son suivi.
 
 ### Rembourser un client mécontent
 
@@ -129,7 +132,7 @@ Chaque rubrique a sa propre adresse, par exemple `/gestion/carte` ou `/gestion/c
 
 Le remboursement n'est possible qu'une fois la commande prête, partie ou livrée. Avant, on l'annule sur la tablette.
 
-Avec TWINT, Stripe confirme parfois un remboursement plus tard. La fiche le montre « en cours » jusque-là. S'il échoue, le restaurant reçoit une alerte par e-mail et la fiche le montre « échoué ». Il faut alors rappeler le client et le rembourser depuis Stripe ou en espèces.
+Avec TWINT, Stripe confirme parfois un remboursement plus tard. La fiche le montre « en cours » jusque-là. Si Stripe n'a pas répondu clairement, « Relancer ce remboursement » le reprend tel quel : le client n'est jamais remboursé deux fois. S'il échoue, le restaurant reçoit une alerte par e-mail et la fiche le montre « échoué ». Il faut alors rappeler le client et le rembourser depuis Stripe ou en espèces.
 
 Le client voit chaque remboursement sur sa page de suivi, avec le montant et l'état (remboursé, en cours, pas abouti), sans le motif. Un remboursement qui n'a pas abouti lui dit d'appeler le restaurant. Une somme déduite au comptoir y figure aussi, avec le reste à payer. Quand l'heure prévue est dépassée de 10 minutes, la page lui dit que le restaurant a du retard et lui donne le numéro.
 
