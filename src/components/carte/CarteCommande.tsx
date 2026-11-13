@@ -22,12 +22,15 @@ export function CarteCommande({
   catalogue,
   preversion,
   populaires,
+  prenomActif = false,
 }: {
   categories: Categorie[];
   catalogue: Catalogue;
   preversion: boolean;
   // Plats les plus commandés et suggestion au panier : éteints tant que Jérémy n'a pas décidé (C7).
   populaires?: DonneesPopulaires;
+  // Prénom par ligne (C5), éteint par défaut.
+  prenomActif?: boolean;
 }) {
   const panier = usePanier();
   const { lignes, charge, ajouter, quantite, remplacer } = panier;
@@ -54,6 +57,7 @@ export function CarteCommande({
   const [annonce, setAnnonce] = useState("");
   // Recherche de plat (maquette Béton, docs/PROMPT.md §7) : nom et description, sans tenir compte des accents.
   const [recherche, setRecherche] = useState("");
+  const [seulementVege, setSeulementVege] = useState(false);
 
   useEffect(() => setChoix(lireChoix()), []);
 
@@ -67,9 +71,18 @@ export function CarteCommande({
   const q = normaliserRecherche(recherche.trim());
   const tousPlats = categories.flatMap((c) => c.plats);
   const enTete = platsPopulaires(populaires, tousPlats);
-  const visibles = q
+  // Filtre végétarien : seulement si le restaurant a étiqueté au moins un plat (bo-carte, étiquettes). Rien
+  // n'est deviné : sans étiquette, un plat n'est pas végétarien pour le site. Végane compte comme végétarien.
+  const vegetarien = (p: LignePlat) => (p.etiquettes ?? []).some((e) => e === "vegetarien" || e === "vegane");
+  const filtreVegeDispo = tousPlats.some(vegetarien);
+  const vege = filtreVegeDispo && seulementVege;
+  const filtre = q || vege;
+  const visibles = filtre
     ? categories
-        .map((c) => ({ ...c, plats: c.plats.filter((p) => normaliserRecherche(`${nomAffiche(p)} ${p.description ?? ""}`).includes(q)) }))
+        .map((c) => ({
+          ...c,
+          plats: c.plats.filter((p) => (!q || normaliserRecherche(`${nomAffiche(p)} ${p.description ?? ""}`).includes(q)) && (!vege || vegetarien(p))),
+        }))
         .filter((c) => c.plats.length > 0)
     : enTete.length > 0
       ? [{ slug: "populaires", nom: "Les plus commandés", plats: enTete }, ...categories]
@@ -147,8 +160,19 @@ export function CarteCommande({
                 </button>
               )}
             </span>
+            {filtreVegeDispo && (
+              <button type="button" className="filtre-vege" aria-pressed={seulementVege} onClick={() => setSeulementVege((v) => !v)}>
+                Végétarien
+              </button>
+            )}
             <p className="recherche-resultat" role="status">
-              {q ? (trouves === 0 ? `Aucun plat ne correspond à « ${recherche.trim()} ».` : `${trouves} plat${trouves > 1 ? "s" : ""}`) : ""}
+              {filtre
+                ? trouves === 0
+                  ? q
+                    ? `Aucun plat ne correspond à « ${recherche.trim()} ».`
+                    : "Aucun plat végétarien pour le moment."
+                  : `${trouves} plat${trouves > 1 ? "s" : ""}`
+                : ""}
             </p>
           </div>
           {ferme && (
@@ -234,6 +258,7 @@ export function CarteCommande({
           catalogue={catalogue}
           preversion={preversion}
           ferme={ferme}
+          prenomActif={prenomActif}
           initiale={edition !== null ? lignes[edition] : undefined}
           onAjouter={(ligne) => {
             if (edition !== null) {

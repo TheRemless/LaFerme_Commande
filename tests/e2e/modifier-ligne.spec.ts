@@ -51,7 +51,9 @@ test.describe("bureau", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
   test("sur la carte, le panier de côté a aussi « Modifier »", async ({ page }) => {
     await poser(page, [L("pizza-margherita", { note: "Bien cuite" })]);
-    await page.goto("/carte");
+    // Pas d'attente de « load » : sur le profil mobile en 1440 px, les grandes photos de la carte peuvent
+    // dépasser 30 s sur la machine de GitHub, et le test ne regarde que le panier de côté.
+    await page.goto("/carte", { waitUntil: "domcontentloaded" });
     await page.locator(".panier-col").getByRole("button", { name: /^Modifier/ }).click();
     const fiche = page.getByRole("dialog");
     await expect(fiche.getByLabel("Note pour la cuisine")).toHaveValue("Bien cuite");
