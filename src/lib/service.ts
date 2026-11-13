@@ -26,7 +26,8 @@ export type Horaire = {
 export type Fermeture = { debut: string; fin: string; motif: string; service?: "midi" | "soir" | null };
 // Service ouvert un jour donné, avec ses heures : jour normalement fermé, ou heures différentes ce jour-là.
 export type Ouverture = { jour: string; service: "midi" | "soir"; premiere_heure: string; derniere_heure: string; derniere_commande: string; derniere_commande_pizzas: string };
-// preparation_minutes et les délais des zones comprennent déjà le retard du soir (config-service.ts).
+// preparation_minutes et les délais des zones comprennent déjà le retard du soir et l'allongement dû à la
+// file (config-service.ts).
 // impression_avance : les tickets d'une commande acceptée sortent ce temps avant l'heure promise, par mode (SS-11).
 export type Reglages = {
   preparation_minutes: number;
@@ -35,6 +36,19 @@ export type Reglages = {
   preparation_base?: number;
   retard_minutes?: number;
   impression_avance?: { livraison: number; retrait: number };
+  // Heure promise réaliste (vague 3, src/lib/heure-reelle.ts) : allongement dû à la file réelle des postes,
+  // déjà compris dans preparation_minutes et les délais des zones, comme retard_minutes. Le détail par poste
+  // (Charge) reste sur le serveur : chargeDuMoment() dans src/lib/heure-reelle-serveur.ts.
+  allongement_minutes?: number;
+  fourchette?: { livraison: number; retrait: number };
+};
+
+export type Charge = {
+  pizza: { articles: number; file_minutes: number; compte: boolean };
+  cuisine: { articles: number; file_minutes: number; compte: boolean };
+  preparation_minutes: number;
+  plafond_minutes: number;
+  allongement_minutes: number;
 };
 
 export type ConfigService = {
@@ -272,7 +286,8 @@ export function etatService(config: ConfigService, maintenant: Date, mode: Mode,
     const { finCommande, finRemise } = bornes(config, h, mode, zone, pizzas);
     // « Dès que possible » quand la cuisine peut lancer la commande maintenant.
     // Le retard du soir allonge l'heure promise, pas la fenêtre d'avant service (revue du lot gérant).
-    const ouvertDes = enMinutes(h.premiere_heure) - (delai - (config.reglages.retard_minutes ?? 0));
+    // L'allongement dû à la file non plus.
+    const ouvertDes = enMinutes(h.premiere_heure) - (delai - (config.reglages.retard_minutes ?? 0) - (config.reglages.allongement_minutes ?? 0));
     if (ici.minutes >= ouvertDes && ici.minutes <= finCommande) {
       const moyen = mode === "livraison" && zone ? Math.round((zone.delai_min + zone.delai_max) / 2) : delai;
       const promise = Math.max(enMinutes(h.premiere_heure), arrondir(ici.minutes + moyen, 5));

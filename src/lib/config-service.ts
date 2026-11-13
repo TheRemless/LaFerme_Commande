@@ -1,6 +1,8 @@
 import "server-only";
 import { unstable_cache } from "next/cache";
 import { lirePublic } from "@/lib/db/lecture";
+import { fonctionSql } from "@/lib/db/serveur";
+import { lireCharge, lireFourchette } from "@/lib/heure-reelle";
 import { IMPRESSION_AVANCE_DEFAUT, type DelaisImpression } from "@/lib/impression/avance";
 import { lirePlafondComptoir } from "@/lib/plafond-comptoir";
 import type { ConfigService, Fermeture, Horaire, Ouverture, Zone, ZoneNpa } from "@/lib/service";
@@ -25,7 +27,7 @@ function impressionAvance(reglages: LigneReglage[]): DelaisImpression {
 
 // Tout ce qu'il faut pour décider zone, créneaux et état du restaurant, lu en base.
 async function lireConfigService(): Promise<ConfigService & { plafondComptoirCentimes: number | null }> {
-  const [zones, npa, horaires, fermetures, reglages, ouvertures] = await Promise.all([
+  const [zones, npa, horaires, fermetures, reglages, ouvertures, chargeBrute] = await Promise.all([
     lirePublic<Zone>("zones_livraison"),
     lirePublic<ZoneNpa>("zone_npa"),
     lirePublic<Horaire>("horaires"),
@@ -33,13 +35,23 @@ async function lireConfigService(): Promise<ConfigService & { plafondComptoirCen
     lirePublic<LigneReglage>("reglages"),
     // Ouvertures exceptionnelles (audit du gérant, vague 2). Table absente tant que la base n'est pas migrée.
     lirePublic<Ouverture & { jour: string | Date }>("ouvertures").catch(() => [] as (Ouverture & { jour: string | Date })[]),
+    // File réelle de chaque poste (heure promise réaliste, vague 3). Absente (base pas encore migrée, build
+    // sans clé du serveur) : pas d'allongement, les heures restent celles du délai fixe.
+    fonctionSql<unknown>("charge_cuisine", {}).catch(() => null),
   ]);
   // PGlite rend les dates en objets Date, Supabase en texte : on ramène tout au format AAAA-MM-JJ.
   const jour = (d: string | Date) => (typeof d === "string" ? d.slice(0, 10) : d.toISOString().slice(0, 10));
   // Retard du soir réglé sur la tablette (audit du gérant, G05) : ajouté au retrait et à chaque zone, pour
   // toutes les heures annoncées. Absent (base pas encore migrée) : zéro. Remis à zéro chaque nuit (G06).
   const brut = Number(reglages.find((r) => r.cle === "retard_minutes")?.valeur ?? 0);
-  const retard = Number.isInteger(brut) && brut > 0 && brut <= 90 ? brut : 0;
+  const retardManuel = Number.isInteger(brut) && brut > 0 && brut <= 90 ? brut : 0;
+  // Allongement dû à la file réelle des postes (heure promise réaliste) : ajouté comme le retard du soir à
+  // toutes les heures annoncées. retard_minutes reste le retard posé à la main (la tablette règle +5 et -5
+  // à partir de lui) : l'allongement n'y entre jamais.
+  // Le détail par poste (articles en file) ne va pas dans la config : l'accueil la sert au navigateur, et le
+  // nombre de pizzas en cuisine minute par minute dirait les ventes du restaurant. Détail : chargeDuMoment().
+  const allongement = lireCharge(chargeBrute)?.allongement_minutes ?? 0;
+  const retard = retardManuel + allongement;
   const preparation = nombre(reglages, "preparation_minutes");
   return {
     zones: retard ? zones.map((z) => ({ ...z, delai_min: z.delai_min + retard, delai_max: z.delai_max + retard })) : zones,
@@ -57,7 +69,9 @@ async function lireConfigService(): Promise<ConfigService & { plafondComptoirCen
     reglages: {
       preparation_minutes: preparation + retard,
       preparation_base: preparation,
-      retard_minutes: retard,
+      retard_minutes: retardManuel,
+      allongement_minutes: allongement,
+      fourchette: lireFourchette(reglages),
       creneau_minutes: nombre(reglages, "creneau_minutes"),
       avance_jours: nombre(reglages, "avance_jours"),
       impression_avance: impressionAvance(reglages),
