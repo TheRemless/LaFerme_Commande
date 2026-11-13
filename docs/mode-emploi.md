@@ -218,6 +218,7 @@ Coup de feu (en tête de la rubrique) et zones livrées le soir seulement ou fer
 - La rubrique montre l'état de chaque imprimante.
 - « Nouvelle adresse » et « Désactiver » demandent une confirmation, car l'imprimante s'arrête aussitôt. Appeler le numéro ci-dessus avant d'y toucher.
 - « Alerte de commande en attente » règle après combien de minutes un e-mail part quand une commande n'est pas acceptée.
+- Sous chaque imprimante : dernier ticket sorti, tickets en attente, imprimés et échecs du jour ; plus bas, « En cas de panne » (`docs/imprimantes-gestion.md`).
 
 ### Promotions
 

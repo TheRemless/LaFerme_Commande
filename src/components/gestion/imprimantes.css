@@ -1,0 +1,19 @@
+/* Rubrique Imprimantes, parties de la vague 3 (bo-operations). Jetons existants seulement. */
+.ges-imp-resume {
+  display: grid;
+  gap: 2px;
+  margin-top: 6px;
+  font-size: 15px;
+}
+/* Tickets en attente ou en échec : en gras et filet à gauche, jamais par la couleur seule. */
+.ges-imp-alerte {
+  padding-left: 8px;
+  font-weight: 700;
+  border-left: 3px solid currentColor;
+}
+.ges-imp-panne {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 22px;
+}
