@@ -127,11 +127,18 @@ test("« on ferme plus tôt » : deux commandes s'annulent d'un geste, avec un s
 
 test("une alerte de l'accueil ouvre la liste déjà filtrée ; sur plusieurs jours, le jour s'affiche", async () => {
   await gestion.goto("/gestion/commandes?remboursement=echec&periode=30jours");
-  const filtres = gestion.getByText(/^Filtres : 30 derniers jours, 1 de plus$/);
-  await expect(filtres).toBeVisible();
-  await filtres.click();
+  // L'adresse porte des filtres : le panneau s'ouvre de lui-même pour les montrer.
+  await expect(gestion.getByText(/^Filtres : 30 derniers jours, 1 de plus$/)).toBeVisible();
   await expect(gestion.getByLabel("Remboursement")).toHaveValue("echec");
   // La base de test n'a pas de remboursement en échec : on élargit pour voir la colonne « Jour ».
   await gestion.getByLabel("Remboursement").selectOption("");
   await expect(gestion.getByRole("columnheader", { name: /^Jour/ })).toBeVisible();
+});
+
+test("période personnalisée et paiement au comptoir lus dans l'adresse ; une valeur inconnue est ignorée", async () => {
+  await gestion.goto("/gestion/commandes?moyen=comptoir&paiement=a_encaisser_retrait&du=2026-11-01&au=2026-11-10&remboursement=pirate");
+  await expect(gestion.getByText(/^Filtres : du .+ 1 nov\. au .+ 10 nov\., 2 de plus$/)).toBeVisible();
+  await expect(gestion.getByLabel("Moyen de paiement")).toHaveValue("comptoir");
+  await expect(gestion.getByRole("combobox", { name: "Paiement", exact: true })).toHaveValue("a_encaisser_retrait");
+  await expect(gestion.getByLabel("Remboursement")).toHaveValue("");
 });

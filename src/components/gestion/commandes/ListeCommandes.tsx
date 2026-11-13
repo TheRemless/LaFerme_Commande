@@ -408,6 +408,8 @@ export function ListeCommandes() {
   useEffect(() => {
     const a = new URLSearchParams(window.location.search);
     if (![...a.keys()].length) return;
+    // Arrivée depuis une alerte : les filtres s'ouvrent pour montrer ce qui est déjà choisi.
+    setFiltresOuverts(true);
     const statutsAdresse = (a.get("statut") ?? "")
       .split(",")
       .filter((x) => (ORDRE_STATUTS as readonly string[]).includes(x));
@@ -415,10 +417,31 @@ export function ListeCommandes() {
     const r = a.get("periode");
     if (r && RACCOURCIS_PERIODE.some((x) => x.cle === r))
       setPeriode(periodeDe(r as CleRaccourciPeriode, aujourdhui));
+    // Période personnalisée (alertes de l'accueil) : du et au en AAAA-MM-JJ, au plus un an, sinon ignorée.
+    const du = a.get("du");
+    const au = a.get("au") ?? du;
+    const jour = /^\d{4}-\d{2}-\d{2}$/;
+    if (
+      du &&
+      au &&
+      jour.test(du) &&
+      jour.test(au) &&
+      du <= au &&
+      Date.parse(au) - Date.parse(du) <= 366 * 86_400_000
+    )
+      setPeriode({ debut: du, fin: au });
     setFiltres((f) => ({
       ...f,
       ...(["fait", "en_cours", "echec"].includes(a.get("remboursement") ?? "")
         ? { remboursement: a.get("remboursement")! }
+        : {}),
+      ...(["en_ligne", "comptoir"].includes(a.get("moyen") ?? "")
+        ? { moyen: a.get("moyen")! }
+        : {}),
+      ...(["paye", "a_encaisser_retrait", "encaisse", "rembourse"].includes(
+        a.get("paiement") ?? "",
+      )
+        ? { paiement: a.get("paiement")! }
         : {}),
       ...(["midi", "soir"].includes(a.get("service") ?? "")
         ? { service: a.get("service")! }
@@ -535,6 +558,17 @@ export function ListeCommandes() {
                     <option value="">Tous</option>
                     <option value="livraison">Livraison</option>
                     <option value="retrait">À emporter</option>
+                  </select>
+                </label>
+                <label>
+                  Moyen de paiement
+                  <select
+                    value={filtres.moyen}
+                    onChange={(e) => filtrer("moyen", e.target.value)}
+                  >
+                    <option value="">Tous</option>
+                    <option value="en_ligne">En ligne</option>
+                    <option value="comptoir">Au comptoir</option>
                   </select>
                 </label>
                 <label>
