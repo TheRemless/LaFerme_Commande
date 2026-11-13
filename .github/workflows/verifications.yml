@@ -82,10 +82,13 @@ jobs:
         if: steps.cache-navigateurs.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
 
-      # Cache du compilateur de Next : le build suivant ne recompile que ce qui a changé.
+      # Cache du compilateur de Next : le build suivant ne recompile que ce qui a changé. Pas le cache de
+      # données (fetch-cache) : il garderait la config d'une autre base (playwright.config.ts le vide aussi).
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: .next/cache
+          path: |
+            .next/cache/webpack
+            .next/cache/swc
           key: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**', 'next.config.*') }}
           restore-keys: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
 
