@@ -2,7 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { adresseDuCompte, codeDuPersonnel, SITE } from "./site";
 import { expect, test, type Page } from "@playwright/test";
 
-// Rubrique Livraison et horaires, parties de la vague 3 (bo-operations) : coup de feu, services d'une zone,
+// Rubrique Livraison et horaires, parties de la vague 3 (bo-operations) : tester une adresse, coup de feu, services d'une zone,
 // zone fermée jusqu'à une heure. Coup de feu d'une minute de retard, fini aussitôt ; zones sur la zone 3
 // (fermée dans la base de départ) : les autres fichiers de tests ne sont pas gênés.
 test.describe.configure({ mode: "serial", timeout: 90_000 });
@@ -26,6 +26,22 @@ test("coup de feu, services d'une zone, zone fermée", async ({ page }, info) =>
   const cdf = page.locator(".bo-cdf");
   const zone3 = page.locator(".ges-zone").filter({ hasText: "Zone 3" });
   try {
+    // Tester une adresse : Onex (zone 1) puis hors zone. Montants lus en base, jamais écrits ici.
+    const testeur = page.locator(".bo-test-adresse");
+    await testeur.getByLabel("NPA").fill("1213");
+    await testeur.getByLabel("Localité").fill("Onex");
+    await testeur.getByRole("button", { name: "Tester" }).click();
+    await expect(testeur.getByText("Zone 1 : livrée")).toBeVisible();
+    await expect(testeur.getByText(/^Frais de livraison \d+\.\d{2} CHF, commande minimum \d+\.\d{2} CHF\.$/)).toBeVisible();
+    await expect(testeur.getByText(/^Délai annoncé en ce moment : de \d+ à \d+ minutes\.$/)).toBeVisible();
+    await expect(testeur.getByText("Sans rue : seuls le NPA et la localité ont compté.")).toBeVisible();
+    await testeur.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `${CAPTURES}/horaires-tester-adresse-1024.png` });
+    await testeur.getByLabel("NPA").fill("1003");
+    await testeur.getByLabel("Localité").fill("Lausanne");
+    await testeur.getByRole("button", { name: "Tester" }).click();
+    await expect(testeur.getByText("Hors zone")).toBeVisible();
+
     // Coup de feu : une minute de retard seulement, capacités inchangées.
     await expect(cdf.getByRole("button", { name: "Lancer le coup de feu" })).toBeVisible();
     await page.screenshot({ path: `${CAPTURES}/horaires-coup-de-feu-formulaire-1024.png` });
