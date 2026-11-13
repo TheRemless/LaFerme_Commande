@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { adresseDuCompte } from "./site";
 
 // Coque du back-office (vague 3) : une adresse par rubrique, retour arrière, connexion qui garde la page
 // demandée, menu latéral repliable, tiroir sur téléphone. Gérant de test à part (un code par 30 s et par e-mail).
@@ -7,11 +8,9 @@ test.describe.configure({ mode: "serial" });
 
 let gestion: Page;
 
-// Codes du personnel : 20 par heure et par IP, et toute la suite e2e vient de la même IP locale. Ce fichier
-// a donc sa propre « IP » (x-forwarded-for, cru seulement sur le poste local, voir src/lib/comptes/securite.ts).
-const ip = (projet: string) => ({ "x-forwarded-for": `10.21.${projet === "mobile" ? 2 : 1}.${1 + Math.floor(Math.random() * 250)}` });
-
 async function connecter(page: Page, email: string) {
+  // Une adresse simulée par compte : la limite de 20 codes par heure et par IP n'est pas partagée (tests/e2e/site.ts).
+  await adresseDuCompte(page, email);
   await page.getByLabel("E-mail", { exact: true }).fill(email);
   await page.getByRole("button", { name: "Recevoir un code" }).click();
   const code = page.locator(".note-preversion strong");
@@ -30,7 +29,7 @@ async function ouvrirMenuSiTelephone(page: Page) {
 
 test.beforeAll(async ({ browser }, info) => {
   // Un contexte à soi : axe-core le demande pour analyser la page.
-  gestion = await (await browser.newContext({ ...info.project.use, baseURL: info.project.use.baseURL, extraHTTPHeaders: ip(info.project.name) })).newPage();
+  gestion = await (await browser.newContext({ ...info.project.use, baseURL: info.project.use.baseURL })).newPage();
   // Adresse profonde sans session : la connexion s'affiche, puis on reste sur la rubrique demandée.
   await gestion.goto("/gestion/equipe");
   await expect(gestion.getByRole("heading", { name: "Back-office du restaurant" })).toBeVisible();
@@ -140,7 +139,7 @@ test("sur ordinateur, le menu se réduit aux icônes et garde ce choix", async (
 });
 
 test("le personnel de service voit « Réservé au gérant » sur toutes les rubriques", async ({ browser }, info) => {
-  const page = await browser.newPage({ baseURL: info.project.use.baseURL, extraHTTPHeaders: ip(info.project.name) });
+  const page = await browser.newPage({ baseURL: info.project.use.baseURL });
   await page.goto("/gestion/carte");
   await connecter(page, `coque-service-${info.project.name}@laferme.test`);
   await expect(page.getByText("Réservé au gérant.")).toBeVisible();
