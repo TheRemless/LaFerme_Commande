@@ -94,7 +94,10 @@ describe("codes promo côté client", () => {
   it("au paiement : même client, code déjà utilisé, refus nommé", async () => {
     await regler(true);
     const email = `fidele-${randomUUID().slice(0, 8)}@laferme.test`;
-    await commander("ESSAI-DIX", email);
+    // La première doit avoir noté son utilisation : sinon, le refus de la seconde ne prouve rien.
+    const premiere = await commandeDe(await commander("ESSAI-DIX", email));
+    expect(premiere.erreur).toBeUndefined();
+    expect(premiere.remise).toBeGreaterThan(0);
     expect((await commandeDe(await commander("ESSAI-DIX", email))).erreur).toBe("Vous avez déjà utilisé ce code.");
   });
 
@@ -111,6 +114,7 @@ describe("codes promo côté client", () => {
     const email = `retour-${randomUUID().slice(0, 8)}@laferme.test`;
     const cle = randomUUID();
     const premiere = await commandeDe(await commander("ESSAI-DIX", email, cle));
+    expect(premiere.erreur).toBeUndefined();
     const seconde = await commandeDe(await commander("ESSAI-DIX", email, cle));
     expect(seconde.erreur).toBeUndefined();
     expect(seconde.id).toBe(premiere.id);
