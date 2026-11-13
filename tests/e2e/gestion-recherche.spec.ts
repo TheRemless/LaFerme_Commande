@@ -88,7 +88,7 @@ test("une commande se trouve par le nom du client, sans que le nom passe dans l'
 test("rien ne correspond : la fenêtre le dit ; Échap la ferme", async () => {
   await ouvrir();
   await champ().fill("zzzzqqq");
-  await expect(fenetre().getByText("Rien ne correspond à « zzzzqqq ».")).toBeVisible();
+  await expect(fenetre().getByText(/^Rien ne correspond à « zzzzqqq »\./)).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(fenetre()).toBeHidden();
   await expect(bouton()).toBeFocused();

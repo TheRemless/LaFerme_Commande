@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { GROUPES_VISIBLES, type Rubrique } from "@/components/gestion/navigation";
+import { GROUPES_VISIBLES, RUBRIQUES, type Rubrique } from "@/components/gestion/navigation";
 import { IconeGestion, montant, Touches, useDiffere, useRaccourci } from "@/components/gestion/ui";
 import { demanderOuverture, type CibleOuverture } from "@/components/gestion/ui/ouverture";
 import { heureDe, jourGeneveDe } from "@/lib/heures";
@@ -101,7 +101,9 @@ function Fenetre({ fermer }: { fermer: () => void }) {
         detail: `${c.mode === "livraison" ? "Livraison" : "À emporter"}, ${STATUTS[c.statut] ?? c.statut}, ${jourTexte(jourGeneveDe(c.quand))} à ${heureDe(c.quand)}, CHF ${montant(c.total_centimes)}`,
         aller: aller("/gestion/commandes", { type: "commande", cle: c.id }),
       });
-    for (const c of res?.clients ?? [])
+    // Les clients s'ouvrent dans la rubrique Clients : tant qu'elle n'existe pas (place réservée), pas de résultat client.
+    const clientsOuverts = RUBRIQUES.some((r) => r.href === "/gestion/clients" && !r.aVenir);
+    for (const c of clientsOuverts ? (res?.clients ?? []) : [])
       l.push({
         id: `k-${c.email}`,
         groupe: "Clients",
@@ -199,7 +201,11 @@ function Fenetre({ fermer }: { fermer: () => void }) {
             ))}
           </ul>
           <p className="bo-recherche-etat" role="status">
-            {!cherche ? "Une commande par son numéro, un client par son nom ou son téléphone, un plat, une rubrique." : choix.length === 0 && res ? `Rien ne correspond à « ${q.trim()} ».` : ""}
+            {!cherche
+              ? "Une commande par son numéro, un client par son nom ou son téléphone, un plat, une rubrique."
+              : choix.length === 0 && res
+                ? `Rien ne correspond à « ${q.trim()} ». Les commandes cherchées vont de 90 jours en arrière à 8 jours en avant ; au-delà, la rubrique Commandes a une période.`
+                : ""}
           </p>
         </div>
       </div>
