@@ -54,7 +54,9 @@ Ils se règlent au back-office, rubrique « Réglages généraux », bloc « Ryt
 | `fourchette_livraison_minutes` | 15 | Largeur de la fourchette annoncée en livraison |
 | `fourchette_retrait_minutes` | 10 | Largeur de la fourchette annoncée au retrait |
 
-Les débits (four, cuisine, livreur) restent à 0 tant que Jérémy n'a pas donné les vrais chiffres (question D8 du chef). D'ici là, rien ne change pour les clients. Les valeurs de l'exemple (8 pizzas par quart d'heure) ne servent qu'aux tests.
+**Chiffre de Jérémy (13.11.2026)** pour le four : « On peut mettre 5 pizzas au four, pour préparer 5 pizzas il faut environ 3 minutes + 2 minutes de cuisson ». Cela fait 5 pizzas toutes les 5 minutes, donc **`debit_pizza_quart_heure` = 15**, à poser au back-office (Réglages généraux, « Pizzas que le four sort en 15 minutes ») ou sur la base par le chef. Avec ce chiffre, 15 pizzas en file ne changent rien (15 minutes, sous la préparation habituelle de 20), et 30 pizzas donnent +10 minutes sur les heures annoncées.
+
+La cuisine et les livreurs n'ont pas encore de chiffre : `debit_cuisine_quart_heure` et `livraisons_par_livreur_heure` restent à 0. Ils sont alors ignorés et ne bloquent rien : la livraison suit le four. Test : `tests/unit/heure-reelle-four.test.ts`.
 
 ## Pour les autres sessions
 
