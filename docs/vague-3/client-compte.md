@@ -31,6 +31,9 @@ Le fichier « Télécharger mes données » du compte contient aussi les notes q
 ## E-mails aux clients
 
 Chaque e-mail part en deux versions, texte seul et mise en page. La mise en page reste sur fond blanc, même quand le téléphone du client est en mode sombre. Sous le sujet, la boîte de réception montre la première phrase utile, par exemple « Nous avons bien reçu votre commande n° 37. ».
+
+Un seul e-mail à la commande (décision de Jérémy du 13.11.2026) : le récapitulatif, le reçu avec TVA quand la commande est payée en ligne et le lien de suivi. L'heure confirmée, « prête » et « en route » se lisent sur la page de suivi. Le client reçoit encore un e-mail quand quelque chose change pour lui : commande refusée, nouvelle heure, remboursement, plat manquant, commande modifiée par l'équipe, commande non remise. Pour revenir aux e-mails « acceptée », « prête » et « en route », mettre `COURRIELS_ETAPES=1` dans Netlify.
+
 ## Historique du compte
 
 Le compte montre le nombre de commandes passées avec lui et les 30 dernières. « Voir les commandes plus anciennes » charge les 30 suivantes.
@@ -81,3 +84,7 @@ Jérémy a accepté le 13.11.2026 de recevoir un essai réel de tous les e-mails
 - le bouton « Suivre la commande » mène à « commande introuvable », comme prévu pour une commande fictive.
 
 Le script refuse de tourner si une variable mène à une vraie base (Supabase, Postgres ou Netlify).
+
+## Allergie effacée après 30 jours
+
+L'allergie ou l'intolérance signalée à la commande est effacée 30 jours après la commande (décision de Jérémy du 13.11.2026). Elle disparaît de la commande et des tickets de cuisine gardés pour la réimpression. Le reste du ticket ne change pas. La surveillance du site s'en charge à chaque tour (migration `20261214090000_allergie_30_jours.sql`). L'effacement ne date pas la commande : une commande terminée il y a un mois ne revient pas dans la journée de la tablette. La déclaration de confidentialité le dit, ainsi que les 30 jours au plus des copies de sauvegarde chiffrées.

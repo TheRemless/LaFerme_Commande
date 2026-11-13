@@ -79,6 +79,31 @@ test("l'export comptable se télécharge en CSV", async () => {
   expect(Buffer.concat(morceaux).toString("utf8")).toContain("Jour;Numéro;Heure;Mode;Paiement");
 });
 
+// Crésus (D9) : format simple du manuel Crésus Comptabilité, § 19.2. Le plan n'est pas enregistré ici (les deux
+// projets partagent la base) ; un compte illisible est refusé sans rien changer.
+test("les écritures pour Crésus se téléchargent, le plan de comptes refuse un compte illisible", async () => {
+  // Par l'adresse : le test d'avant est déjà sur cette rubrique, et sur téléphone le tiroir resterait ouvert.
+  await gestion.goto("/gestion/export");
+  await expect(gestion.getByText("Comptes proposés, à confirmer")).toBeVisible();
+  await gestion.getByLabel("Du", { exact: true }).fill("2026-01-01");
+  await gestion.getByRole("radio", { name: /Écritures pour Crésus/ }).check();
+  const telechargement = gestion.waitForEvent("download");
+  await gestion.getByRole("button", { name: "Télécharger pour Crésus" }).click();
+  const fichier = await telechargement;
+  expect(fichier.suggestedFilename()).toMatch(/^la-ferme-cresus-\d{4}-\d{2}-\d{2}-\d{4}-\d{2}-\d{2}\.txt$/);
+  const morceaux: Buffer[] = [];
+  for await (const m of await fichier.createReadStream()) morceaux.push(m as Buffer);
+  const texte = Buffer.concat(morceaux).toString("latin1");
+  expect(texte).toMatch(/^[\x09\x0A\x0D\x20-\x7E]*$/);
+  for (const ligne of texte.split("\r\n").filter(Boolean)) {
+    expect(ligne).toMatch(/^\d{2}\.\d{2}\.\d{4}\t\d+\t\d+\t\t[^\t]+\t\d+\.\d{2}$/);
+  }
+
+  await gestion.getByLabel("TVA due").fill("22a");
+  await gestion.getByRole("button", { name: "Confirmer ces comptes" }).click();
+  await expect(gestion.getByRole("alert").filter({ hasText: "TVA due : un numéro de compte, en chiffres." })).toBeVisible();
+});
+
 test("une zone se valide, les horaires et les fermetures s'affichent", async () => {
   await rubrique(gestion, "Livraison et horaires");
   // La rubrique est en onglets (Ce soir, Zones, Horaires, Capacité et délais, Fermetures).
@@ -214,11 +239,14 @@ test("le back-office est fermé au personnel de service, aux clients et aux autr
   expect((await request.get("/api/gestion/carte", { headers: { Cookie: `laferme-personnel=${service.value}` } })).status()).toBe(403);
   expect((await request.get("/api/gestion/carte")).status()).toBe(401);
   expect((await request.get("/api/gestion/export?debut=2026-01-01&fin=2026-12-31")).status()).toBe(401);
+  expect((await request.get("/api/gestion/export/plan")).status()).toBe(401);
   // Équipe et commandes passées : gérant seulement, requête du site seulement (audit du gérant).
   const commeService = { Cookie: `laferme-personnel=${service.value}`, Origin: SITE };
   expect((await request.get("/api/gestion/personnel", { headers: commeService })).status()).toBe(403);
   expect((await request.post("/api/gestion/personnel", { headers: commeService, data: { action: "ajouter", email: "x@y.ch", nom: "X", role: "gerant" } })).status()).toBe(403);
   expect((await request.post("/api/gestion/commandes", { headers: commeService, data: { action: "liste" } })).status()).toBe(403);
+  expect((await request.get("/api/gestion/export/plan", { headers: commeService })).status()).toBe(403);
+  expect((await request.post("/api/gestion/export/plan", { headers: commeService, data: { comptes: {} } })).status()).toBe(403);
   expect((await request.post("/api/gestion/commandes", { headers: { Origin: SITE }, data: { action: "liste" } })).status()).toBe(401);
   const gerant = (await gestion.context().cookies()).find((c) => c.name === "laferme-personnel")!;
   const pirate = await request.post("/api/gestion/carte", {
@@ -231,4 +259,9 @@ test("le back-office est fermé au personnel de service, aux clients et aux autr
     data: { action: "rembourser", id: "00000000-0000-0000-0000-000000000000", montant: "1", motif: "Pirate", cle: "pirate-0000000" },
   });
   expect(pirateRemb.status()).toBe(403);
+  const piratePlan = await request.post("/api/gestion/export/plan", {
+    headers: { Origin: "https://pirate.example", Cookie: `laferme-personnel=${gerant.value}` },
+    data: { comptes: { caisse: "1", stripe: "2", terminal: "3", tva: "4", ventes: "5", livraison: "6", remboursements: "7" } },
+  });
+  expect(piratePlan.status()).toBe(403);
 });

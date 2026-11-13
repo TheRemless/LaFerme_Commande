@@ -21,6 +21,20 @@ Une bannière sur le site, par exemple pour une fermeture, un retard général o
 - L'aide du champ rappelle la règle des textes : faire valider par Jérémy, jamais un nom ni un numéro de commande.
 - Test : `tests/e2e/gestion-messages.spec.ts` (compte `ecran-messages@laferme.test`), captures `docs/rendus/vague-3/bo-operations/messages-*.png`.
 
+## Modèles à relire par Jérémy
+
+Jérémy (13.11.2026) : « Fais les textes clients et je vérifierai. » Cinq modèles écrits avec `redaction-fr`, dans la voix du restaurant et avec les seuls faits du registre (téléphone, adresse, à emporter). Ils sont dans `src/lib/messages-modeles.ts` et proposés à l'écran, « Partir d'un modèle ». Un modèle ne fait que remplir le champ. Le gérant complète les passages entre crochets, choisit les dates, puis programme. Un texte qui garde un crochet est refusé, à l'écran comme par la route : un client ne lit jamais « [jour] ».
+
+| Modèle | Texte | Où, par défaut |
+|---|---|---|
+| Fermeture exceptionnelle | Le restaurant est fermé le [jour]. On reprend les commandes le [jour de réouverture]. Une question ? 022 792 16 89 | Tout le site |
+| Vacances | Le restaurant est en vacances du [premier jour] au [dernier jour]. On reprend les commandes le [jour de réouverture]. | Tout le site |
+| Retard général | Beaucoup de commandes ce soir. Comptez environ [15] minutes de plus que d'habitude. | Tout le site |
+| Zone fermée | Pas de livraison à [localité] ce soir. Vous pouvez commander à emporter, Route de Chancy 132 à Onex. | Accueil |
+| Nouveauté | [Nom du plat] arrive à la carte le [jour]. | Accueil |
+
+Capture : `docs/rendus/vague-3/bo-operations/messages-modeles-1024.png`. Tests : `tests/unit/messages-modeles.test.ts`, `tests/e2e/gestion-messages.spec.ts`.
+
 ## Pour l'affichage (`client-commande`)
 
 - `config.messages` contient les messages pas finis qui commencent dans les 24 heures.

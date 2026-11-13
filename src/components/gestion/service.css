@@ -205,3 +205,46 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Semaine type (vague 3, bo-operations) : un service par case, ouvert ou fermé chaque semaine. */
+.bo-semaine-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.bo-semaine-table th,
+.bo-semaine-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--bo-trait);
+  text-align: left;
+  vertical-align: middle;
+}
+.bo-semaine-table td {
+  white-space: nowrap;
+}
+.bo-semaine-table td[data-ouvert="non"] .bo-semaine-etat {
+  color: var(--bo-texte-doux);
+}
+.bo-semaine-etat {
+  display: inline-block;
+  min-width: 7.5rem;
+}
+.bo-semaine-ouvrir {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--bo-trait);
+}
+.bo-semaine-ouvrir h3 {
+  margin: 0;
+}
+@media (max-width: 600px) {
+  .bo-semaine-table td {
+    white-space: normal;
+  }
+  .bo-semaine-etat {
+    display: block;
+    min-width: 0;
+  }
+}
