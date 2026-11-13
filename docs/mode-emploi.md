@@ -101,7 +101,9 @@ Adresse : la page `/gestion` du site, au téléphone ou à l'ordinateur. Connexi
 
 Numéro à appeler en cas de problème : ______________________
 
-Le back-office s'ouvre sur « Commandes ». Les autres rubriques sont juste en dessous du titre.
+Le back-office s'ouvre sur l'accueil. Les rubriques sont dans le menu à gauche, rangées par groupe (Commandes et clients, Carte et offre, Chiffres, Réglages du restaurant, Équipe). Au téléphone, toucher « Menu » en haut à gauche. Sur ordinateur, « Réduire le menu » ne garde que les icônes.
+
+Chaque rubrique a sa propre adresse, par exemple `/gestion/carte` ou `/gestion/commandes`. On peut la garder en favori ou l'envoyer à quelqu'un de l'équipe : il devra se connecter. Le bouton retour du navigateur ramène à la rubrique d'avant. « Se déconnecter » est en bas du menu.
 
 ### Commandes
 

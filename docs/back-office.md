@@ -2,6 +2,26 @@
 
 Adresse : `/gestion` (non indexée). Réservé au rôle `gerant` de la table `personnel`, même connexion par code que la tablette. Un membre « service » voit « Réservé au gérant ».
 
+## Coque (vague 3, 13.11.2026)
+
+Une page par rubrique, rangées par groupe dans le menu latéral. La liste unique est `src/components/gestion/navigation.ts` : ajouter une rubrique, c'est une ligne dans son groupe et un dossier `src/app/gestion/<chemin>/page.tsx` qui exporte `metadata.title`.
+
+| Groupe | Rubrique | Adresse |
+|---|---|---|
+| Service du jour | Accueil | `/gestion` |
+| Commandes et clients | Commandes | `/gestion/commandes` |
+| Carte et offre | Carte, Plat du jour, Suppléments et pâtes, Importer le tableau | `/gestion/carte`, `/gestion/plat-du-jour`, `/gestion/supplements`, `/gestion/import` |
+| Chiffres | Export comptable, Journal | `/gestion/export`, `/gestion/journal` |
+| Réglages du restaurant | Livraison et horaires, Imprimantes | `/gestion/horaires`, `/gestion/imprimantes` |
+| Équipe | Équipe | `/gestion/equipe` |
+
+- **Contrôle d'accès.** `src/app/gestion/layout.tsx` vérifie le gérant côté serveur, une fois pour toutes les rubriques : sans session, l'écran de connexion s'affiche à la même adresse (après connexion, on reste sur la rubrique demandée) ; un autre rôle voit « Réservé au gérant ». Les pages ne portent aucune donnée : tout passe par `/api/gestion/**`, qui revérifie le gérant à chaque requête.
+- **Menu.** Large sur ordinateur (1024 px et plus), rail d'icônes sur tablette en portrait, tiroir « Menu » sur téléphone (Échap ou le changement de rubrique le referment). « Réduire le menu » et « Agrandir le menu » sont gardés dans le navigateur (`laferme.gestion.menu`). La rubrique ouverte porte `aria-current="page"`.
+- **Badges.** Le nombre de plats qui bloquent la mise en ligne est sur « Carte » (lu comme description du lien).
+- **Carte partagée.** La coque charge `/api/gestion/carte` une fois (`contexte-carte.tsx`) et la garde d'une rubrique à l'autre : Carte, Plat du jour, Suppléments, Import et le badge lisent la même copie.
+- **Styles.** `src/app/gestion/back-office.css`, toutes les règles sous `.bo`. Le contenu des rubriques garde les classes `.ges-*` de `globals.css`.
+- Tests : `tests/e2e/gestion-coque.spec.ts` (adresses, retour arrière, connexion à une adresse profonde, menu, tiroir, droits), comptes `coque-*` dans `supabase/local/donnees-test.sql`.
+
 ## Ce qu'on y fait
 
 | Rubrique | Contenu |
