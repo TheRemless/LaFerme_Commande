@@ -99,6 +99,11 @@ test("les codes promo sont fermés sans session de gérant", async ({ request })
 });
 
 test("le plat s'archive, quitte la liste, puis se remet", async () => {
+  // Fiche ouverte dans le panneau de la liste : on la ferme et on passe à la vue par catégorie, où vivent
+  // les archives et l'ordre des plats.
+  await gestion.keyboard.press("Escape");
+  await gestion.getByRole("tab", { name: "Par catégorie et ordre" }).click();
+  await gestion.getByRole("button", { name: new RegExp(`^${nom}`) }).click();
   const fiche = gestion.locator(".ges-fiche");
   await fiche.getByRole("button", { name: "Archiver ce plat" }).click();
   await fiche.getByRole("button", { name: `Oui, archiver ${nom}` }).click();

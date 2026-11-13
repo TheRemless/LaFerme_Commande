@@ -29,6 +29,9 @@ export type PlatGestion = {
   // Ce qui bloquerait la mise en ligne si le plat était en vente.
   manques: string[];
   bloquants: string[];
+  // Vague 3 : disponibilités et dernier jour d'une rupture planifiée (absents avant la migration).
+  dispo?: { service: "midi" | "soir" | null; mode: "livraison" | "retrait" | null; jours: number[] | null };
+  rupture_jusqu_au?: string | null;
 };
 export type GroupeGestion = { slug: string; nom: string; choix_min: number; choix_max: number; options: { nom: string; prix_centimes: number; prix_a_valider: boolean; actif: boolean }[] };
 export type DonneesCarte = {
@@ -479,7 +482,7 @@ function ChoixGroupes({ groupes, choisis, changer }: { groupes: GroupeGestion[];
 
 // Formulaire de création. Le plat naît hors de la vente ; « Mettre en vente tout de suite » ne passe
 // que si rien ne bloque la mise en ligne (la base le vérifie).
-function NouveauPlat({ donnees, fermer, cree }: { donnees: DonneesCarte; fermer: () => void; cree: (slug: string) => Promise<void> }) {
+export function NouveauPlat({ donnees, fermer, cree }: { donnees: DonneesCarte; fermer: () => void; cree: (slug: string) => Promise<void> }) {
   const ids = useId();
   const [f, setF] = useState({
     categorie: donnees.categories[0]?.slug ?? "",

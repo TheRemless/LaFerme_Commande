@@ -72,3 +72,9 @@ insert into personnel (email, nom, role) values ('reglages-bureau@laferme.test',
 insert into personnel (email, nom, role) values
   ('commandes-bureau@laferme.test', 'Commandes bureau', 'gerant'),
   ('commandes-mobile@laferme.test', 'Commandes mobile', 'gerant');
+
+-- Comptes des tests de la carte au back-office (vague 3, bo-carte) : un bloc à part pour ne pas entrer en
+-- conflit avec la liste commune. Un code par 30 secondes et par e-mail : un compte par fichier et par projet.
+insert into personnel (email, nom, role) values
+  ('liste-bureau@laferme.test', 'Liste bureau', 'gerant'),
+  ('liste-mobile@laferme.test', 'Liste mobile', 'gerant');
