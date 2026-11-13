@@ -1,6 +1,7 @@
 // Charge d'un vendredi soir contre un site LOCAL qui tourne sur le jeu de rush (docs/charge.md).
 //
 //   npm run charge:vendredi -- --site=http://localhost:3229 --minutes=5 --tablettes=15 --relecture=5
+//   (--sans-version : la tablette redemande toujours la file complète, comme avant la file allégée)
 //
 // Simule en même temps : des tablettes qui relisent la file et les livraisons, des clients qui suivent leur
 // commande (rafraîchissement toutes les 20 s), des livreurs, deux back-offices, et des commandes passées,
@@ -21,6 +22,7 @@ const BACK_OFFICES = Number(arg("back-offices", "2"));
 const COMMANDES_HEURE = Number(arg("commandes-heure", "60"));
 const RELECTURE_S = Number(arg("relecture", "5"));
 const INSTANTANE = path.resolve(arg("instantane", ".pglite/rush.tar.gz"));
+const AVEC_VERSION = !process.argv.includes("--sans-version");
 
 const hote = new URL(SITE).hostname;
 if (!["localhost", "127.0.0.1", "::1", "[::1]"].includes(hote)) {
@@ -103,12 +105,16 @@ async function main() {
   const taches: Promise<void>[] = [];
 
   for (let i = 0; i < TABLETTES; i++) {
+    // Comme la tablette : elle renvoie la version reçue (en-tête X-Version-File) ; 204 si rien n'a changé.
+    // Sans cet en-tête (serveur plus ancien), la file complète à chaque fois. --sans-version force ce cas.
+    let version: string | null = null;
     taches.push(
       boucle(RELECTURE_S * 1000, async () => {
-        await Promise.all([
-          appel("tablette : file", "/api/tablette/file", { headers: { Cookie: service } }),
+        const [file] = await Promise.all([
+          appel("tablette : file", `/api/tablette/file${version && AVEC_VERSION ? `?version=${encodeURIComponent(version)}` : ""}`, { headers: { Cookie: service } }),
           appel("tablette : livraisons", "/api/tablette/livraisons", { headers: { Cookie: service } }),
         ]);
+        if (file?.status === 200) version = file.headers.get("x-version-file");
       }),
     );
   }

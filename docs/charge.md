@@ -16,7 +16,7 @@ BASE_LOCALE=1 BASE_LOCALE_INSTANTANE=$PWD/.pglite/rush.tar.gz npm run build && B
 npm run charge:vendredi -- --site=http://localhost:3229 --minutes=5 --tablettes=15 --relecture=5
 ```
 
-Options : `--minutes`, `--tablettes`, `--relecture` (secondes entre deux relectures d'une tablette), `--suivis` (clients qui suivent leur commande, page rafraîchie toutes les 20 s), `--livreurs` (15 s), `--back-offices` (30 s), `--commandes-heure` (commandes passées, payées par la doublure de paiement puis acceptées). Le script se connecte avec les comptes factices du jeu de rush.
+Options : `--minutes`, `--tablettes`, `--relecture` (secondes entre deux relectures d'une tablette), `--suivis` (clients qui suivent leur commande, page rafraîchie toutes les 20 s), `--livreurs` (15 s), `--back-offices` (30 s), `--commandes-heure` (commandes passées, payées par la doublure de paiement puis acceptées). Le script se connecte avec les comptes factices du jeu de rush. Les tablettes simulées renvoient la version de la file reçue (`?version=`, en-tête `X-Version-File`) comme la vraie tablette ; `--sans-version` mesure la file complète à chaque relecture.
 
 ## Résultats
 
