@@ -173,6 +173,9 @@ test("tournée de deux livraisons, ordre proposé, Je pars, Livrée : plus rien 
   for (const n of [a, b]) {
     await expect(tournee("Marco").locator(".liv-arret-tab", { hasText: `N° ${n} ` })).toContainText("En route depuis", { timeout: 15_000 });
   }
+  // D'une main (vague 3) : en route, l'arrêt en cours a « Livrée » sous le pouce, le suivant est replié.
+  await expect(marco.locator(".liv-pouce")).toContainText(`Livrée, n° ${a}`);
+  await expect(arret(marco, b)).toHaveClass(/liv-arret-replie/);
   await arret(marco, a).getByRole("button", { name: "Livrée" }).click();
   await expect(arret(marco, a)).toHaveCount(0);
   await arret(marco, b).getByRole("button", { name: "Livrée" }).click();
