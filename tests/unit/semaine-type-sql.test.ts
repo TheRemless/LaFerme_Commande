@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { creerBaseLocale } from "@/lib/db/locale";
 
 // Jours fermés chaque semaine (vague 3, bo-operations) : fermer_service_semaine, ouvrir_service_semaine,
-// commandes_jour_semaine. Migration 20261130280000_semaine_type.sql.
+// commandes_jour_semaine. Migration 20261213120000_semaine_type.sql.
 
 let db: PGlite;
 let gerant: string;

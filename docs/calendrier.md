@@ -55,7 +55,7 @@ Demande de Jérémy : « Faudrait qu'on puisse ajuster nous-mêmes les jours de 
 
 | Besoin | Où | Depuis |
 |---|---|---|
-| Jour fermé chaque semaine (midi, soir ou journée), ou service ouvert chaque semaine | Livraison et horaires, onglet Horaires, « Semaine type » | Ce PR (`20261130280000_semaine_type.sql`) |
+| Jour fermé chaque semaine (midi, soir ou journée), ou service ouvert chaque semaine | Livraison et horaires, onglet Horaires, « Semaine type » | Ce PR (`20261213120000_semaine_type.sql`) |
 | Heures de chaque service ouvert | Livraison et horaires, onglet Horaires | Lot 7 |
 | Vacances sur une plage de dates | Livraison et horaires, onglet Fermetures, « Des journées entières », du … au … | Lot 7 |
 | Fermeture exceptionnelle d'un service (un midi, un soir) | Calendrier, fiche du jour, ou onglet Fermetures | Vague 2 et 3 |
