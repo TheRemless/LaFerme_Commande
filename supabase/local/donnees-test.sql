@@ -22,7 +22,10 @@ insert into personnel (email, nom, role) values
   ('coque-bureau@laferme.test', 'Coque bureau', 'gerant'),
   ('coque-mobile@laferme.test', 'Coque mobile', 'gerant'),
   ('coque-service-bureau@laferme.test', 'Coque service bureau', 'service'),
-  ('coque-service-mobile@laferme.test', 'Coque service mobile', 'service');
+  ('coque-service-mobile@laferme.test', 'Coque service mobile', 'service'),
+  -- Kit du back-office (tests/e2e/gestion-kit.spec.ts, page /gestion/kit en local).
+  ('kit-bureau@laferme.test', 'Kit bureau', 'gerant'),
+  ('kit-mobile@laferme.test', 'Kit mobile', 'gerant');
 
 -- Livreurs des essais (tests/e2e/livreurs.spec.ts) et la tablette qui leur donne les commandes.
 insert into personnel (email, nom, role) values
