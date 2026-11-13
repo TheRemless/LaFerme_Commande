@@ -101,6 +101,19 @@ export function detailsValides(v: unknown): Details | null {
   return { sonnette, etage, code, instructions };
 }
 
+// Commande pour quelqu'un d'autre : la personne qui reçoit ou vient chercher la commande (vague 3).
+// Absente : null (pour soi-même). Sinon le destinataire nettoyé, ou le nom du champ faux.
+export type Destinataire = { nom: string; telephone: string };
+export function destinataireValide(v: unknown): Destinataire | "nom" | "telephone" | null {
+  if (v === undefined || v === null) return null;
+  const d = (typeof v === "object" ? v : {}) as Record<string, unknown>;
+  const nom = texte(d.nom, 1, 80);
+  if (!nom) return "nom";
+  const telephone = texte(d.telephone, 8, 20);
+  if (!telephone || !telephoneValide(telephone)) return "telephone";
+  return { nom, telephone };
+}
+
 // Allergie ou intolérance, pour toute la commande (vague 3) : 120 caractères au plus, imprimée en tête des
 // tickets. Caractères de contrôle retirés (une imprimante de tickets les interprète). Absente : chaîne vide.
 export const LIMITE_ALLERGIE = 120;
