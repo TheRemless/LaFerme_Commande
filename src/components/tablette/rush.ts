@@ -171,3 +171,22 @@ export function jourDuNumero(creeLe: string, aujourdHui: string): string | null 
   const jour = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Zurich" }).format(new Date(creeLe));
   return jour === aujourdHui ? null : `du ${JOUR_NUMERO.format(new Date(creeLe))}`;
 }
+
+// Bandeau des remboursements pas passés (P1 du contrôle de produit-gestion) : court, une ligne. Les numéros du jour
+// (ceux qu'on peut encore voir au comptoir), puis le nombre des jours d'avant avec leurs dates ; le détail est au
+// back-office, filtré (lien). Les numéros recommencent chaque jour : une liste de 18 numéros sans date ne disait rien.
+export function texteRemboursements(commandes: { numero: number; cree_le: string }[], aujourdHui: string): string | null {
+  if (commandes.length === 0) return null;
+  const jour = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Zurich" });
+  const court = new Intl.DateTimeFormat("fr-CH", { timeZone: "Europe/Zurich", day: "numeric", month: "short" });
+  const du = commandes.filter((c) => jour.format(new Date(c.cree_le)) === aujourdHui);
+  const avant = commandes.filter((c) => jour.format(new Date(c.cree_le)) !== aujourdHui).sort((a, b) => a.cree_le.localeCompare(b.cree_le));
+  const morceaux: string[] = [];
+  if (du.length) morceaux.push(`n° ${du.map((c) => c.numero).join(", ")} aujourd'hui`);
+  if (avant.length) {
+    const premier = court.format(new Date(avant[0].cree_le));
+    const dernier = court.format(new Date(avant[avant.length - 1].cree_le));
+    morceaux.push(`${avant.length} ${avant.length > 1 ? "commandes" : "commande"} des jours d'avant (${premier === dernier ? `le ${premier}` : `du ${premier} au ${dernier}`})`);
+  }
+  return `Remboursement pas passé : ${morceaux.join(", ")}.`;
+}

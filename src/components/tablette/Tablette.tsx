@@ -20,6 +20,7 @@ import { OngletLivraisons, livraisonsEnCours, problemeTexte } from "@/components
 import { PanneauModifier } from "@/components/tablette/PanneauModifier";
 import { DELAI_ANNULER_MS, estDiffere, texteGeste } from "@/components/tablette/differe";
 import { acceptablesEnSerie, nouveaux, sonnerProbleme, sonnerRetard } from "@/components/tablette/sons";
+import { texteRemboursements } from "@/components/tablette/rush";
 import { annuleesParClient, chercherCommandes, etatTemps, jourDuNumero, lignesImprimantes, minutesDeRetard, minutesRestantes, ordreStable, type Rythme } from "@/components/tablette/rush";
 import { LigneCommande } from "@/components/tablette/LigneCommande";
 import "./tablette.css";
@@ -622,9 +623,10 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
         </p>
       )}
       {aRembourser.length > 0 && (
-        <p className="tab-alerte" role="alert">
-          Remboursement pas passé : {aRembourser.length === 1 ? "commande" : "commandes"} {aRembourser.map((c) => c.numero).join(", ")}. Ouvrez « Terminées » et
-          touchez « Rembourser ».
+        // Une ligne : les numéros du jour, le nombre des jours d'avant avec leurs dates, le détail au back-office.
+        <p className="tab-alerte tab-alerte-courte" role="alert">
+          {texteRemboursements(aRembourser, aujourdHui)}{" "}
+          <a href="/gestion/commandes?remboursement=echec">Voir au back-office</a>
         </p>
       )}
       {annulees.length > 0 && (
