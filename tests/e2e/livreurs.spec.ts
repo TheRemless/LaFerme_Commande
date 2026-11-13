@@ -101,6 +101,10 @@ async function avant(liste: ReturnType<Page["locator"]>, prefixe: string, premie
   }).toPass({ timeout: 10_000 });
 }
 
+// Carte du livreur au suivi d'une commande (client-compte) : le texte de la carte pour les lecteurs d'écran.
+async function carteAuSuivi(request: APIRequestContext, numero: string): Promise<boolean> {
+  return (await (await request.get(`/suivi/${jetons.get(numero)}`)).text()).includes("Carte du quartier, avec notre livreur au centre.");
+}
 const arret = (page: Page, numero: string) => page.locator(".liv-arret", { hasText: `n° ${numero}` });
 
 test.beforeAll(async ({ browser }, info) => {
@@ -130,7 +134,7 @@ test("un livreur n'entre ni sur la tablette ni dans ses routes", async () => {
   await page.close();
 });
 
-test("tournée de deux livraisons, ordre proposé, Je pars, Livrée : plus rien sur le téléphone", async ({ request }) => {
+test("tournée de deux livraisons, ordre proposé, Je pars, Livrée : plus rien sur le téléphone", async ({ request, browser }) => {
   const a = await livraison(request, LIGNON);
   const b = await livraison(request, ONEX);
   await ongletLivraisons().click();
@@ -181,9 +185,30 @@ test("tournée de deux livraisons, ordre proposé, Je pars, Livrée : plus rien 
   await expect(arret(marco, b)).toHaveClass(/liv-arret-replie/);
   await expect(marco.locator(".liv-position")).toHaveText(`Le client du n° ${a} voit votre position jusqu'à «\u00a0Livrée\u00a0».`, { timeout: 15_000 });
   await marco.screenshot({ path: "test-results/livreurs/livreur-375-position.png" });
+  // Suivi (client-compte) : la carte au client de l'arrêt en cours seulement, jamais au suivant de la tournée.
+  await expect.poll(() => carteAuSuivi(request, a), { timeout: 15_000 }).toBe(true);
+  expect(await carteAuSuivi(request, b)).toBe(false);
+  if (process.env.RENDUS === "1") {
+    for (const largeur of [375, 320]) {
+      const client = await (await browser.newContext({ baseURL: BASE, viewport: { width: largeur, height: 900 } })).newPage();
+      await client.goto(`/suivi/${jetons.get(a)}`);
+      await expect(client.locator(".carte-livreur img").first()).toBeVisible();
+      await client.screenshot({ path: `docs/rendus/vague-3/client-compte/suivi-carte-livreur-${largeur}.png`, fullPage: true });
+      await client.context().close();
+    }
+  }
   await arret(marco, a).getByRole("button", { name: "Livrée" }).click();
   await expect(arret(marco, a)).toHaveCount(0);
   await expect(marco.locator(".liv-position")).toHaveText(`Le client du n° ${b} voit votre position jusqu'à «\u00a0Livrée\u00a0».`, { timeout: 15_000 });
+  // Livrée chez le premier : sa carte disparaît. Le second ne voit rien tant que le livreur est à moins de 400 m
+  // de la porte du premier (point de masquage de tablette), puis voit la sienne quand il s'en éloigne.
+  expect(await carteAuSuivi(request, a)).toBe(false);
+  expect(await carteAuSuivi(request, b)).toBe(false);
+  // Le téléphone envoie au plus une position toutes les 20 s, à chaque changement : le livreur roule encore un peu.
+  await contexteMarco.setGeolocation({ latitude: 46.2, longitude: 6.096, accuracy: 15 });
+  await marco.waitForTimeout(21_000);
+  await contexteMarco.setGeolocation({ latitude: 46.201, longitude: 6.096, accuracy: 15 });
+  await expect.poll(() => carteAuSuivi(request, b), { timeout: 45_000, intervals: [2_000] }).toBe(true);
   await arret(marco, b).getByRole("button", { name: "Livrée" }).click();
   await expect(arret(marco, b)).toHaveCount(0);
   await tablette.getByRole("button", { name: /^Terminées/ }).click();

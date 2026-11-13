@@ -50,3 +50,9 @@ La rubrique « Connexion » du compte liste les appareils connectés, avec un no
 ## Heure et allergie au suivi
 
 Le suivi et les e-mails donnent l'heure confirmée en fourchette, comme l'accueil (« Prête entre 19h35 et 19h45 »), selon les largeurs réglées par le restaurant. À largeur 0, une seule heure (« vers 19h40 »). L'allergie que le client a signalée à la commande est rappelée dans le détail de sa page de suivi. L'e-mail de confirmation dit seulement qu'une allergie est signalée, sans en recopier le texte.
+
+## Position du livreur au suivi
+
+Pendant que sa commande est en route, le client voit la position du livreur sur une carte grise de swisstopo, sous les étapes de son suivi (décision de Jérémy du 13.11.2026). La carte ne montre que le livreur, pas l'adresse du client. Elle se met à jour avec le suivi toutes les 20 secondes. Une ligne donne l'heure du relevé (« Position relevée à 19h42. »). Quand la position n'est pas montrable, rien n'est dit : une phrase apprendrait au client qu'un autre arrêt passe avant le sien.
+
+La base de `tablette` décide qui voit quoi (PR #228) : seulement le client de l'arrêt en cours, jamais le client suivant de la même tournée. La position montrée a moins de 2 minutes. Le client suivant ne voit son livreur qu'à 400 m du point de masquage. Ce point est la porte précédente, ou le restaurant si l'arrêt d'avant s'est terminé pendant que sa commande y attendait encore. Il n'y a donc pas de carte pendant les premières minutes du trajet. Aucun texte du suivi ne promet de suivre le livreur dès son départ. L'absence de carte ne se signale pas. À la remise, la carte disparaît. Quand le livreur passe sur son appli de navigation, son téléphone n'envoie plus sa position et la carte disparaît au bout de 2 minutes. La déclaration de confidentialité le dit.

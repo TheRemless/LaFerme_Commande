@@ -8,6 +8,8 @@ import { Actualiser } from "@/components/suivi/Actualiser";
 import { AnnulerCommande } from "@/components/suivi/AnnulerCommande";
 import { Reclamation } from "@/components/suivi/Reclamation";
 import { CreerCompte } from "@/components/suivi/CreerCompte";
+import { CarteLivreur } from "@/components/suivi/CarteLivreur";
+import { positionPourSuivi } from "@/lib/position-livreur";
 import { chargerCatalogue } from "@/lib/catalogue";
 import { chargerConfigService } from "@/lib/config-service";
 import { estimationAsap } from "@/lib/estimation";
@@ -74,6 +76,10 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
   // Réclamation possible sur une commande acceptée, de moins de 14 jours (mêmes règles que la base, #87).
   const reclamable =
     ["acceptee", "en_preparation", "prete", "partie", "terminee"].includes(c.statut) && Date.now() - new Date(c.cree_le).getTime() < 14 * 86_400_000;
+  // Position du livreur (décision de Jérémy du 13.11.2026) : la base ne la donne que si cette commande est l'arrêt
+  // en cours de son livreur, jamais pendant la livraison d'un autre client de la même tournée. Avant la migration
+  // 20261213210000 ou en cas d'erreur : pas de carte, le suivi reste le même.
+  const positionLivreur = c.mode === "livraison" && c.statut === "partie" ? await positionPourSuivi(c.id).catch(() => null) : null;
   // Un remboursement attendu chez Stripe garde la page à jour, même commande terminée.
   const attente = remboursements.some((r) => r.moyen === "stripe" && r.statut === "en_cours");
 
@@ -156,6 +162,7 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
                   </li>
                 ))}
               </ol>
+              {positionLivreur && <CarteLivreur position={positionLivreur} />}
               {retard ? (
                 <p className="suivi-retard" role="status">
                   {PHRASE_RETARD}
