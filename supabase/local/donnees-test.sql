@@ -92,8 +92,6 @@ insert into personnel (email, nom, role) values
   ('promos-bureau@laferme.test', 'Promos bureau', 'gerant'),
   ('promos-mobile@laferme.test', 'Promos mobile', 'gerant');
 
-  ('liste-mobile@laferme.test', 'Liste mobile', 'gerant');
-
 -- Rubrique Clients du back-office (vague 3, bo-commandes, tests/e2e/gestion-clients.spec.ts).
 insert into personnel (email, nom, role) values
   ('clients-bureau@laferme.test', 'Clients bureau', 'gerant'),
