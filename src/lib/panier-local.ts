@@ -87,6 +87,20 @@ export function usePanier() {
     },
     [changer],
   );
+  // Ligne modifiée depuis sa fiche (options, retraits, note, quantité) : elle garde sa place. Devenue
+  // identique à une autre ligne, les deux se rejoignent.
+  const remplacer = useCallback(
+    (i: number, l: LignePanier) => {
+      setRetiree(null);
+      changer((avant) => {
+        if (!avant[i]) return avant;
+        const autre = avant.findIndex((x, j) => j !== i && memeLigne(x, l));
+        if (autre === -1) return avant.map((x, j) => (j === i ? l : x));
+        return avant.flatMap((x, j) => (j === i ? [] : j === autre ? [{ ...x, qte: Math.min(LIMITES.quantite, x.qte + l.qte) }] : [x]));
+      });
+    },
+    [changer],
+  );
   // La ligne revient à sa place, avec ses options et sa note.
   const annulerRetrait = useCallback(() => {
     if (!retiree) return;
@@ -106,7 +120,7 @@ export function usePanier() {
     }
   }, []);
 
-  return { lignes, charge, ajouter, quantite, expire, retiree, annulerRetrait, oublierExpire };
+  return { lignes, charge, ajouter, quantite, remplacer, expire, retiree, annulerRetrait, oublierExpire };
 }
 
 export type SuiviPanier = Pick<ReturnType<typeof usePanier>, "expire" | "retiree" | "annulerRetrait" | "oublierExpire">;
