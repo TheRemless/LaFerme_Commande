@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
-import { SITE } from "./site";
+import { connecterPersonnelApi, SITE } from "./site";
 
 // Faux client Star CloudPRNT : joue le rôle de l'imprimante (POST, GET, DELETE) contre le vrai serveur.
 // Un seul projet : la file d'impression est commune, deux faux clients se prendraient leurs tickets.
@@ -7,21 +7,34 @@ test.describe.configure({ mode: "serial" });
 
 const ORIGINE = { Origin: SITE };
 const MAC = "00:11:62:12:34:56";
+const NOM = "Imprimante pizza";
+
+// Met hors service les imprimantes laissées par un passage précédent de ce fichier (réessai, passage
+// interrompu) : sinon les tickets pizza partent vers l'ancienne et le nouveau faux client ne les voit jamais.
+async function retirerAnciennes(contexte: APIRequestContext) {
+  const { imprimantes } = (await (await contexte.get("/api/gestion/imprimantes")).json()) as { imprimantes: { id: number; nom: string; actif: boolean }[] };
+  for (const i of imprimantes.filter((x) => x.nom === NOM && x.actif)) {
+    expect((await contexte.post("/api/gestion/imprimantes", { data: { type: "actif", id: i.id, actif: false } })).ok()).toBe(true);
+  }
+}
 let gerant: APIRequestContext;
 let url: string;
 
 test.beforeAll(async ({ playwright }, info) => {
   test.skip(info.project.name !== "bureau", "file d'impression partagée : un seul projet");
+  // Au réessai, la connexion attend la fin du délai d'un code par e-mail (30 s) : plus que le délai d'un hook.
+  test.setTimeout(90_000);
   gerant = await playwright.request.newContext({ baseURL: SITE, extraHTTPHeaders: ORIGINE });
-  const c = await (await gerant.post("/api/personnel/code", { data: { email: "impression@laferme.test" } })).json();
-  expect((await gerant.post("/api/personnel/connexion", { data: { email: "impression@laferme.test", code: c.codePreversion } })).ok()).toBe(true);
-  const r = await gerant.post("/api/gestion/imprimantes", { data: { type: "ajouter", nom: "Imprimante pizza", station: "pizza" } });
+  await connecterPersonnelApi(gerant, "impression@laferme.test");
+  await retirerAnciennes(gerant);
+  const r = await gerant.post("/api/gestion/imprimantes", { data: { type: "ajouter", nom: NOM, station: "pizza" } });
   expect(r.ok()).toBe(true);
   url = new URL((await r.json()).url).pathname;
   expect(url).toMatch(/^\/api\/cloudprnt\/[A-Za-z0-9_-]{43}$/);
 });
 
 test.afterAll(async () => {
+  if (gerant) await retirerAnciennes(gerant);
   await gerant?.dispose();
 });
 
@@ -45,9 +58,18 @@ async function attendreTicket(request: APIRequestContext, marque: RegExp): Promi
 }
 
 test("une commande acceptée sort à l'imprimante pizza : POST, GET image/png, DELETE 200 OK", async ({ request }) => {
-  // Premier passage : rien à imprimer, l'imprimante est liée à sa MAC.
-  const vide = await request.post(url, { headers: { "X-Star-Mac": MAC }, data: { statusCode: "200%20OK", printerMAC: MAC } });
-  expect(await vide.json()).toEqual({ jobReady: false });
+  // Premier passage : l'imprimante est liée à sa MAC. La file est commune à toute la base : un ticket pizza
+  // accepté par un autre test en même temps peut déjà l'attendre (CI de la PR #85). Comme une vraie
+  // imprimante, elle l'imprime, jusqu'à une file vide.
+  let vide = false;
+  for (let i = 0; i < 40 && !vide; i++) {
+    const j = await (await request.post(url, { headers: { "X-Star-Mac": MAC }, data: { statusCode: "200%20OK", printerMAC: MAC } })).json();
+    if (!j.jobReady) {
+      expect(j).toEqual({ jobReady: false });
+      vide = true;
+    } else expect((await request.delete(`${url}?code=200%20OK&token=${j.jobToken}&mac=${MAC}`)).status()).toBe(200);
+  }
+  expect(vide).toBe(true);
 
   const commande = await request.post("/api/commandes", {
     data: {
@@ -78,7 +100,7 @@ test("une commande acceptée sort à l'imprimante pizza : POST, GET image/png, D
   const apres = await (await gerant.get("/api/tablette/file")).json();
   const taches = apres.impression.taches.filter((t: { commande_id: string }) => t.commande_id === c.id);
   expect(taches.map((t: { etat: string }) => t.etat)).toEqual(["imprimee"]);
-  expect(apres.impression.imprimantes.find((i: { nom: string }) => i.nom === "Imprimante pizza").en_ligne).toBe(true);
+  expect(apres.impression.imprimantes.find((i: { nom: string; actif: boolean }) => i.nom === NOM && i.actif).en_ligne).toBe(true);
 
   // Réimpression : un nouveau ticket marqué « RÉIMPRESSION ».
   expect((await gerant.post("/api/tablette/action", { data: { commande: c.id, action: "reimprimer" } })).ok()).toBe(true);
