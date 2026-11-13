@@ -124,15 +124,19 @@ language sql stable as $$
 $$;
 
 -- Même définition que 20261117090000_gerant_vague2.sql, rupture lue « jusqu'au », date de fin en plus.
+-- Toutes les options proposées, y compris celles d'un choix obligatoire (pâtes, sauce), à la demande de
+-- la tablette : « obligatoire » lui permet d'avertir avant d'épuiser la dernière option d'un tel groupe.
 create or replace function options_tablette() returns jsonb
 language sql stable as $$
   select coalesce(jsonb_agg(jsonb_build_object(
     'groupe', g.slug, 'groupe_nom', g.nom, 'nom', o.nom,
     'rupture', coalesce(o.rupture_jour >= (now() at time zone 'Europe/Zurich')::date, false),
-    'rupture_jusqu_au', case when o.rupture_jour >= (now() at time zone 'Europe/Zurich')::date then o.rupture_jour end
+    'rupture_jusqu_au', case when o.rupture_jour >= (now() at time zone 'Europe/Zurich')::date then o.rupture_jour end,
+    'obligatoire', g.choix_min > 0,
+    'choix_min', g.choix_min
   ) order by g.slug, o.ordre), '[]'::jsonb)
   from options o join groupes_options g on g.id = o.groupe_id
-  where o.actif and g.choix_min = 0;
+  where o.actif;
 $$;
 
 -- ---------- Rupture d'un poste ou d'une catégorie ----------

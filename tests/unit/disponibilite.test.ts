@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { dateEnLettres, dispoDe, joursEnLettres, motifDisponibilite } from "@/lib/disponibilite";
 import { champsDisponibilite, dateRupture } from "@/lib/gestion-dispo";
 import type { Catalogue, PlatCatalogue } from "@/lib/panier";
-import { erreurPlatsDuJour } from "@/lib/plat-du-jour";
+import { erreurPlatsDuJour, motifPlat } from "@/lib/plat-du-jour";
 
 // Disponibilités d'un plat et rupture planifiée, côté serveur et navigateur (src/lib/disponibilite.ts).
 // Le 2026-11-20 est un vendredi. Aucun prix : le contrôle ne lit pas les montants.
@@ -91,6 +91,20 @@ describe("au panier et au paiement", () => {
     const c = catalogue({ jour: { date: VENDREDI, service: "midi" } });
     expect(erreurPlatsDuJour(c, [{ slug: "essai" }], soir(), VENDREDI)).toBe("Burrata d'essai : seulement à midi.");
     expect(erreurPlatsDuJour(c, [{ slug: "inconnu" }], soir(), VENDREDI)).toBeNull();
+  });
+});
+
+describe("choix obligatoire épuisé", () => {
+  it("un plat dont le groupe obligatoire n'a plus assez d'options est épuisé", () => {
+    const groupe = (ruptures: boolean[]) => ({
+      slug: "choix-pates", nom: "Pâtes", choix_min: 1, choix_max: 1,
+      options: ruptures.map((r, i) => ({ nom: `P${i}`, prix_centimes: 0, prix_a_valider: false, rupture: r })),
+    });
+    const plat: PlatCatalogue = { slug: "essai", nom: "Pâtes d'essai", categorie_slug: "pates", prix_centimes: 0, prix_a_valider: false, station: "cuisine", rupture_motif: null, groupes: ["choix-pates"], retraits: [] };
+    const cat = (ruptures: boolean[]): Catalogue => ({ plats: { essai: plat }, groupes: { "choix-pates": groupe(ruptures) }, tauxTvaPourcent: 0 });
+    expect(motifPlat(cat([true, false]), "essai", midi(), VENDREDI)).toBeNull();
+    expect(motifPlat(cat([true, true]), "essai", midi(), VENDREDI)).toBe("Épuisé pour aujourd'hui.");
+    expect(erreurPlatsDuJour(cat([true, true]), [{ slug: "essai" }], null, VENDREDI)).toBe("Pâtes d'essai : épuisé pour aujourd'hui.");
   });
 });
 

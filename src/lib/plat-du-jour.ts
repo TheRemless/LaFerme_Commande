@@ -52,9 +52,25 @@ export function momentDe(config: ConfigService, maintenant: Date, mode: Mode, zo
   return service ? { ...m, service, mode } : { ...m, mode };
 }
 
-// Premier plat du panier qui ne va pas avec le moment demandé : plat du jour d'un autre jour ou service,
-// plat réservé à un service, un mode ou certains jours, rupture planifiée (src/lib/disponibilite.ts).
-// « Osso buco : seulement à midi. » Appelée au panier et au paiement.
+// Pourquoi ce plat ne peut pas être pris pour ce moment, ou null : plat du jour d'un autre jour ou service,
+// plat réservé à un service, un mode ou certains jours, rupture planifiée (src/lib/disponibilite.ts),
+// choix obligatoire dont toutes les options sont épuisées. Texte prêt pour le client : la carte
+// l'affiche, le panier et le paiement refusent avec le même.
+export function motifPlat(catalogue: Catalogue, slug: string, moment: Moment | null, aujourdhui: string): string | null {
+  const p = Object.hasOwn(catalogue.plats, slug) ? catalogue.plats[slug] : undefined;
+  if (!p) return null;
+  const jour = p.jour && moment ? motifPlatDuJour(p.jour, moment) : null;
+  if (jour) return jour;
+  const dispo = motifDisponibilite(p, moment, aujourdhui);
+  if (dispo) return dispo;
+  for (const s of p.groupes ?? []) {
+    const g = Object.hasOwn(catalogue.groupes, s) ? catalogue.groupes[s] : undefined;
+    if (g && g.choix_min > 0 && g.options.filter((o) => !o.rupture).length < g.choix_min) return "Épuisé pour aujourd'hui.";
+  }
+  return null;
+}
+
+// Premier plat du panier qui ne peut pas être pris : « Osso buco : seulement à midi. » Panier et paiement.
 export function erreurPlatsDuJour(
   catalogue: Catalogue,
   lignes: { slug: string }[],
@@ -62,10 +78,8 @@ export function erreurPlatsDuJour(
   aujourdhui: string = instantGeneve(new Date()).date,
 ): string | null {
   for (const l of lignes) {
-    const p = Object.hasOwn(catalogue.plats, l.slug) ? catalogue.plats[l.slug] : undefined;
-    if (!p) continue;
-    const motif = (p.jour && moment ? motifPlatDuJour(p.jour, moment) : null) ?? motifDisponibilite(p, moment, aujourdhui);
-    if (motif) return `${p!.nom} : ${motif.charAt(0).toLowerCase()}${motif.slice(1)}`;
+    const motif = motifPlat(catalogue, l.slug, moment, aujourdhui);
+    if (motif) return `${catalogue.plats[l.slug].nom} : ${motif.charAt(0).toLowerCase()}${motif.slice(1)}`;
   }
   return null;
 }

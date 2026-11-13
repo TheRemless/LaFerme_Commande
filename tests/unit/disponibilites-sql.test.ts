@@ -2,7 +2,7 @@ import type { PGlite } from "@electric-sql/pglite";
 import { beforeEach, describe, expect, it } from "vitest";
 import { creerBaseLocale } from "@/lib/db/locale";
 
-// Disponibilités et ruptures planifiées, côté base (supabase/migrations/20261128090000_disponibilites.sql).
+// Disponibilités et ruptures planifiées, côté base (supabase/migrations/20261130100000_disponibilites.sql).
 // Les vues lient now() à leur création : on part du vrai jour de Genève (pg_catalog.now) et on déplace
 // les dates pour simuler le temps qui passe. Montants d'essai, aucun prix de la carte.
 
@@ -135,6 +135,10 @@ describe("rupture planifiée", () => {
     await db.query("update options set rupture_jour = (pg_catalog.now() at time zone 'Europe/Zurich')::date - 1 where nom = 'Anchois'");
     expect((await optionPublique("Anchois")).rupture).toBe(false);
     expect(await f("planifier_rupture_option('supplements-pizza', 'Inconnue', null, $1)", [gerant])).toBe(false);
+    // Les choix obligatoires (pâtes) sont aussi listés pour la tablette, marqués comme tels.
+    const pates = (await f<{ groupe: string; obligatoire: boolean }[]>("options_tablette()")).filter((x) => x.groupe === "choix-pates");
+    expect(pates.length).toBeGreaterThan(0);
+    expect(pates.every((x) => x.obligatoire)).toBe(true);
     expect(await erreur("planifier_rupture_option('supplements-pizza', 'Anchois', $1::date, $2)", [dans2, service])).toContain("Réservé au gérant");
   });
 
