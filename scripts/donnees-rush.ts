@@ -8,7 +8,7 @@
 import { mkdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { creerBaseLocale } from "../src/lib/db/locale";
-import { genererRush, OPTIONS_PAR_DEFAUT } from "./rush/generer";
+import { genererRush, instant, OPTIONS_PAR_DEFAUT } from "./rush/generer";
 import { empreinteRush, refusHorsBaseEmbarquee } from "./rush/garde";
 
 function argument(nom: string): string | undefined {
@@ -24,9 +24,8 @@ function lireMaintenant(v: string | undefined): Date {
     return d;
   }
   if (/[zZ]|[+-]\d\d:\d\d$/.test(v)) return new Date(v);
-  const brut = new Date(`${v}:00Z`);
-  const decalage = new Date(brut.toLocaleString("en-US", { timeZone: "Europe/Zurich" })).getTime() - new Date(brut.toLocaleString("en-US", { timeZone: "UTC" })).getTime();
-  return new Date(brut.getTime() - decalage);
+  const m = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})$/.exec(v);
+  return m ? instant(m[1], Number(m[2]) * 60 + Number(m[3])) : new Date(Number.NaN);
 }
 
 async function main() {

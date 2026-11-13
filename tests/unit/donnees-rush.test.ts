@@ -37,7 +37,7 @@ describe("jeu de données de rush", () => {
     const r = await db.query<Record<string, number>>(`select
       (select count(*) from commandes c where sous_total_centimes <> (select sum(total_centimes) from commande_lignes l where l.commande_id = c.id))::int as totaux_faux,
       (select count(*) from commandes where total_centimes <> sous_total_centimes + frais_centimes)::int as frais_faux,
-      (select count(*) from commandes where moyen_paiement = 'comptoir' and (mode = 'livraison' or total_centimes > 10000))::int as comptoir_hors_regle,
+      (select count(*) from commandes where moyen_paiement = 'comptoir' and (mode = 'livraison' or total_centimes > (select (valeur #>> '{}')::int from reglages where cle = 'plafond_comptoir_centimes')))::int as comptoir_hors_regle,
       (select count(*) from commandes where mode = 'livraison' and sous_total_centimes < (select minimum_centimes from zones_livraison z where z.numero = zone_numero))::int as sous_minimum,
       (select count(*) from commandes where client_email not like '%@exemple.test')::int as email_reel,
       (select count(*) from comptes where email not like '%@exemple.test')::int as compte_reel,
@@ -46,10 +46,15 @@ describe("jeu de données de rush", () => {
       (select count(*) from (select jour_service, numero from commandes group by 1, 2 having count(*) > 1) d)::int as numeros_doubles,
       (select count(*) from remboursements r join commandes c on c.id = r.commande_id where r.montant_centimes > c.total_centimes)::int as remboursement_trop,
       (select count(*) from commandes where statut in ('terminee', 'refusee') and termine_le is null)::int as fin_sans_heure,
+      (select count(*) from commandes where greatest(termine_le, rembourse_le, paye_le, accepte_le, modifie_le) > '2026-11-13T14:00:00Z')::int as heure_future,
+      (select count(*) from remboursements where cree_le > '2026-11-13T14:00:00Z')::int as remboursement_futur,
+      (select count(*) from commandes c where statut_paiement = 'rembourse' and not exists (select 1 from remboursements r where r.commande_id = c.id and r.statut = 'fait'))::int as rembourse_sans_fait,
+      (select count(*) from (select commande_id, le, lag(le) over (partition by commande_id order by id) av from evenements_commande where de is not null) e where le < av)::int as etapes_desordre,
       (select count(*) from commandes where cree_le > '2026-11-13T14:00:00Z')::int as futur`);
     expect(r.rows[0]).toEqual({
       totaux_faux: 0, frais_faux: 0, comptoir_hors_regle: 0, sous_minimum: 0, email_reel: 0, compte_reel: 0, telephone_reel: 0,
-      stripe_reel: 0, numeros_doubles: 0, remboursement_trop: 0, fin_sans_heure: 0, futur: 0,
+      stripe_reel: 0, numeros_doubles: 0, remboursement_trop: 0, fin_sans_heure: 0, heure_future: 0, remboursement_futur: 0,
+      rembourse_sans_fait: 0, etapes_desordre: 0, futur: 0,
     });
     // Tous les cas utiles au service sont là : file en direct, à l'avance, refus, échecs, remboursements, livreurs.
     const statuts = (await db.query<{ s: string }>("select distinct statut as s from commandes")).rows.map((x) => x.s);

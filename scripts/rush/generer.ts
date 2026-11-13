@@ -95,7 +95,7 @@ export function dateGeneve(d: Date): string {
 }
 
 // Instant d'une heure locale de Genève (minutes depuis minuit) un jour donné, été comme hiver.
-function instant(date: string, minutes: number, secondes = 0): Date {
+export function instant(date: string, minutes: number, secondes = 0): Date {
   const [a, m, j] = date.split("-").map(Number);
   const voulu = Date.UTC(a, m - 1, j, 0, minutes, secondes);
   let t = voulu;
@@ -333,6 +333,14 @@ export async function genererRush(db: PGlite, o: OptionsRush): Promise<BilanRush
     let quandType: "asap" | "creneau" = etat === "avance" || (etat !== "direct" && h.vrai(0.2)) ? "creneau" : "asap";
     let quandMinutes: number | null = null;
     let creeLe: Date;
+    if (etat === "direct") creeLe = plus(maintenant, -(ageMinutes ?? 0) - h.nombre());
+    else if (quandType === "creneau") {
+      const avance = etat === "avance" ? h.entier(60, 6 * 24 * 60) : h.pondere([[h.entier(20, 120), 70], [h.entier(600, 2000), 30]] as const);
+      creeLe = plus(instant(jourService, minutesCible, h.entier(0, 59)), -avance);
+      if (creeLe > maintenant) creeLe = plus(maintenant, -h.entier(5, 60));
+    } else creeLe = instant(jourService, minutesCible + h.entier(0, 14), h.entier(0, 59));
+    if (creeLe > maintenant) return;
+    // Capacité du créneau (creneau_plein) : comptée seulement pour une commande vraiment enregistrée.
     if (quandType === "creneau") {
       quandMinutes = Math.ceil((minutesCible + 30) / 15) * 15;
       const cle = `${jourService}:${quandMinutes}:${mode}`;
@@ -341,15 +349,10 @@ export async function genererRush(db: PGlite, o: OptionsRush): Promise<BilanRush
         if (etat === "avance") return;
         quandType = "asap";
         quandMinutes = null;
+        creeLe = instant(jourService, minutesCible + h.entier(0, 14), h.entier(0, 59));
+        if (creeLe > maintenant) return;
       } else creneauxPris.set(cle, (creneauxPris.get(cle) ?? 0) + 1);
     }
-    if (etat === "direct") creeLe = plus(maintenant, -(ageMinutes ?? 0) - h.nombre());
-    else if (quandType === "creneau") {
-      const avance = etat === "avance" ? h.entier(60, 6 * 24 * 60) : h.pondere([[h.entier(20, 120), 70], [h.entier(600, 2000), 30]] as const);
-      creeLe = plus(instant(jourService, minutesCible, h.entier(0, 59)), -avance);
-      if (creeLe > maintenant) creeLe = plus(maintenant, -h.entier(5, 60));
-    } else creeLe = instant(jourService, minutesCible + h.entier(0, 14), h.entier(0, 59));
-    if (creeLe > maintenant) return;
 
     const id = h.uuid();
     const enLigne = !comptoir;
@@ -428,7 +431,15 @@ export async function genererRush(db: PGlite, o: OptionsRush): Promise<BilanRush
       c.stripe_session_id = `cs_test_rush_${o.graine}_${nPaiement}`;
       const payeLe = plus(creeLe, 0.3 + h.nombre() * 1.5);
       // Échec chez Stripe ou paiement abandonné.
-      const sort = etat === "direct" || etat === "avance" ? "paye" : h.pondere([["paye", 975], ["echec", 15], ["abandon", 10]] as const);
+      let sort: string = etat === "direct" || etat === "avance" ? "paye" : h.pondere([["paye", 975], ["echec", 15], ["abandon", 10]] as const);
+      // Pas encore d'issue à « maintenant » : la commande attend son paiement, comme sur le site.
+      if (sort === "abandon" ? plus(creeLe, 35) > maintenant : payeLe > maintenant) sort = "en_attente";
+      if (sort === "en_attente") {
+        Object.assign(c, { statut: "paiement_en_attente", statut_paiement: "en_attente" });
+        commandes.push(c);
+        compter("paiement_en_attente");
+        return;
+      }
       if (sort === "echec") {
         Object.assign(c, { statut: "annulee", statut_paiement: "echec", motif: "Paiement non abouti", modifie_le: payeLe.toISOString() });
         ev(null, "annulee", "stripe", payeLe, "Paiement non abouti");
@@ -456,19 +467,24 @@ export async function genererRush(db: PGlite, o: OptionsRush): Promise<BilanRush
     const accepteLe = plus(debut, (pointe ? 2 : 0.5) + h.nombre() * (pointe ? 8 : 4));
     const delai = zone ? h.entier(zone.delai_min, zone.delai_max) : h.entier(20, 30);
     const cible = quandType === "creneau" ? instant(jourService, quandMinutes!) : plus(accepteLe, delai);
-    const heurePrete = plus(cible, zone ? -h.entier(10, 20) : -h.entier(0, 5));
-    const terminee = plus(cible, h.entier(-6, pointe ? 18 : 10));
+    // Étapes toujours dans l'ordre : acceptée, en préparation, prête, (partie), terminée.
+    const heurePrete = new Date(Math.max(plus(accepteLe, 3).getTime(), plus(cible, zone ? -h.entier(10, 20) : -h.entier(0, 5)).getTime()));
+    const enPreparation = plus(accepteLe, Math.min(h.entier(1, 6), (heurePrete.getTime() - accepteLe.getTime()) / 120_000));
+    const heurePartie = plus(heurePrete, h.entier(2, 8));
+    const terminee = new Date(Math.max(plus(zone ? heurePartie : heurePrete, h.entier(3, 8)).getTime(), plus(cible, h.entier(-6, pointe ? 18 : 10)).getTime()));
 
     // Refusée par la tablette à l'arrivée.
-    if (etat !== "direct" && etat !== "avance" && h.vrai(0.03)) {
+    if (etat !== "direct" && etat !== "avance" && accepteLe <= maintenant && h.vrai(0.03)) {
       const motif = h.un(MOTIFS_REFUS);
       // Comme changer_statut : une commande refusée est terminée à l'heure du refus.
       Object.assign(c, { statut: "refusee", motif, termine_le: accepteLe.toISOString(), modifie_le: accepteLe.toISOString() });
       ev(statutDepart, "refusee", tablette, accepteLe, motif);
       if (enLigne) {
-        c.statut_paiement = "rembourse";
-        c.rembourse_le = plus(accepteLe, 0.2).toISOString();
-        rembourser(c, Number(c.total_centimes), motif, accepteLe, "tablette", null, null);
+        // Remboursée seulement quand Stripe l'a confirmé (statut fait), comme le webhook du site.
+        if (rembourser(c, Number(c.total_centimes), motif, accepteLe, "tablette", null, null) === "fait") {
+          c.statut_paiement = "rembourse";
+          c.rembourse_le = plus(accepteLe, 0.5).toISOString();
+        }
       }
       commandes.push(c);
       compter("refusee");
@@ -476,8 +492,8 @@ export async function genererRush(db: PGlite, o: OptionsRush): Promise<BilanRush
     }
 
     // Statut selon l'âge pour la file en direct et les commandes à l'avance.
-    const etapes: [string, Date][] = [["acceptee", accepteLe], ["en_preparation", plus(accepteLe, h.entier(1, 6))], ["prete", heurePrete]];
-    if (mode === "livraison") etapes.push(["partie", plus(heurePrete, h.entier(2, 8))]);
+    const etapes: [string, Date][] = [["acceptee", accepteLe], ["en_preparation", enPreparation], ["prete", heurePrete]];
+    if (mode === "livraison") etapes.push(["partie", heurePartie]);
     etapes.push(["terminee", terminee]);
     let statut = statutDepart;
     for (const [vers, quand] of etapes) {
@@ -509,18 +525,20 @@ export async function genererRush(db: PGlite, o: OptionsRush): Promise<BilanRush
 
     // Manque signalé (remboursement partiel) ou geste commercial (remboursement complet).
     if (statut === "terminee" && etat !== "historique") {
-      if (h.vrai(0.025)) {
-        const lignes = lignesCmd.filter((l) => l.commande_id === id);
-        const l = h.un(lignes);
-        const montant = Number(l.unitaire_centimes);
+      const signale = plus(terminee, h.entier(5, 90));
+      const geste = plus(terminee, h.entier(30, 600));
+      if (h.vrai(0.025) && signale <= maintenant) {
+        const position = h.entier(0, t.lignes.length - 1);
+        const l = t.lignes[position];
+        const montant = l.unitaire_centimes;
         const moyen = enLigne ? "stripe" : c.statut_paiement === "encaisse" ? "especes" : "deduction";
-        rembourser(c, montant, `Manque : ${l.nom}`, plus(terminee, h.entier(5, 90)), "tablette", [{ ligne: l.position, qte: 1 }], { [String(l.position)]: montant }, moyen);
+        rembourser(c, montant, `Manque : ${l.nom}`, signale, "tablette", [{ ligne: position, qte: 1 }], { [String(position)]: montant }, moyen);
         compter("manque");
-      } else if (enLigne && h.vrai(0.004)) {
-        const quand = plus(terminee, h.entier(30, 600));
-        c.statut_paiement = "rembourse";
-        c.rembourse_le = quand.toISOString();
-        rembourser(c, Number(c.total_centimes), "Geste commercial : commande arrivée froide", quand, "gestion", null, null);
+      } else if (enLigne && h.vrai(0.004) && geste <= maintenant) {
+        if (rembourser(c, Number(c.total_centimes), "Geste commercial : commande arrivée froide", geste, "gestion", null, null) === "fait") {
+          c.statut_paiement = "rembourse";
+          c.rembourse_le = plus(geste, 0.5).toISOString();
+        }
         compter("geste_complet");
       }
     }
@@ -541,7 +559,6 @@ export async function genererRush(db: PGlite, o: OptionsRush): Promise<BilanRush
     const qui = source === "gestion" ? gerant : h.un(equipe);
     const recent = maintenant.getTime() - quand.getTime() < 20 * 60_000;
     const statut = moyen !== "stripe" ? "fait" : recent ? "en_cours" : h.pondere([["fait", 96], ["echec", 4]] as const);
-    if (quand > maintenant) quand = maintenant;
     remboursements.push({
       id: h.uuid(),
       commande_id: c.id,
@@ -566,6 +583,7 @@ export async function genererRush(db: PGlite, o: OptionsRush): Promise<BilanRush
       journal.push({ personnel_id: qui.id, personnel_nom: qui.nom, objet: "remboursement", cle: "0", avant: null, apres: { montant_centimes: montant, motif }, le: quand.toISOString(), _commande: c.id });
     }
     compter(`remboursement_${statut}`);
+    return statut;
   }
 
   const aLivrer: { c: Ligne; heurePrete: Date; tablette: string }[] = [];
