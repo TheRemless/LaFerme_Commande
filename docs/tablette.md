@@ -44,7 +44,7 @@ Onglet « En cours » :
 
 - Une ligne par commande, la plus pressée en haut : d'abord celles en retard, puis celles à lancer maintenant, puis les autres dans l'ordre où il faut les lancer. Une livraison loin passe avant un retrait proche. Les commandes prêtes ou parties sont en bas.
 - Chaque ligne dit ce qui presse : « En retard de 4 min » (heure en blanc sur noir, ligne encadrée), « À lancer » (trait épais à gauche), « À lancer dans 12 min », « À sortir dans 6 min ». Sous les onglets, le compteur dit combien sont en retard et combien sont à lancer maintenant.
-- Le bouton à droite de la ligne fait le pas suivant d'un seul geste : « Prête » (à emporter, le client reçoit un e-mail), « Partie » (livraison), « Retirée et payée », « Retirée », « Livrée ».
+- Le bouton à droite de la ligne fait le pas suivant d'un seul geste : « Prête » (à emporter, le client reçoit un e-mail), « Partie » (livraison), « Retirée », « Livrée ». Payée au comptoir, deux boutons disent comment : « Retirée, espèces » ou « Retirée, carte ». Retirée sans être encaissée, elle garde « Espèces » et « Carte » dans « Terminées ».
 - Toucher la ligne ouvre la commande en entier à côté : plats et options, client, « Changer l'heure », « Il manque… », « Annuler la commande », tickets. « Fermer » la referme. Sur un téléphone, elle couvre la liste.
 - Pendant qu'on touche la liste, elle ne se réordonne pas : l'ordre change 8 secondes après le dernier appui.
 - En livraison, donner la commande à un livreur dans l'onglet « Livraisons ». Il touche « Je pars » puis « Livrée » sur son téléphone. Sans téléphone, toucher ici « Partie » puis « Livrée » à son retour.
@@ -65,7 +65,8 @@ Détail : `docs/audits/samedi-soir.md`, « Suivi des corrections ».
 - Annuler une commande acceptée retire ses tickets de la file et imprime « ANNULÉE, NE PAS PRÉPARER » aux postes qui avaient déjà le leur.
 - Refus d'une commande payée quand le remboursement échoue : le client reçoit « refusée, remboursement en cours », le restaurant une alerte, la tablette un bandeau. La commande reste dans « Terminées » avec « Rembourser » jusqu'au remboursement, même les jours suivants.
 - Une commande payée pendant une pause, après une rupture ou trop tard pour son heure arrive avec un avertissement jaune.
-- Retrait payé au comptoir : « Retirée et payée » d'un seul geste. Une commande retirée sans être encaissée garde « Encaissée » dans « Terminées ».
+- Retrait payé au comptoir : retirée et encaissée d'un seul geste, en disant comment (vague 3 : « Retirée, espèces » ou « Retirée, carte », `commandes.moyen_comptoir`, pour la clôture du jour de bo-pilotage). Une commande retirée sans être encaissée garde « Encaissée en espèces » et « Encaissée par carte » dans « Terminées ». Sans la migration `20261203090000_tablette_encaissement.sql`, l'encaissement est noté sans le moyen.
+- Annulation faite par le client (`annulee_par_client_le`, #70) : bandeau noir « Annulée par le client : 47 à 19h42. Ne pas préparer, mettre de côté ce qui est lancé. » pendant 20 minutes ou jusqu'à « Vu », avec une note grave et courte, une fois par commande (pas au rechargement de la page). La ligne dit « Annulée par le client à 19h42 ».
 - Seul un appareil qui a touché « Démarrer le service » (ou « Continuer sans son ») donne le signe de vie surveillé par le serveur. Le son est relancé au retour de veille.
 - Une commande acceptée sans ticket affiche « Ticket non créé » et « Réimprimer ».
 - Numéros : une commande à l'avance prend un numéro du jour où elle est servie.

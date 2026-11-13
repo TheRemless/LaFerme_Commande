@@ -4,6 +4,9 @@ import { useCallback, useEffect, useId, useState } from "react";
 import { enregistrer } from "@/components/gestion/enregistrer";
 import { poster } from "@/lib/requete-client";
 import { jourTexte } from "@/lib/service";
+import { CoupDeFeu } from "@/components/gestion/CoupDeFeu";
+import { ZoneOperations } from "@/components/gestion/ZoneOperations";
+import "./service.css";
 
 type Zone = {
   numero: number;
@@ -15,6 +18,10 @@ type Zone = {
   active: boolean;
   proposition: boolean;
   npa: { npa: string; localite: string }[];
+  // Vague 3 (migration 20261130110000) : absents tant que la base n'est pas migrée.
+  services?: ("midi" | "soir")[];
+  fermee_jusqu_a?: string | null;
+  fermee_motif?: string | null;
 };
 type Horaire = {
   id: number;
@@ -56,6 +63,7 @@ export function GestionService() {
   if (!d) return <p className="aide">Chargement…</p>;
   return (
     <div className="ges-service">
+      <CoupDeFeu />
       <section className="ges-bloc">
         <h2>Zones de livraison</h2>
         <p className="aide">Enregistrer une zone la valide : elle n&apos;est plus marquée « proposition » sur le site.</p>
@@ -112,6 +120,7 @@ function FicheZone({ zone, zones, recharger }: { zone: Zone; zones: Zone[]; rech
         {zone.proposition && <span className="ges-badge">proposition</span>}
       </h3>
       <Communes zone={zone} zones={zones} recharger={recharger} />
+      <ZoneOperations zone={zone} recharger={recharger} />
       <div className="details deux">
         <div className="champ">
           <label htmlFor={`${ids}-frais`}>Frais (CHF)</label>

@@ -4,6 +4,9 @@ import { fonctionSql } from "@/lib/db/serveur";
 import { prixChf } from "@/lib/prix";
 import { TELEPHONE_RESTAURANT } from "@/lib/livraisons-textes";
 import { DELAI_REMBOURSEMENT } from "@/lib/courriel/modeles";
+import { fourchette } from "@/lib/heure-reelle";
+import type { Plage } from "@/lib/plage-heure";
+import { instantGeneve, type ConfigService } from "@/lib/service";
 
 // Ce que la page de suivi dit des remboursements et du retard. Textes passés par redaction-fr (voix de La Ferme).
 
@@ -103,3 +106,11 @@ export function attenteConfirmation(
 }
 
 export const PHRASE_ATTENTE = `Le restaurant n'a pas encore confirmé votre commande. Il est prévenu. Une question ? Appelez-nous au ${TELEPHONE_RESTAURANT}.`;
+
+// Heure confirmée en fourchette, même calcul que l'accueil (fourchette de bo-operations) ; sans configuration,
+// une seule heure.
+export function plageCommande(c: Pick<Commande, "mode" | "heure_confirmee">, config: Pick<ConfigService, "reglages"> | null): Plage | null {
+  if (!c.heure_confirmee) return null;
+  const minutes = instantGeneve(new Date(c.heure_confirmee)).minutes;
+  return config ? fourchette(config, c.mode, minutes) : { basse: minutes, haute: minutes };
+}

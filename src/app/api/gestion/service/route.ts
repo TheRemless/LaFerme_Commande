@@ -4,15 +4,18 @@ import { lirePublic } from "@/lib/db/lecture";
 import { fonctionSql } from "@/lib/db/serveur";
 import { centimes, champsHoraire, champsZone, dateValide } from "@/lib/gestion";
 import { exigerGerant } from "@/lib/personnel/session";
+import { lireReglagesGeneraux, reglerReglageGeneral } from "@/lib/reglages-generaux";
 import { rafraichirCaches } from "@/lib/tablette";
 import { fermerZone, reglerServicesZone, rouvrirZone } from "@/lib/zones-operations";
 
 export async function GET(requete: Request) {
   const g = await exigerGerant(requete, { lecture: true });
   if ("reponse" in g) return g.reponse;
-  const [service, reglages] = await Promise.all([
+  const [service, reglages, generaux] = await Promise.all([
     fonctionSql<Record<string, unknown>>("gestion_service", {}),
     lirePublic<{ cle: string; valeur: unknown; proposition: boolean }>("reglages"),
+    // Réglages généraux (vague 3). Absents tant que la base n'est pas migrée.
+    lireReglagesGeneraux().catch(() => null),
   ]);
   const cap = (cle: string) => reglages.find((r) => r.cle === cle);
   const capacites = {
@@ -29,7 +32,7 @@ export async function GET(requete: Request) {
   const avR = cap("impression_avance_retrait_minutes");
   const impressionAvance = avL && avR ? { livraison: Number(avL.valeur), retrait: Number(avR.valeur), proposition: avL.proposition || avR.proposition } : null;
   return NextResponse.json(
-    { ouvertures: [], ...service, capacites, preparation, plafond_comptoir_centimes: typeof plafond === "number" ? plafond : null, impressionAvance },
+    { ouvertures: [], ...service, capacites, preparation, plafond_comptoir_centimes: typeof plafond === "number" ? plafond : null, impressionAvance, generaux },
     { headers: { "Cache-Control": "no-store" } },
   );
 }
@@ -60,6 +63,11 @@ export async function POST(requete: Request) {
           : await rouvrirZone(g.personnel, c.numero);
     if (!r.ok) return refus(r.erreur, r.code);
     return NextResponse.json({ enregistre: true, ...("deja" in r ? { deja: r.deja } : {}) });
+  } else if (c.type === "reglage-general") {
+    // E-mail des alertes, codes par jour, longueur d'un créneau, jours à l'avance (vague 3).
+    const r = await reglerReglageGeneral(g.personnel, c.cle, c.valeur);
+    if (!r.ok) return refus(r.erreur);
+    return NextResponse.json({ enregistre: true });
   } else if (c.type === "horaire") {
     const id = entier(c.id);
     const champs = champsHoraire(c.champs);

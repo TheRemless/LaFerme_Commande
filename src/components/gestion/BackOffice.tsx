@@ -4,9 +4,10 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FournisseurCarte, useCarte } from "@/components/gestion/contexte-carte";
-import { GROUPES_VISIBLES, rubriqueDe, type Rubrique } from "@/components/gestion/navigation";
+import { groupesPour, rubriqueDe, rubriqueOuverte, type Rubrique } from "@/components/gestion/navigation";
+import { RechercheGlobale } from "@/components/gestion/RechercheGlobale";
 import { FournisseurConfirmation } from "@/components/gestion/ui/Confirmation";
-import { BandeauHorsLigne } from "@/components/gestion/ui/Etats";
+import { BandeauHorsLigne, DroitsInsuffisants } from "@/components/gestion/ui/Etats";
 import { FournisseurGarde, usePeutPartir } from "@/components/gestion/ui/Garde";
 import { IconeGestion } from "@/components/gestion/ui/icones";
 import { FournisseurNotifications } from "@/components/gestion/ui/Notifications";
@@ -20,14 +21,17 @@ import { poster } from "@/lib/requete-client";
 type Menu = "auto" | "large" | "etroit";
 const CLE_MENU = "laferme.gestion.menu";
 
-export function BackOffice({ nom, children }: { nom: string; children: React.ReactNode }) {
+// role : « responsable » seulement quand le rôle D1 est activé (contrôlé dans src/app/gestion/layout.tsx).
+export function BackOffice({ nom, role = "gerant", children }: { nom: string; role?: "gerant" | "responsable"; children: React.ReactNode }) {
   return (
     <FournisseurConfirmation>
       <FournisseurGarde>
         <FournisseurNotifications>
           <FournisseurRaccourcis>
             <FournisseurCarte>
-              <Coque nom={nom}>{children}</Coque>
+              <Coque nom={nom} role={role}>
+                {children}
+              </Coque>
             </FournisseurCarte>
           </FournisseurRaccourcis>
         </FournisseurNotifications>
@@ -36,7 +40,7 @@ export function BackOffice({ nom, children }: { nom: string; children: React.Rea
   );
 }
 
-function Coque({ nom, children }: { nom: string; children: React.ReactNode }) {
+function Coque({ nom, role, children }: { nom: string; role: "gerant" | "responsable"; children: React.ReactNode }) {
   const chemin = usePathname();
   const router = useRouter();
   const { rubrique, groupe } = rubriqueDe(chemin);
@@ -124,7 +128,7 @@ function Coque({ nom, children }: { nom: string; children: React.ReactNode }) {
           </button>
         </div>
         <nav className="bo-nav" aria-label="Rubriques">
-          {GROUPES_VISIBLES.map((g) => (
+          {groupesPour(role).map((g) => (
             <div key={g.titre} className="bo-groupe">
               <p className="bo-groupe-titre">{g.titre}</p>
               <ul>
@@ -171,10 +175,12 @@ function Coque({ nom, children }: { nom: string; children: React.ReactNode }) {
               {rubrique.titre}
             </h1>
           </div>
+          {role === "gerant" && <RechercheGlobale />}
         </header>
         <BandeauHorsLigne />
         <main id="contenu" className="gestion bo-contenu">
-          {children}
+          {/* Rubrique fermée à ce rôle (adresse tapée à la main) : on le dit, sans afficher l'écran. Les API refusent de toute façon. */}
+          {rubriqueOuverte(rubrique, role) ? children : <DroitsInsuffisants quoi={rubrique.titre.toLowerCase()} />}
         </main>
       </div>
     </div>

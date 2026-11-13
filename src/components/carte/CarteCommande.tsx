@@ -15,8 +15,20 @@ import { nomAffiche } from "@/components/Plat";
 import { Icone } from "@/components/Icone";
 import { FichePlat } from "@/components/carte/FichePlat";
 import { ContenuPanier } from "@/components/panier/ContenuPanier";
+import { platsPopulaires, suggestionPanier, type DonneesPopulaires } from "@/lib/suggestion";
 
-export function CarteCommande({ categories, catalogue, preversion }: { categories: Categorie[]; catalogue: Catalogue; preversion: boolean }) {
+export function CarteCommande({
+  categories,
+  catalogue,
+  preversion,
+  populaires,
+}: {
+  categories: Categorie[];
+  catalogue: Catalogue;
+  preversion: boolean;
+  // Plats les plus commandés et suggestion au panier : éteints tant que Jérémy n'a pas décidé (C7).
+  populaires?: DonneesPopulaires;
+}) {
   const panier = usePanier();
   const { lignes, charge, ajouter, quantite, remplacer } = panier;
   const calcul = useCalculPanier(lignes, charge);
@@ -42,6 +54,7 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
   const [annonce, setAnnonce] = useState("");
   // Recherche de plat (maquette Béton, docs/PROMPT.md §7) : nom et description, sans tenir compte des accents.
   const [recherche, setRecherche] = useState("");
+  const [seulementVege, setSeulementVege] = useState(false);
 
   useEffect(() => setChoix(lireChoix()), []);
 
@@ -53,11 +66,25 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
   const local = calculerPanier(catalogue, lignes, choix?.mode === "livraison" && choix.zone ? choix.zone : null);
   const montants = reponse && !reponse.erreur ? reponse : local;
   const q = normaliserRecherche(recherche.trim());
-  const visibles = q
+  const tousPlats = categories.flatMap((c) => c.plats);
+  const enTete = platsPopulaires(populaires, tousPlats);
+  // Filtre végétarien : seulement si le restaurant a étiqueté au moins un plat (bo-carte, étiquettes). Rien
+  // n'est deviné : sans étiquette, un plat n'est pas végétarien pour le site. Végane compte comme végétarien.
+  const vegetarien = (p: LignePlat) => (p.etiquettes ?? []).some((e) => e === "vegetarien" || e === "vegane");
+  const filtreVegeDispo = tousPlats.some(vegetarien);
+  const vege = filtreVegeDispo && seulementVege;
+  const filtre = q || vege;
+  const visibles = filtre
     ? categories
-        .map((c) => ({ ...c, plats: c.plats.filter((p) => normaliserRecherche(`${nomAffiche(p)} ${p.description ?? ""}`).includes(q)) }))
+        .map((c) => ({
+          ...c,
+          plats: c.plats.filter((p) => (!q || normaliserRecherche(`${nomAffiche(p)} ${p.description ?? ""}`).includes(q)) && (!vege || vegetarien(p))),
+        }))
         .filter((c) => c.plats.length > 0)
-    : categories;
+    : enTete.length > 0
+      ? [{ slug: "populaires", nom: "Les plus commandés", plats: enTete }, ...categories]
+      : categories;
+  const suggestion = suggestionPanier(populaires, lignes, catalogue, tousPlats);
   const trouves = visibles.reduce((s, c) => s + c.plats.length, 0);
   // Plat du jour : seulement pour un moment de ce jour-là et de son service.
   // Disponibilités (service, mode, jours, rupture planifiée) : le même texte que le refus du serveur (motifPlat),
@@ -130,8 +157,19 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
                 </button>
               )}
             </span>
+            {filtreVegeDispo && (
+              <button type="button" className="filtre-vege" aria-pressed={seulementVege} onClick={() => setSeulementVege((v) => !v)}>
+                Végétarien
+              </button>
+            )}
             <p className="recherche-resultat" role="status">
-              {q ? (trouves === 0 ? `Aucun plat ne correspond à « ${recherche.trim()} ».` : `${trouves} plat${trouves > 1 ? "s" : ""}`) : ""}
+              {filtre
+                ? trouves === 0
+                  ? q
+                    ? `Aucun plat ne correspond à « ${recherche.trim()} ».`
+                    : "Aucun plat végétarien pour le moment."
+                  : `${trouves} plat${trouves > 1 ? "s" : ""}`
+                : ""}
             </p>
           </div>
           {ferme && (
@@ -190,7 +228,10 @@ export function CarteCommande({ categories, catalogue, preversion }: { categorie
         </div>
         <aside className="panier-col" aria-label="Votre commande">
           <h2 className="panier-titre">Votre commande</h2>
-          <ContenuPanier lignes={lignes} quantite={quantite} catalogue={catalogue} choix={choix} reponse={reponse} preversion={preversion} suivi={panier} calcul={calcul} onModifier={modifier} />
+          <ContenuPanier lignes={lignes} quantite={quantite} catalogue={catalogue} choix={choix} reponse={reponse} preversion={preversion} suivi={panier} calcul={calcul} onModifier={modifier}
+            suggestion={suggestion}
+            onSuggestion={(slug) => ajouter({ slug, qte: 1, choix: {}, retraits: [], note: "" })}
+          />
         </aside>
       </div>
       {nbArticles > 0 && (

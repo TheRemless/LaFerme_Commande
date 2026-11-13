@@ -2,6 +2,7 @@
 // et un dossier src/app/gestion/<chemin>/page.tsx. Ajouter une rubrique : une ligne ici, dans le groupe voulu.
 // Chaque session du back-office n'édite que les lignes de son périmètre (voir .claude/vague-3/regles.md).
 import type { NomIconeGestion } from "@/components/gestion/ui/icones";
+import type { ActionDroit } from "@/lib/personnel/droits";
 
 export type Rubrique = {
   /** Adresse complète, sans barre finale. */
@@ -13,6 +14,8 @@ export type Rubrique = {
   /** Place réservée : la rubrique n'apparaît pas tant que sa page n'existe pas. Le propriétaire retire
    *  ce drapeau dans la PR qui ajoute src/app/gestion/<chemin>/page.tsx (tests/unit/gestion-navigation.test.ts le vérifie). */
   aVenir?: true;
+  /** Ouverte aussi au responsable de service (D1, désactivé tant que Jérémy n'a pas tranché) pour ce droit. Sans : gérant seulement. */
+  droit?: ActionDroit;
 };
 
 export type Groupe = { titre: string; rubriques: Rubrique[] };
@@ -24,9 +27,10 @@ export const GROUPES: Groupe[] = [
   {
     titre: "Commandes et clients",
     rubriques: [
-      { href: "/gestion/commandes", titre: "Commandes", icone: "commandes", resume: "Retrouver une commande, voir son historique, rembourser." },
-      // bo-commandes
-      { href: "/gestion/clients", titre: "Clients", icone: "clients", resume: "Les clients, leurs commandes et leurs réclamations.", aVenir: true },
+      { href: "/gestion/commandes", titre: "Commandes", icone: "commandes", resume: "Retrouver une commande, voir son historique, rembourser.", droit: "voir_commandes" },
+      // bo-commandes. Gérant seulement : /api/gestion/clients et /api/gestion/reclamations restent en exigerGerant
+      // (notes, marque, gestes). À ouvrir au responsable (droit) avec ces routes le jour où D1 est activé.
+      { href: "/gestion/clients", titre: "Clients", icone: "clients", resume: "Les clients, leurs commandes et leurs réclamations." },
     ],
   },
   {
@@ -67,6 +71,17 @@ export const RUBRIQUES: Rubrique[] = GROUPES.flatMap((g) => g.rubriques);
 
 /** Ce que montrent le menu et l'accueil : les rubriques qui ont leur page, et les groupes qui en ont au moins une. */
 export const GROUPES_VISIBLES: Groupe[] = GROUPES.map((g) => ({ ...g, rubriques: g.rubriques.filter((r) => !r.aVenir) })).filter((g) => g.rubriques.length > 0);
+
+/** Le back-office est-il ouvert à ce rôle pour cette rubrique ? Le gérant partout, le responsable de service
+ *  seulement là où la rubrique porte un droit (son tableau est en base : droit_personnel). */
+export function rubriqueOuverte(r: Rubrique, role: "gerant" | "responsable"): boolean {
+  return role === "gerant" || r.droit !== undefined;
+}
+
+/** Le menu d'un rôle : les groupes visibles, sans les rubriques fermées à ce rôle. */
+export function groupesPour(role: "gerant" | "responsable"): Groupe[] {
+  return GROUPES_VISIBLES.map((g) => ({ ...g, rubriques: g.rubriques.filter((r) => rubriqueOuverte(r, role)) })).filter((g) => g.rubriques.length > 0);
+}
 
 /** La rubrique d'une adresse : la plus longue qui la préfixe (une fiche /gestion/commandes/37 reste dans Commandes). */
 // Pages hors menu (démonstration du kit, en local) : titre seulement, rattachées à l'accueil.

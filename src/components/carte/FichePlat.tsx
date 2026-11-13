@@ -12,6 +12,13 @@ import { prixChf, prixCourt } from "@/lib/prix";
 import { nomAffiche } from "@/components/Plat";
 import { Icone } from "@/components/Icone";
 
+// Étiquettes posées par le restaurant (bo-carte) ; végane suffit quand le plat l'est (il est aussi végétarien).
+const NOMS_ETIQUETTES: Record<string, string> = { vegane: "Végane", vegetarien: "Végétarien", epice: "Épicé" };
+function ordreEtiquettes(e: string[]): string[] {
+  const liste = e.includes("vegane") ? e.filter((x) => x !== "vegetarien") : e;
+  return ["vegane", "vegetarien", "epice"].filter((x) => liste.includes(x)).map((x) => NOMS_ETIQUETTES[x]);
+}
+
 // Suppléments affichés d'office ; les autres derrière « Voir les … suppléments ».
 const SUPPLEMENTS_VISIBLES = 8;
 
@@ -39,7 +46,17 @@ export function FichePlat({
   const info = catalogue.plats[plat.slug];
   const groupes = (info?.groupes ?? []).map((g) => catalogue.groupes[g]).filter(Boolean);
   const [qte, setQte] = useState(initiale?.qte ?? 1);
-  const [choix, setChoix] = useState<Record<string, string[]>>(initiale?.choix ?? {});
+  // Options cochées d'avance par le restaurant (bo-carte, par_defaut), jamais une option épuisée, et jamais
+  // plus que le maximum du groupe. Une ligne rouverte par « Modifier » garde ses propres choix.
+  const [choix, setChoix] = useState<Record<string, string[]>>(() => {
+    if (initiale) return initiale.choix;
+    const depart: Record<string, string[]> = {};
+    for (const g of groupes) {
+      const noms = g.options.filter((o) => o.par_defaut && !o.rupture).map((o) => o.nom).slice(0, g.choix_max);
+      if (noms.length > 0) depart[g.slug] = noms;
+    }
+    return depart;
+  });
   const [retraits, setRetraits] = useState<string[]>(initiale?.retraits ?? []);
   const [note, setNote] = useState(initiale?.note ?? "");
   const [tous, setTous] = useState(false);
@@ -129,6 +146,12 @@ export function FichePlat({
                     <li key={p}>{p}</li>
                   ))}
                 </ul>
+              </div>
+            )}
+            {(plat.etiquettes ?? []).length > 0 && (
+              <div>
+                <h3>Indications</h3>
+                <p>{ordreEtiquettes(plat.etiquettes ?? []).join(", ")}</p>
               </div>
             )}
             <div>

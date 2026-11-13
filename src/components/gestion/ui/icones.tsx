@@ -108,6 +108,12 @@ const TRACES = {
     </>
   ),
   menu: <path d="M4 7h16M4 12h16M4 17h16" />,
+  chercher: (
+    <>
+      <circle cx="11" cy="11" r="6.5" />
+      <path d="m20 20-4.2-4.2" />
+    </>
+  ),
   fermer: <path d="M6 6l12 12M18 6 6 18" />,
   replier: <path d="M14.5 6 8.5 12l6 6" />,
   deplier: <path d="m9.5 6 6 6-6 6" />,

@@ -52,6 +52,7 @@ const ERREURS: Record<string, string> = {
   valeur_invalide: "Valeur illisible.",
   selection_vide: "Aucun plat choisi (les plats archivés et les plats du jour ne changent pas en lot).",
   selection_trop_grande: "Trop de plats d'un coup (300 au plus).",
+  etiquette_inconnue: "Étiquette inconnue.",
   "Réservé au gérant": "Réservé au gérant.",
 };
 
@@ -214,6 +215,12 @@ async function agir(c: Record<string, unknown>, qui: string): Promise<Reponse | 
       if (!base) return refus("Nom illisible : utilisez des lettres ou des chiffres.");
       const r = await fonctionSql<Record<string, unknown> | null>("dupliquer_plat", { p_slug: c.slug, p_base: base, p_nom: nom, p_personnel: qui });
       return r ? { ok: true, donnees: r } : { ok: false };
+    }
+    case "etiquettes": {
+      // Posées par le gérant seulement, jamais déduites : végétarien, végane, épicé.
+      const ok = Array.isArray(c.etiquettes) && c.etiquettes.length <= 3 && c.etiquettes.every((e) => e === "vegetarien" || e === "vegane" || e === "epice");
+      if (!slug(c.slug) || !ok) return refus("Étiquettes illisibles.");
+      return { ok: await fonctionSql<boolean>("regler_etiquettes", { p_slug: c.slug, p_etiquettes: c.etiquettes, p_personnel: qui }) };
     }
     default:
       return refus("Type inconnu.");

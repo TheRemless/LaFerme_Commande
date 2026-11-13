@@ -6,6 +6,7 @@ import { Icone } from "@/components/Icone";
 import { PiedDePage } from "@/components/PiedDePage";
 import { Actualiser } from "@/components/suivi/Actualiser";
 import { AnnulerCommande } from "@/components/suivi/AnnulerCommande";
+import { Reclamation } from "@/components/suivi/Reclamation";
 import { CreerCompte } from "@/components/suivi/CreerCompte";
 import { chargerCatalogue } from "@/lib/catalogue";
 import { chargerConfigService } from "@/lib/config-service";
@@ -18,7 +19,7 @@ import { nomClient } from "@/lib/nom-plat";
 import { prixChf, prixCourt } from "@/lib/prix";
 import { PRIVE } from "@/lib/site";
 import { recuDisponible } from "@/lib/recu";
-import { attenteConfirmation, enRetard, libellePaiement, PHRASE_ATTENTE, PHRASE_RETARD, phraseRemboursement, remboursementsSuivi, resteComptoir } from "@/lib/suivi";
+import { attenteConfirmation, plageCommande, enRetard, libellePaiement, PHRASE_ATTENTE, PHRASE_RETARD, phraseRemboursement, remboursementsSuivi, resteComptoir } from "@/lib/suivi";
 import { MOTIF_CLIENT_ABSENT } from "@/lib/livraisons-textes";
 import { MOTIF_DEMANDE_CLIENT } from "@/lib/motifs";
 
@@ -35,10 +36,6 @@ const POSITION: Record<string, number> = { nouvelle: 0, acceptee: 1, en_preparat
 // « CHF 5.00 » et le numéro de téléphone ne se coupent pas en fin de ligne sur un petit écran.
 function insecable(t: string): string {
   return t.replace(/CHF /g, "CHF\u00a0").replace(/(\d{3}) (\d{3}) (\d{2}) (\d{2})/g, "$1\u00a0$2\u00a0$3\u00a0$4");
-}
-
-function heureLocale(iso: string): string {
-  return new Intl.DateTimeFormat("fr-CH", { timeZone: "Europe/Zurich", hour: "2-digit", minute: "2-digit" }).format(new Date(iso)).replace(":", "h");
 }
 
 // Suivi par jeton : le lien de suivi suffit, sans compte. On n'affiche ni l'adresse complète ni le téléphone.
@@ -70,9 +67,13 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
   const reste = resteComptoir(c, remboursements);
   const retard = enRetard(c);
   const nonConfirmee = attenteConfirmation(c, serviceOuvert);
+  const plage = plageCommande(c, config);
   // Arbitrage C1 (Jérémy) : désactivé par défaut. La route revérifie le réglage et le statut.
   const annulable = c.statut === "nouvelle" && config?.reglages.annulation_client_active === true;
   const parClient = Boolean(c.annulee_par_client_le) || c.motif === MOTIF_DEMANDE_CLIENT;
+  // Réclamation possible sur une commande acceptée, de moins de 14 jours (mêmes règles que la base, #87).
+  const reclamable =
+    ["acceptee", "en_preparation", "prete", "partie", "terminee"].includes(c.statut) && Date.now() - new Date(c.cree_le).getTime() < 14 * 86_400_000;
   // Un remboursement attendu chez Stripe garde la page à jour, même commande terminée.
   const attente = remboursements.some((r) => r.moyen === "stripe" && r.statut === "en_cours");
 
@@ -117,10 +118,18 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
           {position >= 0 && (
             <>
               <h1>
-                {c.heure_confirmee ? (
-                  <>
-                    {c.mode === "livraison" ? "Chez vous vers" : "Prête vers"} <span className="suivi-heure">{heureLocale(c.heure_confirmee)}</span>
-                  </>
+                {plage ? (
+                  plage.basse === plage.haute ? (
+                    <>
+                      {c.mode === "livraison" ? "Chez vous vers" : "Prête vers"} <span className="suivi-heure">{heureTexte(plage.basse)}</span>
+                    </>
+                  ) : (
+                    // Même fourchette qu'à l'accueil (« entre 19h35 et 19h50 ») : la première heure en grand.
+                    <>
+                      {c.mode === "livraison" ? "Chez vous entre" : "Prête entre"} <span className="suivi-heure">{heureTexte(plage.basse)}</span>
+                      <span className="suivi-heure-fin">et {heureTexte(plage.haute)}</span>
+                    </>
+                  )
                 ) : (
                   "Commande reçue"
                 )}
@@ -173,8 +182,15 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
           )}
           {annulable && <AnnulerCommande jeton={c.jeton_suivi} numero={c.numero} payeeEnLigne={c.statut_paiement === "paye"} />}
           {c.compte_demande && enregistree && !c.detachee_du_compte && <CreerCompte jeton={c.jeton_suivi} rattachee={Boolean(c.compte_id)} />}
+          {reclamable && <Reclamation jeton={c.jeton_suivi} livraison={c.mode === "livraison"} />}
           <section className="suivi-detail">
             <h2>{c.mode === "livraison" && c.adresse ? `Livraison à ${c.adresse.localite}` : "À emporter, Route de Chancy 132, Onex"}</h2>
+            {c.allergie && (
+              <div className="suivi-allergie">
+                <h3>Allergie signalée</h3>
+                <p>{c.allergie}</p>
+              </div>
+            )}
             <ul className="lignes">
               {c.lignes.map((l) => (
                 <li className="ligne" key={l.position}>

@@ -1,4 +1,5 @@
 import type { CommandeTablette } from "@/lib/tablette";
+import { heureDe } from "@/lib/heures";
 
 // Aides de la tablette en plein service (vague 3) : retrouver une commande au comptoir, voir celles en retard.
 
@@ -77,14 +78,16 @@ export type EtatTemps = { niveau: Niveau; texte: string; cle: number };
 // Ce qui presse, dit en clair : « En retard de 4 min », « À lancer », « À lancer dans 12 min », « À sortir dans 6 min ».
 // cle sert au tri : les retards d'abord (le plus ancien en tête), puis par heure de lancement ; prêtes et parties à la fin.
 export function etatTemps(
-  c: Pick<CommandeTablette, "statut" | "mode" | "heure_confirmee" | "zone_numero">,
+  c: Pick<CommandeTablette, "statut" | "mode" | "heure_confirmee" | "zone_numero" | "annulee_par_client_le">,
   maintenant: string,
   r: Rythme,
 ): EtatTemps {
   const t = new Date(maintenant).getTime();
   const depart = heureDepart(c, r);
   if (c.statut === "terminee") return { niveau: "fini", texte: c.mode === "livraison" ? "Livrée" : "Retirée", cle: Number.MAX_SAFE_INTEGER };
-  if (c.statut === "refusee") return { niveau: "fini", texte: "Refusée ou annulée", cle: Number.MAX_SAFE_INTEGER };
+  if (c.statut === "refusee") {
+    return { niveau: "fini", texte: c.annulee_par_client_le ? `Annulée par le client à ${heureDe(c.annulee_par_client_le)}` : "Refusée ou annulée", cle: Number.MAX_SAFE_INTEGER };
+  }
   if (c.statut === "nouvelle") return { niveau: "maintenant", texte: "À accepter", cle: depart ?? t };
   if (c.statut === "prete") return { niveau: "calme", texte: "Prête au comptoir", cle: 4e15 + (depart ?? t) };
   if (c.statut === "partie") return { niveau: "calme", texte: "Partie en livraison", cle: 5e15 + (depart ?? t) };
@@ -101,22 +104,31 @@ export function etatTemps(
   return { niveau: reste <= 10 ? "bientot" : "calme", texte: `À lancer dans ${reste} min`, cle: lancement };
 }
 
-// Un geste par ligne : le pas suivant de la commande, ou rien (on ouvre le détail).
+// Le pas suivant de la commande, sur la ligne : un geste, ou deux quand il faut dire comment le client a payé
+// au comptoir (espèces ou carte, pour la clôture du jour). Aucun : on ouvre le détail.
 export type Geste = { libelle: string; corps: Record<string, unknown> };
-export function gestePrincipal(c: Pick<CommandeTablette, "statut" | "mode" | "statut_paiement">): Geste | null {
+export function gestesPrincipaux(c: Pick<CommandeTablette, "statut" | "mode" | "statut_paiement">): Geste[] {
   if (c.statut === "acceptee" || c.statut === "en_preparation") {
     return c.mode === "livraison"
-      ? { libelle: "Partie", corps: { action: "statut", vers: "partie", de: c.statut } }
-      : { libelle: "Prête", corps: { action: "statut", vers: "prete", de: c.statut } };
+      ? [{ libelle: "Partie", corps: { action: "statut", vers: "partie", de: c.statut } }]
+      : [{ libelle: "Prête", corps: { action: "statut", vers: "prete", de: c.statut } }];
   }
   if (c.statut === "prete") {
     return c.statut_paiement === "a_encaisser_retrait"
-      ? { libelle: "Retirée et payée", corps: { action: "retiree_payee" } }
-      : { libelle: "Retirée", corps: { action: "statut", vers: "terminee", de: "prete" } };
+      ? [
+          { libelle: "Retirée, espèces", corps: { action: "retiree_payee", moyen: "especes" } },
+          { libelle: "Retirée, carte", corps: { action: "retiree_payee", moyen: "carte" } },
+        ]
+      : [{ libelle: "Retirée", corps: { action: "statut", vers: "terminee", de: "prete" } }];
   }
-  if (c.statut === "partie") return { libelle: "Livrée", corps: { action: "statut", vers: "terminee", de: "partie" } };
-  if (c.statut === "terminee" && c.statut_paiement === "a_encaisser_retrait") return { libelle: "Encaissée", corps: { action: "encaisser" } };
-  return null;
+  if (c.statut === "partie") return [{ libelle: "Livrée", corps: { action: "statut", vers: "terminee", de: "partie" } }];
+  if (c.statut === "terminee" && c.statut_paiement === "a_encaisser_retrait") {
+    return [
+      { libelle: "Espèces", corps: { action: "encaisser", moyen: "especes" } },
+      { libelle: "Carte", corps: { action: "encaisser", moyen: "carte" } },
+    ];
+  }
+  return [];
 }
 
 // Les plats d'une commande en une ligne courte : « 2 Margherita, Pasta al pesto ».
@@ -132,4 +144,10 @@ export function ordreStable(ids: string[], precedent: string[], fige: boolean): 
   const garde = precedent.filter((id) => restent.has(id));
   const connus = new Set(garde);
   return [...garde, ...ids.filter((id) => !connus.has(id))];
+}
+
+// Annulations faites par le client depuis moins de 20 minutes : la cuisine doit le voir tout de suite.
+export function annuleesParClient(commandes: Pick<CommandeTablette, "id" | "numero" | "statut" | "annulee_par_client_le">[], maintenant: string) {
+  const t = new Date(maintenant).getTime();
+  return commandes.filter((c) => c.statut === "refusee" && c.annulee_par_client_le && t - new Date(c.annulee_par_client_le).getTime() < 20 * MIN);
 }

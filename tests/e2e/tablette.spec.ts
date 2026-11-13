@@ -99,15 +99,17 @@ test("une commande arrive, on l'accepte, puis prête, retirée et payée", async
   await tablette.getByRole("button", { name: /^En cours/ }).click();
   await expect(carte).toContainText("Acceptée pour");
   // Le client voit l'heure confirmée sur son suivi.
-  expect(await (await request.get(suivi)).text()).toContain("Prête vers");
+  // Heure en fourchette selon les réglages (« Prête entre … et … »), une seule heure à largeur 0 (vague 3).
+  expect(await (await request.get(suivi)).text()).toMatch(/Prête (vers|entre)/);
 
   await carte.getByRole("button", { name: "Prête au comptoir" }).click();
   await expect(carte).toContainText("Prête au comptoir pour");
   // Retrait payé au comptoir : un seul geste, retirée et encaissée (audit du gérant, G01).
-  await carte.getByRole("button", { name: "Retirée et payée" }).click();
+  // Vague 3 : on dit aussi comment il a payé (clôture du jour).
+  await carte.getByRole("button", { name: "Retirée, espèces" }).click();
   await tablette.getByRole("button", { name: /^Terminées/ }).click();
   await expect(carte).toContainText(/Retirée pour \d{2}h\d{2}/);
-  await expect(carte).toContainText("Encaissée CHF");
+  await expect(carte).toContainText(/Encaissée CHF \d+\.\d{2} en espèces/);
 });
 
 // Vague 3, rush : au comptoir, « c'est pour Bérénice » ou « le 42 », quel que soit l'onglet ouvert.

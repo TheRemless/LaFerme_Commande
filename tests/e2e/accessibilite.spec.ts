@@ -54,7 +54,7 @@ for (const [nom, chemin] of PAGES_SIMPLES) {
 test("axe : accueil, à emporter choisi", async ({ page }) => {
   await page.goto("/?heure=2026-11-10T19:05");
   await page.getByRole("button", { name: /À emporter/ }).click();
-  await expect(page.getByText(/Dès que possible, vers/)).toBeVisible();
+  await expect(page.getByText(/Dès que possible, entre/)).toBeVisible();
   await controler(page, "accueil-retrait");
 });
 

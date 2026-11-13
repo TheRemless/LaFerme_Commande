@@ -5,13 +5,14 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 import { lireChoix, type Choix } from "@/lib/choix";
 import { platDe, type Catalogue } from "@/lib/panier";
-import { noterPlaceEnvoyee, useCalculPanier, usePanier, type ReponsePanier } from "@/lib/panier-local";
+import { CLE_DESTINATAIRE, lireAllergie, noterAllergie, noterPlaceEnvoyee, useCalculPanier, usePanier, type ReponsePanier } from "@/lib/panier-local";
 import { comptoirPermis } from "@/lib/plafond-comptoir";
 import { prixChf, prixCourt, prixPhrase } from "@/lib/prix";
 import { heureTexte, jourTexte } from "@/lib/service";
+import { plageTexte } from "@/lib/plage-heure";
 import { ContenuPanier, EtatCalcul } from "@/components/panier/ContenuPanier";
 import { nomAffiche } from "@/components/Plat";
-import { champClientInvalide, MESSAGE_CHAMP, type ChampClient } from "@/lib/validation";
+import { champClientInvalide, destinataireValide, LIMITE_ALLERGIE, MESSAGE_CHAMP, type ChampClient } from "@/lib/validation";
 
 type Moyen = "en_ligne" | "comptoir";
 
@@ -67,6 +68,12 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
   // Commande refusée par le serveur (plat épuisé, créneau complet entre-temps) : le récapitulatif et le
   // bouton se recalculent tout de suite, sans recharger la page.
   const [relance, setRelance] = useState(0);
+  // Le client remplit ses coordonnées : toutes les minutes, le total est recalculé. Une pause, une fermeture,
+  // un plat épuisé ou un créneau rempli pendant ce temps s'affiche avant le clic sur « Payer ».
+  useEffect(() => {
+    const t = window.setInterval(() => setRelance((n) => n + 1), 60_000);
+    return () => window.clearInterval(t);
+  }, []);
   const calcul = useCalculPanier(lignes, charge, relance);
   const { reponse } = calcul;
   const [choix, setChoix] = useState<Choix | null>(null);
@@ -77,6 +84,12 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
     email: compte?.email ?? "",
   });
   const [creerCompte, setCreerCompte] = useState(false);
+  // Allergie ou intolérance pour toute la commande, transmise à la cuisine (vague 3, P0).
+  const [allergie, setAllergie] = useState("");
+  // Commande pour quelqu'un d'autre : la personne qui reçoit ou vient chercher (vague 3).
+  const [pourAutrui, setPourAutrui] = useState(false);
+  const [destinataire, setDestinataire] = useState({ nom: "", telephone: "" });
+  const [destinataireFaux, setDestinataireFaux] = useState<"nom" | "telephone" | null>(null);
   const [moyen, setMoyen] = useState<Moyen>("en_ligne");
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -85,6 +98,28 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
   const [champFaux, setChampFaux] = useState<ChampClient | null>(null);
 
   useEffect(() => setChoix(lireChoix()), []);
+  useEffect(() => setAllergie(lireAllergie()), []);
+  useEffect(() => {
+    try {
+      const memo = JSON.parse(sessionStorage.getItem(CLE_DESTINATAIRE) ?? "null") as { nom?: unknown; telephone?: unknown } | null;
+      if (memo && typeof memo.nom === "string" && typeof memo.telephone === "string") {
+        setPourAutrui(true);
+        setDestinataire({ nom: memo.nom, telephone: memo.telephone });
+      }
+    } catch {
+      // Stockage bloqué : rien à reprendre.
+    }
+  }, []);
+  function changerDestinataire(suivant: { nom: string; telephone: string } | null) {
+    if (suivant) setDestinataire(suivant);
+    setDestinataireFaux(null);
+    try {
+      if (suivant) sessionStorage.setItem(CLE_DESTINATAIRE, JSON.stringify(suivant));
+      else sessionStorage.removeItem(CLE_DESTINATAIRE);
+    } catch {
+      // Stockage bloqué : les champs restent remplis à l'écran.
+    }
+  }
 
   // Coordonnées gardées dans l'onglet : un paiement refusé ou un rechargement ne les efface plus (CM-04).
   // sessionStorage seulement, elles disparaissent avec l'onglet. Un client connecté a déjà les siennes.
@@ -114,7 +149,7 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
     choix?.quand.type === "creneau"
       ? `Pour le ${jourTexte(choix.quand.date)} à ${heureTexte(choix.quand.minutes)}`
       : choix?.quand.type === "asap"
-        ? `Dès que possible${choix.estimation !== undefined ? `, vers ${heureTexte(choix.estimation)}` : ""}`
+        ? `Dès que possible${choix.fourchette ? `, ${plageTexte(choix.fourchette)}` : choix.estimation !== undefined ? `, vers ${heureTexte(choix.estimation)}` : ""}`
         : "Heure à choisir";
   const total = reponse && !reponse.erreur ? reponse.total_centimes : null;
   const pret = Boolean(reponse?.valide) && !envoi;
@@ -133,6 +168,12 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
       document.getElementById(`${ids}-${faux}`)?.focus();
       return;
     }
+    const pour = pourAutrui ? destinataireValide(destinataire) : null;
+    if (pour === "nom" || pour === "telephone") {
+      setDestinataireFaux(pour);
+      document.getElementById(`${ids}-destinataire-${pour}`)?.focus();
+      return;
+    }
     setEnvoi(true);
     noterPlaceEnvoyee(choix.mode, choix.quand);
     setErreur(null);
@@ -142,7 +183,8 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          cle: cleCommande(JSON.stringify([lignes, choix, auComptoir, client])),
+          // L'allergie fait partie du contenu : la corriger après un refus donne une nouvelle commande.
+          cle: cleCommande(JSON.stringify([lignes, choix, auComptoir, client, allergie.trim(), pour])),
           lignes,
           mode: choix.mode,
           adresse: choix.adresse,
@@ -150,6 +192,8 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
           quand: choix.quand,
           heure: choix.heureSimulee,
           client,
+          allergie,
+          destinataire: pour,
           moyen: auComptoir ? "comptoir" : "en_ligne",
           creerCompte: !compte && creerCompte,
         }),
@@ -265,6 +309,90 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
                 {erreurChamp("email")}
                 <p className="aide">Pour la confirmation et le suivi de la commande.</p>
               </div>
+            </div>
+            <label className="option case-compte">
+              <input
+                type="checkbox"
+                checked={pourAutrui}
+                onChange={(e) => {
+                  setPourAutrui(e.target.checked);
+                  changerDestinataire(e.target.checked ? destinataire : null);
+                }}
+              />
+              <span>
+                <strong>Je commande pour quelqu&apos;un d&apos;autre</strong>
+                <br />
+                {choix?.mode === "livraison" ? "La personne qui reçoit la livraison." : "La personne qui vient chercher la commande."} Le
+                paiement et les e-mails restent à votre nom.
+              </span>
+            </label>
+            {pourAutrui && (
+              <div className="details deux">
+                <div className="champ">
+                  <label htmlFor={`${ids}-destinataire-nom`}>Son nom</label>
+                  <input
+                    id={`${ids}-destinataire-nom`}
+                    value={destinataire.nom}
+                    maxLength={80}
+                    autoComplete="off"
+                    required
+                    aria-invalid={destinataireFaux === "nom" ? true : undefined}
+                    aria-describedby={destinataireFaux === "nom" ? `${ids}-destinataire-nom-erreur` : undefined}
+                    onChange={(e) => changerDestinataire({ ...destinataire, nom: e.target.value })}
+                  />
+                  {destinataireFaux === "nom" && (
+                    <p className="aide aide-erreur" role="alert" id={`${ids}-destinataire-nom-erreur`}>
+                      Indiquez le nom de la personne.
+                    </p>
+                  )}
+                </div>
+                <div className="champ">
+                  <label htmlFor={`${ids}-destinataire-telephone`}>Son téléphone</label>
+                  <input
+                    id={`${ids}-destinataire-telephone`}
+                    type="tel"
+                    value={destinataire.telephone}
+                    maxLength={20}
+                    autoComplete="off"
+                    required
+                    aria-invalid={destinataireFaux === "telephone" ? true : undefined}
+                    aria-describedby={`${ids}-destinataire-telephone-aide`}
+                    onChange={(e) => changerDestinataire({ ...destinataire, telephone: e.target.value })}
+                  />
+                  {destinataireFaux === "telephone" ? (
+                    <p className="aide aide-erreur" role="alert" id={`${ids}-destinataire-telephone-aide`}>
+                      {MESSAGE_CHAMP.telephone}
+                    </p>
+                  ) : (
+                    <p className="aide" id={`${ids}-destinataire-telephone-aide`}>
+                      Pour la joindre au sujet de la commande.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+            <div className="champ">
+              <label htmlFor={`${ids}-allergie`}>
+                Allergie ou intolérance <span className="facultatif">facultatif</span>
+              </label>
+              <input
+                id={`${ids}-allergie`}
+                value={allergie}
+                maxLength={LIMITE_ALLERGIE}
+                autoComplete="off"
+                aria-describedby={`${ids}-allergie-aide`}
+                onChange={(e) => {
+                  setAllergie(e.target.value);
+                  noterAllergie(e.target.value);
+                }}
+              />
+              <p className="aide" id={`${ids}-allergie-aide`}>
+                Pour toute la commande. Nous la transmettons à la cuisine, sans pouvoir garantir l&apos;absence de traces. Une question ? Appelez-nous au{" "}
+                <a href="tel:+41227921689" className="sans-coupure">
+                  022 792 16 89
+                </a>
+                .
+              </p>
             </div>
             {compte ? (
               <p className="aide">

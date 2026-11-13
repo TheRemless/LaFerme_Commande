@@ -8,10 +8,21 @@ import type { Catalogue } from "@/lib/panier";
 import { lirePlatsRemis, usePanier, useCalculPanier } from "@/lib/panier-local";
 import { ContenuPanier } from "@/components/panier/ContenuPanier";
 import { FichePlat } from "@/components/carte/FichePlat";
+import { suggestionPanier, type DonneesPopulaires } from "@/lib/suggestion";
 
-export function PagePanier({ catalogue, plats, preversion }: { catalogue: Catalogue; plats: LignePlat[]; preversion: boolean }) {
+export function PagePanier({
+  catalogue,
+  plats,
+  preversion,
+  populaires,
+}: {
+  catalogue: Catalogue;
+  plats: LignePlat[];
+  preversion: boolean;
+  populaires?: DonneesPopulaires;
+}) {
   const panier = usePanier();
-  const { lignes, charge, quantite, remplacer } = panier;
+  const { lignes, charge, quantite, remplacer, ajouter } = panier;
   // Ligne rouverte dans sa fiche (« Modifier ») : options, retraits, note et quantité sans repartir de zéro.
   const [edition, setEdition] = useState<{ index: number; plat: LignePlat } | null>(null);
   // Annoncé aux lecteurs d'écran, la fiche se ferme sans autre signe.
@@ -43,7 +54,12 @@ export function PagePanier({ catalogue, plats, preversion }: { catalogue: Catalo
           {remis === 1 ? "1 plat remis" : `${remis} plats remis`} dans votre panier.
         </p>
       )}
-      {charge && <ContenuPanier lignes={lignes} quantite={quantite} catalogue={catalogue} choix={choix} reponse={reponse} preversion={preversion} suivi={panier} calcul={calcul} onModifier={modifier} />}
+      {charge && (
+        <ContenuPanier lignes={lignes} quantite={quantite} catalogue={catalogue} choix={choix} reponse={reponse} preversion={preversion} suivi={panier} calcul={calcul} onModifier={modifier}
+          suggestion={suggestionPanier(populaires, lignes, catalogue, plats)}
+          onSuggestion={(slug) => ajouter({ slug, qte: 1, choix: {}, retraits: [], note: "" })}
+        />
+      )}
       <Link className="lien-retour" href="/carte">
         Ajouter d&apos;autres plats
       </Link>

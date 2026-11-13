@@ -7,6 +7,8 @@ import { adresseTexte, chercherAdresses, numeroTape, type Adresse, type Details 
 import { ecrireChoix, lireChoix, type Quand, type ZoneChoisie } from "@/lib/choix";
 import { prixCourt } from "@/lib/prix";
 import { messageZoneFermee } from "@/lib/zone-fermee";
+import { fourchette } from "@/lib/heure-reelle";
+import { plageTexte } from "@/lib/plage-heure";
 import {
   creneaux,
   depuisHeureGeneve,
@@ -25,6 +27,7 @@ import {
   type CreneauPlein,
 } from "@/lib/service";
 import { Icone } from "@/components/Icone";
+import { RepriseCommande, type DerniereCommande } from "@/components/accueil/RepriseCommande";
 
 type Verdict =
   // adresse : l'adresse officielle du registre fédéral quand le serveur l'a retrouvée (saisie à la main).
@@ -40,7 +43,13 @@ const DETAILS_VIDES: Details = { etage: "", sonnette: "", code: "", instructions
 
 export type AdresseEnregistree = { id: string; adresse: Adresse; details: Partial<Details> };
 
-type ReponseAccueil = { maintenant: number; heureSimulee: string | null; adresses: AdresseEnregistree[]; pleins?: CreneauPlein[] };
+type ReponseAccueil = {
+  maintenant: number;
+  heureSimulee: string | null;
+  adresses: AdresseEnregistree[];
+  derniere?: DerniereCommande | null;
+  pleins?: CreneauPlein[];
+};
 
 export function ChoixCommande({
   config,
@@ -58,6 +67,10 @@ export function ChoixCommande({
   const [suggestions, setSuggestions] = useState<Adresse[]>([]);
   const [rechercheEchouee, setRechercheEchouee] = useState(false);
   const [adresse, setAdresse] = useState<Adresse | null>(null);
+  // Client connecté : sa dernière commande, à reprendre dès l'accueil (vague 3). Une fois reprise, le
+  // bouton mène au panier au lieu de la carte.
+  const [derniere, setDerniere] = useState<DerniereCommande | null>(null);
+  const [reprise, setReprise] = useState(false);
   // Numéro tapé quand la suggestion choisie en porte un autre (CM-07).
   const [numeroDifferent, setNumeroDifferent] = useState<string | null>(null);
   const [manuel, setManuel] = useState(false);
@@ -103,6 +116,7 @@ export function ChoixCommande({
         setMaintenant(new Date(Date.now() + decalage));
         setHeureSimulee(r.heureSimulee ?? undefined);
         setAdressesEnregistrees(r.adresses);
+        setDerniere(r.derniere ?? null);
         setPleins(r.pleins ?? []);
       })
       .catch(() => {
@@ -225,6 +239,8 @@ export function ChoixCommande({
   const etatPizzas = useMemo(() => etatService(config, maintenant, mode, zone, true), [config, maintenant, mode, zone]);
   const asapPizzasSeulement = etatCarte.etat !== "ouvert" && etatPizzas.etat === "ouvert";
   const etat = asapPizzasSeulement ? etatPizzas : etatCarte;
+  // Heure annoncée en fourchette autour de l'heure promise (largeur réglée au back-office).
+  const plage = etat.etat === "ouvert" ? fourchette(config, mode, etat.desQuePossible) : null;
   const listeCarte = useMemo(() => creneauxLibres(creneaux(config, maintenant, mode, zone), pleins, mode), [config, maintenant, mode, zone, pleins]);
   const liste = useMemo(() => creneauxLibres(creneaux(config, maintenant, mode, zone, true), pleins, mode), [config, maintenant, mode, zone, pleins]);
   const fermetureAVenir = useMemo(() => fermetureProche(config, maintenant), [config, maintenant]);
@@ -283,8 +299,9 @@ export function ChoixCommande({
         quand.type === "asap" ? asapPizzasSeulement : quand.type === "creneau" ? !pourTous.has(`${quand.date} ${quand.minutes}`) : false,
       heureSimulee,
       estimation: quand.type === "asap" && etat.etat === "ouvert" ? etat.desQuePossible : undefined,
+      fourchette: quand.type === "asap" && plage ? plage : undefined,
     });
-    router.push("/carte");
+    router.push(reprise ? "/panier" : "/carte");
   }
 
   function choisirSuggestion(a: Adresse) {
@@ -301,6 +318,14 @@ export function ChoixCommande({
     choisirSuggestion(a.adresse);
     setNumeroDifferent(null);
     setDetails({ ...DETAILS_VIDES, ...a.details });
+  }
+
+  // Commande reprise : son mode, et pour une livraison l'adresse la plus récente du compte.
+  function apresReprise(m: Mode) {
+    setReprise(true);
+    setMode(m);
+    if (m === "livraison" && !adresse && adressesEnregistrees[0]) choisirEnregistree(adressesEnregistrees[0]);
+    else montrer();
   }
 
   function effacerAdresse() {
@@ -323,6 +348,7 @@ export function ChoixCommande({
       </figure>
       <div className="accueil-panneau">
         <h1>Livraison ou à&nbsp;emporter&nbsp;?</h1>
+        {derniere && <RepriseCommande derniere={derniere} onReprise={apresReprise} />}
 
         <div className="choix-mode" role="group" aria-label="Livraison ou à emporter">
           <button type="button" data-mode="livraison" aria-pressed={mode === "livraison"} onClick={() => setMode("livraison")}>
@@ -575,7 +601,7 @@ export function ChoixCommande({
               <>
                 <label className="option">
                   <input type="radio" name={`${ids}-quand`} checked={!plusTard} onChange={() => setPlusTard(false)} />
-                  <span>Dès que possible, vers {heureTexte(etat.desQuePossible)}</span>
+                  <span>Dès que possible, {plage ? plageTexte(plage) : `vers ${heureTexte(etat.desQuePossible)}`}</span>
                 </label>
                 <label className="option">
                   <input type="radio" name={`${ids}-quand`} checked={plusTard} onChange={() => setPlusTard(true)} />
@@ -639,7 +665,7 @@ export function ChoixCommande({
           ))}
 
         <button type="button" className="bouton-principal" ref={boutonCarte} onClick={continuer} disabled={!peutContinuer}>
-          Voir la carte
+          {reprise ? "Voir le panier" : "Voir la carte"}
         </button>
         {mode === "livraison" && verdict.statut === "livrable" && !pretDetails && (
           <p className="aide">Indiquez le nom sur la sonnette pour continuer.</p>

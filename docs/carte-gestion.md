@@ -29,3 +29,11 @@ Migration `supabase/migrations/20261210110000_prix_en_lot.sql`. Tests : `tests/u
 
 - **Prix en lot** : une catégorie entière ou une liste de plats, et une règle (nouveau prix pour chacun, hausse ou baisse en pour cent, ou en francs), arrondie à 5, 10, 50 centimes ou au franc. La base calcule les nouveaux prix à partir des siens. Aperçu d'abord (avant et après, rien n'est écrit), puis application : tout passe ou rien ne passe. Chaque plat changé est journalisé comme un changement de prix fait à la main, donc annulable plat par plat. Sans « Prix validé », les prix changés repartent à valider. Un plat ajouté au back-office et en vente exige « Prix validé », dès l'aperçu. Plats archivés et plats du jour exclus.
 - **Copier un plat** (« Pizza Tonno grande ») : même catégorie, poste, description, prix, provenance, allergènes, disponibilités, options et retraits ; hors de la vente jusqu'à ce qu'on la mette en vente. Elle se range juste après son modèle. Une photo envoyée n'est pas copiée (elle disparaît avec son plat), une photo du shooting l'est. Journal : `plat_ajoute`, avec le plat d'origine.
+
+## Étiquettes des plats (vague 3, 13.11.2026)
+
+Migration `supabase/migrations/20261210150000_etiquettes.sql`. Tests : `tests/unit/etiquettes-sql.test.ts`. Action `etiquettes` de `/api/gestion/carte` ; écran avec la nouvelle carte du back-office.
+
+- Trois étiquettes : végétarien, végane, épicé. Le gérant les pose plat par plat ; le site n'en déduit aucune (ni de la description, ni des allergènes). Sans saisie, aucune étiquette : le restaurant confirme chaque plat. Végane ajoute végétarien.
+- La carte publique les donne (`carte_publique.etiquettes`) pour le filtre et la fiche, affichés par `client-commande`.
+- Journal : objet `etiquettes`, avant et après.

@@ -24,3 +24,29 @@ Le lien « Reçu avec TVA » est en bas de la page de suivi d'une commande payé
 ## Annuler sa commande depuis le suivi
 
 Désactivé tant que Jérémy ne l'a pas décidé (réglage `annulation_client_active`). Activé, le bouton « Annuler ma commande » apparaît tant que la commande n'est pas acceptée, avec une confirmation. Le suivi dit ensuite « Vous avez annulé la commande. ».
+## Ses données (nLPD)
+
+Le fichier « Télécharger mes données » du compte contient aussi les notes que l'équipe a écrites sur le client et sa marque (« à surveiller », « bloqué »). Une note écrite sur un client peut donc être lue par lui. À la suppression de son compte, ses notes sont effacées. La marque reste, pour qu'un blocage ne se lève pas en supprimant son compte : c'est une proposition qui attend la décision de Jérémy.
+
+## E-mails aux clients
+
+Chaque e-mail part en deux versions, texte seul et mise en page. La mise en page reste sur fond blanc, même quand le téléphone du client est en mode sombre. Sous le sujet, la boîte de réception montre la première phrase utile, par exemple « Nous avons bien reçu votre commande n° 37. ».
+## Historique du compte
+
+Le compte montre le nombre de commandes passées avec lui et les 30 dernières. « Voir les commandes plus anciennes » charge les 30 suivantes.
+
+## Un problème avec la commande
+
+Sur la page de suivi d'une commande acceptée, pendant 14 jours, le client touche « Signaler un problème ». Il choisit ce qui ne va pas (retard, plat manquant, froid, erreur, qualité, livraison, autre) et l'écrit en quelques mots. Le restaurant reçoit une alerte. Le dossier est dans le back-office, rubrique Réclamations. Trois messages au plus par commande. Ensuite, le client doit appeler.
+
+## Adresses enregistrées
+
+Dans son compte, le client corrige les consignes d'une adresse : étage, nom sur la sonnette, code d'entrée et mot pour le livreur. Ce sont les mêmes champs qu'à l'accueil. La sonnette reste obligatoire.
+
+## Appareils connectés
+
+La rubrique « Connexion » du compte liste les appareils connectés, avec un nom court tiré du navigateur (« Safari sur iPhone ») et la date de connexion. Le client peut en déconnecter un seul, par exemple un téléphone perdu, ou tous à la fois.
+
+## Heure et allergie au suivi
+
+Le suivi et les e-mails donnent l'heure confirmée en fourchette, comme l'accueil (« Prête entre 19h35 et 19h45 »), selon les largeurs réglées par le restaurant. À largeur 0, une seule heure (« vers 19h40 »). L'allergie que le client a signalée à la commande est rappelée dans le détail de sa page de suivi. L'e-mail de confirmation dit seulement qu'une allergie est signalée, sans en recopier le texte.
