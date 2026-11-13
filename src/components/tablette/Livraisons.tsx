@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CodeLivreur } from "./CodeLivreur";
+import { BOUTONS_MAX, choixLivreurs, tourneesAffichees } from "./livraisons-choix";
 import type { DonneesLivraisons, LivraisonTablette, LivreurTablette } from "@/lib/livreur";
 import type { CommandeTablette } from "@/lib/tablette";
 import { heureDe as heure } from "@/lib/heures";
@@ -62,6 +63,11 @@ export function OngletLivraisons({
     .sort((a, b) => (a.heure_confirmee ?? a.heure_proposee).localeCompare(b.heure_confirmee ?? b.heure_proposee));
   const actifs = donnees.livreurs.filter((l) => l.actif);
   const commandeDe = new Map(commandes.map((c) => [c.id, c]));
+  // Planning du service (bo-operations) : les prévus en boutons, les autres dans « Donner à… ».
+  const { boutons, menu } = choixLivreurs(donnees.livreurs, donnees.prevus);
+  const avecLivraison = new Set(donnees.livraisons.map((l) => l.livreur_id));
+  const tournees = tourneesAffichees(donnees.livreurs, donnees.prevus, avecLivraison);
+  const prevusNoms = boutons.map((l) => l.nom);
 
   return (
     <div className="liv-tablette">
@@ -70,6 +76,13 @@ export function OngletLivraisons({
           À donner à un livreur <span className="tab-nb">{aAttribuer.length}</span>
         </h2>
         {actifs.length === 0 && <p className="tab-message">Aucun livreur dans l&apos;équipe. Le gérant en ajoute un au back-office, rubrique « Équipe ».</p>}
+        {actifs.length > BOUTONS_MAX && (
+          <p className="tab-meta">
+            {prevusNoms.length > 0
+              ? `Prévus ce ${donnees.prevus?.service === "midi" ? "midi" : "soir"} : ${prevusNoms.join(", ")}.`
+              : `Personne au planning de ce ${donnees.prevus?.service === "midi" ? "midi" : "soir"} : choisissez dans « Donner à… ».`}
+          </p>
+        )}
         {aAttribuer.length === 0 ? (
           <p className="liv-rien">Toutes les livraisons acceptées ont un livreur.</p>
         ) : (
@@ -88,11 +101,27 @@ export function OngletLivraisons({
                   {c.zone_numero ? `. Zone ${c.zone_numero}` : ""}
                 </p>
                 <div className="boutons-ligne">
-                  {actifs.map((l) => (
+                  {boutons.map((l) => (
                     <button key={l.id} type="button" className="bouton-second" disabled={envoi} onClick={() => faire({ action: "attribuer", commande: c.id, livreur: l.id })}>
                       À {l.nom}
                     </button>
                   ))}
+                  {menu.length > 0 && (
+                    <select
+                      className="liv-donner"
+                      aria-label={`Donner la commande ${c.numero} à un livreur`}
+                      disabled={envoi}
+                      value=""
+                      onChange={(e) => e.target.value && faire({ action: "attribuer", commande: c.id, livreur: e.target.value })}
+                    >
+                      <option value="">{boutons.length > 0 ? "Donner à un autre…" : "Donner à…"}</option>
+                      {menu.map((l) => (
+                        <option key={l.id} value={l.id}>
+                          {l.nom}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
               </li>
             ))}
@@ -101,11 +130,12 @@ export function OngletLivraisons({
       </section>
 
       <div className="liv-colonne">
-        {donnees.livreurs.map((l) => (
+        {tournees.map((l) => (
           <Tournee
             key={l.id}
             livreur={l}
-            autres={actifs.filter((x) => x.id !== l.id)}
+            autres={boutons.filter((x) => x.id !== l.id)}
+            autresMenu={menu.filter((x) => x.id !== l.id)}
             livraisons={donnees.livraisons.filter((x) => x.livreur_id === l.id)}
             commandeDe={commandeDe}
             envoi={envoi}
@@ -128,6 +158,7 @@ function presence(l: LivreurTablette): string {
 function Tournee({
   livreur,
   autres,
+  autresMenu = [],
   livraisons,
   commandeDe,
   envoi,
@@ -136,6 +167,8 @@ function Tournee({
 }: {
   livreur: LivreurTablette;
   autres: LivreurTablette[];
+  // Livreurs ni prévus ni connectés (grande équipe) : dans le menu « Donner à… ».
+  autresMenu?: LivreurTablette[];
   livraisons: LivraisonTablette[];
   commandeDe: Map<string, CommandeTablette>;
   envoi: boolean;
@@ -259,6 +292,23 @@ function Tournee({
                         Donner à {a.nom}
                       </button>
                     ))}
+                    {autresMenu.length > 0 && (
+                      // Grande équipe : les livreurs ni prévus ni connectés dans un menu.
+                      <select
+                        className="liv-donner"
+                        aria-label={`Donner la commande ${x.numero} à un autre livreur`}
+                        disabled={envoi}
+                        value=""
+                        onChange={(e) => e.target.value && faire({ action: "attribuer", commande: x.commande_id, livreur: e.target.value })}
+                      >
+                        <option value="">{autres.length > 0 ? "Donner à un autre…" : "Donner à…"}</option>
+                        {autresMenu.map((a) => (
+                          <option key={a.id} value={a.id}>
+                            {a.nom}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                     <button type="button" className="bouton-second" disabled={envoi} onClick={() => faire({ action: "retirer", commande: x.commande_id })}>
                       Reprendre
                     </button>

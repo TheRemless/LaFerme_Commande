@@ -257,6 +257,15 @@ Zéro e-mail : le gérant ou un responsable touche « Code de connexion » à c�
 
 Un geste qui change un statut ou écrit un encaissement (« Prête », « Partie », « Retirée », « Livrée », « Retirée, espèces / carte », « Encaissée … ») ne part qu'après 5 secondes. En bas de l'écran : « N° 17 : Prête au comptoir dans 4 s. » et « Annuler ». Pendant ce temps, rien n'est écrit en base, imprimé ni envoyé au client (e-mail « prête » ou « en route ») : annuler ne laisse aucune trace, il n'y a rien à défaire. Un seul geste en attente par commande. Si la page se ferme pendant le délai, les gestes en attente partent tout de suite. Accepter et refuser gardent leur propre confirmation ; « Prête » de la vue par poste a « Rouvrir ». Module `src/components/tablette/differe.ts`.
 
+## Livraisons : livreurs du service et « Donner à… » (P1 du contrôle de produit-gestion)
+
+Avant : un bouton « À <livreur> » pour chaque livreur et chaque commande, et « Donner à <livreur> » sur chaque arrêt (420 boutons à l'écran sur le jeu de rush) ; le planning du service n'était pas lu. Logique pure : `src/components/tablette/livraisons-choix.ts`.
+
+- 4 livreurs actifs au plus : un bouton chacun, comme avant.
+- Au-delà : en boutons, les livreurs **prévus au planning du service** en cours (bo-operations, `livreursDuService` ; midi avant 15h, soir après, heure de Genève) et ceux dont la page est ouverte sur le téléphone depuis moins de 6 heures ; les autres dans un menu « Donner à… » par commande et par arrêt. En tête de colonne : « Prévus ce soir : Marco, Inès. » ou « Personne au planning de ce soir : choisissez dans « Donner à… ». »
+- Tournées affichées : les livreurs prévus et ceux qui ont encore une livraison (sans planning pour ce service : tout le monde).
+- Sur le jeu de rush de qualite (sans planning ce midi) : 25 boutons et 50 menus au lieu de 420 boutons. Capture : `docs/rendus/vague-3/tablette/livraisons-apres-1180.png`.
+
 ## Tableau compact et bandeau des remboursements court (P1 du contrôle de produit-gestion)
 
 Mesure sur le jeu de rush de qualite (91 commandes en cours, `scripts/tablette/mesurer.mjs` avec `COMPTE=lea.rush@exemple.test`) :

@@ -89,7 +89,9 @@ export type LivraisonTablette = {
   probleme_le: string | null;
   partie_le: string | null;
 };
-export type DonneesLivraisons = { livreurs: LivreurTablette[]; livraisons: LivraisonTablette[] };
+// prevus (vague 3, P1 du contrôle de produit-gestion) : livreurs présents au planning du service en cours
+// (bo-operations, planning_livreurs) ; ids vide = aucun planning pour ce service, la tablette propose alors tout le monde.
+export type DonneesLivraisons = { livreurs: LivreurTablette[]; livraisons: LivraisonTablette[]; prevus?: { service: "midi" | "soir"; ids: string[] } | null };
 
 export const livraisonsTablette = () => fonctionSql<DonneesLivraisons>("livreurs_tablette", {});
 
