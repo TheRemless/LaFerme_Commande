@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { adresseDuCompte } from "./site";
 
 // Lot 8d : contrôle automatique d'accessibilité (axe-core, règles WCAG 2.1 A et AA) sur chaque écran,
 // en bureau et en mobile. Ce que l'outil ne voit pas (clavier, focus, annonces) est testé à la main
@@ -131,6 +132,7 @@ test("lien de suivi inconnu : commande introuvable, avec l'endroit où trouver l
 });
 
 async function connecterPersonnel(page: Page, email: string) {
+  await adresseDuCompte(page, email);
   await page.goto("/tablette");
   await page.getByLabel("E-mail", { exact: true }).fill(email);
   await page.getByRole("button", { name: "Recevoir un code" }).click();
