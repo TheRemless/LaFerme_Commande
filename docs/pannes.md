@@ -173,7 +173,7 @@ Source : docs.netlify.com, « How credits work », lue le 12.11.2026.
 
 **Signes** : les clients en livraison ne trouvent plus leur adresse, ou voient « Le service fédéral des adresses ne répond pas. Réessayez dans un instant. » au paiement. Les commandes à emporter passent normalement.
 
-**Ce que fait le site** : chaque adresse de livraison est vérifiée dans le registre fédéral (geo.admin.ch) avant le paiement, pour que la zone et les frais soient justes. Si ce service ne répond pas, aucune livraison ne peut être payée en ligne.
+**Ce que fait le site** : chaque adresse de livraison est vérifiée dans le registre fédéral (geo.admin.ch) avant le paiement, pour que la zone et les frais soient justes. Si ce service ne répond pas, aucune livraison ne peut être payée en ligne. Le panier et le paiement le disent au client et lui proposent « Commander à emporter » ou le numéro du restaurant.
 
 **En deux minutes**
 
