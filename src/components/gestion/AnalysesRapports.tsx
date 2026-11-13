@@ -56,6 +56,7 @@ function Plats({ a }: { a: Analyses }) {
       <section aria-labelledby="ana-plats">
         <h2 id="ana-plats">Ventes par plat</h2>
         <p className="aide">Lignes vendues, suppléments compris, sans les frais de livraison. Les mieux vendus d&apos;abord.</p>
+        <div className="rap-defile" tabIndex={0} role="region" aria-labelledby="ana-plats">
         <table className="rap-table">
           <thead>
             <tr>
@@ -79,6 +80,7 @@ function Plats({ a }: { a: Analyses }) {
             ))}
           </tbody>
         </table>
+        </div>
         {a.plats.length > 20 && (
           <button type="button" className="bo-bouton bo-bouton-second bo-bouton-petit ana-plus" onClick={() => setTout(!tout)}>
             {tout ? "Afficher les 20 premiers" : `Afficher les ${a.plats.length} plats`}
@@ -87,6 +89,7 @@ function Plats({ a }: { a: Analyses }) {
       </section>
       <section aria-labelledby="ana-categories">
         <h2 id="ana-categories">Par catégorie</h2>
+        <div className="rap-defile" tabIndex={0} role="region" aria-labelledby="ana-categories">
         <table className="rap-table">
           <thead>
             <tr>
@@ -107,6 +110,7 @@ function Plats({ a }: { a: Analyses }) {
             ))}
           </tbody>
         </table>
+        </div>
       </section>
     </div>
   );
@@ -133,7 +137,7 @@ function Heures({ a }: { a: Analyses }) {
       <p className="aide">
         Commandes en moyenne par jour, à l&apos;heure de service (heure promise, sinon heure de commande). Pointe : {JOURS[pointe.jour].toLowerCase()} de {pointe.heure}h à {pointe.heure + 1}h, {nombre(pointe.jours ? pointe.commandes / pointe.jours : 0)} commandes en moyenne.
       </p>
-      <div className="ana-chaleur-cadre">
+      <div className="ana-chaleur-cadre" tabIndex={0} role="region" aria-labelledby="ana-heures">
         <table className="ana-chaleur">
           <caption className="sr-only">Commandes en moyenne par jour de la semaine et par heure</caption>
           <thead>
@@ -190,6 +194,7 @@ function ZonesClients({ a }: { a: Analyses }) {
         {a.zones.length === 0 ? (
           <p className="aide">Aucune livraison sur la période.</p>
         ) : (
+          <div className="rap-defile" tabIndex={0} role="region" aria-labelledby="ana-zones">
           <table className="rap-table">
             <thead>
               <tr>
@@ -212,6 +217,7 @@ function ZonesClients({ a }: { a: Analyses }) {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </section>
     </div>
@@ -229,6 +235,7 @@ function Livreurs({ a, service }: { a: Analyses; service: Service | null }) {
       {l.length === 0 ? (
         <p className="aide">Aucune livraison attribuée sur la période.</p>
       ) : (
+        <div className="rap-defile" tabIndex={0} role="region" aria-labelledby="ana-livreurs">
         <table className="rap-table">
           <thead>
             <tr>
@@ -258,6 +265,7 @@ function Livreurs({ a, service }: { a: Analyses; service: Service | null }) {
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </section>
   );

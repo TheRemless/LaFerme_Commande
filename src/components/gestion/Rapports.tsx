@@ -167,6 +167,7 @@ export function Rapports() {
               {p.refusees.motifs.length === 0 ? (
                 <p className="aide">Aucun refus sur la période.</p>
               ) : (
+                <div className="rap-defile" tabIndex={0} role="region" aria-labelledby="rap-refus">
                 <table className="rap-table">
                   <thead>
                     <tr>
@@ -185,6 +186,7 @@ export function Rapports() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               )}
             </section>
 
@@ -196,6 +198,7 @@ export function Rapports() {
 
           <section aria-labelledby="rap-tva">
             <h2 id="rap-tva">TVA par taux</h2>
+            <div className="rap-defile" tabIndex={0} role="region" aria-labelledby="rap-tva">
             <table className="rap-table">
               <thead>
                 <tr>
@@ -220,6 +223,7 @@ export function Rapports() {
                 ))}
               </tbody>
             </table>
+            </div>
             <p className="aide">
               Pour la fiduciaire : <a href="/gestion/export">Export comptable</a>.
             </p>
@@ -235,6 +239,7 @@ function Remboursements({ s }: { s: Synthese }) {
   const r = s.remboursements;
   return (
     <>
+      <div className="rap-defile" tabIndex={0} role="region" aria-labelledby="rap-remb">
       <table className="rap-table">
         <tbody>
           <tr>
@@ -259,6 +264,7 @@ function Remboursements({ s }: { s: Synthese }) {
           </tr>
         </tbody>
       </table>
+      </div>
       {r.echecs_ouverts > 0 ? (
         <p className="rap-attention" role="note">
           {nombre(r.echecs_ouverts)} remboursement{r.echecs_ouverts > 1 ? "s" : ""} en échec, tous jours confondus (CHF {montant(r.echecs_ouverts_centimes)}) : le client n&apos;a pas reçu son argent. À reprendre depuis la fiche de la commande.
@@ -307,7 +313,7 @@ function VentesParJour({ jours, avant, contre }: { jours: Jour[]; avant: Jour[];
         <span className="rap-legende-barre" /> Cette période
         <span className="rap-legende-trait" /> {contre.charAt(0).toUpperCase() + contre.slice(1)}
       </p>
-      <div className="rap-graphe" onMouseLeave={() => setSurvol(null)}>
+      <div className="rap-graphe" tabIndex={0} role="region" aria-labelledby="rap-jours" onMouseLeave={() => setSurvol(null)}>
         <svg viewBox={`0 0 ${L} ${H}`} role="img" aria-label={`Ventes TTC par jour, ${jours.length} jours. Les chiffres sont aussi dans le tableau ci-dessous.`}>
           {graduations.map((g) => (
             <g key={g}>
@@ -362,6 +368,7 @@ function VentesParJour({ jours, avant, contre }: { jours: Jour[]; avant: Jour[];
       </div>
       <details className="rap-details">
         <summary>Voir le tableau jour par jour</summary>
+        <div className="rap-defile" tabIndex={0} role="region" aria-labelledby="rap-jours">
         <table className="rap-table">
           <thead>
             <tr>
@@ -384,6 +391,7 @@ function VentesParJour({ jours, avant, contre }: { jours: Jour[]; avant: Jour[];
             ))}
           </tbody>
         </table>
+        </div>
         <button type="button" className="bo-bouton bo-bouton-second bo-bouton-petit" onClick={csv}>
           Télécharger ce tableau (CSV)
         </button>

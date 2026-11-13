@@ -10,8 +10,15 @@
 .bo .rap-deux > * {
   min-width: 0;
 }
-.bo .rap section:has(> .rap-table) {
+/* Un tableau trop large défile dans son cadre, que le clavier peut atteindre (axe : scrollable-region-focusable). */
+.bo .rap-defile {
   overflow-x: auto;
+}
+.bo .rap-defile:focus-visible,
+.bo .rap-graphe:focus-visible,
+.bo .ana-chaleur-cadre:focus-visible {
+  outline: 3px solid var(--bo-texte);
+  outline-offset: 2px;
 }
 .bo .rap h2 {
   margin: 0 0 12px;
