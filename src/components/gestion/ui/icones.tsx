@@ -95,6 +95,20 @@ const TRACES = {
       <path d="M8.5 17h6l2-6h-4M14 6h2.5l2 5M6 17l3-6h4" />
     </>
   ),
+  reglages: (
+    <>
+      <path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1" />
+      <circle cx="15" cy="6" r="2" />
+      <circle cx="9" cy="12" r="2" />
+      <circle cx="17" cy="18" r="2" />
+    </>
+  ),
+  message: (
+    <>
+      <path d="M4 5h16v11H9l-5 4Z" />
+      <path d="M8 9h8M8 12h5" />
+    </>
+  ),
   promotions: (
     <>
       <path d="M4 4h7l9 9-7 7-9-9Z" />

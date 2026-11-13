@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { adresseDuCompte, SITE } from "./site";
+import { adresseDuCompte, codeDuPersonnel, SITE } from "./site";
 
 // Accueil du back-office (vague 3, bo-socle) : ce qui attend, les commandes du moment, le service contre
 // la semaine passée, l'état du restaurant. Les chiffres viennent de /api/gestion/accueil, réservée au gérant.
@@ -13,10 +13,7 @@ async function connecter(p: Page, email: string) {
   await adresseDuCompte(p, email);
   await p.goto("/gestion");
   await p.getByLabel("E-mail", { exact: true }).fill(email);
-  await p.getByRole("button", { name: "Recevoir un code" }).click();
-  const code = p.locator(".note-preversion strong");
-  await expect(code).toHaveText(/^\d{8}$/);
-  await p.getByLabel("Code à 8 chiffres").fill(await code.innerText());
+  await p.getByLabel("Code à 8 chiffres").fill(await codeDuPersonnel(p));
   await p.getByRole("button", { name: "Me connecter" }).click();
 }
 

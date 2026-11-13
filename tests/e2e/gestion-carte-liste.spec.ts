@@ -1,4 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
+import sharp from "sharp";
+import { codeDuPersonnel } from "./site";
 
 // Carte du back-office en liste (vague 3) : filtres de qualité, fiche dans le panneau, rupture jusqu'à une
 // date, prix en lot (aperçu seulement : aucun prix de la carte n'est changé pour les autres tests).
@@ -16,10 +18,7 @@ test.beforeAll(async ({ browser }, info) => {
   gestion = await browser.newPage({ baseURL: info.project.use.baseURL });
   await gestion.goto("/gestion");
   await gestion.getByLabel("E-mail", { exact: true }).fill(`liste-${info.project.name}@laferme.test`);
-  await gestion.getByRole("button", { name: "Recevoir un code" }).click();
-  const code = gestion.locator(".note-preversion strong");
-  await expect(code).toHaveText(/^\d{8}$/);
-  await gestion.getByLabel("Code à 8 chiffres").fill(await code.innerText());
+  await gestion.getByLabel("Code à 8 chiffres").fill(await codeDuPersonnel(gestion));
   await gestion.getByRole("button", { name: "Me connecter" }).click();
   // Connexion faite (l'accueil du back-office s'affiche) avant d'ouvrir une rubrique.
   await expect(gestion.getByRole("heading", { level: 1, name: "Accueil" })).toBeVisible();
@@ -37,6 +36,9 @@ test("la carte en liste : filtres de qualité, recherche, catégorie", async ({}
   await capture("carte-liste", info);
   await gestion.getByRole("button", { name: /^Sans allergènes/ }).click();
   await expect(gestion.getByRole("button", { name: /^Sans allergènes/ })).toHaveAttribute("aria-pressed", "true");
+  await gestion.getByRole("button", { name: /^Bloquent la mise en ligne/ }).click();
+  await expect(gestion.getByRole("button", { name: /^Bloquent la mise en ligne/ })).toHaveAttribute("aria-pressed", "true");
+  await expect(tableau.getByRole("button", { name: "Pizza Margherita" })).toBeVisible();
   await gestion.getByRole("button", { name: /^Tous/ }).click();
   await gestion.getByRole("combobox", { name: "Catégorie" }).selectOption({ label: "Desserts" });
   await expect(tableau.getByRole("button", { name: "Pizza Margherita" })).toHaveCount(0);
@@ -107,3 +109,39 @@ test("les étiquettes se posent sur la fiche ; végane coche aussi végétarien"
   await expect(panneau.getByRole("checkbox", { name: "Végétarien" })).not.toBeChecked();
   await gestion.keyboard.press("Escape");
 });
+
+test("en lot : retirer de la vente puis remettre en vente", async () => {
+  await gestion.goto("/gestion/carte");
+  const tableau = gestion.getByRole("table");
+  const ligne = tableau.getByRole("row", { name: /Pizza Tonno/ }).first();
+  await tableau.getByRole("checkbox", { name: "Sélectionner Pizza Tonno" }).check();
+  await gestion.getByRole("button", { name: "Retirer de la vente" }).click();
+  await expect(gestion.getByText("1 plat retiré de la vente.")).toBeVisible();
+  await expect(ligne).toContainText("Hors vente");
+  await tableau.getByRole("checkbox", { name: "Sélectionner Pizza Tonno" }).check();
+  await gestion.getByRole("button", { name: "Mettre en vente" }).click();
+  await expect(gestion.getByText("1 plat en vente.")).toBeVisible();
+  await expect(ligne).toContainText("En vente");
+});
+
+test("plusieurs photos d'un coup : le plat se trouve d'après le nom du fichier", async ({}, info) => {
+  const photo = await sharp({ create: { width: 2400, height: 1800, channels: 3, background: { r: 150, g: 110, b: 80 } } }).jpeg().toBuffer();
+  await gestion.goto("/gestion/carte");
+  await gestion.getByRole("button", { name: "Envoyer des photos" }).click();
+  const panneau = gestion.getByRole("dialog", { name: "Envoyer des photos" });
+  await panneau.getByLabel("Photos").setInputFiles([
+    { name: "tiramisu.jpg", mimeType: "image/jpeg", buffer: photo },
+    { name: "IMG_0001.jpg", mimeType: "image/jpeg", buffer: photo },
+  ]);
+  await expect(panneau.getByLabel("Plat pour tiramisu.jpg")).toHaveValue("tiramisu");
+  await expect(panneau.getByRole("row", { name: /IMG_0001\.jpg/ })).toContainText("Pas de plat trouvé");
+  await panneau.getByLabel("Cadrage pour tiramisu.jpg").selectOption("haut");
+  await panneau.getByRole("button", { name: "Envoyer 1 photo" }).click();
+  await expect(panneau.getByRole("row", { name: /tiramisu\.jpg/ })).toContainText("En ligne.");
+  // La photo du shooting revient : la carte des autres tests ne change pas.
+  const origine = new URL(info.project.use.baseURL!).origin;
+  const r = await gestion.request.post("/api/gestion/carte", { headers: { Origin: origine }, data: { type: "plat", slug: "tiramisu", champs: { photo: "tiramisu.jpg" } } });
+  expect(r.ok()).toBe(true);
+  await gestion.keyboard.press("Escape");
+});
+

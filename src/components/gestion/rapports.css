@@ -1,0 +1,211 @@
+/* Rapports (bo-pilotage). Béton : barres en béton sombre, période d'avant en trait d'encre, grille au filet.
+   La différence entre les deux séries est une forme (barre, trait) et une légende, pas une couleur. Rien hors de .bo. */
+.bo .rap {
+  display: grid;
+  /* minmax(0, 1fr) : un enfant large (le graphique, un tableau) défile dans son cadre au lieu d'élargir la page. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+}
+.bo .rap > *,
+.bo .rap-deux > * {
+  min-width: 0;
+}
+.bo .rap section:has(> .rap-table) {
+  overflow-x: auto;
+}
+.bo .rap h2 {
+  margin: 0 0 12px;
+}
+.bo .rap .bo-chiffres + .bo-chiffres {
+  margin-top: 12px;
+}
+.bo .rap-filtres {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 24px;
+}
+.bo .rap-service {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.bo .rap-service legend {
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+.bo .rap-service label {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--bo-cible);
+  padding: 0 14px;
+  border: 1px solid var(--bo-trait);
+  background: var(--bo-surface);
+  cursor: pointer;
+}
+.bo .rap-service label + label {
+  border-left: 0;
+}
+.bo .rap-service label:first-of-type {
+  border-radius: var(--bo-rayon) 0 0 var(--bo-rayon);
+}
+.bo .rap-service label:last-of-type {
+  border-radius: 0 var(--bo-rayon) var(--bo-rayon) 0;
+}
+.bo .rap-service input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+.bo .rap-service .rap-service-choisi {
+  background: var(--bo-texte);
+  color: var(--bo-surface);
+  border-color: var(--bo-texte);
+}
+.bo .rap-service label:has(input:focus-visible) {
+  outline: 3px solid var(--bo-texte);
+  outline-offset: 2px;
+}
+
+.bo .rap-deux {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+  gap: 24px;
+}
+
+.bo .rap-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bo-surface);
+  font-variant-numeric: tabular-nums;
+}
+.bo .rap-table th,
+.bo .rap-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--bo-trait);
+  text-align: left;
+}
+.bo .rap-table thead th {
+  font-weight: 600;
+  color: var(--bo-texte-doux);
+}
+.bo .rap-table tbody th {
+  font-weight: 400;
+}
+.bo .rap-table .rap-nb {
+  text-align: right;
+  white-space: nowrap;
+}
+.bo .rap-attention {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-left: 4px solid var(--bo-texte);
+  background: var(--bo-surface);
+}
+
+/* Graphique */
+.bo .rap-legende {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  color: var(--bo-texte-doux);
+}
+.bo .rap-legende-barre,
+.bo .rap-legende-trait {
+  display: inline-block;
+  width: 14px;
+}
+.bo .rap-legende-barre {
+  height: 12px;
+  background: var(--beton-sombre);
+  border-radius: 2px;
+}
+.bo .rap-legende-trait {
+  height: 2px;
+  margin-left: 12px;
+  background: var(--bo-texte);
+}
+.bo .rap-graphe {
+  position: relative;
+  overflow-x: auto;
+  background: var(--bo-surface);
+  border: 1px solid var(--bo-trait);
+  border-radius: var(--bo-rayon);
+  padding: 8px;
+}
+.bo .rap-graphe svg {
+  display: block;
+  width: 100%;
+  /* Sur téléphone, le dessin garde une largeur lisible et défile dans son cadre (jamais la page). */
+  min-width: 720px;
+  height: auto;
+}
+.bo .rap-grille {
+  stroke: var(--bo-trait);
+  stroke-width: 1;
+}
+.bo .rap-axe {
+  fill: var(--bo-texte-doux);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.bo .rap-cible {
+  fill: transparent;
+}
+.bo .rap-barre {
+  fill: var(--beton-sombre);
+}
+.bo .rap-trait {
+  stroke: var(--bo-texte);
+  stroke-width: 2;
+}
+.bo .rap-jour {
+  cursor: pointer;
+  outline: none;
+}
+.bo .rap-jour-actif .rap-cible {
+  fill: var(--papier);
+}
+.bo .rap-jour:focus-visible .rap-cible {
+  stroke: var(--bo-texte);
+  stroke-width: 2;
+}
+.bo .rap-bulle {
+  position: absolute;
+  top: 8px;
+  transform: translateX(-50%);
+  display: grid;
+  gap: 2px;
+  min-width: 180px;
+  padding: 8px 10px;
+  background: var(--bo-texte);
+  color: var(--bo-surface);
+  border-radius: var(--bo-rayon);
+  pointer-events: none;
+  font-size: 14px;
+}
+.bo .rap-bulle-avant {
+  opacity: 0.85;
+}
+.bo .rap-details {
+  margin-top: 12px;
+}
+.bo .rap-details summary {
+  min-height: var(--bo-cible);
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+.bo .rap-details .bo-bouton {
+  margin-top: 12px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .bo .rap-barre {
+    transition: fill 0.15s ease;
+  }
+}
