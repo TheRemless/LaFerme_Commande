@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { baseLocale } from "@/lib/db/locale";
-import { csvCloture, montantCompte, type ClotureJour } from "@/lib/cloture";
+import { csvCloture, montantCompte, regrouperEcarts, type ClotureJour } from "@/lib/cloture";
 import { celluleCsv } from "@/lib/gestion";
 import { jourDeService } from "@/lib/pilotage";
 
@@ -95,5 +95,20 @@ describe("route /api/gestion/cloture", () => {
     expect((await demain.json()).erreur).toMatch(/jour passé/);
     expect((await cloturer({ jour: jourDeService(), especes: "douze" })).status).toBe(422);
     expect((await cloturer({ jour: jourDeService(), note: 5 })).status).toBe(422);
+  });
+});
+
+describe("à vérifier : les commandes pas terminées en une ligne", () => {
+  it("garde l'argent à suivre en détail et compte les commandes pas terminées par statut", () => {
+    const r = regrouperEcarts([
+      { type: "pas_terminee", numero: 2, statut: "prete", centimes: 16190 },
+      { type: "remboursement_echec", numero: 7, centimes: 2500 },
+      { type: "pas_terminee", numero: 3, statut: "en_preparation", centimes: 3000 },
+      { type: "pas_terminee", numero: 4, statut: "prete", centimes: 1000 },
+    ]);
+    expect(r.aSuivre).toEqual([{ type: "remboursement_echec", numero: 7, centimes: 2500 }]);
+    expect(r.pasTerminees).toMatchObject({ commandes: 3, centimes: 20190, parStatut: [["prete", 2], ["en_preparation", 1]] });
+    expect(r.pasTerminees.liste.map((x) => x.numero)).toEqual([2, 3, 4]);
+    expect(regrouperEcarts([]).pasTerminees.commandes).toBe(0);
   });
 });

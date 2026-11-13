@@ -22,7 +22,7 @@ Rubrique `/gestion/journal`, écran `src/components/gestion/GestionJournal.tsx`,
 
 ## Libellés des objets
 
-Les noms des objets pour l'équipe sont dans `NOMS_OBJETS` (`src/lib/journal.ts`). Les résumés propres à chaque objet sont dans `GestionJournal.tsx`. Ceux ajoutés par d'autres rubriques suivent leur contrat :
+Les noms des objets pour l'équipe sont dans `NOMS_OBJETS` (`src/lib/journal.ts`). Les titres et les résumés de chaque ligne sont dans `src/components/gestion/journal-lignes.ts` (testés dans `tests/unit/journal-lignes.test.ts`). Chaque titre nomme ce qui a changé : « Supplément Lardons », « Réglage, retard ajouté aux heures » (nom du réglage dans `NOMS_REGLAGES`, sinon sa clé). Une ligne sans changement visible (même valeur avant et après, ou seule « Proposition » change) ne s'affiche pas. Ceux ajoutés par d'autres rubriques suivent leur contrat :
 
 | Objet | Rubrique | Résumé | Contrat |
 |---|---|---|---|
