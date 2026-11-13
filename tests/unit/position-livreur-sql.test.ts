@@ -135,6 +135,34 @@ describe("position du livreur en direct", () => {
     expect(await suivi(c2)).toMatchObject({ lat: 46.19, lon: 6.1 });
   });
 
+  it("course : un point envoyé pendant « Livrée » ne consomme pas la marque de l'arrêt suivant (relecture BIS de qualite)", async () => {
+    await geste(marco, c1, "partie");
+    await geste(marco, c2, "partie");
+    // État vu par un envoi parti au moment du geste : la marque « après c1 » existe déjà, c1 est encore l'arrêt calculé.
+    await db.query("insert into suites_livreur (livreur_id, le, apres_commande) values ($1, now(), $2)", [marco, c1]);
+    expect(await noter(marco, 46.1843, 6.0921)).toEqual({ statut: "ok", numero: await numero(c1) });
+    expect((await db.query("select 1 from suites_livreur where livreur_id = $1", [marco])).rows).toHaveLength(1);
+    // Le geste se termine, puis le point suivant, encore à la porte de c1, part pour c2 : masqué.
+    await geste(marco, c1, "livree");
+    await noter(marco, 46.1843, 6.0921);
+    expect(await suivi(c2)).toBeNull();
+    // Même si la marque avait été reposée sans arrêt : la ligne de c1 laissée par la course ne compte pas pour c2.
+    await db.query("update positions_livreur set le = now() - interval '11 seconds'");
+    await noter(marco, 46.1843, 6.0921);
+    expect(await suivi(c2)).toBeNull();
+  });
+
+  it("point de masquage trop imprécis (plus de 100 m) : rien n'est écrit, on attend le suivant", async () => {
+    await geste(marco, c1, "partie");
+    await geste(marco, c2, "partie");
+    await noter(marco, 46.1843, 6.0921);
+    await geste(marco, c1, "livree");
+    expect(await noter(marco, 46.19, 6.1, 300)).toEqual({ statut: "ignoree" });
+    expect(await lignes()).toEqual([]);
+    expect(await noter(marco, 46.1843, 6.0921, 15)).toEqual({ statut: "ok", numero: await numero(c2) });
+    expect(await suivi(c2)).toBeNull();
+  });
+
   it("annulée en route (adresse introuvable) : même masquage pour l'arrêt suivant ; départ du restaurant sans masque", async () => {
     await geste(marco, c1, "partie");
     await geste(marco, c2, "partie");
