@@ -1187,6 +1187,16 @@ kbd {
   .bo-tableau-reglages {
     margin-left: 0;
   }
+  /* Les réglages passent à gauche : le menu « Colonnes » s'ouvre vers la droite, dans l'écran. */
+  .bo-menu-deroulant > fieldset {
+    right: auto;
+    left: 0;
+    max-width: calc(100vw - 32px);
+  }
+  /* Sur téléphone, une ligne reste une ligne : le tableau défile en largeur plutôt que de s'étirer en hauteur. */
+  .bo-tableau td {
+    white-space: nowrap;
+  }
   .bo-notifs {
     right: 16px;
     left: 16px;
