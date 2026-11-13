@@ -10,6 +10,7 @@ import {
   PanneauLateral,
   TableauDonnees,
   useDiffere,
+  useOuverture,
   useRelecture,
   type Colonne,
   type Tri,
@@ -90,6 +91,7 @@ const COLONNES: Colonne<LigneClient>[] = [
     cle: "marque",
     titre: "Marque",
     valeur: (l) => (l.marque ? MARQUE[l.marque] : ""),
+    cacheeParDefaut: true,
   },
   {
     cle: "refusees",
@@ -120,7 +122,11 @@ export function ListeClients() {
   const [avecCompte, setAvecCompte] = useState(false);
   const [marque, setMarque] = useState("");
   const [inactif, setInactif] = useState("");
-  const [ouvert, setOuvert] = useState<LigneClient | null>(null);
+  // Fiche ouverte : depuis une ligne, ou depuis la recherche globale (⌘K) qui ne donne que l'e-mail.
+  const [ouvert, setOuvert] = useState<{ email: string; titre: string } | null>(
+    null,
+  );
+  useOuverture("client", (email) => setOuvert({ email, titre: "Client" }));
 
   const corps = (extra: Record<string, unknown> = {}) => ({
     action: "liste",
@@ -237,7 +243,9 @@ export function ListeClients() {
             </label>
           </div>
         }
-        onOuvrir={setOuvert}
+        onOuvrir={(l) =>
+          setOuvert({ email: l.email, titre: `${l.prenom} ${l.nom}` })
+        }
         csv={{ toutes }}
         memoire="clients"
         vide={
@@ -255,7 +263,7 @@ export function ListeClients() {
       {ouvert && (
         <PanneauLateral
           large
-          titre={`${ouvert.prenom} ${ouvert.nom}`}
+          titre={ouvert.titre}
           sousTitre={ouvert.email}
           onFermer={() => setOuvert(null)}
         >

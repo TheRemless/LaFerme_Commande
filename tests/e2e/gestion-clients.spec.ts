@@ -98,3 +98,12 @@ test("une réclamation se suit jusqu'à sa clôture", async () => {
   const r = await new AxeBuilder({ page: gestion }).include("dialog").withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
   expect(r.violations.map((v) => v.id)).toEqual([]);
 });
+
+test("la recherche globale ouvre directement la fiche d'un client, sans e-mail dans l'adresse", async () => {
+  await gestion.evaluate((e) => sessionStorage.setItem("laferme.gestion.ouvrir", JSON.stringify({ type: "client", cle: e, le: Date.now() })), email);
+  await gestion.goto("/gestion/clients");
+  const fiche = gestion.getByRole("dialog");
+  await expect(fiche.getByText(email).first()).toBeVisible();
+  expect(gestion.url()).not.toContain("@");
+  await gestion.keyboard.press("Escape");
+});
