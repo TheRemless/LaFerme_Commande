@@ -49,3 +49,11 @@ Rubrique `/gestion/carte`, onglet « Liste » (par défaut). Code : `src/compone
 - **Ajouter un plat** : bouton en haut à droite ; la fiche du plat créé s'ouvre aussitôt.
 - La liste lit la carte déjà chargée par le back-office (une centaine de plats au plus) : filtres et tri se font dans le navigateur, 50 lignes par page. L'export CSV donne les colonnes affichées.
 
+## Écran : les groupes d'options (vague 3)
+
+Rubrique `/gestion/supplements`. Code : `src/components/gestion/carte/Groupes.tsx`. Test : `tests/e2e/gestion-groupes.spec.ts`. Capture : `docs/rendus/vague-3/bo-carte/b-groupe-reglage.png`.
+
+- « Nouveau groupe » : nom vu par le client, minimum (0 pour un choix facultatif) et maximum. Le panneau de réglage s'ouvre aussitôt ; les options s'ajoutent sous le groupe, comme les suppléments.
+- « Régler le groupe » : nom et règles, options cochées d'avance, ordre et noms des options, option épuisée jusqu'à une date (avec « Remettre »), plats qui proposent le groupe (cases par catégorie, « tous » pour une catégorie entière). Retirer le groupe de plats demande confirmation.
+- Un groupe obligatoire qui n'a pas assez d'options proposées ne se pose sur aucun plat : l'écran le refuse et dit pourquoi.
+

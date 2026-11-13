@@ -178,6 +178,7 @@ La carte s'ouvre en « Liste » : un plat par ligne, ce qui reste à compléter,
 - Chaque supplément a son prix, sa case « Validé » et sa case « Proposé ». Décocher « Proposé » le retire du site jusqu'à ce qu'on le recoche.
 - Toucher « Enregistrer » sur la ligne du supplément.
 - Ajouter un supplément. Sous la liste, écrire le nom et le prix puis toucher « Ajouter ». Il est proposé tout de suite sur les plats qui ont cette option. Sans « Prix validé », il bloque la mise en ligne.
+- Nouveau groupe d'options (sauce, cuisson, accompagnement), options cochées d'avance, plats qui le proposent, option épuisée jusqu'à une date : toucher « Nouveau groupe » ou « Régler le groupe ». Détail : [carte-gestion.md](carte-gestion.md#écran-les-groupes-doptions-vague-3).
 
 ### Livraison et horaires
 

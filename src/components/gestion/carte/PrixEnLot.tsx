@@ -100,7 +100,7 @@ export function PrixEnLot({ slugs, fini }: { slugs: string[]; fini: (n: number) 
       {apercu && (
         <>
           <table className="bo-apercu">
-            <caption>Aperçu : rien n&apos;est encore enregistré.</caption>
+            <caption>Aperçu, rien n&apos;est encore enregistré.</caption>
             <thead>
               <tr>
                 <th scope="col">Plat</th>
