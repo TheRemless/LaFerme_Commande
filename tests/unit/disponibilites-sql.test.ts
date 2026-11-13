@@ -151,3 +151,60 @@ describe("rupture planifiée", () => {
     }
   });
 });
+
+describe("rupture d'un poste ou d'une catégorie", () => {
+  async function ruptures(): Promise<Record<string, unknown>[]> {
+    return db.transaction(async (tx) => {
+      await tx.exec("set local role anon");
+      return (await tx.query<Record<string, unknown>>("select slug, station, categorie_slug, rupture_motif, rupture_jusqu_au from carte_publique")).rows;
+    });
+  }
+
+  it("four en panne : toutes les pizzas épuisées d'un geste, la cuisine continue, retour d'un geste", async () => {
+    // Une pizza déjà épuisée seule le reste après le retour du four.
+    await f("regler_rupture('pizza-tonno', true, $1)", [service]);
+    expect(await f("regler_rupture_groupee('poste:pizza', $1::date, $2)", [await jour(0), service])).toBe(true);
+    const pendant = await ruptures();
+    expect(pendant.filter((l) => l.station === "pizza").every((l) => l.rupture_motif === "Épuisé pour aujourd'hui.")).toBe(true);
+    expect(pendant.filter((l) => l.station === "cuisine").some((l) => l.rupture_motif === null)).toBe(true);
+    const tablette = await f<{ slug: string; rupture: boolean; rupture_groupee: string | null }[]>("plats_tablette()");
+    expect(tablette.find((p) => p.slug === "pizza-margherita")).toMatchObject({ rupture: true, rupture_groupee: "poste:pizza" });
+    expect(await f("ruptures_groupees_actives()")).toEqual([{ cible: "poste:pizza", jusqu_au: await jour(0) }]);
+    // Noté au journal de l'équipe ; un membre du service n'écrit pas au journal du back-office.
+    expect((await db.query<{ evenement: string }>("select evenement from journal_personnel order by id desc limit 1")).rows[0].evenement).toContain("rupture groupee poste:pizza");
+
+    expect(await f("regler_rupture_groupee('poste:pizza', null, $1)", [service])).toBe(true);
+    const apres = await ruptures();
+    expect(apres.find((l) => l.slug === "pizza-margherita")?.rupture_motif).toBeNull();
+    expect(apres.find((l) => l.slug === "pizza-tonno")?.rupture_motif).toBe("Épuisé pour aujourd'hui.");
+    expect(await f("ruptures_groupees_actives()")).toEqual([]);
+  });
+
+  it("une catégorie jusqu'à une date : le site lit la date, le back-office aussi, puis elle revient seule", async () => {
+    const dans2 = await jour(2);
+    expect(await f("regler_rupture_groupee('categorie:desserts', $1::date, $2)", [dans2, gerant])).toBe(true);
+    const desserts = (await ruptures()).filter((l) => l.categorie_slug === "desserts");
+    expect(desserts.length).toBeGreaterThan(0);
+    expect(desserts.every((l) => l.rupture_motif === null && texte(l.rupture_jusqu_au) === dans2)).toBe(true);
+    expect(await dernierJournal()).toMatchObject({ objet: "rupture_groupee", cle: "categorie:desserts", apres: { jusqu_au: dans2 } });
+    expect((await f<{ ruptures_groupees: unknown[] }>("gestion_carte()")).ruptures_groupees).toEqual([{ cible: "categorie:desserts", jusqu_au: dans2 }]);
+
+    await db.query("update ruptures_groupees set jusqu_au = (pg_catalog.now() at time zone 'Europe/Zurich')::date - 1");
+    expect((await ruptures()).filter((l) => l.categorie_slug === "desserts").every((l) => l.rupture_jusqu_au === null && l.rupture_motif === null)).toBe(true);
+  });
+
+  it("refuse une cible inconnue, la catégorie du plat du jour, une date hors bornes, un membre inconnu", async () => {
+    expect(await f("regler_rupture_groupee('poste:bar', $1::date, $2)", [await jour(0), gerant])).toBe(false);
+    expect(await f("regler_rupture_groupee('categorie:inconnue', $1::date, $2)", [await jour(0), gerant])).toBe(false);
+    expect(await f("regler_rupture_groupee('categorie:plat-du-jour', $1::date, $2)", [await jour(0), gerant])).toBe(false);
+    expect(await erreur("regler_rupture_groupee('poste:pizza', $1::date, $2)", [await jour(61), gerant])).toContain("date_rupture");
+    expect(await erreur("regler_rupture_groupee('poste:pizza', $1::date, $2)", [await jour(0), "00000000-0000-0000-0000-000000000000"])).toContain("personnel_inconnu");
+  });
+
+  it("un visiteur lit la table mais n'écrit pas et n'appelle pas la fonction", async () => {
+    expect(await f("has_table_privilege('anon', 'ruptures_groupees', 'select')")).toBe(true);
+    expect(await f("has_table_privilege('anon', 'ruptures_groupees', 'insert')")).toBe(false);
+    expect(await f("has_table_privilege('authenticated', 'ruptures_groupees', 'update')")).toBe(false);
+    expect(await f("has_function_privilege('anon', 'regler_rupture_groupee(text, date, uuid)', 'execute')")).toBe(false);
+  });
+});

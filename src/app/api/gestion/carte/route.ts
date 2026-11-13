@@ -141,6 +141,13 @@ async function agir(c: Record<string, unknown>, qui: string): Promise<Reponse | 
       if (!slug(c.slug)) return refus("Plat inconnu.", 404);
       return { ok: await fonctionSql<boolean>("planifier_rupture", { p_slug: c.slug, p_jusqu_au: date.valeur, p_personnel: qui }) };
     }
+    case "rupture_groupee": {
+      // Tout un poste (four en panne) ou toute une catégorie : 'poste:pizza', 'poste:cuisine', 'categorie:<slug>'.
+      if (typeof c.cible !== "string" || !/^(poste:(pizza|cuisine)|categorie:[a-z0-9-]{1,40})$/.test(c.cible)) return refus("Poste ou catégorie inconnu.", 404);
+      const date = dateRupture(c.jusqu_au, instantGeneve(new Date()).date);
+      if (!date.ok) return refus(date.erreur);
+      return { ok: await fonctionSql<boolean>("regler_rupture_groupee", { p_cible: c.cible, p_jusqu_au: date.valeur, p_personnel: qui }) };
+    }
     default:
       return refus("Type inconnu.");
   }
