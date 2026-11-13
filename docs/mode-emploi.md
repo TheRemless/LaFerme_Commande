@@ -123,6 +123,20 @@ Chaque rubrique a sa propre adresse, par exemple `/gestion/carte` ou `/gestion/c
 - « Je n'ai rien reçu » : onglet « E-mails », « Renvoyer au client ». L'e-mail repart tel quel, avec « (nouvel envoi) » dans le sujet.
 - « Il manque le tiramisù », « c'est arrivé froid » : onglet « Réclamations », choisir ce qui ne va pas, écrire ce que dit le client, « Noter la réclamation ». Elle reste sur la commande et le client n'en voit rien. Le client peut aussi la signaler lui-même depuis son suivi.
 
+### Clients
+
+- Un client est une adresse e-mail, avec ou sans compte : ceux qui commandent en invité y sont aussi. Recherche par nom, téléphone ou e-mail, sur tout l'historique.
+- La liste dit pour chacun ses commandes, ce qu'il a dépensé (remboursements déduits), sa dernière commande et s'il a un compte. Tri par dépensé, commandes, dernière commande ou nom. Filtres : avec compte, marque, sans commande depuis 30, 60 ou 90 jours. « Exporter en CSV » télécharge la liste filtrée.
+- Toucher un client ouvre sa fiche : contact, habitudes (livraisons, à emporter, plats préférés), adresses de livraison, commandes (toucher une commande l'ouvre, « Retour à… » revient au client), remboursements, notes de l'équipe.
+- Une note sur un client n'est jamais affichée au client, mais il peut la lire s'il demande ses données : l'écrire comme s'il la lisait.
+- Marquer un client « à surveiller » ou « bloqué » n'est pas encore activé : c'est une décision du restaurant.
+
+### Réclamations (rubrique Clients, onglet « Réclamations »)
+
+- Une réclamation se note depuis la fiche d'une commande (onglet « Réclamations ») ou arrive du suivi du client. La liste montre d'abord les ouvertes et celles en cours.
+- Ouvrir une réclamation : ce que dit le client, la commande (« Ouvrir la commande »), le suivi du dossier. Noter un geste : un remboursement déjà fait (il se fait depuis la commande, onglet « Gestes »), ou « Pas de geste » avec la raison. « Offert à la prochaine commande » n'est pas encore activé.
+- « Suivre » ajoute un mot au dossier, la passe « en cours » ou la clôt avec la façon dont elle s'est réglée. Une réclamation close peut se rouvrir.
+
 ### Rembourser un client mécontent
 
 1. Ouvrir la commande dans « Commandes », onglet « Gestes ».

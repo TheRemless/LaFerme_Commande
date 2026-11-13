@@ -29,7 +29,7 @@ export const GROUPES: Groupe[] = [
     rubriques: [
       { href: "/gestion/commandes", titre: "Commandes", icone: "commandes", resume: "Retrouver une commande, voir son historique, rembourser.", droit: "voir_commandes" },
       // bo-commandes
-      { href: "/gestion/clients", titre: "Clients", icone: "clients", resume: "Les clients, leurs commandes et leurs réclamations.", aVenir: true, droit: "voir_commandes" },
+      { href: "/gestion/clients", titre: "Clients", icone: "clients", resume: "Les clients, leurs commandes et leurs réclamations.", droit: "voir_commandes" },
     ],
   },
   {
