@@ -79,6 +79,9 @@ export type ConfigService = {
   pause?: { jusqua: string | null; active: boolean; livraisonFermee: boolean; auto?: boolean };
   // Messages d'information aux clients, programmés au back-office (vague 3, src/lib/messages-clients.ts).
   messages?: MessageClient[];
+  // Services sans livreur prévu, quand le réglage « Fermer la livraison d'un service sans livreur prévu » est coché
+  // (vague 3, src/lib/sans-livreur.ts). La livraison n'y est pas proposée ; absent ou vide : rien ne change.
+  livraisonSansLivreur?: { jour: string; service: "midi" | "soir" }[];
 };
 
 // ---------- Zones ----------
@@ -219,7 +222,9 @@ export function servicesDu(config: ConfigService, date: string): Horaire[] {
 // Services d'un jour pour ce mode : en livraison, seulement ceux où la zone est livrée.
 function servicesPour(config: ConfigService, date: string, mode: Mode, zone?: Zone): Horaire[] {
   const tous = servicesDu(config, date);
-  return mode === "livraison" && zone?.services ? tous.filter((h) => zone.services!.includes(h.service)) : tous;
+  if (mode !== "livraison") return tous;
+  const sansLivreur = config.livraisonSansLivreur ?? [];
+  return tous.filter((h) => (!zone?.services || zone.services.includes(h.service)) && !sansLivreur.some((x) => x.jour === date && x.service === h.service));
 }
 
 // Temps entre la commande et la remise : préparation au retrait, délai le plus court de la zone en livraison.

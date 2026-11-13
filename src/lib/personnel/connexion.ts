@@ -45,7 +45,7 @@ async function demander(email: string, ip: string): Promise<ResultatDemandeCode>
         "Le site ne crée plus de code de connexion pour l'équipe jusqu'à demain.",
         "Les appareils déjà connectés restent connectés.",
         "Si personne de l'équipe n'a demandé autant de codes, quelqu'un connaît des adresses de l'équipe et essaie d'entrer.",
-      ]).catch((e) => console.error(`Alerte de plafond non envoyée : ${e instanceof Error ? e.message : e}`)),
+      ], "alerte", "plafond_codes").catch((e) => console.error(`Alerte de plafond non envoyée : ${e instanceof Error ? e.message : e}`)),
     );
   // Adresse inconnue ou plafond atteint : même réponse, aucun courriel (on n'écrit pas à quelqu'un qui n'est pas de l'équipe).
   if (attente < 0) return { statut: "envoye" };
@@ -116,7 +116,7 @@ async function prevenirBlocage(email: string, jusquA: string): Promise<void> {
     `La connexion par code est bloquée jusqu'au ${quand}. Les appareils déjà connectés restent connectés.`,
     "Si ce n'était pas ce membre de l'équipe, quelqu'un connaît son adresse et essaie d'entrer.",
     ...(parti ? [] : ["Le membre n'a pas reçu d'e-mail : la limite d'envoi du jour est atteinte. Prévenez-le."]),
-  ]);
+  ], "alerte", "adresse_bloquee");
 }
 
 // after() de Next (waitUntil de Netlify) dans une requête ; hors requête (tests), on attend.

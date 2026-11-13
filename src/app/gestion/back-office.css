@@ -725,6 +725,10 @@
   border-radius: var(--bo-rayon);
 }
 .bo-lot {
+  /* Collée au bas de l'écran, sous le tableau : elle ne pousse pas les lignes (voir TableauDonnees). */
+  position: sticky;
+  bottom: 12px;
+  z-index: 2;
   display: flex;
   flex-wrap: wrap;
   align-items: center;

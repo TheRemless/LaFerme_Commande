@@ -206,7 +206,7 @@ export async function agir(commandeId: string, a: Action, p: Personnel): Promise
           await alerter(`Commande ${avant.numero} : remboursement à refaire`, [
             `La commande ${avant.numero} est refusée, mais le remboursement de ${(avant.total_centimes / 100).toFixed(2)} CHF n'est pas passé.`,
             "Sur la tablette, onglet « Terminées », touchez « Rembourser ». Si ça ne passe toujours pas, remboursez depuis Stripe.",
-          ]).catch((e) => console.error(`Alerte non envoyée : ${e instanceof Error ? e.message : e}`));
+          ], "alerte", "remboursement").catch((e) => console.error(`Alerte non envoyée : ${e instanceof Error ? e.message : e}`));
           message = "Commande refusée, mais le remboursement n'est pas passé. Réessayez.";
         }
       } else {

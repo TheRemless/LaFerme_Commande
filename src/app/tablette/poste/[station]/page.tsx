@@ -4,6 +4,7 @@ import { ConnexionPersonnel } from "@/components/tablette/ConnexionPersonnel";
 import { VuePoste } from "@/components/tablette/VuePoste";
 import { personnelCourant } from "@/lib/personnel/session";
 import { PRIVE } from "@/lib/site";
+import "@/components/tablette/tablette.css";
 import "@/components/tablette/poste.css";
 
 // Vue par poste (vague 3, décision D12 à l'essai) : derrière un lien, pas dans le menu de la tablette.

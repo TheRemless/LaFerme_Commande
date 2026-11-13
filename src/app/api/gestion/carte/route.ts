@@ -21,6 +21,8 @@ import { rafraichirCaches } from "@/lib/tablette";
 
 const SLUG = /^[a-z0-9-]{1,80}$/;
 const slug = (v: unknown): v is string => typeof v === "string" && SLUG.test(v);
+// Rupture groupée : tout un poste (four en panne) ou toute une catégorie.
+const CIBLE = /^(poste:(pizza|cuisine)|categorie:[a-z0-9-]{1,40})$/;
 
 // Refus de la base traduits pour l'écran. « plat_incomplet » porte la liste de ce qui manque.
 const ERREURS: Record<string, string> = {
@@ -161,10 +163,20 @@ async function agir(c: Record<string, unknown>, qui: string): Promise<Reponse | 
     }
     case "rupture_groupee": {
       // Tout un poste (four en panne) ou toute une catégorie : 'poste:pizza', 'poste:cuisine', 'categorie:<slug>'.
-      if (typeof c.cible !== "string" || !/^(poste:(pizza|cuisine)|categorie:[a-z0-9-]{1,40})$/.test(c.cible)) return refus("Poste ou catégorie inconnu.", 404);
+      if (typeof c.cible !== "string" || !CIBLE.test(c.cible)) return refus("Poste ou catégorie inconnu.", 404);
       const date = dateRupture(c.jusqu_au, instantGeneve(new Date()).date);
       if (!date.ok) return refus(date.erreur);
       return { ok: await fonctionSql<boolean>("regler_rupture_groupee", { p_cible: c.cible, p_jusqu_au: date.valeur, p_personnel: qui }) };
+    }
+    case "commandes_touchees": {
+      // Lecture : commandes pas encore prêtes qui contiennent les plats épuisés, le poste ou la catégorie.
+      const slugs = c.slugs === undefined ? [] : listeSlugs(c.slugs, 300);
+      const cible = c.cible === undefined ? null : c.cible;
+      if (!slugs || (cible !== null && (typeof cible !== "string" || !CIBLE.test(cible))) || (!slugs.length && !cible)) return refus("Plats, poste ou catégorie inconnus.");
+      const date = dateRupture(c.jusqu_au ?? null, instantGeneve(new Date()).date);
+      if (!date.ok) return refus(date.erreur);
+      const commandes = await fonctionSql<unknown[]>("commandes_touchees", { p_slugs: slugs, p_cible: cible, p_jusqu_au: date.valeur });
+      return { ok: true, donnees: { commandes }, lecture: true };
     }
     case "nouveau_groupe": {
       const champs = champsGroupe(c.champs, true);

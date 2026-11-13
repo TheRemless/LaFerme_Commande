@@ -1,11 +1,11 @@
 // Accueil du back-office : la journée en un coup d'œil (vague 3, bo-socle). Lundi 9h ou vendredi 20h, le
 // gérant voit en dix secondes ce qui demande un geste. Ce module ne fait que rassembler ce qui existe :
 // file de la tablette, état du service, impression, quota d'e-mails, ventes (pilotage_ventes, bo-pilotage),
-// planning des livreurs (bo-operations). Une source en panne ne vide pas l'accueil : sa partie vaut null et
+// alerte « Aucun livreur prévu » (bo-operations). Une source en panne ne vide pas l'accueil : sa partie vaut null et
 // l'écran dit « indisponible ». Les alertes sont aussi lues hors de l'accueil (compteur dans le titre de
 // l'onglet, badge du menu, notifications : src/components/gestion/alertes.tsx).
 
-import type { Alerte, CommandeAlerte } from "@/lib/alertes-types";
+import type { Alerte, CommandeAlerte } from "@/lib/alertes-accueil";
 import { chargerCatalogue } from "@/lib/catalogue";
 import { chargerConfigService } from "@/lib/config-service";
 import { etatQuotaCourriels, type EtatQuota } from "@/lib/courriel/quota";
@@ -14,8 +14,8 @@ import { fonctionSql } from "@/lib/db/serveur";
 import { heureDe } from "@/lib/heures";
 import { etatImpression, type EtatImpression } from "@/lib/impression/service";
 import { jourDeService, serviceDe, type Service, type TableauVentes } from "@/lib/pilotage";
-import { livreursDuService } from "@/lib/planning-livreurs";
-import { ajouterJours, enMinutes, etatService, instantGeneve, servicesDu, serviceEnCours, zoneFermeeJusqua, type ConfigService, type EtatService } from "@/lib/service";
+import { chargerAlerteSansLivreur } from "@/lib/sans-livreur";
+import { ajouterJours, etatService, serviceEnCours, zoneFermeeJusqua, type ConfigService, type EtatService } from "@/lib/service";
 import { fileTablette, type CommandeTablette } from "@/lib/tablette";
 
 const ACTIVES = ["acceptee", "en_preparation", "prete", "partie"];
@@ -45,7 +45,7 @@ export type EtatRestaurant = {
   ruptures: { nom: string; jusqu_au: string | null }[];
 };
 
-export type { Alerte, CommandeAlerte } from "@/lib/alertes-types";
+export type { Alerte, CommandeAlerte } from "@/lib/alertes-accueil";
 
 type Suivi = { numero: number; cree_le: string; commande_id?: string; jour?: string };
 
@@ -64,9 +64,9 @@ export type DonneesAccueil = {
   tablette_muette: boolean | null;
   quota: EtatQuota | null;
   alerte_acceptation_minutes: number;
-  /** Livreurs présents au planning pour le service en cours ; null quand la livraison n'est pas ouverte à ce
-   *  service (fermée, service fini, aucune zone) ou que le planning est illisible. */
-  livreurs_prevus?: number | null;
+  /** « Aucun livreur prévu » de bo-operations (src/lib/sans-livreur.ts) : null quand un livreur est prévu, que
+   *  le service ne prend pas de livraisons ou que la dernière commande est passée. */
+  sans_livreur?: Alerte | null;
   /** Remboursements à suivre, tous jours confondus (remboursements_a_suivre de bo-pilotage) : en échec, ou pas
    *  confirmés par Stripe depuis plus de 24 heures. null tant que la fonction manque (base pas encore migrée) :
    *  l'accueil retombe alors sur les chiffres du service en cours. Champ facultatif pour les anciens appels. */
@@ -160,15 +160,7 @@ export function alertesDe(d: DonneesAccueil): Alerte[] {
     a.push({ cle: "tickets", type: "impression", niveau: "bloquant", titre: `${NB(d.impression.echecs, "ticket", "tickets")} pas imprimé${d.impression.echecs > 1 ? "s" : ""}`, geste: { href: "/tablette", texte: "Réimprimer sur la tablette" } });
   if (c && c.en_retard.length)
     a.push({ cle: "retard", type: "retard", niveau: "attention", titre: `${NB(c.en_retard.length, "commande", "commandes")} après l'heure promise`, detail: `N° ${c.en_retard.map((x) => x.numero).join(", ")}.`, depuis: c.en_retard[0].heure, geste: { href: "/tablette", texte: "Voir sur la tablette" } });
-  if (d.livreurs_prevus === 0)
-    a.push({
-      cle: "livreurs",
-      type: "livreurs",
-      niveau: d.restaurant?.en_service ? "bloquant" : "attention",
-      titre: `Aucun livreur prévu ${d.service === "midi" ? "ce midi" : "ce soir"}`,
-      detail: "La livraison reste ouverte aux clients.",
-      geste: { href: "/gestion/livreurs", texte: "Ouvrir le planning" },
-    });
+  if (d.sans_livreur) a.push({ ...d.sans_livreur, type: "livreurs" });
   const rs = d.remboursements;
   if (rs) {
     if (rs.echecs.length) {
@@ -257,21 +249,13 @@ async function comptoirPasEncaisse(jour: string): Promise<{ commandes: CommandeA
 // sont déjà exclues par liste_commandes_gestion.
 const STATUTS_A_ENCAISSER = ["nouvelle", "acceptee", "en_preparation", "prete", "partie", "terminee"];
 
-/** La livraison est-elle ouverte à ce service, et pas encore finie ? Sinon l'absence de livreur ne dit rien. */
-export function livraisonAuService(config: ConfigService, maintenant: Date, jour: string, service: Service): boolean {
-  const etat = etatService(config, maintenant, "livraison").etat;
-  if (etat === "livraison-fermee" || etat === "fermeture" || etat === "aucun-creneau") return false;
-  const h = servicesDu(config, jour).find((x) => x.service === service);
-  if (!h || instantGeneve(maintenant).minutes >= enMinutes(h.derniere_heure)) return false;
-  return config.zones.some((z) => z.active && (!z.services || z.services.includes(service)));
-}
-
 export async function chargerAccueil(maintenant = new Date()): Promise<DonneesAccueil & { alertes: Alerte[] }> {
   const jour = jourDeService(maintenant);
   const service = serviceDe(maintenant);
-  const [file, config, impression, quota, ventes, hier, comptoir, catalogue, muette, minutes, aSuivre, planning] = await Promise.all([
+  const lireConfig = sur(chargerConfigService());
+  const [file, config, impression, quota, ventes, hier, comptoir, catalogue, muette, minutes, aSuivre, sansLivreur] = await Promise.all([
     sur(fileTablette(maintenant)),
-    sur(chargerConfigService()),
+    lireConfig,
     sur(etatImpression()),
     sur(etatQuotaCourriels()),
     sur(fonctionSql<TableauVentes>("pilotage_ventes", { p_debut: jour, p_fin: jour, p_comp_debut: null, p_comp_fin: null, p_service: service })),
@@ -281,7 +265,8 @@ export async function chargerAccueil(maintenant = new Date()): Promise<DonneesAc
     sur(fonctionSql<boolean>("tablette_muette", { p_secondes: TABLETTE_MUETTE_S })),
     sur(alerteMinutes()),
     sur(fonctionSql<RemboursementASuivre[]>("remboursements_a_suivre", { p_heures: 24 })),
-    sur(livreursDuService(jour, service)),
+    // Une requête légère, lancée dès que la configuration est lue.
+    lireConfig.then((c) => (c ? sur(chargerAlerteSansLivreur(c, maintenant)) : null)),
   ]);
   // Réglage illisible : 5 minutes, la valeur posée par la migration 20261111090000 (la même que la surveillance lit).
   const seuil = minutes ?? 5;
@@ -304,7 +289,7 @@ export async function chargerAccueil(maintenant = new Date()): Promise<DonneesAc
     tablette_muette: muette,
     quota,
     alerte_acceptation_minutes: seuil,
-    livreurs_prevus: config && planning && livraisonAuService(config, maintenant, jour, service) ? planning.filter((l) => l.present).length : null,
+    sans_livreur: sansLivreur,
     remboursements: aSuivre
       ? {
           echecs: aSuivre.filter((x) => x.statut === "echec").map(({ numero, cree_le, commande_id, jour }) => ({ numero, cree_le, commande_id, jour })),

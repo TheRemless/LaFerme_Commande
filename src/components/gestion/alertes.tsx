@@ -5,7 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { PanneauLateral } from "@/components/gestion/ui/PanneauLateral";
 import { ErreurLisible, useRelecture, type Relecture } from "@/components/gestion/ui/useRelecture";
 import type { Alerte, DonneesAccueil } from "@/lib/accueil-gestion";
-import { aNotifier, lirePreferences, PREFERENCES_PAR_DEFAUT, titreAvecCompteur, TYPES_ALERTE, type PreferencesAlertes, type TypeAlerte } from "@/lib/alertes-types";
+import { aNotifier, lirePreferences, PREFERENCES_PAR_DEFAUT, titreAvecCompteur, CATEGORIES_ALERTE, type PreferencesAlertes, type CategorieAlerte } from "@/lib/alertes-accueil";
 
 // Centre d'alertes du back-office (vague 3, bo-socle). Une seule lecture de l'accueil pour toute la coque,
 // toutes les 20 secondes, même onglet caché : l'accueil l'affiche, et sur toutes les pages le nombre d'alertes
@@ -140,7 +140,7 @@ export function ReglagesAlertes({ onFermer }: { onFermer: () => void }) {
       setEssai("Ce navigateur n'affiche pas les notifications de ce site.");
     }
   }
-  const cocher = (t: TypeAlerte, oui: boolean) => changerPrefs({ ...prefs, types: { ...prefs.types, [t]: oui } });
+  const cocher = (t: CategorieAlerte, oui: boolean) => changerPrefs({ ...prefs, types: { ...prefs.types, [t]: oui } });
 
   return (
     <PanneauLateral titre="Alertes sur cet appareil" onFermer={onFermer}>
@@ -161,7 +161,7 @@ export function ReglagesAlertes({ onFermer }: { onFermer: () => void }) {
             )}
             <fieldset className="bo-alertes-types" disabled={!prefs.notifier || permission !== "granted"}>
               <legend>Me prévenir pour</legend>
-              {TYPES_ALERTE.map((t) => (
+              {CATEGORIES_ALERTE.map((t) => (
                 <label key={t.type} className="bo-case">
                   <input type="checkbox" checked={prefs.types[t.type]} onChange={(e) => cocher(t.type, e.target.checked)} />
                   <span>{t.libelle}</span>

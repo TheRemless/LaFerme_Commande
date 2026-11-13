@@ -174,18 +174,6 @@ export function TableauDonnees<T>(p: Props<T>) {
         </div>
       </div>
 
-      {selection && choisies.size > 0 && (
-        <div className="bo-lot" role="region" aria-label="Actions sur la sélection">
-          <p>
-            {choisies.size} sélectionnée{choisies.size > 1 ? "s" : ""}
-          </p>
-          {p.actionsLot!([...choisies], () => setChoisies(new Set()))}
-          <button type="button" className="bo-bouton bo-bouton-discret" onClick={() => setChoisies(new Set())}>
-            Tout désélectionner
-          </button>
-        </div>
-      )}
-
       {p.erreur ? (
         <EtatErreur texte={p.erreur} reessayer={p.onReessayer} />
       ) : lignes === null ? (
@@ -220,6 +208,7 @@ export function TableauDonnees<T>(p: Props<T>) {
                     <th
                       key={c.cle}
                       scope="col"
+                      data-col={c.cle}
                       data-nombre={c.nombre || undefined}
                       aria-sort={actif ? (p.tri!.sens === "asc" ? "ascending" : "descending") : undefined}
                     >
@@ -274,7 +263,7 @@ export function TableauDonnees<T>(p: Props<T>) {
                     {visibles.map((c, i) => {
                       const contenu = c.rendu ? c.rendu(l) : (c.valeur?.(l) ?? "");
                       return (
-                        <td key={c.cle} data-nombre={c.nombre || undefined}>
+                        <td key={c.cle} data-col={c.cle} data-nombre={c.nombre || undefined}>
                           {i === 0 && p.onOuvrir ? (
                             <button type="button" className="bo-ouvrir" onClick={() => p.onOuvrir!(l)}>
                               {contenu}
@@ -308,6 +297,20 @@ export function TableauDonnees<T>(p: Props<T>) {
             Suivante
           </button>
         </nav>
+      )}
+
+      {/* Sous le tableau, collée au bas de l'écran : elle n'occupe aucune place au-dessus des lignes, cocher
+          une ligne ne décale rien sous le doigt (contrôle du 13.11.2026 : le clic suivant tombait sur « tout sélectionner »). */}
+      {selection && choisies.size > 0 && (
+        <div className="bo-lot" role="region" aria-label="Actions sur la sélection">
+          <p>
+            {choisies.size} sélectionnée{choisies.size > 1 ? "s" : ""}
+          </p>
+          {p.actionsLot!([...choisies], () => setChoisies(new Set()))}
+          <button type="button" className="bo-bouton bo-bouton-discret" onClick={() => setChoisies(new Set())}>
+            Tout désélectionner
+          </button>
+        </div>
       )}
     </div>
   );

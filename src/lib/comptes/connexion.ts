@@ -59,7 +59,7 @@ export async function demanderCode(email: string, ip: string): Promise<ResultatD
         "Le site a envoyé son maximum de codes de connexion aux clients sur 24 heures.",
         "Les clients ne peuvent plus se connecter à leur compte pour le moment. Ils peuvent toujours commander sans compte.",
         "Si ce n'est pas un jour d'affluence, quelqu'un abuse sans doute de la page de connexion.",
-      ]).catch((e) => console.error(`Alerte non envoyée : ${e instanceof Error ? e.message : e}`));
+      ], "alerte", "plafond_codes").catch((e) => console.error(`Alerte non envoyée : ${e instanceof Error ? e.message : e}`));
     }
     return { statut: "plafond" };
   }

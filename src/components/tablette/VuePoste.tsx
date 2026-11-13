@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { heureDe as heure } from "@/lib/heures";
 import { poster } from "@/lib/requete-client";
 import { nomCourt, type Station, type VuePoste as Vue } from "@/components/tablette/poste";
+import { Decaler } from "@/components/tablette/Decaler";
 
 // Vue par poste (vague 3, décision D12 à l'essai) : un écran au poste pizza ou cuisine, lisible à un mètre. Les
 // tickets continuent de sortir. En haut, ce qui reste à sortir par plat ; au milieu, les commandes dans l'ordre des
@@ -58,6 +59,7 @@ export function VuePoste({ station }: { station: Station }) {
           Tablette
         </a>
       </header>
+      {vue && vue.en_cours.length > 0 && <Decaler station={station} onChange={charger} />}
 
       {horsLigne && (
         <p className="tab-alerte" role="alert">

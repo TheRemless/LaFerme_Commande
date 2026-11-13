@@ -1,78 +1,35 @@
-// Alertes du back-office (vague 3, bo-socle) : la partie pure, lisible côté navigateur et côté serveur.
-// Chaque alerte a un type ; le gérant choisit, appareil par appareil, les types qui le préviennent hors de
-// l'accueil (notification du navigateur). Les mêmes clés serviront au réglage des alertes par e-mail
-// (bo-operations) : ne pas les renommer.
+import "server-only";
+import { fonctionSql } from "@/lib/db/serveur";
+import type { Personnel } from "@/lib/personnel/session";
 
-export type TypeAlerte = "acceptation" | "tablette" | "pause" | "impression" | "retard" | "livreurs" | "remboursements" | "courriels" | "comptoir";
+// Alertes réglables par type (vague 3, bo-operations). Base : 20261130260000_types_alertes.sql.
+// Doc : docs/reglages-generaux.md, « Alertes par type ».
 
-export const TYPES_ALERTE: { type: TypeAlerte; libelle: string }[] = [
-  { type: "acceptation", libelle: "Commande pas acceptée à temps" },
-  { type: "tablette", libelle: "Tablette qui ne répond plus" },
-  { type: "pause", libelle: "Commandes en ligne en pause" },
-  { type: "impression", libelle: "Imprimante hors ligne, ticket pas imprimé" },
-  { type: "retard", libelle: "Commandes après l'heure promise" },
-  { type: "livreurs", libelle: "Aucun livreur prévu" },
-  { type: "remboursements", libelle: "Remboursement échoué ou bloqué" },
-  { type: "courriels", libelle: "Limite d'e-mails du jour" },
-  { type: "comptoir", libelle: "Commandes au comptoir pas encaissées" },
-];
+export type GenreAlerte =
+  | "commande_en_attente"
+  | "tablette_muette"
+  | "ticket_non_imprime"
+  | "remboursement"
+  | "client_absent"
+  | "reclamation"
+  | "quota_courriels"
+  | "plafond_codes"
+  | "adresse_bloquee";
 
-/** Commande citée par une alerte : son jour, car les numéros repartent à 1 chaque jour. */
-export type CommandeAlerte = { id: string; numero: number; jour: string };
+export type TypeAlerte = { cle: GenreAlerte; libelle: string; aide: string | null; actif: boolean };
 
-export type Alerte = {
-  cle: string;
-  /** Facultatif pour les alertes construites ailleurs (sans-livreur de bo-operations, PR #189) : sans type,
-   *  l'alerte prévient toujours quand les notifications sont demandées. */
-  type?: TypeAlerte;
-  /** « bloquant » : le service en souffre maintenant. « attention » : à régler aujourd'hui. */
-  niveau: "bloquant" | "attention";
-  titre: string;
-  detail?: string;
-  depuis?: string;
-  geste?: { href: string; texte: string };
-  /** Les commandes en cause : un clic ouvre leur fiche. */
-  commandes?: CommandeAlerte[];
-  /** La liste des commandes déjà filtrée (filtres lus depuis l'adresse par la rubrique Commandes). */
-  liste?: { href: string; texte: string };
-};
+export const lireTypesAlertes = () => fonctionSql<TypeAlerte[]>("types_alertes", {});
 
-/** Préférences d'un appareil : notifications du navigateur, et types qui en déclenchent une. */
-export type PreferencesAlertes = { notifier: boolean; types: Record<TypeAlerte, boolean> };
-
-// Par défaut, ce qui ne peut pas attendre la fin du service : le reste se lit sur l'accueil.
-export const PREFERENCES_PAR_DEFAUT: PreferencesAlertes = {
-  notifier: false,
-  types: {
-    acceptation: true,
-    tablette: true,
-    pause: true,
-    impression: true,
-    retard: true,
-    livreurs: true,
-    remboursements: false,
-    courriels: true,
-    comptoir: false,
-  },
-};
-
-/** Préférences lues d'un appareil (stockage local) : tout ce qui manque ou est mal formé reprend la valeur par défaut. */
-export function lirePreferences(brut: unknown): PreferencesAlertes {
-  const p = brut && typeof brut === "object" ? (brut as Partial<PreferencesAlertes>) : {};
-  const types = { ...PREFERENCES_PAR_DEFAUT.types };
-  if (p.types && typeof p.types === "object")
-    for (const t of TYPES_ALERTE) if (typeof (p.types as Record<string, unknown>)[t.type] === "boolean") types[t.type] = (p.types as Record<string, boolean>)[t.type];
-  return { notifier: p.notifier === true, types };
+// Le type est-il envoyé ? Base absente (pas encore migrée) ou en panne : oui, comme avant. Une alerte ne se
+// perd jamais par défaut.
+export async function alerteActive(genre: GenreAlerte): Promise<boolean> {
+  const types = await lireTypesAlertes().catch(() => null);
+  return types?.find((t) => t.cle === genre)?.actif ?? true;
 }
 
-/** Alertes qui méritent une notification : nouvelles depuis la dernière lecture, d'un type choisi. */
-export function aNotifier(alertes: Alerte[], dejaVues: ReadonlySet<string>, prefs: PreferencesAlertes): Alerte[] {
-  if (!prefs.notifier) return [];
-  return alertes.filter((a) => !dejaVues.has(a.cle) && (a.type === undefined || prefs.types[a.type]));
-}
-
-/** Titre de l'onglet avec le nombre d'alertes devant : « (3) Commandes ». Retire un ancien compteur. */
-export function titreAvecCompteur(titre: string, n: number): string {
-  const nu = titre.replace(/^\(\d+\) /, "");
-  return n > 0 ? `(${n}) ${nu}` : nu;
+export async function reglerTypeAlerte(p: Personnel, cle: unknown, actif: unknown): Promise<{ ok: true } | { ok: false; erreur: string }> {
+  if (typeof cle !== "string" || !/^[a-z_]{2,40}$/.test(cle)) return { ok: false, erreur: "Type d'alerte inconnu." };
+  if (typeof actif !== "boolean") return { ok: false, erreur: "Oui ou non." };
+  const ok = await fonctionSql<boolean>("regler_type_alerte", { p_cle: cle, p_actif: actif, p_personnel: p.id });
+  return ok ? { ok: true } : { ok: false, erreur: "Type d'alerte inconnu." };
 }

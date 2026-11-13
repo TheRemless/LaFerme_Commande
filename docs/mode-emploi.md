@@ -113,7 +113,7 @@ Chaque rubrique a sa propre adresse, par exemple `/gestion/carte` ou `/gestion/c
 
 - En haut, une pastille par statut avec son nombre (À accepter, Acceptée, En préparation, Prête, Partie, Terminée, Refusée ou annulée). Toucher une pastille ne garde que ces commandes ; en toucher plusieurs les additionne.
 - Retrouver un client : écrire son nom, son téléphone (079…, +41 79… ou 0041 79…), son e-mail ou le numéro de la commande. La recherche couvre les 90 derniers jours.
-- Sans recherche, la liste montre la période choisie (Aujourd'hui au départ, ou des dates à venir pour les commandes à l'avance). « Filtres » (replié sur téléphone) : service (midi avant 15h, soir ensuite), mode, paiement (par exemple « À encaisser au comptoir »), zone, livreur, total entre deux montants, en retard, avec remboursement, avec note, avec réclamation ouverte. « Effacer les filtres » remet tout.
+- Sans recherche, la liste montre la période choisie (Aujourd'hui au départ, ou des dates à venir pour les commandes à l'avance). « Filtres » (replié au départ, il rappelle la période choisie) : période, service (midi avant 15h, soir ensuite), mode, moyen de paiement (en ligne ou au comptoir), paiement (par exemple « À encaisser au comptoir »), zone, livreur, total entre deux montants, remboursement (fait, en cours, en échec), en retard, avec note, avec réclamation ouverte. « Effacer les filtres » remet tout. Une alerte de l'accueil ouvre la liste déjà filtrée, filtres dépliés. Sur plusieurs jours, la colonne « Jour » s'ajoute : les numéros repartent à 1 chaque jour.
 - La liste du jour se met à jour toute seule toutes les 15 secondes. La colonne « Retard » dit de combien de minutes une commande dépasse l'heure promise (ou attend d'être acceptée).
 - « Avec réclamation ouverte » ne garde que les commandes dont une réclamation n'est pas close ; la colonne « Réclamations » en donne le nombre.
 - Plusieurs commandes à la fois : cocher les lignes (ou la case du haut pour toute la page). « Réimprimer » renvoie leurs tickets. « Annuler… » demande un seul motif, envoyé à chaque client, puis une confirmation ; les commandes payées en ligne sont remboursées en entier. Une commande qui a changé entre-temps n'est pas touchée et est nommée.
@@ -169,6 +169,7 @@ La carte s'ouvre en « Liste » : un plat par ligne, ce qui reste à compléter,
 
 - Changer un prix. Chercher le plat, toucher sa ligne, écrire le prix (18 ou 18.50), recocher « Prix validé » (la case se décoche dès que le prix change), toucher « Enregistrer le plat ». Le site change tout de suite.
 - Retirer un plat de la vente. Décocher « Commandable sur le site » puis enregistrer. Pour la journée seulement, utiliser « Épuisé » sur la tablette.
+- Four en panne. Toucher « Four en panne… » en haut de la carte, choisir tout le poste pizza, tout le poste cuisine ou une catégorie, la date de retour (aujourd'hui par défaut), puis « Épuiser ». L'écran liste ensuite les commandes déjà passées qui contiennent ces plats : ouvrir chacune et appeler le client. Le four réparé, toucher « Remettre en vente » dans le cadre en tête de la carte.
 - Retirer un plat de la carte pour de bon. Ouvrir sa fiche, toucher « Archiver ce plat » puis confirmer. Il part dans « Plats archivés », en bas de « Par catégorie et ordre ». Les anciennes commandes et l'export comptable ne changent pas. « Remettre à la carte » le ramène, hors de la vente : cocher « Commandable » pour le revendre.
 - Ajouter un plat. Toucher « Ajouter un plat » en haut. Catégorie, poste (pizza ou cuisine), nom, prix, puis les options (suppléments, choix des pâtes), les retraits gratuits, la provenance et les allergènes. Toucher « Créer le plat ». Il reste hors de la vente tant qu'il manque le prix validé, les allergènes ou une provenance à fournir. Sa fiche dit ce qui manque.
 - Envoyer une photo. Sur la fiche du plat, toucher « Envoyer une photo » et choisir une photo du téléphone ou de l'ordinateur. Elle est recadrée comme les photos du shooting et s'affiche tout de suite. Une photo trop petite est refusée. « Retirer la photo » l'enlève. Seulement des photos du restaurant : jamais une image trouvée sur Internet ou sur Uber Eats.
@@ -214,7 +215,7 @@ La carte s'ouvre en « Liste » : un plat par ligne, ce qui reste à compléter,
 
 Qui livre les sept prochains jours, absence et renfort en un geste, semaine type, livraisons de chacun : `docs/planning-livreurs.md`, « Mode d'emploi ».
 
-Coup de feu (en tête de la rubrique), zones livrées le soir seulement ou fermées pour quelques heures ainsi que « Tester une adresse » : `docs/coup-de-feu.md` et `docs/zones-services.md`, « Écran du back-office » et « Tester une adresse ».
+La rubrique a cinq onglets, chacun avec son adresse (`/gestion/horaires#zones`) : Ce soir, Zones, Horaires, Capacité et délais, Fermetures. Coup de feu et retard sur les commandes en cours (onglet Ce soir), zones livrées le soir seulement ou fermées pour quelques heures ainsi que « Tester une adresse » : `docs/coup-de-feu.md`, `docs/decaler-commandes.md` et `docs/zones-services.md`.
 
 ### Messages aux clients
 

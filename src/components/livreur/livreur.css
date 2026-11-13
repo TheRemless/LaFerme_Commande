@@ -1,0 +1,53 @@
+/* Page livreur d'une main (vague 3, tablette) : en route, les arrêts suivants se replient sur une ligne et l'arrêt en
+   cours a ses deux gestes en bas de l'écran, sous le pouce. Direction Béton : filets, pas d'ombre. */
+.liv-arret-replie {
+  padding: 0;
+}
+.liv-replie {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;
+  padding: 10px 14px;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.liv-replie .liv-rang {
+  flex: none;
+  margin: 0;
+}
+.liv-replie-texte {
+  display: grid;
+  gap: 2px;
+  font-size: 18px;
+  line-height: 1.3;
+}
+.liv-replie-etat {
+  font-size: 15px;
+  color: var(--encre-douce);
+}
+.liv-pouce {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: 1fr 1.6fr;
+  gap: 8px;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  background: var(--papier);
+  border-top: 2px solid var(--encre);
+}
+.liv-pouce > * {
+  min-height: 60px;
+  font-size: 19px;
+}
+.livreur:has(.liv-pouce) {
+  padding-bottom: 104px;
+}

@@ -50,3 +50,16 @@ Captures : `docs/rendus/vague-3/bo-operations/livreurs-*.png`.
 ## Avant et après la migration
 
 Avant la migration, la route répond une erreur (fonctions absentes). Aucun écran ne l'appelle encore. Après la migration, le planning est vide jusqu'à ce que le gérant règle une semaine type.
+
+## Livreurs homonymes
+
+Deux livreurs au même nom (« Nora » deux fois) se distinguent partout dans la rubrique (liste « Ajouter un livreur… », planning, semaine type, statistiques) par le début de leur e-mail : « Nora (nora.b) » et « Nora (nora.k) ». Un nom unique reste tel quel. La comparaison ignore les majuscules. Base : `noms_livreurs()` (migration `20261130270000_noms_livreurs.sql`). Serveur : `src/lib/livreurs-noms.ts`, appliqué par la route `/api/gestion/livreurs` (gérant). Tests : `tests/unit/livreurs-noms.test.ts`, `noms-livreurs-sql.test.ts`.
+
+## Aucun livreur prévu
+
+Le planning disait « Personne de prévu pour livrer » ce soir, mais l'accueil du back-office ne disait rien et le site prenait des livraisons. Migration `20261130240000_sans_livreur.sql`, serveur `src/lib/sans-livreur.ts`.
+
+- **Alerte sur l'accueil** (affichée par `bo-socle`) : « Aucun livreur prévu ce soir » (ou ce midi), avec le lien « Ouvrir le planning ». Elle s'affiche quand le service du moment prend des livraisons (horaire ouvert ce jour-là, au moins une zone ouverte à ce service), que l'heure de dernière commande n'est pas passée et que le planning ne prévoit personne. Elle passe en « Maintenant » une heure avant le début du service. Le détail dit si la livraison reste proposée aux clients. Fonction : `chargerAlerteSansLivreur(config, maintenant)`, qui renvoie une `Alerte` de l'accueil ou `null`.
+- **Règle proposée, décochée au départ (décision de Jérémy)** : « Fermer la livraison d'un service sans livreur prévu », dans Réglages généraux, bloc « Ce que le site propose aux clients ». Cochée, un midi ou un soir où le planning ne prévoit aucun livreur n'est pas proposé en livraison, aujourd'hui comme les jours où l'on peut commander à l'avance. Le retrait reste ouvert. Décochée, rien ne change : un planning pas tenu ne ferme jamais la livraison par erreur.
+- **Livreurs prévus** : la semaine type, corrigée par les absences et les renforts du jour (`livreurs_prevus(jour, service)`, le même compte que l'écran « Les 7 prochains jours »).
+- Tests : `tests/unit/sans-livreur-sql.test.ts`, `sans-livreur.test.ts` (alerte et créneaux), `sans-livreur-config.test.ts`.

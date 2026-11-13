@@ -46,6 +46,25 @@ export function GestionImprimantes() {
   const [message, setMessage] = useState<string | null>(null);
   // Confirmation avant un geste qui arrête une imprimante (audit du gérant, G10).
   const [confirmer, setConfirmer] = useState<{ id: number; geste: "jeton" | "actif" } | null>(null);
+  // Imprimante en panne : ses tickets en attente partent sur une autre (vague 3, P1 de produit-gestion).
+  const [renvoi, setRenvoi] = useState<{ id: number; vers: string } | null>(null);
+
+  async function renvoyer(de: Imprimante) {
+    if (!renvoi || !d) return;
+    const vers = d.imprimantes.find((x) => String(x.id) === renvoi.vers);
+    if (!vers) return;
+    setMessage(null);
+    const r = await poster("/api/gestion/imprimantes", { type: "renvoyer", id: de.id, vers: vers.id });
+    if (!r.ok) return setMessage(String(r.donnees.erreur ?? "Pas enregistré."));
+    const n = Number(r.donnees.tickets ?? 0);
+    setRenvoi(null);
+    setMessage(
+      n === 0
+        ? `Aucun ticket à renvoyer : ${de.nom} n'avait rien en attente pour une commande en cours.`
+        : `${n} ticket${n > 1 ? "s" : ""} de ${de.nom} renvoyé${n > 1 ? "s" : ""} sur ${vers.nom}. Les prochains tickets vont encore à ${de.nom} tant qu'elle est active : désactivez-la s'il le faut.`,
+    );
+    await charger();
+  }
 
   const charger = useCallback(async () => {
     const rep = await fetch("/api/gestion/imprimantes", { cache: "no-store" });
@@ -114,7 +133,29 @@ export function GestionImprimantes() {
                     </span>
                   )}
                 </span>
-                {confirmer?.id === i.id ? (
+                {renvoi?.id === i.id ? (
+                  <span className="ges-confirmer" role="group" aria-label={`Renvoyer les tickets de ${i.nom}`}>
+                    <label htmlFor={`${ids}-renvoi-${i.id}`}>Renvoyer ses tickets en attente sur</label>
+                    <select id={`${ids}-renvoi-${i.id}`} value={renvoi.vers} onChange={(e) => setRenvoi({ id: i.id, vers: e.target.value })}>
+                      {d.imprimantes
+                        .filter((x) => x.actif && x.id !== i.id)
+                        .map((x) => (
+                          <option key={x.id} value={String(x.id)}>
+                            {x.nom}, poste {x.station}
+                            {x.en_ligne ? "" : " (hors ligne)"}
+                          </option>
+                        ))}
+                    </select>
+                    <span className="boutons-ligne">
+                      <button type="button" className="bouton-second" onClick={() => renvoyer(i)}>
+                        Renvoyer les tickets
+                      </button>
+                      <button type="button" className="lien" onClick={() => setRenvoi(null)}>
+                        Garder
+                      </button>
+                    </span>
+                  </span>
+                ) : confirmer?.id === i.id ? (
                   <span className="ges-confirmer" role="alert">
                     <span>
                       {confirmer.geste === "jeton"
@@ -154,6 +195,18 @@ export function GestionImprimantes() {
                         }
                       >
                         Imprimer un ticket de test
+                      </button>
+                    )}
+                    {d.imprimantes.some((x) => x.actif && x.id !== i.id) && (
+                      <button
+                        type="button"
+                        className="lien"
+                        onClick={() => {
+                          setConfirmer(null);
+                          setRenvoi({ id: i.id, vers: String(d.imprimantes.find((x) => x.actif && x.id !== i.id)!.id) });
+                        }}
+                      >
+                        Renvoyer ses tickets sur une autre
                       </button>
                     )}
                     <button type="button" className="lien" onClick={() => setConfirmer({ id: i.id, geste: "jeton" })}>
@@ -203,6 +256,11 @@ export function GestionImprimantes() {
           <li>
             Les tickets ne sont pas perdus : ils attendent et sortent tous dans l&apos;ordre au retour de l&apos;imprimante. Ne pas réimprimer avant, sinon ils
             sortent en double.
+          </li>
+          <li>
+            Elle ne revient pas et une autre imprimante marche : « Renvoyer ses tickets sur une autre » ci-dessus. Ses tickets en attente y sortent, ceux
+            peut-être déjà sortis marqués « RENVOI ». Pour les tickets suivants, la désactiver : ils iront à l&apos;autre imprimante du même poste, ou
+            s&apos;afficheront sur la tablette.
           </li>
           <li>Un ticket manque après le retour : « Réimprimer » sur la commande, à la tablette.</li>
           <li>L&apos;imprimante est dite « en ligne » mais rien ne sort : « Nouvelle adresse » ci-dessus, puis la coller dans ses réglages.</li>

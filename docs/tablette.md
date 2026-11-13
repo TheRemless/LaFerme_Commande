@@ -180,6 +180,15 @@ Migration `20261212110000_tablette_nouveautes_client.sql` (après les colonnes d
 
 Couverts et prénoms restent éteints côté client (réglages `couverts_actifs` et `prenom_par_ligne_actif`, décisions C8 et C5) : la tablette les montre dès qu'ils arrivent. Captures : `docs/rendus/vague-3/tablette/nouveautes-*.png` (`scripts/tablette/nouveautes-client.mjs`, après `scripts/tablette/rush.mjs`).
 
+## « +N min sur les commandes en cours » (vague 3, P0 de produit-gestion ; base et serveur de bo-operations, #186)
+
+Le retard du soir ne touche que les commandes à venir ; les commandes déjà acceptées gardaient leur heure et leurs clients n'étaient pas prévenus. Route `/api/tablette/decaler` sur `apercuDecalage` et `decalerCommandes` (`src/lib/decalage.ts`, doc `docs/decaler-commandes.md`). Composant `src/components/tablette/Decaler.tsx`.
+
+- Dans « Retard ce soir » : « Décaler les commandes en cours… » montre l'aperçu (« 10 commandes, 10 clients prévenus par e-mail. Décaler de : »), puis « +5 », « +10 », « +15 » ou « +20 min » décale et prévient chaque client. Deux gestes. La clé du geste est tirée à ce moment : un double appui ne décale pas deux fois.
+- Sur la vue par poste : « Décaler les commandes pizza… », seulement les commandes que ce poste n'a pas encore sorties.
+- Avant la #186 dans main : « Pas encore disponible : réglez le retard ce soir à la place. »
+- Captures : `docs/rendus/vague-3/tablette/decaler-*.png` (`scripts/tablette/decaler.mjs`, n'appuie pas sur « +N min »).
+
 ## Ticket « MODIFIÉE » (vague 3, contrat avec bo-commandes, #65)
 
 Une commande acceptée dont le client, le téléphone, les consignes ou l'adresse changent après la sortie de ses tickets : un ticket « MODIFIÉE » au poste qui fait le sac (cuisine s'il y a des lignes cuisine, sinon pizza). Les plats ne changent jamais par ce chemin.
@@ -187,3 +196,11 @@ Une commande acceptée dont le client, le téléphone, les consignes ou l'adress
 - `imprimerModification(commandeId, changements)` (`src/lib/impression/modification.ts`), changements `{ champ, avant, apres }` lisibles (« Téléphone », « Consignes », « Adresse »). Appelée par `modifierCommande` (bo-commandes) après `modifier_commande`, seulement si quelque chose a changé ; un échec n'empêche pas la modification.
 - Ticket (`ticketModification`, `src/lib/impression/ticket.ts`) : « MODIFIÉE », mode et numéro, heure de la modification, puis pour chaque changement l'ancienne valeur et la nouvelle en négatif, puis l'état à jour (client, « Pour : … », adresse et consignes).
 - Rien si les premiers tickets ne sont pas sortis (ils porteront les nouvelles valeurs), ni pour une commande terminée, refusée ou annulée, ni sans vrai changement. Renvoie le nombre de tickets créés. Pas de migration (`creer_taches_impression`, comme une réimpression).
+
+## Page livreur d'une main (vague 3)
+
+Styles propres dans `src/components/livreur/livreur.css`. L'ordre de passage reste celui proposé à l'attribution (`proposerOrdre`) ou rangé à la tablette.
+
+- Avant le départ : tous les arrêts ouverts, pour vérifier les sacs. « Je pars avec les N » d'un geste.
+- En route : l'arrêt en cours (le premier pas encore livré) est seul ouvert ; les suivants tiennent sur une ligne (rang, heure, adresse, état, numéro) et s'ouvrent au toucher. En bas de l'écran, sous le pouce : « Itinéraire » et « Livrée, n° 17 » de l'arrêt en cours. Avant : trois arrêts faisaient six écrans de haut et « Livrée » était au milieu.
+- Captures : `docs/rendus/vague-3/tablette/livreur-375.png`, `livreur-375-entier.png`, `livreur-375-en-route.png`, `livreur-320.png` (`scripts/tablette/livreur.mjs`, après `scripts/tablette/rush.mjs`).

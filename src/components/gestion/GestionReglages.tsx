@@ -30,7 +30,10 @@ type Generaux = {
     aide: string | null;
     valeur: boolean;
   }[];
+  types_alertes?: TypeAlerte[];
 };
+// Alertes réglables par type (vague 3, 20261130260000). Absentes avant la migration.
+type TypeAlerte = { cle: string; libelle: string; aide: string | null; actif: boolean };
 type Charge = {
   allongement_minutes: number;
   raison: string | null;
@@ -125,6 +128,8 @@ type Valeurs = {
   suggestion: boolean;
   // Interrupteurs déclarés en base, par clé (oui ou non).
   oui: Record<string, boolean>;
+  // E-mails d'alerte envoyés, par type.
+  alertes: Record<string, boolean>;
 } & Record<CleRythme, string>;
 
 const CRENEAUX = [10, 15, 20, 30];
@@ -145,6 +150,7 @@ function versValeurs(g: Generaux): Valeurs {
     oui: Object.fromEntries(
       (g.interrupteurs ?? []).map((i) => [i.cle, i.valeur]),
     ),
+    alertes: Object.fromEntries((g.types_alertes ?? []).map((t) => [t.cle, t.actif])),
   };
 }
 
@@ -236,6 +242,11 @@ function Formulaire({
         if (v[r.cle] !== initiales[r.cle] && v[r.cle] !== "")
           changes.push([r.cle, Number(v[r.cle])]);
       let r: Reponse = { ok: true, statut: 200, donnees: {} };
+      for (const [cle, actif] of Object.entries(v.alertes))
+        if (actif !== initiales.alertes[cle]) {
+          r = await poster("/api/gestion/service", { type: "type-alerte", cle, actif });
+          if (!r.ok) return r;
+        }
       for (const [cle, valeur] of changes) {
         r = await poster("/api/gestion/service", {
           type: "reglage-general",
@@ -273,6 +284,29 @@ function Formulaire({
             />
           )}
         </Champ>
+        {generaux.types_alertes && generaux.types_alertes.length > 0 && (
+          <fieldset className="bo-reg-sous-groupe">
+            <legend>E-mails d&apos;alerte envoyés</legend>
+            <p className="aide">
+              Décochée, une alerte ne part plus par e-mail. Elle reste notée dans la base.
+            </p>
+            {generaux.types_alertes.map((t) => (
+              <div key={t.cle} className="bo-reg-case">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={v.alertes[t.cle] ?? true}
+                    onChange={(e) =>
+                      f.changer("alertes", { ...v.alertes, [t.cle]: e.target.checked })
+                    }
+                  />
+                  <span>{t.libelle}</span>
+                </label>
+                {t.aide && <p className="aide">{t.aide}</p>}
+              </div>
+            ))}
+          </fieldset>
+        )}
       </fieldset>
 
       <fieldset className="bo-reg-groupe">

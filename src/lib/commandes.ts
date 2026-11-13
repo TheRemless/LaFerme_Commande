@@ -299,7 +299,7 @@ export async function appliquerEtatRemboursement(
       `Stripe n'a pas pu rendre CHF ${(r.montant_centimes / 100).toFixed(2)} au client de la commande ${r.numero} (${raison ?? etat}).`,
       "Le client a déjà reçu l'e-mail de remboursement. Rappelez-le, puis remboursez-le depuis le tableau de bord Stripe ou en espèces.",
       "Dans le back-office, la fiche de la commande montre ce remboursement « échoué ». Il n'entre pas dans l'export comptable.",
-    ]).catch((e) => console.error(`Alerte de remboursement échoué non envoyée (commande ${r.numero}) : ${e instanceof Error ? e.message : e}`));
+    ], "alerte", "remboursement").catch((e) => console.error(`Alerte de remboursement échoué non envoyée (commande ${r.numero}) : ${e instanceof Error ? e.message : e}`));
   }
   return true;
 }

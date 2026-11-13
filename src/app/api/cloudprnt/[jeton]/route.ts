@@ -95,7 +95,7 @@ export async function DELETE(requete: Request, { params }: { params: Promise<{ j
     await alerter(`Ticket ${r.station} de la commande ${r.numero} non imprimé`, [
       `${r.imprimante} n'a pas pu imprimer le ticket ${r.station} de la commande ${r.numero} après trois essais (${r.erreur ?? "erreur inconnue"}).`,
       "Touchez « Ticket » sur la tablette pour le lire, ou « Réimprimer » une fois l'imprimante réparée.",
-    ]).catch((e) => console.error(`Alerte non envoyée : ${e instanceof Error ? e.message : e}`));
+    ], "alerte", "ticket_non_imprime").catch((e) => console.error(`Alerte non envoyée : ${e instanceof Error ? e.message : e}`));
   }
   return new NextResponse(null, { status: 200 });
 }

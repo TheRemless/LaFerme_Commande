@@ -25,6 +25,8 @@ test("imprimantes : dernier ticket, conduite en cas de panne, axe", async ({ pag
   await page.setViewportSize({ width: 1024, height: 900 });
   await connecter(page, "ecran-imprimantes@laferme.test");
   let id: number | null = null;
+  let id2: number | null = null;
+  const NOM2 = `${NOM} bis`;
   try {
     // Une imprimante désactivée ne reçoit pas de ticket : on l'ajoute, on lui envoie un ticket de test (jamais
     // connectée, il reste en attente), puis on la désactive aussitôt.
@@ -34,13 +36,28 @@ test("imprimantes : dernier ticket, conduite en cas de panne, axe", async ({ pag
     await expect(page.getByText("Adresse CloudPRNT, à copier maintenant :")).toBeVisible();
     const liste = (await (await page.request.get("/api/gestion/imprimantes")).json()).imprimantes as { id: number; nom: string }[];
     id = liste.find((i) => i.nom === NOM)!.id;
-    const ligne = page.locator("li", { hasText: NOM });
+    // Nom exact : « … bis », la seconde imprimante, contient le premier.
+    const ligne = page.locator("li").filter({ has: page.getByText(NOM, { exact: true }) });
     await ligne.getByRole("button", { name: "Imprimer un ticket de test" }).click();
     await expect(page.getByText(`Ticket de test envoyé à ${NOM}, hors ligne pour le moment : il sortira à sa reconnexion.`)).toBeVisible();
     // Rechargée : l'adresse CloudPRNT (et son jeton) ne s'affiche plus, la capture n'en garde rien.
     await page.reload();
     await expect(ligne.getByText(/^1 ticket en attente depuis /)).toBeVisible();
     await page.screenshot({ path: `${CAPTURES}/imprimantes-ticket-test-1024.png` });
+
+    // Renvoyer ses tickets sur une autre : une seconde imprimante (ajoutée par la route, son adresse n'est pas
+    // affichée). Le ticket de test ne part jamais ailleurs : rien à renvoyer.
+    expect((await page.request.post("/api/gestion/imprimantes", { headers: ORIGINE, data: { type: "ajouter", nom: NOM2, station: "cuisine" } })).ok()).toBe(true);
+    id2 = ((await (await page.request.get("/api/gestion/imprimantes")).json()).imprimantes as { id: number; nom: string }[]).find((i) => i.nom === NOM2)!.id;
+    await page.reload();
+    await ligne.getByRole("button", { name: "Renvoyer ses tickets sur une autre" }).click();
+    await ligne.getByLabel("Renvoyer ses tickets en attente sur").selectOption({ label: `${NOM2}, poste cuisine (hors ligne)` });
+    await expect(ligne.getByRole("button", { name: "Renvoyer les tickets" })).toBeVisible();
+    await page.screenshot({ path: `${CAPTURES}/imprimantes-renvoyer-1024.png` });
+    await ligne.getByRole("button", { name: "Renvoyer les tickets" }).click();
+    await expect(page.getByText(`Aucun ticket à renvoyer : ${NOM} n'avait rien en attente pour une commande en cours.`)).toBeVisible();
+    await page.request.post("/api/gestion/imprimantes", { headers: ORIGINE, data: { type: "actif", id: id2, actif: false } });
+
     await page.request.post("/api/gestion/imprimantes", { headers: ORIGINE, data: { type: "actif", id, actif: false } });
     await page.reload();
     await expect(ligne.getByText("Aucun ticket sorti pour l'instant.")).toBeVisible();
@@ -55,6 +72,6 @@ test("imprimantes : dernier ticket, conduite en cas de panne, axe", async ({ pag
     expect(axe.violations.map((v) => `${v.id} : ${v.nodes.length}`)).toEqual([]);
     await page.screenshot({ path: `${CAPTURES}/imprimantes-1024.png`, fullPage: true });
   } finally {
-    if (id !== null) await page.request.post("/api/gestion/imprimantes", { headers: ORIGINE, data: { type: "actif", id, actif: false } });
+    for (const x of [id, id2]) if (x !== null) await page.request.post("/api/gestion/imprimantes", { headers: ORIGINE, data: { type: "actif", id: x, actif: false } });
   }
 });

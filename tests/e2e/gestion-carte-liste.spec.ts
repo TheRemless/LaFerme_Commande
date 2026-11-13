@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import sharp from "sharp";
-import { codeDuPersonnel } from "./site";
+import { codeDuPersonnel, passage } from "./site";
 
 // Carte du back-office en liste (vague 3) : filtres de qualité, fiche dans le panneau, rupture jusqu'à une
 // date, prix en lot (aperçu seulement : aucun prix de la carte n'est changé pour les autres tests).
@@ -43,6 +43,9 @@ test("la carte en liste : filtres de qualité, recherche, catégorie", async ({}
   await gestion.getByRole("combobox", { name: "Catégorie" }).selectOption({ label: "Desserts" });
   await expect(tableau.getByRole("button", { name: "Pizza Margherita" })).toHaveCount(0);
   await gestion.getByRole("combobox", { name: "Catégorie" }).selectOption({ label: "Toutes" });
+  // Au téléphone : nom, état et ce qui manque dans la première colonne, le prix à côté.
+  await tableau.locator("tbody tr").first().scrollIntoViewIfNeeded();
+  await capture("carte-liste-lignes", info);
   await gestion.getByRole("searchbox").or(gestion.getByPlaceholder("Nom ou description")).first().fill("Tonno");
   await expect(tableau.getByRole("button", { name: "Pizza Tonno" })).toBeVisible();
   await expect(tableau.getByRole("button", { name: "Pizza Margherita" })).toHaveCount(0);
@@ -62,6 +65,9 @@ test("la fiche s'ouvre dans le panneau ; un plat s'épuise jusqu'à demain puis 
   await champ.fill(demain);
   await panneau.getByRole("button", { name: "Épuiser", exact: true }).click();
   await expect(panneau.getByText(/^Épuisé jusqu'au .* compris\./)).toBeVisible();
+  // Les commandes déjà passées qui contiennent le plat, à prévenir (aucune ici ou celles des autres tests).
+  await expect(panneau.getByRole("heading", { name: "Commandes en cours qui les contiennent" })).toBeVisible();
+  await expect(panneau.getByText(/^Aucune commande à accepter|commandes? à prévenir/)).toBeVisible();
   await capture("carte-fiche-rupture", info);
   await panneau.getByRole("button", { name: "Remettre en vente" }).click();
   await expect(panneau.getByText("En vente. La tablette épuise un plat pour le jour", { exact: false })).toBeVisible();
@@ -122,6 +128,30 @@ test("en lot : retirer de la vente puis remettre en vente", async () => {
   await gestion.getByRole("button", { name: "Mettre en vente" }).click();
   await expect(gestion.getByText("1 plat en vente.")).toBeVisible();
   await expect(ligne).toContainText("En vente");
+});
+
+test("four en panne : toute une catégorie épuisée jusqu'à une date, commandes touchées, retour d'un geste", async ({}, info) => {
+  // Une catégorie créée pour le test : les pizzas et les plats des autres tests restent en vente.
+  const nom = `Essai four ${info.project.name} ${passage()}`;
+  const origine = new URL(info.project.use.baseURL!).origin;
+  const r = await gestion.request.post("/api/gestion/carte", { headers: { Origin: origine }, data: { type: "nouvelle_categorie", nom } });
+  expect(r.ok()).toBe(true);
+  await gestion.goto("/gestion/carte");
+  await gestion.getByRole("button", { name: "Four en panne…" }).click();
+  const panneau = gestion.getByRole("dialog", { name: "Four en panne" });
+  await expect(panneau.getByRole("radio", { name: "Tout le poste pizza (four en panne)" })).toBeChecked();
+  await capture("carte-four-en-panne", info);
+  await panneau.getByRole("radio", { name: "Une catégorie" }).check();
+  await panneau.getByRole("combobox", { name: "Catégorie" }).selectOption({ label: nom });
+  await panneau.getByRole("button", { name: "Épuiser", exact: true }).click();
+  await expect(panneau.getByText(`Toute la catégorie ${nom} est épuisée`, { exact: false })).toBeVisible();
+  await expect(panneau.getByText("Aucune commande à accepter, acceptée ou en préparation ne les contient.")).toBeVisible();
+  await gestion.keyboard.press("Escape");
+  const bandeau = gestion.getByRole("list", { name: "Postes et catégories épuisés" }).getByRole("listitem").filter({ hasText: nom });
+  await expect(bandeau).toContainText("épuisée jusqu'au");
+  await capture("carte-four-bandeau", info);
+  await bandeau.getByRole("button", { name: "Remettre en vente" }).click();
+  await expect(bandeau).toHaveCount(0);
 });
 
 test("plusieurs photos d'un coup : le plat se trouve d'après le nom du fichier", async ({}, info) => {
