@@ -4,8 +4,9 @@ import { poster } from "@/lib/requete-client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
-import { adresseTexte, type Adresse, type Details } from "@/lib/adresse";
+import type { Adresse, Details } from "@/lib/adresse";
 import { lireChoix } from "@/lib/choix";
+import { AdresseEnregistree } from "@/components/compte/AdresseEnregistree";
 import type { Recommande } from "@/lib/comptes/recommander";
 import { annoncerPlatsRemis, panierVide, remplacerPanier } from "@/lib/panier-local";
 import { nomClient } from "@/lib/nom-plat";
@@ -281,21 +282,12 @@ export function EspaceCompte({
             ) : (
               <ul className="adresses">
                 {donnees.adresses.map((a) => (
-                  <li key={a.id}>
-                    <span>
-                      <strong>{adresseTexte(a.adresse)}</strong>
-                      {a.details.sonnette && <small>Sonnette {a.details.sonnette}</small>}
-                    </span>
-                    <button
-                      type="button"
-                      className="lien"
-                      disabled={envoi}
-                      onClick={() => action("/api/compte/adresses", { supprimer: a.id }, () => router.refresh())}
-                      aria-label={`Retirer ${adresseTexte(a.adresse)}`}
-                    >
-                      Retirer
-                    </button>
-                  </li>
+                  <AdresseEnregistree
+                    key={a.id}
+                    a={a}
+                    occupe={envoi}
+                    retirer={() => action("/api/compte/adresses", { supprimer: a.id }, () => router.refresh())}
+                  />
                 ))}
               </ul>
             )}
