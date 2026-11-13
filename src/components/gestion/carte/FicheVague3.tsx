@@ -5,11 +5,11 @@ import type { PlatGestion } from "@/components/gestion/GestionCarte";
 import { enregistrer } from "@/components/gestion/enregistrer";
 import { useNotifier } from "@/components/gestion/ui";
 import { poster } from "@/lib/requete-client";
+import { jourTexte } from "@/lib/service";
 
 // Parties de la fiche d'un plat ajoutées à la vague 3 : disponibilités, rupture jusqu'à une date, copie.
 
 const JOURS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
-const JOUR = new Intl.DateTimeFormat("fr-CH", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
 
 export function DispoRupture({ plat, aujourdhui, recharger }: { plat: PlatGestion; aujourdhui: string; recharger: () => Promise<void> }) {
   const notifier = useNotifier();
@@ -36,7 +36,7 @@ export function DispoRupture({ plat, aujourdhui, recharger }: { plat: PlatGestio
     notifier(
       erreur
         ? { texte: erreur, ton: "erreur" }
-        : { texte: jusqu ? `Épuisé jusqu'au ${JOUR.format(new Date(`${jusqu}T12:00:00Z`))}, de retour le lendemain.` : "De nouveau en vente.", ton: "succes" },
+        : { texte: jusqu ? `Épuisé jusqu'au ${jourTexte(jusqu)}, de retour le lendemain.` : "De nouveau en vente.", ton: "succes" },
     );
     if (!erreur) await recharger();
   }
@@ -89,7 +89,7 @@ export function DispoRupture({ plat, aujourdhui, recharger }: { plat: PlatGestio
       <h3>Rupture</h3>
       {plat.rupture_jusqu_au ? (
         <p>
-          Épuisé jusqu&apos;au {JOUR.format(new Date(`${plat.rupture_jusqu_au.slice(0, 10)}T12:00:00Z`))} compris.{" "}
+          Épuisé jusqu&apos;au {jourTexte(plat.rupture_jusqu_au.slice(0, 10))} compris.{" "}
           <button type="button" className="bo-bouton bo-bouton-second bo-bouton-petit" disabled={envoi} onClick={() => rupture(null)}>
             Remettre en vente
           </button>

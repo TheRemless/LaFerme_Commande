@@ -3,6 +3,7 @@
 import { useId, useMemo, useState } from "react";
 import { enregistrer } from "@/components/gestion/enregistrer";
 import { PhotoPlat } from "@/components/gestion/PhotoPlat";
+import { useGardeModifications } from "@/components/gestion/ui";
 import { PHOTOS, estPhotoEnvoyee } from "@/lib/photos";
 import { poster } from "@/lib/requete-client";
 
@@ -269,6 +270,9 @@ export function FichePlat({ plat, donnees, recharger }: { plat: PlatGestion; don
     service: plat.jour_service ?? "journee",
   });
   const [retraits, setRetraits] = useState(plat.retraits.map((r) => r.nom).join(", "));
+  // Garde des modifications : fermer le panneau ou changer de rubrique avec des changements non enregistrés
+  // demande confirmation. La base de comparaison suit chaque enregistrement réussi.
+  const [base, setBase] = useState(() => JSON.stringify({ f, retraits }));
   // Photo du shooting choisie dans la liste ; null tant qu'on n'y touche pas. La photo actuelle vient
   // toujours de la base : un envoi ou un retrait fait dans le bloc photo n'est jamais écrasé ici.
   const [photoChoisie, setPhotoChoisie] = useState<string | null>(null);
@@ -302,6 +306,7 @@ export function FichePlat({ plat, donnees, recharger }: { plat: PlatGestion; don
     setMessage(erreur ?? "Enregistré.");
     setEnvoi(false);
     if (!erreur) {
+      setBase(JSON.stringify({ f, retraits }));
       setPhotoChoisie(null);
       await recharger();
     }
@@ -314,8 +319,13 @@ export function FichePlat({ plat, donnees, recharger }: { plat: PlatGestion; don
     const erreur = await enregistrer("/api/gestion/carte", { type: "retraits", slug: plat.slug, noms });
     setMessage(erreur ?? "Retraits validés.");
     setEnvoi(false);
-    if (!erreur) await recharger();
+    if (!erreur) {
+      setBase(JSON.stringify({ f: JSON.parse(base).f, retraits }));
+      await recharger();
+    }
   }
+
+  useGardeModifications(JSON.stringify({ f, retraits }) !== base || (photoChoisie !== null && photoChoisie !== (plat.photo ?? "")));
 
   const prixInitial = chf(plat.prix_centimes);
   const champ = (cle: "nom" | "prix" | "provenance" | "a_fournir" | "allergenes") => ({

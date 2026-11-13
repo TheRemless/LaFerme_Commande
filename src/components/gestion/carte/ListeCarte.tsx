@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import "./carte.css";
 import { FichePlat, NouveauPlat, type DonneesCarte, type PlatGestion } from "@/components/gestion/GestionCarte";
 import { PrixEnLot } from "@/components/gestion/carte/PrixEnLot";
@@ -93,7 +93,8 @@ function PrixEnLigne({ plat, recharger }: { plat: LignePlatListe; recharger: () 
   const [envoi, setEnvoi] = useState(false);
   async function sauver() {
     const propre = v.replace(",", ".").trim();
-    if (propre === actuel || envoi) return setV(actuel);
+    // Même montant écrit autrement (« 18 » pour 18.00) : rien à enregistrer.
+    if (envoi || Math.round(Number(propre) * 100) === plat.prix_centimes) return setV(actuel);
     setEnvoi(true);
     const erreur = await enregistrer("/api/gestion/carte", { type: "plat", slug: plat.slug, champs: { prix: propre } });
     setEnvoi(false);
@@ -137,6 +138,8 @@ export function ListeCarte({ donnees, recharger, version }: { donnees: DonneesCa
   const [lot, setLot] = useState<string[] | null>(null);
   const [epuiser, setEpuiser] = useState<string[] | null>(null);
   const [nouveau, setNouveau] = useState(false);
+  // Après des prix changés en lot, la sélection se vide : un second appui ne rejoue pas la hausse.
+  const viderLot = useRef<(() => void) | null>(null);
 
   const toutes = useMemo(() => lignesCarte(donnees), [donnees]);
   const comptes = useMemo(() => Object.fromEntries(FILTRES.map((f) => [f.cle, toutes.filter(f.garde).length])) as Record<FiltreEtat, number>, [toutes]);
@@ -258,7 +261,14 @@ export function ListeCarte({ donnees, recharger, version }: { donnees: DonneesCa
         }
         actionsLot={(cles, vider) => (
           <>
-            <button type="button" className="bo-bouton bo-bouton-second bo-bouton-petit" onClick={() => setLot(cles)}>
+            <button
+              type="button"
+              className="bo-bouton bo-bouton-second bo-bouton-petit"
+              onClick={() => {
+                viderLot.current = vider;
+                setLot(cles);
+              }}
+            >
               Changer les prix
             </button>
             <button type="button" className="bo-bouton bo-bouton-second bo-bouton-petit" onClick={() => valider(cles, vider)}>
@@ -313,6 +323,7 @@ export function ListeCarte({ donnees, recharger, version }: { donnees: DonneesCa
           <PrixEnLot
             slugs={lot}
             fini={async (n) => {
+              viderLot.current?.();
               setLot(null);
               await recharger();
               notifier({ texte: `${n} prix changé${n > 1 ? "s" : ""}. Chacun s'annule dans le journal.`, ton: "succes" });

@@ -60,6 +60,8 @@ test("un plat neuf naît hors de la vente et dit ce qui lui manque", async () =>
   await fiche.getByLabel("Commandable sur le site").check();
   await fiche.getByRole("button", { name: "Enregistrer le plat" }).click();
   await expect(fiche.getByRole("status")).toContainText("Pas en vente tant qu'il reste : prix à valider, allergènes manquants.");
+  // La case cochée sans succès est décochée : la fiche n'a plus de changement non enregistré.
+  await fiche.getByLabel("Commandable sur le site").uncheck();
 });
 
 test("une photo s'envoie, s'affiche en aperçu, puis se retire", async () => {
