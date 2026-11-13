@@ -67,6 +67,12 @@ export function PageCommande({ catalogue, preversion, compte }: { catalogue: Cat
   // Commande refusée par le serveur (plat épuisé, créneau complet entre-temps) : le récapitulatif et le
   // bouton se recalculent tout de suite, sans recharger la page.
   const [relance, setRelance] = useState(0);
+  // Le client remplit ses coordonnées : toutes les minutes, le total est recalculé. Une pause, une fermeture,
+  // un plat épuisé ou un créneau rempli pendant ce temps s'affiche avant le clic sur « Payer ».
+  useEffect(() => {
+    const t = window.setInterval(() => setRelance((n) => n + 1), 60_000);
+    return () => window.clearInterval(t);
+  }, []);
   const calcul = useCalculPanier(lignes, charge, relance);
   const { reponse } = calcul;
   const [choix, setChoix] = useState<Choix | null>(null);
