@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { SITE, adresseDuCompte } from "./site";
+import { SITE, adresseDuCompte, codeDuPersonnel } from "./site";
 import { expect, test, type Page } from "@playwright/test";
 
 // Rubrique Calendrier du back-office (vague 3, bo-operations). Ferme le midi d'un mardi dans deux mois (aucun
@@ -14,22 +14,15 @@ async function connecter(page: Page, email: string) {
   await adresseDuCompte(page, email);
   await page.goto("/gestion/calendrier");
   await page.getByLabel("E-mail", { exact: true }).fill(email);
-  await page.getByRole("button", { name: "Recevoir un code" }).click();
-  const code = page.locator(".note-preversion strong");
-  // Premier appel après le démarrage du serveur : la page compile, d'où un délai plus large.
-  await expect(code).toHaveText(/^\d{8}$/, { timeout: 20_000 });
-  await page.getByLabel("Code à 8 chiffres").fill(await code.innerText());
+  await page.getByLabel("Code à 8 chiffres").fill(await codeDuPersonnel(page));
   await page.getByRole("button", { name: "Me connecter" }).click();
   await expect(page.getByLabel("Code à 8 chiffres")).toHaveCount(0);
 }
 
-// Retire les fermetures de ce test et vide le cache de la config. Appelée avant et après : ce cache vit dans
-// .next/cache et survit au redémarrage du serveur, alors que la base embarquée repart de zéro ; un passage
-// interrompu laisserait sinon sa fermeture visible au suivant.
+// Retire les fermetures de ce test, avant (réessai de la CI sur le même serveur) et après. Le cache de données
+// de Next est vidé à chaque passage (#159) : plus besoin de le forcer ici.
 async function nettoyer(page: Page) {
   const d = await (await page.request.get("/api/gestion/service")).json();
-  // La base est neuve à chaque serveur mais pas le cache : réécrire un réglage à sa valeur le vide.
-  await page.request.post("/api/gestion/service", { headers: ORIGINE, data: { type: "reglage-general", cle: "avance_jours", valeur: d.generaux?.avance_jours ?? 7 } });
   for (const f of (d.fermetures ?? []) as { id: number; motif: string }[]) {
     if (f.motif === MOTIF) await page.request.post("/api/gestion/service", { headers: ORIGINE, data: { type: "fermeture-suppr", id: f.id } });
   }
