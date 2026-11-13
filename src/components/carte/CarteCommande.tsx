@@ -15,6 +15,7 @@ import { nomAffiche } from "@/components/Plat";
 import { Icone } from "@/components/Icone";
 import { FichePlat } from "@/components/carte/FichePlat";
 import { ContenuPanier } from "@/components/panier/ContenuPanier";
+import { oublierPlatDeLAdresse, platDeLAdresse } from "@/lib/plat-adresse";
 import { platsPopulaires, suggestionPanier, type DonneesPopulaires } from "@/lib/suggestion";
 import { retenirCodeDeLUrl } from "@/lib/code-client";
 
@@ -44,7 +45,14 @@ export function CarteCommande({
   const fermer = useCallback(() => {
     setOuvert(null);
     setEdition(null);
+    oublierPlatDeLAdresse();
   }, []);
+  // Fiche ouverte depuis l'adresse (/carte#pizza-tonno) : un plat partagé ou vu depuis le back-office.
+  useEffect(() => {
+    const slug = platDeLAdresse();
+    const plat = slug ? categories.flatMap((c) => c.plats).find((p) => p.slug === slug) : undefined;
+    if (plat) setOuvert(plat);
+  }, [categories]);
   const modifier = useCallback(
     (i: number) => {
       const plat = categories.flatMap((c) => c.plats).find((p) => p.slug === lignes[i]?.slug);
