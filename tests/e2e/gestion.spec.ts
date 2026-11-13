@@ -142,13 +142,13 @@ test("une recherche n'est pas remplacée par la liste du jour arrivée en retard
     await route.continue();
   };
   await gestion.route("**/api/gestion/commandes", retarder);
-  await gestion.getByRole("button", { name: "Carte", exact: true }).click();
+  await rubrique(gestion, "Carte");
   const listeDuJour = gestion.waitForResponse((r) => {
     if (!r.url().endsWith("/api/gestion/commandes")) return false;
     const corps = r.request().postDataJSON() as { action?: string; recherche?: string };
     return corps.action === "liste" && !corps.recherche;
   });
-  await gestion.getByRole("button", { name: "Commandes", exact: true }).click();
+  await rubrique(gestion, "Commandes");
   await gestion.getByLabel("Nom, téléphone ou numéro").fill(nom);
   await gestion.getByRole("button", { name: "Chercher" }).click();
   const titre = gestion.getByRole("heading", { name: new RegExp(`^Recherche « ${nom} »`) });
