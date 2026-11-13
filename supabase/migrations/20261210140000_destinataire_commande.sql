@@ -3,7 +3,7 @@
 -- commande à emporter, a son nom et son téléphone ici : { "nom", "telephone" }, ou null pour soi-même.
 -- Lu par le livreur, la tablette et les tickets (sessions `tablette`), jamais copié dans le compte.
 --
--- Objet partagé recréé : creer_commande, repris de 20261201090000_allergie_commande.sql avec la seule colonne
+-- Objet partagé recréé : creer_commande, repris de 20261210130000_allergie_commande.sql avec la seule colonne
 -- destinataire en plus. Avant cette migration, l'ancienne fonction ignore le champ : à lancer avec la fusion.
 
 alter table commandes add column destinataire jsonb
