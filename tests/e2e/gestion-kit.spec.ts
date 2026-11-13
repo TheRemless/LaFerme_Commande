@@ -159,6 +159,23 @@ test("« ? » liste les raccourcis de la page, « / » va à la recherche", asyn
   await expect(page.getByPlaceholder("Numéro ou client")).toBeFocused();
 });
 
+test("la relecture en direct garde la dernière demande, la chronologie se lit par jour", async () => {
+  await page.getByRole("tab", { name: "Direct" }).click();
+  const etat = page.locator(".bo-demo-lecture");
+  await expect(etat).toContainText(/Lecture n° \d+/);
+  // Deux demandes coup sur coup : la première (lente) revient après la seconde et doit être jetée.
+  const avant = Number((await etat.innerText()).match(/n° (\d+)/)![1]);
+  await page.getByRole("button", { name: "Relire maintenant" }).click();
+  await page.getByRole("button", { name: "Relire maintenant" }).click();
+  await expect(etat).toContainText(`n° ${avant + 2}`);
+  await page.waitForTimeout(1800);
+  await expect(etat).toContainText(`n° ${avant + 2}`);
+  // Deux jours, le plus récent en haut.
+  await expect(page.locator(".bo-chrono-jour")).toHaveText(["samedi 14 novembre", "vendredi 13 novembre"]);
+  await expect(page.locator(".bo-chrono li[data-important]")).toContainText("Remboursée CHF 5.00");
+  await page.getByRole("tab", { name: /^Tableau/ }).click();
+});
+
 test("la période se choisit par raccourci ou par dates, et refuse un début après la fin", async () => {
   const periode = page.getByRole("group", { name: "Période" });
   await periode.getByRole("button", { name: "Hier" }).click();

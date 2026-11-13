@@ -1221,3 +1221,53 @@
   gap: 16px;
   max-width: 560px;
 }
+
+/* ---------- Chronologie ---------- */
+.bo-chrono {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.bo-chrono-jour {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--bo-texte-doux);
+}
+.bo-chrono ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-left: 2px solid var(--bo-trait);
+}
+.bo-chrono li {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 8px;
+  padding: 6px 0 6px 12px;
+}
+.bo-chrono time {
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  color: var(--bo-texte-doux);
+}
+.bo-chrono-titre {
+  margin: 0;
+  font-weight: 600;
+}
+.bo-chrono li[data-important] {
+  margin-left: -2px;
+  border-left: 4px solid var(--bo-texte);
+  padding-left: 10px;
+}
+.bo-chrono li[data-important] .bo-chrono-titre {
+  font-weight: 700;
+}
+.bo-chrono-par {
+  font-weight: 400;
+  color: var(--bo-texte-doux);
+}
+.bo-chrono-detail {
+  font-size: 14px;
+  color: var(--bo-texte-doux);
+}

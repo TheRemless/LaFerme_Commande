@@ -1,5 +1,6 @@
 // Kit du back-office (vague 3). Mode d'emploi : docs/vague-3/kit-back-office.md.
 export { CarteChiffre } from "@/components/gestion/ui/CarteChiffre";
+export { Chronologie, type Evenement } from "@/components/gestion/ui/Chronologie";
 export { BoiteConfirmation, useConfirmer, type Demande } from "@/components/gestion/ui/Confirmation";
 export { celluleCsv, documentCsv, nomFichierCsv, telechargerCsv } from "@/components/gestion/ui/csv";
 export { BandeauHorsLigne, Chargement, DroitsInsuffisants, EtatErreur, EtatVide } from "@/components/gestion/ui/Etats";
@@ -15,3 +16,4 @@ export { Touches, useRaccourci } from "@/components/gestion/ui/Raccourcis";
 export { SelecteurPeriode } from "@/components/gestion/ui/SelecteurPeriode";
 export { TableauDonnees, type Colonne, type Tri } from "@/components/gestion/ui/TableauDonnees";
 export { useDiffere } from "@/components/gestion/ui/useDiffere";
+export { useRelecture, type Relecture } from "@/components/gestion/ui/useRelecture";

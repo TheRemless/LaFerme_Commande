@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import {
   BarreEnregistrer,
   CarteChiffre,
+  Chronologie,
   Champ,
   Chargement,
   EtatErreur,
@@ -20,6 +21,7 @@ import {
   useFormulaire,
   useNotifier,
   useRaccourci,
+  useRelecture,
   type Colonne,
   type Periode,
   type Tri,
@@ -102,6 +104,7 @@ export function DemoKit() {
           { cle: "tableau", titre: "Tableau", badge: retires.length || undefined },
           { cle: "formulaire", titre: "Formulaire" },
           { cle: "etats", titre: "États" },
+          { cle: "direct", titre: "Direct" },
         ]}
         actif={onglet}
         onChange={setOnglet}
@@ -139,6 +142,7 @@ export function DemoKit() {
           />
         )}
         {onglet === "formulaire" && <DemoFormulaire />}
+        {onglet === "direct" && <DemoDirect />}
         {onglet === "etats" && (
           <div className="bo-demo-etats">
             <Chargement lignes={3} />
@@ -190,5 +194,37 @@ function DemoFormulaire({ initial = "Pizza essai" }: { initial?: string }) {
       </Champ>
       <BarreEnregistrer etat={f.etat} message={f.message} modifie={f.modifie} reinitialiser={f.reinitialiser} />
     </form>
+  );
+}
+
+// Relecture en direct : la lecture n°2 est lente et revient après la n°3. Elle doit être jetée.
+let lectures = 0;
+function DemoDirect() {
+  const { donnees, majLe, recharger } = useRelecture(
+    async () => {
+      const n = ++lectures;
+      await new Promise((ok) => setTimeout(ok, n === 2 ? 1500 : 100));
+      return n;
+    },
+    [],
+    { intervalleMs: 60_000 },
+  );
+  return (
+    <div className="bo-demo-etats">
+      <p className="bo-demo-lecture" role="status">
+        {donnees === null ? "Lecture…" : `Lecture n° ${donnees}${majLe ? ` reçue à ${new Date(majLe).toLocaleTimeString("fr-CH")}` : ""}.`}
+      </p>
+      <button type="button" className="bo-bouton bo-bouton-second" onClick={recharger}>
+        Relire maintenant
+      </button>
+      <Chronologie
+        evenements={[
+          { cle: "1", quand: "2026-11-13T18:02:00Z", titre: "Commande passée", par: "Client" },
+          { cle: "2", quand: "2026-11-13T18:03:00Z", titre: "Payée en ligne", par: "Stripe" },
+          { cle: "3", quand: "2026-11-13T18:05:00Z", titre: "Acceptée pour 19h40", par: "Léa" },
+          { cle: "4", quand: "2026-11-14T09:10:00Z", titre: "Remboursée CHF 5.00", detail: "Geste pour le retard.", par: "Gérant", important: true },
+        ]}
+      />
+    </div>
   );
 }
