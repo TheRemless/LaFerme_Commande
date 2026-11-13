@@ -1,0 +1,90 @@
+/* Rubrique Commandes (bo-commandes) : seulement ce que le kit ne fait pas. Jetons du back-office, aucune
+   couleur en dur, aucune ombre. Un statut choisi se lit par le fond plein ET par aria-pressed, pas par la
+   seule couleur. */
+
+.bo-commandes { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+
+.bo-pastilles { display: flex; flex-wrap: wrap; gap: 8px; }
+.bo-pastille {
+  min-height: var(--bo-cible);
+  padding: 0 14px;
+  border: 1px solid var(--bo-trait-fort);
+  border-radius: var(--bo-rayon);
+  background: var(--bo-surface);
+  color: var(--bo-texte);
+  font: inherit;
+  font-size: var(--bo-taille);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.bo-pastille:hover { background: var(--bo-survol); }
+.bo-pastille[aria-pressed="true"] { background: var(--bo-texte); color: var(--bo-surface); border-color: var(--bo-texte); }
+.bo-pastille-n { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+.bo-filtres-commandes { display: grid; gap: 12px; width: 100%; }
+.bo-filtres-ligne { display: flex; flex-wrap: wrap; align-items: end; gap: 12px 20px; }
+.bo-filtres-ligne > label:not(.bo-case) { display: grid; gap: 4px; font-size: 14px; color: var(--bo-texte-doux); }
+.bo-filtres-ligne select { min-height: var(--bo-cible); min-width: 160px; font: inherit; color: var(--bo-texte); }
+.bo-filtres-ligne .bo-case { min-height: var(--bo-cible); display: inline-flex; align-items: center; gap: 8px; }
+
+/* Fiche */
+.bo-fiche-commande { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+.bo-fiche-etat {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+  gap: 12px 24px;
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--bo-trait);
+  border-radius: var(--bo-rayon);
+  background: var(--bo-surface);
+}
+.bo-fiche-etat dt { font-size: 13px; color: var(--bo-texte-doux); }
+.bo-fiche-etat dd { margin: 2px 0 0; }
+.bo-fiche-sections { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; }
+.bo-fiche-sections > * { min-width: 0; }
+.bo-fiche-sections h3 { margin: 0 0 8px; font-size: 16px; }
+.bo-fiche-sections p { margin: 0 0 4px; }
+
+.bo-fiche-lignes { width: 100%; border-collapse: collapse; }
+.bo-fiche-lignes th, .bo-fiche-lignes td { padding: 8px 0; border-bottom: 1px solid var(--bo-trait); text-align: left; vertical-align: top; }
+.bo-fiche-lignes .bo-nombre { text-align: right; font-variant-numeric: tabular-nums; padding-left: 12px; white-space: nowrap; }
+.bo-fiche-lignes tfoot th, .bo-fiche-lignes tfoot td { border-bottom: 0; }
+.bo-fiche-option { display: block; font-size: 14px; color: var(--bo-texte-doux); }
+
+.bo-fiche-liste { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.bo-fiche-liste > li { padding-bottom: 12px; border-bottom: 1px solid var(--bo-trait); }
+.bo-note-texte { white-space: pre-wrap; }
+.bo-courriel-texte {
+  margin: 8px 0 0;
+  padding: 12px;
+  border: 1px solid var(--bo-trait);
+  border-radius: var(--bo-rayon);
+  background: var(--bo-fond);
+  white-space: pre-wrap;
+  font: inherit;
+  font-size: 14px;
+  max-height: 320px;
+  overflow: auto;
+}
+.bo-fiche-form { display: grid; gap: 12px; }
+.bo-fiche-form fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 12px; }
+.bo-fiche-form legend { font-weight: 600; margin-bottom: 4px; }
+
+/* Chronologie (provisoire, remplacée par la pièce du kit) */
+.bo-chrono { display: grid; gap: 16px; }
+.bo-chrono-jour { margin: 0 0 8px; font-size: 14px; color: var(--bo-texte-doux); font-weight: 600; }
+.bo-chrono-liste { list-style: none; margin: 0; padding: 0; }
+.bo-chrono-liste > li {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 12px;
+  padding: 8px 0;
+  border-left: 2px solid var(--bo-trait-fort);
+  padding-left: 12px;
+}
+.bo-chrono-liste time { font-variant-numeric: tabular-nums; color: var(--bo-texte-doux); }
+.bo-chrono-titre { margin: 0; font-weight: 600; }
+.bo-chrono-detail, .bo-chrono-par { margin: 2px 0 0; font-size: 14px; color: var(--bo-texte-doux); }
