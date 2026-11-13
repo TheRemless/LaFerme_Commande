@@ -111,3 +111,11 @@ describe("File allégée", () => {
     expect((await detail(new Request("http://localhost/api/tablette/commande?id=pas-un-id"))).status).toBe(404);
   });
 });
+
+describe("Raison de l'heure réaliste", () => {
+  it("la file porte raison_charge : null tant que rien n'allonge les heures, sinon une phrase", async () => {
+    const corps = (await (await lire()).json()) as { reglages: { raison_charge?: string | null } };
+    expect("raison_charge" in corps.reglages).toBe(true);
+    expect(corps.reglages.raison_charge === null || typeof corps.reglages.raison_charge === "string").toBe(true);
+  });
+});

@@ -100,6 +100,8 @@ test("une commande arrive, on l'accepte, puis prête, retirée et payée", async
   // Heure en fourchette selon les réglages (« Prête entre … et … »), une seule heure à largeur 0 (vague 3).
   expect(await (await request.get(suivi)).text()).toMatch(/Prête (vers|entre)/);
 
+  // « Modifier… » : construit désactivé pour l'équipe de service (modification_par_equipe faux).
+  await expect(carte.getByRole("button", { name: "Modifier…" })).toHaveCount(0);
   await carte.getByRole("button", { name: "Prête au comptoir" }).click();
   await expect(carte).toContainText("Prête au comptoir pour");
   // Retrait payé au comptoir : un seul geste, retirée et encaissée (audit du gérant, G01).
@@ -178,7 +180,8 @@ test("supplément épuisé : refusé à la commande, puis revient", async ({ req
   const { supplement } = rupturesDuProjet();
   await tablette.getByLabel("Chercher un plat ou un supplément").fill(supplement);
   // Le supplément seul, pas les plats dont le nom le contient.
-  const ligne = tablette.locator(".tab-plats li").filter({ hasText: new RegExp(`^${supplement}\\s*Supplément`) });
+  // Options groupées par groupe (vague 3) : la ligne du supplément seul, dans le groupe « Supplément ».
+  const ligne = tablette.locator(".tab-groupe-options", { has: tablette.locator("h4", { hasText: /^Supplément/ }) }).locator(".tab-plats li").filter({ hasText: new RegExp(`^${supplement}(Disponible|Épuisé)$`) });
   await ligne.getByRole("button", { name: "Disponible" }).click();
   await expect(ligne.getByRole("button", { name: "Épuisé" })).toBeVisible();
   // Coup de feu : construit désactivé pour l'équipe de service (coup_de_feu_par_equipe faux), bloc caché.
@@ -208,6 +211,33 @@ test("décaler les commandes en cours : aperçu puis annulation, rien ne bouge",
   await annuler.click();
   await expect(bloc.getByRole("button", { name: "Décaler les commandes en cours…" })).toBeVisible();
   await tablette.getByRole("button", { name: "Fermer les réglages" }).click();
+});
+
+test("four en panne : deux gestes, la confirmation s'annule sans rien changer", async () => {
+  // Pas de vraie panne ici : elle épuiserait les pizzas des autres tests qui tournent en même temps.
+  await tablette.getByRole("button", { name: "Pause, délai, ruptures" }).click();
+  const bloc = tablette.locator(".tab-pannes");
+  await bloc.getByRole("button", { name: "Four en panne" }).click();
+  await expect(bloc.getByRole("button", { name: "Jusqu'à ce soir" })).toBeVisible();
+  await expect(bloc.getByRole("button", { name: "Jusqu'à demain soir" })).toBeVisible();
+  await bloc.getByRole("button", { name: "Annuler" }).click();
+  await expect(bloc.getByRole("button", { name: "Four en panne" })).toBeVisible();
+  await expect(bloc).not.toContainText(/épuisé jusqu/);
+  await tablette.getByRole("button", { name: "Fermer les réglages" }).click();
+});
+
+test("acceptation en série : deux commandes à accepter, la confirmation s'annule sans rien accepter", async ({ request }) => {
+  // Pas de vraie série : elle accepterait aussi les commandes des autres tests qui tournent en même temps.
+  // Au comptoir : payée en ligne hors des heures de service, une commande porte un avertissement et sort (à juste
+  // titre) de la série.
+  await commander(request, "Serie", "comptoir");
+  await commander(request, "Suite", "comptoir");
+  await tablette.getByRole("button", { name: /^À accepter/ }).click();
+  const serie = tablette.locator(".tab-serie");
+  await serie.getByRole("button", { name: /^Accepter les \d+ à l'heure proposée/ }).click();
+  await expect(serie).toContainText(/Accepter \d+ commandes, chacune à son heure proposée/);
+  await serie.getByRole("button", { name: "Annuler" }).click();
+  await expect(serie.getByRole("button", { name: /^Accepter les \d+ à l'heure proposée/ })).toBeVisible();
 });
 
 test("rupture du jour : le plat est grisé sur la carte, puis revient", async ({ page }) => {

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Livreur } from "@/components/livreur/Livreur";
 import { ConnexionPersonnel } from "@/components/tablette/ConnexionPersonnel";
+import { connexionParCodeActive } from "@/lib/personnel/code-livreur";
 import { personnelCourant } from "@/lib/personnel/session";
 import { PRIVE } from "@/lib/site";
 
@@ -16,7 +17,7 @@ export default async function PageLivreur() {
   return (
     <main id="contenu" className="page-livreur">
       {!personnel ? (
-        <ConnexionPersonnel titre="Livraisons de La Ferme" />
+        <ConnexionPersonnel titre="Livraisons de La Ferme" codeLivreur={await connexionParCodeActive()} />
       ) : personnel.role !== "livreur" ? (
         <div className="connexion connexion-personnel">
           <h1>Livraisons de La Ferme</h1>

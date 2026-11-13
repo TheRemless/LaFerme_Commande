@@ -17,6 +17,8 @@ import { nouvelleCle } from "@/lib/cle";
 import type { DonneesLivraisons } from "@/lib/livreur";
 import { MOTIF_CLIENT_ABSENT } from "@/lib/livraisons-textes";
 import { OngletLivraisons, livraisonsEnCours, problemeTexte } from "@/components/tablette/Livraisons";
+import { PanneauModifier } from "@/components/tablette/PanneauModifier";
+import { acceptablesEnSerie, nouveaux, sonnerProbleme, sonnerRetard } from "@/components/tablette/sons";
 import { annuleesParClient, chercherCommandes, etatTemps, jourDuNumero, lignesImprimantes, minutesDeRetard, minutesRestantes, ordreStable, type Rythme } from "@/components/tablette/rush";
 import { LigneCommande } from "@/components/tablette/LigneCommande";
 import "./tablette.css";
@@ -31,6 +33,8 @@ type Donnees = {
     pause: { active: boolean; jusqua: string | null; livraisonFermee: boolean; auto?: boolean } | null;
     preparation_minutes: number;
     retard_minutes?: number;
+    // « Four : 22 pizzas en file, 42 min. Heures annoncées +25 min. », ou null quand rien n'allonge les heures.
+    raison_charge?: string | null;
     // Les tickets d'une commande acceptée sortent ce temps avant l'heure promise, par mode (SS-11).
     impression_avance?: DelaisImpression;
   };
@@ -243,14 +247,16 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
   // Ce qui presse, pour chaque commande : texte, niveau et clé de tri.
   const etats = useMemo(() => new Map((donnees?.commandes ?? []).map((x) => [x.id, etatTemps(x, maintenantIso, rythme)])), [donnees, rythme, maintenantIso]);
 
-  // Son répété toutes les 4 secondes tant qu'une commande du jour attend.
+  // Son répété toutes les 4 secondes tant qu'une commande du jour attend, toutes les 2 secondes quand l'une
+  // d'elles attend depuis 3 minutes ou plus (vague 3, sons distincts).
+  const attenteLongue = listes.traiter.some((c) => new Date(maintenantIso).getTime() - new Date(c.attend_depuis ?? c.cree_le).getTime() >= 3 * 60_000);
   useEffect(() => {
     if (!son || listes.traiter.length === 0) return;
     const ctx = audio.current;
     if (ctx) sonner(ctx);
-    const t = window.setInterval(() => audio.current && sonner(audio.current), 4000);
+    const t = window.setInterval(() => audio.current && sonner(audio.current), attenteLongue ? 2000 : 4000);
     return () => window.clearInterval(t);
-  }, [son, listes.traiter.length]);
+  }, [son, listes.traiter.length, attenteLongue]);
 
   async function demarrer() {
     try {
@@ -327,6 +333,15 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
     await charger();
   }
 
+  // « Modifier… » sur les cartes : gérant, ou équipe si le réglage modification_par_equipe est vrai (lu une fois).
+  const [modifiable, setModifiable] = useState(false);
+  useEffect(() => {
+    fetch("/api/tablette/modifier", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setModifiable(d?.autorise === true))
+      .catch(() => undefined);
+  }, []);
+
   const [confirmerDeconnexion, setConfirmerDeconnexion] = useState(false);
   async function agirLivraison(corps: Record<string, unknown>) {
     setMessage(null);
@@ -386,6 +401,47 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
   const aRembourser = (donnees?.commandes ?? []).filter((c) => c.statut === "refusee" && c.statut_paiement === "paye");
   const nomLivreur = new Map((livraisons?.livreurs ?? []).map((l) => [l.id, l.nom]));
   const problemes = (livraisons?.livraisons ?? []).filter((l) => l.probleme && ["acceptee", "en_preparation", "partie"].includes(l.commande_statut));
+
+  // Sons distincts (vague 3) : une commande qui passe en retard, une imprimante ou une livraison qui pose problème,
+  // une seule fois chacune. Rien ne sonne au chargement de la page pour ce qui était déjà là.
+  const retardsVus = useRef<Set<string> | null>(null);
+  const problemesVus = useRef<Set<string> | null>(null);
+  const clesRetard = donnees ? listes.cours.filter((c) => etats.get(c.id)?.niveau === "retard").map((c) => c.id) : null;
+  const clesProbleme = donnees ? [...imprimantesKo.map((i) => `imprimante:${i.id}:${etatImprimante(i)}`), ...problemes.map((l) => `livraison:${l.commande_id}:${l.probleme}`)] : null;
+  const cleRetard = clesRetard?.join(",");
+  const cleProbleme = clesProbleme?.join(",");
+  useEffect(() => {
+    if (clesRetard === null) return;
+    if (nouveaux(retardsVus, clesRetard).length && son && audio.current) sonnerRetard(audio.current);
+  }, [cleRetard, son]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (clesProbleme === null) return;
+    if (nouveaux(problemesVus, clesProbleme).length && son && audio.current) sonnerProbleme(audio.current);
+  }, [cleProbleme, son]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Acceptation en série (vague 3) : les commandes à accepter sans allergie ni avertissement, chacune à son heure
+  // proposée, en deux gestes. Les autres restent à lire et à accepter une par une.
+  const [serieOuverte, setSerieOuverte] = useState(false);
+  const [serieEnvoi, setSerieEnvoi] = useState(false);
+  const { serie, aLire } = acceptablesEnSerie(listes.traiter);
+  async function accepterSerie() {
+    setSerieEnvoi(true);
+    setMessage(null);
+    let ok = 0;
+    for (const c of serie) {
+      const r = await poster("/api/tablette/action", { commande: c.id, action: "accepter", heure: c.heure_proposee, de: "nouvelle" });
+      if (r.statut === 401) return router.refresh();
+      if (r.ok) ok += 1;
+    }
+    const rate = serie.length - ok;
+    setMessage({
+      texte: `${ok} ${ok > 1 ? "commandes acceptées" : "commande acceptée"}${rate ? `, ${rate} pas passée${rate > 1 ? "s" : ""} : réessayez une par une` : ""}${aLire.length ? `. ${aLire.length} à lire avant d'accepter` : ""}.`,
+      echec: rate > 0,
+    });
+    setSerieOuverte(false);
+    setSerieEnvoi(false);
+    await charger();
+  }
   // Livreur et rang de passage de chaque commande, pour les cartes de « En cours ».
   const livraisonDe = new Map(
     (livraisons?.livraisons ?? []).map((l) => [
@@ -425,6 +481,7 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
             {/* Une imprimante en panne a son bandeau : l'état ne s'écrit qu'une fois. */}
             {imprimantes.length === 0 ? "Pas d'imprimante." : imprimantesKo.length === 0 ? "Imprimantes en ligne." : ""}
           </span>
+          {donnees?.reglages.raison_charge && <span className="tab-raison">{donnees.reglages.raison_charge}</span>}
         </div>
         <div className="tab-recherche" role="search">
           <label htmlFor="tab-recherche" className="sr-only">
@@ -539,7 +596,19 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
         </p>
       ))}
 
-      {reglagesOuverts && donnees && <Reglages reglages={donnees.reglages} onChange={charger} />}
+      {reglagesOuverts && donnees && (
+        <Reglages
+          reglages={donnees.reglages}
+          onChange={charger}
+          ouvrirCommande={(c) => {
+            // Ouverte depuis « Commandes en cours qui les contiennent » : réglages fermés, numéro cherché, détail de
+            // cette commande-là ouvert (par son id : le numéro repart à 1 chaque jour).
+            setReglagesOuverts(false);
+            setRecherche(String(c.numero));
+            setOuverte(c.id);
+          }}
+        />
+      )}
 
       {resultats && (
         <p className="tab-recherche-info">
@@ -593,12 +662,39 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
                   gerant={gerant}
                   agir={(corps) => agir(detail.id, corps)}
                   recharger={charger}
+                  modifiable={modifiable}
+                  annoncer={(texte) => setMessage({ texte, echec: false })}
                 />
               </ol>
             </aside>
           )}
         </div>
       ) : liste.length > 0 ? (
+        <>
+        {onglet === "traiter" && serie.length >= 2 && !resultats && (
+          <div className="tab-serie">
+            {serieOuverte ? (
+              <>
+                <p>
+                  Accepter <strong>{serie.length} commandes</strong>, chacune à son heure proposée ?
+                  {aLire.length > 0 && ` ${aLire.length} ${aLire.length > 1 ? "restent" : "reste"} à lire (allergie ou avertissement).`}
+                </p>
+                <div className="boutons-ligne">
+                  <button type="button" className="bouton-principal" disabled={serieEnvoi} onClick={accepterSerie}>
+                    Accepter les {serie.length}
+                  </button>
+                  <button type="button" className="bouton-second" disabled={serieEnvoi} onClick={() => setSerieOuverte(false)}>
+                    Annuler
+                  </button>
+                </div>
+              </>
+            ) : (
+              <button type="button" className="bouton-second" onClick={() => setSerieOuverte(true)}>
+                Accepter les {serie.length} à l&apos;heure proposée…
+              </button>
+            )}
+          </div>
+        )}
         <ol className="tab-liste">
           {liste.map((c) => (
             <CarteCommande
@@ -612,9 +708,12 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
               gerant={gerant}
               agir={(corps) => agir(c.id, corps)}
               recharger={charger}
+              modifiable={modifiable}
+              annoncer={(texte) => setMessage({ texte, echec: false })}
             />
           ))}
         </ol>
+        </>
       ) : (
         <p className="tab-vide">Aucune commande à accepter.</p>
       )}
@@ -651,6 +750,8 @@ function CarteCommande({
   gerant,
   agir,
   recharger,
+  modifiable = false,
+  annoncer,
 }: {
   c: CommandeTablette;
   aujourdHui: string;
@@ -661,6 +762,9 @@ function CarteCommande({
   gerant: boolean;
   agir: (corps: Record<string, unknown>) => Promise<void>;
   recharger: () => Promise<void>;
+  // Geste « Modifier… » permis (gérant, ou équipe si modification_par_equipe) et retour d'action en bas d'écran.
+  modifiable?: boolean;
+  annoncer?: (texte: string) => void;
 }) {
   const [tickets, setTickets] = useState<{ station: string; contenu: LigneTicket[] }[] | null>(null);
 
@@ -675,7 +779,7 @@ function CarteCommande({
     .filter((t): t is Tache => Boolean(t));
   // Depuis le paiement en ligne, ou la création pour le comptoir : le temps passé sur la page de paiement ne compte pas.
   const attente = Math.floor((new Date(maintenant).getTime() - new Date(c.attend_depuis ?? c.cree_le).getTime()) / 60_000);
-  const [panneau, setPanneau] = useState<"aucun" | "refuser" | "heure" | "manque">("aucun");
+  const [panneau, setPanneau] = useState<"aucun" | "refuser" | "heure" | "manque" | "modifier">("aucun");
   // Décalage choisi à la main, appliqué à l'heure de base : celle-ci suit la proposition recalculée à chaque
   // vérification, pour ne jamais accepter avec une heure déjà passée.
   const [decalage, setDecalage] = useState(0);
@@ -946,6 +1050,11 @@ function CarteCommande({
           <button type="button" className="bouton-second" onClick={() => setPanneau("heure")}>
             Changer l&apos;heure
           </button>
+          {modifiable && ["nouvelle", "acceptee", "en_preparation"].includes(c.statut) && (
+            <button type="button" className="bouton-second" onClick={() => setPanneau("modifier")}>
+              Modifier…
+            </button>
+          )}
           {["paye", "encaisse", "a_encaisser_retrait"].includes(c.statut_paiement) && (
             <button type="button" className="bouton-second" onClick={() => setPanneau("manque")}>
               Il manque…
@@ -988,6 +1097,17 @@ function CarteCommande({
           c={c}
           fermer={async () => {
             setPanneau("aucun");
+            await recharger();
+          }}
+        />
+      )}
+
+      {panneau === "modifier" && (
+        <PanneauModifier
+          c={c}
+          fermer={async (texte) => {
+            setPanneau("aucun");
+            if (texte) annoncer?.(texte);
             await recharger();
           }}
         />

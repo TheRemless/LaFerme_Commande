@@ -189,6 +189,17 @@ Le retard du soir ne touche que les commandes à venir ; les commandes déjà ac
 - Avant la #186 dans main : « Pas encore disponible : réglez le retard ce soir à la place. »
 - Captures : `docs/rendus/vague-3/tablette/decaler-*.png` (`scripts/tablette/decaler.mjs`, n'appuie pas sur « +N min »).
 
+## « Four en panne… » et ruptures « jusqu'au » (vague 3, base de bo-carte #55, P0 et P1 de produit-gestion)
+
+Dans « Pause, délai, ruptures ». Même fonction et mêmes mots que le back-office de bo-carte (arbitrage du chef). Aucune migration : `20261210090000_disponibilites.sql`. Routes `/api/tablette/pannes` et `/api/tablette/touchees`, logique pure dans `src/components/tablette/ruptures.ts`.
+
+- **« Four en panne… »** : « Four en panne », « Cuisine en panne » ou « Une catégorie… », puis « Jusqu'à ce soir » ou « Jusqu'à demain soir » (deux gestes, `regler_rupture_groupee`). Cadre « Tout le poste pizza épuisé jusqu'à ce soir. » et « Remettre en vente » d'un geste ; les ruptures plat par plat restent telles quelles. Le client voit ces plats épuisés.
+- **Commandes en cours qui les contiennent** : après une panne ou « Épuisé » sur un plat, la liste des commandes à accepter, acceptées ou en préparation jusqu'à la date, avec leurs lignes concernées. Chaque « N° » ferme les réglages, cherche le numéro et ouvre la commande. Base : `commandes_touchees` de bo-carte (PR à venir) ; repli calculé sur la file de la tablette tant qu'elle n'est pas dans main.
+- **Motif sous le plat** : « Four en panne », « Cuisine en panne », « Toute la catégorie épuisée » ou « Épuisé jusqu'au 15 nov. ». Un plat épuisé avec son poste ne se remet pas seul (bouton grisé). Le résumé « Épuisés aujourd'hui » ne liste pas les plats d'un poste en panne.
+- **Confirmation sur la ligne** avant de remettre une rupture posée au back-office pour plusieurs jours, et avant d'épuiser le dernier choix disponible d'un groupe obligatoire.
+- Suppléments et choix regroupés par groupe, « choix obligatoire » noté à côté du nom.
+- Captures : `docs/rendus/vague-3/tablette/panne-*.png` (`scripts/tablette/pannes.mjs`, après `scripts/tablette/rush.mjs`).
+
 ## Ticket « MODIFIÉE » (vague 3, contrat avec bo-commandes, #65)
 
 Une commande acceptée dont le client, le téléphone, les consignes ou l'adresse changent après la sortie de ses tickets : un ticket « MODIFIÉE » au poste qui fait le sac (cuisine s'il y a des lignes cuisine, sinon pizza). Les plats ne changent jamais par ce chemin.
@@ -204,3 +215,40 @@ Styles propres dans `src/components/livreur/livreur.css`. L'ordre de passage res
 - Avant le départ : tous les arrêts ouverts, pour vérifier les sacs. « Je pars avec les N » d'un geste.
 - En route : l'arrêt en cours (le premier pas encore livré) est seul ouvert ; les suivants tiennent sur une ligne (rang, heure, adresse, état, numéro) et s'ouvrent au toucher. En bas de l'écran, sous le pouce : « Itinéraire » et « Livrée, n° 17 » de l'arrêt en cours. Avant : trois arrêts faisaient six écrans de haut et « Livrée » était au milieu.
 - Captures : `docs/rendus/vague-3/tablette/livreur-375.png`, `livreur-375-entier.png`, `livreur-375-en-route.png`, `livreur-320.png` (`scripts/tablette/livreur.mjs`, après `scripts/tablette/rush.mjs`).
+
+## Sons distincts et acceptation en série (vague 3)
+
+Module `src/components/tablette/sons.ts`. Le navigateur n'autorise le son qu'après « Commencer le service ».
+
+| Ce qui arrive | Son | Combien de fois |
+|---|---|---|
+| Nouvelle commande à accepter | Deux notes (aiguë, puis plus basse) | Toutes les 4 s tant qu'elle attend, toutes les 2 s dès 3 minutes d'attente |
+| Commande qui passe en retard | Trois notes graves rapprochées | Une fois par commande |
+| Imprimante hors ligne, sans papier, capot ouvert ; problème signalé par un livreur | Deux notes qui descendent | Une fois par problème (un nouvel état de l'imprimante sonne de nouveau) |
+| Annulation par le client | Une note grave et longue | Une fois par commande (#115) |
+
+Au chargement de la page, rien ne sonne pour ce qui était déjà là.
+
+**Acceptation en série** : dans « À accepter », à partir de deux commandes, « Accepter les N à l'heure proposée… » puis « Accepter les N ». Chacune est acceptée à son heure proposée, comme le bouton de sa carte. Une commande avec une allergie ou un avertissement (adresse, créneau) n'entre pas dans la série : elle se lit et s'accepte seule. Le retour dit combien sont passées et combien restent à lire. L'acceptation automatique, côté serveur, reste une décision de Jérémy (non construite ici). Capture : `docs/rendus/vague-3/tablette/serie-confirmer-1180.png` (`scripts/tablette/serie.mjs`).
+
+## Raison de l'heure réaliste (vague 3, base et texte de bo-operations)
+
+Sous « Préparation N min », en gras, la raison qui allonge les heures annoncées en ce moment : « Four : 22 pizzas en file, 42 min. Heures annoncées +25 min. » (`raisonCharge`, `chargeDuMoment`, calculés dans la route de la file, jamais dans une page publique). Rien quand rien n'allonge les heures, ce qui est le cas tant que les réglages de l'heure réaliste (`allongement_max_minutes`, débits du four et de la cuisine) restent à zéro.
+
+## « Modifier… » une commande depuis la tablette (vague 3, contrat de bo-commandes #65)
+
+Le client appelle pour corriger son téléphone, son nom ou les consignes de livraison. Bouton « Modifier… » sur la carte (à accepter, acceptée, en préparation), panneau prérempli, seuls les champs changés partent. Route `/api/tablette/modifier` sur `modifierCommande` : le client reçoit le nouveau récapitulatif par e-mail et, si les tickets sont déjà sortis, un ticket « MODIFIÉE » sort au poste du sac. L'adresse se change au back-office (recherche d'adresse et zone).
+
+- Qui : le gérant toujours ; l'équipe de service seulement si `modification_par_equipe` est vrai. **Construit désactivé** (réglage de bo-commandes, décision de Jérémy). La base revérifie.
+- Capture : `docs/rendus/vague-3/tablette/modifier-1180.png` (`scripts/tablette/modifier.mjs`, compte gérant, n'enregistre rien).
+
+## Connexion d'un livreur par code (vague 3, D13 point 3 de produit-gestion, construit désactivé)
+
+Zéro e-mail : le gérant ou un responsable touche « Code de connexion » à côté du livreur (onglet Livraisons), la tablette affiche 8 chiffres en grand, valables 10 minutes et une seule fois. Sur `/livreur`, « J'ai un code du restaurant » : le livreur les tape et sa session s'ouvre pour la soirée (12 heures, comme aujourd'hui).
+
+- Migration `20261203150000_code_livreur.sql` : réglage `connexion_livreur_par_code` (faux, proposition), table `codes_livreur` (code en empreinte HMAC seulement), `creer_code_livreur` (gérant ou responsable actif, livreur actif, journalisé ; un nouveau code annule le précédent), `utiliser_code_livreur` (même frein par connexion que la connexion de l'équipe, `attente_limite('echec_ip')` ; ouvre une session de livreur ordinaire, que « Déconnecter un téléphone perdu » coupe comme les autres).
+- Serveur `src/lib/personnel/code-livreur.ts`, routes `/api/tablette/code-livreur` (GET `{ actif, autorise }`, POST `{ livreur }`) et `/api/personnel/code-livreur` (POST `{ code }`, contrôle d'origine, cookie `HttpOnly` de 12 heures).
+- Relecture de sécurité de qualite (13.11.2026, `revue-securite-pr204.md`) : un responsable ne crée un code que si son rôle est ouvert (droit « deconnecter_appareil » relu par `droit_personnel`, à la création comme pour afficher le bouton). Frein global en plus du frein par connexion : au-delà de 100 codes faux en 10 minutes, toutes connexions confondues, plus aucun code n'est accepté jusqu'à ce que la fenêtre passe, et le restaurant reçoit une alerte (une fois, au 100e).
+- Frein par connexion partagé avec la connexion de l'équipe (choix gardé) : un livreur qui se trompe plusieurs fois fait attendre la connexion suivante sur le Wi-Fi du restaurant, puisque tous les appareils y sortent par la même adresse.
+- **Pour l'ouvrir** (décision de Jérémy, après la relecture de sécurité de qualite) : `update reglages set valeur = 'true', proposition = false where cle = 'connexion_livreur_par_code';`
+- Fermé : aucun bouton sur la tablette, rien de plus sur `/livreur`, et les deux fonctions refusent.

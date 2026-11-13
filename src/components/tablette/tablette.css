@@ -441,3 +441,136 @@
   justify-items: start;
   margin-top: 0;
 }
+
+/* Ruptures (vague 3, base de bo-carte #55) : motif d'une rupture planifiée ou d'une panne, confirmation sur la ligne. */
+.tab-rupture-motif {
+  display: block;
+  font-weight: 700;
+}
+.tab-plats li:has(.tab-confirmation) {
+  flex-wrap: wrap;
+}
+.tab-confirmation {
+  flex-basis: 100%;
+  padding: 10px 12px;
+  border: 2px solid var(--encre);
+  background: var(--blanc);
+}
+.tab-confirmation p {
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+.tab-groupe-options h4 {
+  margin: 12px 0 4px;
+}
+.tab-panne-active {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.tab-panne-cibles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.tab-panne-duree {
+  flex-basis: 100%;
+  padding: 10px 12px;
+  border: 2px solid var(--encre);
+  background: var(--blanc);
+}
+.tab-panne-duree p {
+  margin: 0 0 8px;
+}
+.tab-touchees {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0;
+  padding: 10px 12px;
+  border: 2px solid var(--encre);
+  background: var(--blanc);
+}
+.tab-touchees p {
+  margin: 0;
+}
+.tab-touchees ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tab-touchees li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.tab-touchees .bouton-second {
+  justify-self: start;
+}
+.tab-touchees li {
+  align-items: flex-start;
+}
+.tab-touchees li .bouton-second {
+  flex: none;
+  white-space: nowrap;
+}
+
+/* Acceptation en série (vague 3). */
+.tab-serie {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 2px solid var(--encre);
+  background: var(--blanc);
+}
+.tab-serie p {
+  margin: 0;
+}
+.tab-serie > .bouton-second {
+  justify-self: start;
+}
+.tab-serie .boutons-ligne button {
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 48px;
+  padding: 0 20px;
+}
+
+/* Raison de l'heure réaliste (vague 3, bo-operations) : sous l'état, en gras, une ligne. */
+.tab-raison {
+  display: block;
+  font-weight: 700;
+}
+
+/* « Modifier… » sur la carte (vague 3, contrat de bo-commandes). */
+.tab-modifier-champs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px 12px;
+}
+.tab-modifier-champs input {
+  width: 100%;
+  min-height: 48px;
+}
+
+/* « Code de connexion » d'un livreur (vague 3, construit désactivé) : lisible depuis le comptoir. */
+.tab-code-livreur {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 2px solid var(--encre);
+  background: var(--blanc);
+}
+.tab-code-livreur p {
+  margin: 0;
+}
+.tab-code-chiffres {
+  font-size: 48px;
+  font-weight: 700;
+  font-stretch: 62%;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+}
