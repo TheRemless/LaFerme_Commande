@@ -1,7 +1,7 @@
 import "server-only";
 import { fonctionSql } from "@/lib/db/serveur";
 import type { Totaux } from "@/lib/panier";
-import { prixChf } from "@/lib/prix";
+import { codeSaisi, messageRefus, type RaisonRefus } from "@/lib/codes-promo";
 
 // Codes promo côté client (moteur de bo-carte, 20261210120000_codes_promo.sql). Construits complets mais
 // éteints : tant que le réglage codes_promo_actifs est faux, aucun champ n'apparaît et un code envoyé est
@@ -21,12 +21,8 @@ export type DemandeCode = {
   provisoire?: boolean;
 };
 
-// Forme d'un code tapé (même règle que la table : 3 à 20 lettres, chiffres ou tirets), en majuscules.
-export function codeTape(v: unknown): string | null {
-  if (typeof v !== "string") return null;
-  const c = v.trim().toUpperCase();
-  return /^[A-Z0-9-]{3,20}$/.test(c) ? c : null;
-}
+// Forme d'un code tapé et textes de refus : ceux de bo-carte (src/lib/codes-promo.ts), un seul jeu de règles.
+export const codeTape = codeSaisi;
 
 export async function evaluerCode(d: DemandeCode): Promise<ResultatCode> {
   try {
@@ -53,28 +49,10 @@ export async function codesActifs(): Promise<boolean> {
   return !r.ok && r.raison !== "desactive" && r.raison !== "indisponible";
 }
 
+// Texte d'un refus pour le client : celui de bo-carte, plus le cas d'une base muette.
 export function messageCode(r: Extract<ResultatCode, { ok: false }>): string {
-  switch (r.raison) {
-    case "pas_commence":
-      return "Ce code n'est pas encore valable.";
-    case "expire":
-    case "plafond":
-      return "Ce code n'est plus valable.";
-    case "minimum":
-      return `Ce code vaut dès ${prixChf(r.minimum_centimes ?? 0)} de plats.`;
-    case "deja_utilise":
-      return "Vous avez déjà utilisé ce code.";
-    case "pas_premiere":
-      return "Ce code vaut pour une première commande.";
-    case "retrait":
-      return "Ce code offre la livraison. Il vaut pour une commande livrée.";
-    case "client_inconnu":
-      return "Indiquez votre e-mail et votre téléphone pour utiliser ce code.";
-    case "indisponible":
-      return "Le code ne peut pas être vérifié pour le moment. Réessayez dans un instant.";
-    default:
-      return "Ce code n'existe pas.";
-  }
+  if (r.raison === "indisponible") return "Le code ne peut pas être vérifié pour le moment. Réessayez dans un instant.";
+  return messageRefus({ raison: r.raison as RaisonRefus, minimum_centimes: r.minimum_centimes }) ?? "Ce code n'existe pas. Vérifiez l'orthographe.";
 }
 
 // Totaux après remise : le total payé baisse, la TVA comprise est recalculée sur ce total.

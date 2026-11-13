@@ -68,7 +68,7 @@ describe("codes promo côté client", () => {
     expect(ok).toEqual({ ok: true, code: "ESSAI-DIX", type: "pourcentage", remise_centimes: 500 });
     const trop = await evaluerCode({ code: "ESSAI-DIX", mode: "retrait", sous_total_centimes: 1500, frais_centimes: 0, email: "client@exemple.test" });
     expect(trop).toMatchObject({ ok: false, raison: "minimum", minimum_centimes: 2000 });
-    if (!trop.ok) expect(messageCode(trop)).toBe("Ce code vaut dès CHF 20.00 de plats.");
+    if (!trop.ok) expect(messageCode(trop)).toBe("Ce code vaut à partir de CHF 20.00 de plats.");
   });
 
   it("au paiement : la remise baisse le total enregistré et l'utilisation est notée", async () => {
