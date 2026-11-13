@@ -279,3 +279,14 @@ Mesure sur le jeu de rush de qualite (91 commandes en cours, `scripts/tablette/m
 - Ligne de 46 px au lieu de 68 : bouton de geste à 44 px (taille tactile minimale, aucune cible plus petite), interligne et marges réduits, retard marqué par un contour qui ne prend pas de place, « à encaisser » sur la ligne du client (deux lignes par commande au plus).
 - Bandeau des remboursements pas passés sur une ligne : les numéros du jour, puis le nombre des jours d'avant avec leurs dates, et « Voir au back-office » (`/gestion/commandes?remboursement=echec`). Avant : 18 numéros sans date, en permanence (les numéros recommencent chaque jour).
 - Captures : `docs/rendus/vague-3/tablette/compact-avant-*.png` et `compact-apres-*.png`, mesures `compact-mesures.json`.
+
+## Responsable de service sur la tablette (D1, oui de Jérémy le 13.11.2026)
+
+Liste de bo-socle. Le responsable n'agit qu'avec le réglage `role_responsable_actif` à vrai (posé par le chef sur la vraie base) : sans lui, rien ne change, et un responsable reste un membre de l'équipe de service. Migration `20261213220000_tablette_responsable.sql`.
+
+- **Annuler une livraison partie** : gérant ou responsable (droit « annuler_apres_prete »). La tablette lit le droit pour montrer « Annuler la commande » (`droit_personnel`), la route le revérifie, et la base aussi (`annuler_commande_partie` passe de `gerant_nom` à `auteur_droit`).
+- **Modifier une commande** : le responsable a le droit « modifier_commande », comme le gérant, sans le réglage `modification_par_equipe` et même quand la commande est prête ou partie. Route `/api/tablette/modifier` et base (`modifier_commande` accepte le rôle responsable). Rôle éteint : la règle de l'équipe.
+- **Coup de feu** : le responsable au rôle ouvert peut toujours, comme le chef d'équipe d'un soir. Rôle éteint : la règle de l'équipe (`coup_de_feu_par_equipe`).
+- **Fermer le service du jour** (contrat de bo-operations, `src/lib/fermer-service.ts`) : bloc dans « Pause, délai, ruptures », visible pour le droit « fermer_service ». Quand fermer (ce midi, ce soir, toute la journée), puis le motif, lu par les clients et jamais un nom. Une confirmation dit la suite (« Les clients ne pourront plus commander pour ce soir. »). Après la fermeture : « Fermé pour ce soir. Commandes déjà prises : n° 12, 15. Traitez-les dans « En cours ». ». Seul le gérant rouvre, au back-office. Route `/api/tablette/fermer-service` (GET `{ autorise }`, POST `{ quoi, motif }` derrière `exigerDroit(requete, "fermer_service")`, la date vient de la base).
+- Capture : `docs/rendus/vague-3/tablette/responsable-fermer-service.png` (responsable, jusqu'à la confirmation).
+- Tests : `tests/unit/tablette-responsable-sql.test.ts` (annuler et modifier, équipe refusée, rôle éteint), e2e `tablette.spec.ts` (bloc jusqu'à la confirmation sans fermer, l'équipe sans bloc et refusée en 403).

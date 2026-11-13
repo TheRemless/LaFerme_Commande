@@ -194,7 +194,7 @@ describe("gestes", () => {
     expect(await f<boolean>("changer_statut($1, 'refusee', 'tablette:Test', null, 'Client absent.', 'partie')", [c])).toBe(false);
     // Gérant seulement (audit de sécurité 2, S2-01).
     const g = await id("equipe@laferme.test");
-    await expect(f<boolean>("annuler_commande_partie($1, 'tablette:Test', 'Client absent.', $2)", [c, await id("livraison@laferme.test")])).rejects.toThrow(/Réservé au gérant/);
+    await expect(f<boolean>("annuler_commande_partie($1, 'tablette:Test', 'Client absent.', $2)", [c, await id("livraison@laferme.test")])).rejects.toThrow(/droit_refuse/);
     expect(await f<boolean>("annuler_commande_partie($1, 'tablette:Test', '  ', $2)", [c, g])).toBe(false);
     expect(await f<boolean>("annuler_commande_partie($1, 'tablette:Test', 'Client absent.', $2)", [c, g])).toBe(true);
     expect(await f<boolean>("annuler_commande_partie($1, 'tablette:Test', 'Client absent.', $2)", [c, g])).toBe(false);

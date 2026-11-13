@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { heureDe, jourGeneveDe } from "@/lib/heures";
 import { poster } from "@/lib/requete-client";
 import { CoupDeFeu } from "./CoupDeFeu";
+import { FermerService } from "./FermerService";
 import { Decaler } from "./Decaler";
 import { CommandesTouchees, Pannes } from "./Pannes";
 import { derniereOptionObligatoire, parGroupe, rupturePlanifiee, texteRupture, type OptionRupture, type PlatRupture, type Touchee } from "./ruptures";
@@ -124,6 +125,7 @@ export function Reglages({ reglages, onChange, ouvrirCommande }: Props) {
         </p>
       )}
       <CoupDeFeu onChange={onChange} />
+      <FermerService onChange={onChange} />
       <Pannes
         onChange={async () => {
           await chargerPlats();
