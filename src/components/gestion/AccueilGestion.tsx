@@ -140,13 +140,20 @@ export function AccueilGestion() {
 
 function Alertes({ alertes }: { alertes: Alerte[] }) {
   const [reglages, setReglages] = useState(false);
-  const regler = (
+  // Le panneau reste à la même place quand une alerte arrive ou se règle : il ne se referme pas sous les doigts.
+  return (
     <>
-      <button type="button" className="bo-bouton bo-bouton-second bo-bouton-petit" onClick={() => setReglages(true)}>
-        Régler les alertes
-      </button>
+      <ListeAlertes alertes={alertes} regler={() => setReglages(true)} />
       {reglages && <ReglagesAlertes onFermer={() => setReglages(false)} />}
     </>
+  );
+}
+
+function ListeAlertes({ alertes, regler: ouvrir }: { alertes: Alerte[]; regler: () => void }) {
+  const regler = (
+    <button type="button" className="bo-bouton bo-bouton-second bo-bouton-petit" onClick={ouvrir}>
+      Régler les alertes
+    </button>
   );
   if (alertes.length === 0)
     return (

@@ -22,7 +22,9 @@ export type CommandeAlerte = { id: string; numero: number; jour: string };
 
 export type Alerte = {
   cle: string;
-  type: TypeAlerte;
+  /** Facultatif pour les alertes construites ailleurs (sans-livreur de bo-operations, PR #189) : sans type,
+   *  l'alerte prévient toujours quand les notifications sont demandées. */
+  type?: TypeAlerte;
   /** « bloquant » : le service en souffre maintenant. « attention » : à régler aujourd'hui. */
   niveau: "bloquant" | "attention";
   titre: string;
@@ -66,7 +68,7 @@ export function lirePreferences(brut: unknown): PreferencesAlertes {
 /** Alertes qui méritent une notification : nouvelles depuis la dernière lecture, d'un type choisi. */
 export function aNotifier(alertes: Alerte[], dejaVues: ReadonlySet<string>, prefs: PreferencesAlertes): Alerte[] {
   if (!prefs.notifier) return [];
-  return alertes.filter((a) => !dejaVues.has(a.cle) && prefs.types[a.type]);
+  return alertes.filter((a) => !dejaVues.has(a.cle) && (a.type === undefined || prefs.types[a.type]));
 }
 
 /** Titre de l'onglet avec le nombre d'alertes devant : « (3) Commandes ». Retire un ancien compteur. */

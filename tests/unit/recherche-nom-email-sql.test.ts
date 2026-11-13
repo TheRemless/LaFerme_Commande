@@ -58,4 +58,15 @@ describe("recherche par nom et par e-mail", () => {
     const lignes = (await f<Page>("liste_commandes_gestion($1)", [{ recherche: String(numero) }])).lignes;
     expect(lignes.every((l) => l.numero === numero)).toBe(true);
   });
+
+  it("filtre les commandes par état de remboursement", async () => {
+    const id = (await db.query<{ id: string }>("select id from commandes where client_email = 'marco@exemple.ch'")).rows[0].id;
+    await db.query(
+      "insert into remboursements (commande_id, cle, montant_centimes, motif, moyen, statut, personnel_nom) values ($1, 'cle-rne-0001', 500, 'Froid.', 'stripe', 'echec', 'Gérant')",
+      [id],
+    );
+    const echecs = (await f<Page>("liste_commandes_gestion($1)", [{ remboursement: "echec" }])).lignes.map((l) => l.client_nom);
+    expect(echecs).toEqual(["Verdi"]);
+    expect((await f<Page>("liste_commandes_gestion($1)", [{ remboursement: "fait" }])).lignes).toEqual([]);
+  });
 });

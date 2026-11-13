@@ -147,7 +147,7 @@ describe("alertes", () => {
       quota: { envoyes: 420, refuses: 0, plafond: 500, restants: 80, libere_a: null, alerte: true },
       remboursements: { echecs: [{ numero: 1, cree_le: "2026-11-10T12:00:00Z" }], bloques: [] },
     });
-    const types = new Set(TYPES_ALERTE.map((t) => t.type));
+    const types = new Set<string | undefined>(TYPES_ALERTE.map((t) => t.type));
     expect(a.length).toBeGreaterThan(3);
     for (const x of a) expect(types.has(x.type)).toBe(true);
   });
@@ -179,7 +179,7 @@ describe("alertes", () => {
     expect(r.liste?.href).toBe("/gestion/commandes?remboursement=echec&du=2026-11-09&au=2026-11-13");
     const c = a.find((x) => x.cle === "comptoir-hier")!;
     expect(c.commandes?.map((x) => x.jour)).toEqual(["2026-11-10", "2026-11-11"]);
-    expect(c.liste?.href).toBe("/gestion/commandes?moyen=comptoir&paiement=a_encaisser_retrait&du=2026-11-06&au=2026-11-12");
+    expect(c.liste?.href).toBe("/gestion/commandes?paiement=a_encaisser_retrait&du=2026-11-06&au=2026-11-12");
     // Aucune donnée de client dans une adresse.
     for (const x of a) expect(x.liste?.href ?? "").not.toMatch(/@|Léa|Essai/);
   });
@@ -222,6 +222,8 @@ describe("préférences des alertes (par appareil)", () => {
     const a = [alerte("tablette", "tablette"), alerte("comptoir-hier", "comptoir"), alerte("retard", "retard")];
     expect(aNotifier(a, new Set(["retard"]), prefs).map((x) => x.cle)).toEqual(["tablette"]);
     expect(aNotifier(a, new Set(), { ...prefs, notifier: false })).toEqual([]);
+    // Une alerte sans type (construite par une autre session) prévient toujours.
+    expect(aNotifier([{ cle: "sans-livreur", niveau: "bloquant", titre: "x" }], new Set(), prefs).map((x) => x.cle)).toEqual(["sans-livreur"]);
   });
 
   it("met le compteur devant le titre de l'onglet sans l'empiler", () => {

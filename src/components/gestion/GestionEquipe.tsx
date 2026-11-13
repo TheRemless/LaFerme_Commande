@@ -36,7 +36,7 @@ const DETAIL_ROLES: Record<Membre["role"], string> = {
 };
 
 /** « Connecté sur 2 appareils. Dernière activité le … » ; « Jamais connecté. » quand aucune session n'existe. */
-export function presence(m: Pick<Membre, "sessions" | "derniere_connexion" | "derniere_activite">): string {
+function presence(m: Pick<Membre, "sessions" | "derniere_connexion" | "derniere_activite">): string {
   const vu = m.derniere_activite ?? m.derniere_connexion;
   if (!vu) return "Jamais connecté.";
   const etat = m.sessions ? `Connecté sur ${m.sessions} appareil${m.sessions > 1 ? "s" : ""}` : "Pas connecté";

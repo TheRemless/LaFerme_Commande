@@ -9,7 +9,10 @@
 --   liste_commandes_gestion (20261211110000_liste_commandes_reclamations.sql),
 --   clients_gestion (20261127120000_clients.sql),
 --   liste_personnel (20261210250000_appareils_equipe.sql).
--- Recherche : seules changent les conditions (deux variables mots et debut_email), même signature, mêmes champs.
+-- liste_commandes_gestion : conditions de recherche (deux variables mots et debut_email), et le filtre
+-- remboursement (fait, en_cours, echec) de bo-commandes (20261212120000), mot pour mot et à la même place, pour
+-- que l'ordre des fusions n'ait pas d'importance. Même signature, mêmes champs.
+-- clients_gestion : seules changent les conditions de recherche.
 -- liste_personnel : un champ de plus (derniere_activite), l'écran lit encore derniere_connexion sans lui.
 -- Numéro provisoire : à renommer au numéro que le chef réserve.
 
@@ -58,6 +61,8 @@ begin
         select 1 from livraisons l where l.commande_id = o.id and l.retiree_le is null and l.livreur_id = (p ->> 'livreur')::uuid))
       and (coalesce((p ->> 'remboursee')::boolean, false) = false or exists (
         select 1 from remboursements rb where rb.commande_id = o.id and rb.statut = 'fait'))
+      and (p ->> 'remboursement' is null or exists (
+        select 1 from remboursements rb where rb.commande_id = o.id and rb.statut = p ->> 'remboursement'))
       and (coalesce((p ->> 'avec_note')::boolean, false) = false or exists (
         select 1 from notes_commande nc where nc.commande_id = o.id))
       and (p ->> 'service' is null or (case when extract(hour from coalesce(heure_prevue_commande(o), o.cree_le) at time zone 'Europe/Zurich') < 15

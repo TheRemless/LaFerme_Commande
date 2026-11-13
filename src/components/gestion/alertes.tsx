@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { PanneauLateral } from "@/components/gestion/ui/PanneauLateral";
-import { useRelecture, type Relecture } from "@/components/gestion/ui/useRelecture";
+import { ErreurLisible, useRelecture, type Relecture } from "@/components/gestion/ui/useRelecture";
 import type { Alerte, DonneesAccueil } from "@/lib/accueil-gestion";
 import { aNotifier, lirePreferences, PREFERENCES_PAR_DEFAUT, titreAvecCompteur, TYPES_ALERTE, type PreferencesAlertes, type TypeAlerte } from "@/lib/alertes-types";
 
@@ -37,12 +37,16 @@ const permissionActuelle = (): Permission => (typeof window !== "undefined" && "
 export function FournisseurAlertes({ actif, children }: { actif: boolean; children: React.ReactNode }) {
   const chemin = usePathname();
   const router = useRouter();
+  const surAccueil = useRef(chemin === "/gestion");
+  surAccueil.current = chemin === "/gestion";
   const lecture = useRelecture<ReponseAccueil>(
     async (signal) => {
       const r = await fetch("/api/gestion/accueil", { cache: "no-store", signal });
+      // Session finie : l'accueil se recharge (écran de connexion). Ailleurs, une saisie peut être en cours :
+      // on ne recharge pas, la page le dira à son prochain enregistrement.
       if (r.status === 401) {
-        window.location.reload();
-        throw new Error("Session terminée.");
+        if (surAccueil.current) window.location.reload();
+        throw new ErreurLisible("Session terminée. Reconnectez-vous.");
       }
       if (!r.ok) throw new Error(String(r.status));
       return r.json();

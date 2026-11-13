@@ -219,7 +219,7 @@ export function alertesDe(d: DonneesAccueil): Alerte[] {
       titre: `${NB(d.hier_a_encaisser, "commande", "commandes")} au comptoir des derniers jours pas notée${d.hier_a_encaisser > 1 ? "s" : ""} encaissée${d.hier_a_encaisser > 1 ? "s" : ""}`,
       detail: d.hier_a_encaisser > 1 ? "Elles manquent dans l'export comptable." : "Elle manque dans l'export comptable.",
       commandes: d.hier_a_encaisser_commandes?.length ? d.hier_a_encaisser_commandes : undefined,
-      liste: { href: listeFiltree({ moyen: "comptoir", paiement: "a_encaisser_retrait", du: ajouterJours(d.jour, -7), au: ajouterJours(d.jour, -1) }), texte: "Voir la liste" },
+      liste: { href: listeFiltree({ paiement: "a_encaisser_retrait", du: ajouterJours(d.jour, -7), au: ajouterJours(d.jour, -1) }), texte: "Voir la liste" },
     });
   return a.sort((x, y) => (x.niveau === y.niveau ? 0 : x.niveau === "bloquant" ? -1 : 1));
 }
@@ -233,32 +233,29 @@ async function alerteMinutes(): Promise<number> {
 
 // Les sept jours d'avant ne bougent presque plus : lus au plus une fois toutes les cinq minutes par instance,
 // au lieu de toutes les 20 secondes par écran ouvert. Après un dimanche et un lundi fermés, le samedi compte encore.
-// Même cache pour la liste des commandes au comptoir pas encaissées (leur numéro et leur jour) : une commande
-// notée encaissée quitte l'alerte au plus tard cinq minutes après.
-type Precedents = { ventes: TableauVentes | null; comptoir: CommandeAlerte[] | null };
-let precedents: { jour: string; le: number; valeur: Promise<Precedents> } | null = null;
-function joursPrecedents(jour: string): Promise<Precedents> {
+let precedents: { jour: string; le: number; valeur: Promise<TableauVentes | null> } | null = null;
+function joursPrecedents(jour: string): Promise<TableauVentes | null> {
   if (precedents && precedents.jour === jour && Date.now() - precedents.le < 5 * 60_000) return precedents.valeur;
-  const [debut, fin] = [ajouterJours(jour, -7), ajouterJours(jour, -1)];
-  const valeur = Promise.all([
-    sur(fonctionSql<TableauVentes>("pilotage_ventes", { p_debut: debut, p_fin: fin, p_comp_debut: null, p_comp_fin: null, p_service: null })),
-    sur(
-      fonctionSql<{ lignes: LigneListe[] }>("liste_commandes_gestion", {
-        p: { debut, fin, moyen: "comptoir", paiements: ["a_encaisser_retrait"], tri: "ancien", page: 1, par_page: 100 },
-      }),
-    ),
-  ]).then(([ventes, liste]) => ({
-    ventes,
-    // Une commande refusée n'est pas à encaisser (même règle que pilotage_ventes).
-    comptoir: liste ? liste.lignes.filter((l) => l.statut !== "refusee").map((l) => ({ id: l.id, numero: l.numero, jour: l.jour_service })) : null,
-  }));
+  const valeur = sur(fonctionSql<TableauVentes>("pilotage_ventes", { p_debut: ajouterJours(jour, -7), p_fin: ajouterJours(jour, -1), p_comp_debut: null, p_comp_fin: null, p_service: null }));
   precedents = { jour, le: Date.now(), valeur };
   // Une lecture ratée ne reste pas en cache.
   valeur.then((v) => {
-    if ((v.ventes === null || v.comptoir === null) && precedents?.valeur === valeur) precedents = null;
+    if (v === null && precedents?.valeur === valeur) precedents = null;
   });
   return valeur;
 }
+
+// Commandes au comptoir des sept jours d'avant pas notées encaissées, avec leur jour. Pas de cache : une
+// commande notée encaissée quitte l'alerte à la lecture suivante. 100 au plus (les autres : « Voir la liste »).
+async function comptoirPasEncaisse(jour: string): Promise<{ commandes: CommandeAlerte[]; total: number }> {
+  const r = await fonctionSql<{ total: number; lignes: LigneListe[] }>("liste_commandes_gestion", {
+    p: { debut: ajouterJours(jour, -7), fin: ajouterJours(jour, -1), paiements: ["a_encaisser_retrait"], statuts: STATUTS_A_ENCAISSER, tri: "ancien", page: 1, par_page: 100 },
+  });
+  return { commandes: r.lignes.map((l) => ({ id: l.id, numero: l.numero, jour: l.jour_service })), total: Number(r.total) };
+}
+// Une commande refusée n'est pas à encaisser (même règle que pilotage_ventes) ; annulées et paiement en attente
+// sont déjà exclues par liste_commandes_gestion.
+const STATUTS_A_ENCAISSER = ["nouvelle", "acceptee", "en_preparation", "prete", "partie", "terminee"];
 
 /** La livraison est-elle ouverte à ce service, et pas encore finie ? Sinon l'absence de livreur ne dit rien. */
 export function livraisonAuService(config: ConfigService, maintenant: Date, jour: string, service: Service): boolean {
@@ -272,13 +269,14 @@ export function livraisonAuService(config: ConfigService, maintenant: Date, jour
 export async function chargerAccueil(maintenant = new Date()): Promise<DonneesAccueil & { alertes: Alerte[] }> {
   const jour = jourDeService(maintenant);
   const service = serviceDe(maintenant);
-  const [file, config, impression, quota, ventes, hier, catalogue, muette, minutes, aSuivre, planning] = await Promise.all([
+  const [file, config, impression, quota, ventes, hier, comptoir, catalogue, muette, minutes, aSuivre, planning] = await Promise.all([
     sur(fileTablette(maintenant)),
     sur(chargerConfigService()),
     sur(etatImpression()),
     sur(etatQuotaCourriels()),
     sur(fonctionSql<TableauVentes>("pilotage_ventes", { p_debut: jour, p_fin: jour, p_comp_debut: null, p_comp_fin: null, p_service: service })),
     joursPrecedents(jour),
+    sur(comptoirPasEncaisse(jour)),
     sur(chargerCatalogue()),
     sur(fonctionSql<boolean>("tablette_muette", { p_secondes: TABLETTE_MUETTE_S })),
     sur(alerteMinutes()),
@@ -299,8 +297,9 @@ export async function chargerAccueil(maintenant = new Date()): Promise<DonneesAc
     commandes: file ? resumerCommandes(file, maintenant, seuil) : null,
     restaurant: config ? etatRestaurant(config, maintenant, ruptures) : null,
     ventes,
-    hier_a_encaisser: hier.ventes?.periode.a_encaisser ?? null,
-    hier_a_encaisser_commandes: hier.comptoir,
+    // La liste fait foi (sans cache) ; le compte de pilotage_ventes (cinq minutes de cache) en secours.
+    hier_a_encaisser: comptoir?.total ?? hier?.periode.a_encaisser ?? null,
+    hier_a_encaisser_commandes: comptoir?.commandes ?? null,
     impression: impression ? { imprimantes: impression.imprimantes, echecs: impression.taches.filter((t) => t.etat === "echec").length } : null,
     tablette_muette: muette,
     quota,
