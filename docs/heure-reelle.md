@@ -26,7 +26,7 @@ Partout où le délai est lu, sans calcul en double :
 - le contrôle au paiement (`quandPossible`) ;
 - l'heure proposée à la tablette à l'acceptation (`fileTablette`).
 
-La config est relue au plus une fois par minute (cache existant).
+La config est relue au plus une fois par minute (cache existant). L'accueil est lui-même en cache 60 secondes : l'heure qu'il affiche peut dater de deux minutes au plus. Le contrôle au paiement lit la config du serveur, vieille d'une minute au plus.
 
 ## Réglages (tous marqués « proposition »)
 
@@ -55,5 +55,6 @@ Avant la migration, `charge_cuisine` n'existe pas. La config l'ignore et garde l
 
 - Livreurs présents ce soir (planning) et leurs tournées en cours.
 - Allongement par poste, selon ce que contient le panier (au lieu de la plus longue file). Un four en panne ne retarderait alors plus un panier sans pizza.
+- Ne pas compter dans sa file la commande dont on calcule l'heure (aujourd'hui, à l'acceptation, ses articles l'allongent un peu : prudent, jamais plus tôt).
 - Articles déjà prêts à un poste. Il faut l'horodatage par poste que prépare la session `tablette`.
 - Mesure sur le jeu de rush de `qualite`.
