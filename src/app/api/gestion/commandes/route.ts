@@ -20,6 +20,7 @@ import { quandValide } from "@/lib/validation";
 // | { action: "modifier", id, de?, prenom?, nom?, telephone?, details?, adresse? } (vague 3, sans toucher au montant)
 // | { action: "heure", id, heure } | { action: "annuler", id, motif, de? } | { action: "reimprimer", id, station? }
 // | { action: "renvoyer_courriel", id, courriel } (vague 3, src/lib/actions-gestion.ts)
+// | { action: "offrir", id, geste } : un plat offert en attente pour ce client est mis dans cette commande (D3)
 
 const RELANCE_MAX_MS = 23 * 3_600_000;
 
@@ -66,7 +67,21 @@ export async function POST(requete: Request) {
       // Réclamations de la commande (vague 3) : absentes tant que la base n'est pas migrée.
       fonctionSql<{ lignes: unknown[] }>("reclamations_gestion", { p: { commande_id: c.id, par_page: 100 } }).catch(() => null),
     ]);
-    return fiche ? NextResponse.json({ ...fiche, reclamations: reclamations?.lignes ?? [] }, sansCache) : refus("Commande inconnue.", 404);
+    if (!fiche) return refus("Commande inconnue.", 404);
+    // Plats offerts en attente pour ce client (D3) : liste vide tant que gestes_commerciaux_actifs est faux.
+    const platsOfferts = await fonctionSql<unknown[]>("gestes_en_attente", { p_email: fiche.client_email ?? "" }).catch(() => []);
+    return NextResponse.json({ ...fiche, reclamations: reclamations?.lignes ?? [], plats_offerts: platsOfferts }, sansCache);
+  }
+
+  if (c.action === "offrir") {
+    if (typeof c.id !== "string" || !UUID.test(c.id) || typeof c.geste !== "string" || !UUID.test(c.geste)) return refus("Geste inconnu.", 404);
+    try {
+      const ok = await fonctionSql<boolean>("appliquer_geste", { p_geste: c.geste, p_commande: c.id, p_personnel: g.personnel.id });
+      return ok ? NextResponse.json({ ok: true }, sansCache) : refus("Ce plat offert est déjà donné, ou il est pour un autre client.", 409);
+    } catch (e) {
+      if (e instanceof Error && e.message.includes("gestes_desactives")) return refus("Offrir un plat à la prochaine commande n'est pas encore activé.", 409);
+      throw e;
+    }
   }
 
   if (c.action === "courriel") {

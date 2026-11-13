@@ -24,8 +24,8 @@ export async function exporterCompte(compte: { id: string; email: string }, ipCo
 }
 
 // Suppression : les notes du restaurant d'abord ; si elles ne s'effacent pas, le compte reste (jamais un
-// « compte supprimé » avec des notes derrière). La marque « à surveiller » ou « bloqué » reste (proposition de
-// bo-commandes, à valider par Jérémy).
+// « compte supprimé » avec des notes derrière). La marque « à surveiller » ou « bloqué » part avec (décision
+// de Jérémy, 13.11.2026).
 export async function supprimerCompte(compte: { id: string; email: string }): Promise<boolean> {
   try {
     await fonctionSql<number>("effacer_notes_client", { p_email: compte.email });

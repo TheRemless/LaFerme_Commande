@@ -135,6 +135,13 @@ export async function executerSurveillance(maintenant = new Date()): Promise<{ f
     if (!/does not exist|Could not find the function/i.test(m)) console.error(`Fin du coup de feu : ${m}`);
   });
 
+  // Allergie effacée 30 jours après la commande (C14, client-compte). Avant la migration 20261214090000, la
+  // fonction n'existe pas : rien à effacer, rien à signaler. Un tour sans allergie échue ne coûte qu'un index.
+  await fonctionSql<number>("effacer_allergies_echues", {}).catch((e) => {
+    const m = e instanceof Error ? e.message : String(e);
+    if (!/does not exist|Could not find the function/i.test(m)) console.error(`Effacement des allergies : ${m}`);
+  });
+
   const config = await chargerConfigService();
   const service = dansUnService(config, maintenant);
   const retards = service ? await fonctionSql<{ numero: number; cree_le: string }[]>("commandes_en_retard", {}) : [];

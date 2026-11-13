@@ -15,6 +15,7 @@ import {
   TableauDonnees,
   useFormulaire,
   useNotifier,
+  useOuverture,
   useRelecture,
   type Colonne,
 } from "@/components/gestion/ui";
@@ -46,6 +47,7 @@ const SOURCE: Record<string, string> = {
 const GESTE: Record<string, string> = {
   remboursement: "Remboursement",
   plat_offert: "Offert la prochaine fois",
+  reduction: "Réduction",
   aucun: "Pas de geste",
 };
 
@@ -111,7 +113,13 @@ export function ListeReclamations() {
   const [statuts, setStatuts] = useState<string[]>(["ouverte", "en_cours"]);
   const [type, setType] = useState("");
   const [page, setPage] = useState(1);
-  const [ouverte, setOuverte] = useState<Ligne | null>(null);
+  const [ouverte, setOuverte] = useState<Pick<
+    Ligne,
+    "id" | "type" | "client" | "numero"
+  > | null>(null);
+  useOuverture("reclamation", (id) =>
+    setOuverte({ id, type: "", client: "Dossier", numero: null }),
+  );
   const corps = {
     action: "liste",
     ...(statuts.length ? { statuts } : {}),
@@ -234,6 +242,14 @@ type Fiche = Ligne & {
   }[];
   autres: number;
   gestes_actifs: boolean;
+  codes_actifs?: boolean;
+  code?: {
+    code: string;
+    type: "montant" | "pourcentage";
+    valeur: number;
+    actif: boolean;
+    utilise_commande: number | null;
+  } | null;
 };
 
 function FicheReclamation({
@@ -318,6 +334,19 @@ function FicheReclamation({
               : "Aucun pour l'instant"}
           </dd>
         </div>
+        {fiche.code && (
+          <div>
+            <dt>Code du client</dt>
+            <dd>
+              <strong>{fiche.code.code}</strong>,{" "}
+              {fiche.code.utilise_commande
+                ? `utilisé sur la commande N° ${fiche.code.utilise_commande}`
+                : fiche.code.actif
+                  ? "pas encore utilisé"
+                  : "éteint"}
+            </dd>
+          </div>
+        )}
       </dl>
       <div className="bo-fiche-sections">
         <section aria-labelledby="frc-plainte">
@@ -462,32 +491,59 @@ function Suivre({ fiche, fait }: { fiche: Fiche; fait: () => Promise<void> }) {
   );
 }
 
+// Saisie en francs (« 5 », « 5.50 », « 5,50 ») vers des centimes ; null si illisible.
+function centimesDe(v: string): number | null {
+  const t = v.trim().replace(",", ".");
+  if (!/^\d{1,5}(\.\d{1,2})?$/.test(t)) return null;
+  return Math.round(Number(t) * 100);
+}
+
 function Geste({ fiche, fait }: { fiche: Fiche; fait: () => Promise<void> }) {
   const notifier = useNotifier();
   const remboursables = fiche.remboursements.filter(
     (r) => r.statut !== "echec",
   );
+  const reductionPossible = fiche.gestes_actifs && !!fiche.codes_actifs;
   const f = useFormulaire(
-    { geste: "", remboursement_id: remboursables[0]?.id ?? "", detail: "" },
     {
-      valider: (v) =>
-        !v.geste
-          ? { geste: "Choisissez un geste." }
-          : v.geste === "remboursement"
-            ? v.remboursement_id
+      geste: "",
+      remboursement_id: remboursables[0]?.id ?? "",
+      detail: "",
+      type: "",
+      valeur: "",
+    },
+    {
+      valider: (v) => {
+        if (!v.geste) return { geste: "Choisissez un geste." };
+        if (v.geste === "remboursement")
+          return v.remboursement_id
+            ? {}
+            : {
+                remboursement_id:
+                  "Faites d'abord le remboursement depuis la commande (onglet « Gestes »).",
+              };
+        if (v.geste === "reduction") {
+          if (!v.type) return { type: "Choisissez francs ou pour cent." };
+          if (v.type === "pourcentage") {
+            const n = Number(v.valeur.trim());
+            return Number.isInteger(n) && n >= 1 && n <= 100
               ? {}
-              : {
-                  remboursement_id:
-                    "Faites d'abord le remboursement depuis la commande (onglet « Gestes »).",
-                }
-            : v.detail.trim().length >= 3
-              ? {}
-              : {
-                  detail:
-                    v.geste === "plat_offert"
-                      ? "Dites ce qui est offert."
-                      : "Dites pourquoi.",
-                },
+              : { valeur: "Un pourcentage de 1 à 100." };
+          }
+          const c = centimesDe(v.valeur);
+          return c && c > 0
+            ? {}
+            : { valeur: "Un montant en francs, par exemple 5 ou 7.50." };
+        }
+        return v.detail.trim().length >= 3
+          ? {}
+          : {
+              detail:
+                v.geste === "plat_offert"
+                  ? "Dites ce qui est offert."
+                  : "Dites pourquoi.",
+            };
+      },
       enregistrer: (v) =>
         poster("/api/gestion/reclamations", {
           action: "geste",
@@ -495,7 +551,15 @@ function Geste({ fiche, fait }: { fiche: Fiche; fait: () => Promise<void> }) {
           geste: v.geste,
           ...(v.geste === "remboursement"
             ? { remboursement_id: v.remboursement_id }
-            : { detail: v.detail }),
+            : v.geste === "reduction"
+              ? {
+                  type: v.type,
+                  valeur:
+                    v.type === "pourcentage"
+                      ? Number(v.valeur.trim())
+                      : centimesDe(v.valeur),
+                }
+              : { detail: v.detail }),
         }),
       // Annoncé une fois la fiche rechargée : un choix fait juste après n'est plus effacé (qualite, CI #181).
       apres: async () => {
@@ -504,29 +568,36 @@ function Geste({ fiche, fait }: { fiche: Fiche; fait: () => Promise<void> }) {
       },
     },
   );
+  const g = f.valeurs.geste;
   return (
     <section aria-labelledby="frc-geste">
       <h3 id="frc-geste">Geste</h3>
       <form onSubmit={f.soumettre} noValidate className="bo-fiche-form">
+        {/* Décision de Jérémy (13.11.2026) : un geste pour la prochaine fois d'abord, le remboursement en dernier. */}
         <Champ libelle="Geste pour le client" erreur={f.erreurs.geste}>
           {(a) => (
             <select
               {...a}
-              value={f.valeurs.geste}
+              value={g}
               onChange={(e) => f.changer("geste", e.target.value)}
             >
               <option value="">Choisir…</option>
-              <option value="remboursement">Un remboursement déjà fait</option>
-              <option value="aucun">Pas de geste</option>
               {fiche.gestes_actifs && (
                 <option value="plat_offert">
                   Offert à la prochaine commande
                 </option>
               )}
+              {reductionPossible && (
+                <option value="reduction">
+                  Réduction sur la prochaine commande
+                </option>
+              )}
+              <option value="aucun">Pas de geste</option>
+              <option value="remboursement">Un remboursement déjà fait</option>
             </select>
           )}
         </Champ>
-        {f.valeurs.geste === "" ? null : f.valeurs.geste === "remboursement" ? (
+        {g === "" ? null : g === "remboursement" ? (
           <Champ
             libelle="Remboursement"
             aide="Un remboursement se fait depuis la commande, onglet « Gestes ». Ici, on le relie au dossier."
@@ -551,13 +622,44 @@ function Geste({ fiche, fait }: { fiche: Fiche; fait: () => Promise<void> }) {
               </select>
             )}
           </Champ>
+        ) : g === "reduction" ? (
+          <>
+            <Champ libelle="Réduction en" erreur={f.erreurs.type}>
+              {(a) => (
+                <select
+                  {...a}
+                  value={f.valeurs.type}
+                  onChange={(e) => f.changer("type", e.target.value)}
+                >
+                  <option value="">Choisir…</option>
+                  <option value="montant">Francs</option>
+                  <option value="pourcentage">Pour cent</option>
+                </select>
+              )}
+            </Champ>
+            <Champ
+              libelle={
+                f.valeurs.type === "pourcentage"
+                  ? "Pour cent"
+                  : "Montant en CHF"
+              }
+              aide="Le client reçoit un code à son nom, valable une fois, sur sa prochaine commande."
+              erreur={f.erreurs.valeur}
+            >
+              {(a) => (
+                <input
+                  {...a}
+                  inputMode="decimal"
+                  maxLength={8}
+                  value={f.valeurs.valeur}
+                  onChange={(e) => f.changer("valeur", e.target.value)}
+                />
+              )}
+            </Champ>
+          </>
         ) : (
           <Champ
-            libelle={
-              f.valeurs.geste === "plat_offert"
-                ? "Ce qui est offert"
-                : "Pourquoi"
-            }
+            libelle={g === "plat_offert" ? "Ce qui est offert" : "Pourquoi"}
             erreur={f.erreurs.detail}
           >
             {(a) => (
@@ -570,10 +672,11 @@ function Geste({ fiche, fait }: { fiche: Fiche; fait: () => Promise<void> }) {
             )}
           </Champ>
         )}
-        {!fiche.gestes_actifs && (
+        {!reductionPossible && (
           <p className="bo-champ-aide">
-            « Offert à la prochaine commande » n&apos;est pas encore activé :
-            c&apos;est une décision du restaurant.
+            {fiche.gestes_actifs
+              ? "« Réduction sur la prochaine commande » attend que les codes promo soient activés."
+              : "« Offert » et « Réduction » sur la prochaine commande ne sont pas encore activés : c'est une décision du restaurant."}
           </p>
         )}
         <BarreEnregistrer
