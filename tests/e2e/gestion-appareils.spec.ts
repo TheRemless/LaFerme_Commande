@@ -29,7 +29,7 @@ test("le gérant voit l'appareil d'un membre et le déconnecte, les autres reste
   const panneau = gerant.getByRole("dialog", { name: new RegExp("^Appareils de Téléphone") });
   await expect(panneau).toBeVisible();
   // Libellé tiré du navigateur simulé par Playwright : Chrome sur PC (bureau) ou sur un téléphone Android (mobile).
-  await expect(panneau.locator(".ges-appareils li").first()).toContainText(info.project.name === "mobile" ? "Téléphone Android, Chrome" : "PC Windows, Chrome");
+  await expect(panneau.locator(".ges-appareils li").first()).toContainText(info.project.name === "mobile" ? "Chrome sur Android" : "Chrome sur Windows");
   await expect(panneau).toContainText("Connecté le");
   const r = await new AxeBuilder({ page: gerant }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
   expect(r.violations.map((v) => v.id)).toEqual([]);

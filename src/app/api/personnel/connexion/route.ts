@@ -4,7 +4,8 @@ import { requeteDuSite } from "@/lib/comptes/origine-requete";
 import { codeValide, emailNormalise, ipDe } from "@/lib/comptes/securite";
 import { empreinte } from "@/lib/comptes/securite";
 import { fonctionSql } from "@/lib/db/serveur";
-import { libelleAppareil } from "@/lib/personnel/appareil";
+// Même libellé que les appareils du compte client (« Chrome sur iPhone ») : un seul calcul pour tout le site.
+import { libelleAppareil } from "@/lib/comptes/appareil";
 import { verifierCodePersonnel } from "@/lib/personnel/connexion";
 import { DUREE_LIVREUR_S, jetonPersonnel, nomCookiePersonnel, optionsCookiePersonnel } from "@/lib/personnel/session";
 

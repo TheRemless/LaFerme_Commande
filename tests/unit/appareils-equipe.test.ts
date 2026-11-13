@@ -1,20 +1,9 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import type { PGlite } from "@electric-sql/pglite";
 import { baseLocale } from "@/lib/db/locale";
-import { libelleAppareil } from "@/lib/personnel/appareil";
 
-// Appareils connectés de l'équipe (vague 3, bo-socle) : libellé court, dernière activité, déconnexion d'un seul appareil.
-describe("libellé d'un appareil", () => {
-  it("dit le type d'appareil et le navigateur, rien de plus", () => {
-    expect(libelleAppareil("Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1")).toBe("iPad, Safari");
-    expect(libelleAppareil("Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36")).toBe("Téléphone Android, Chrome");
-    expect(libelleAppareil("Mozilla/5.0 (Linux; Android 13; SM-X200) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36")).toBe("Tablette Android, Chrome");
-    expect(libelleAppareil("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36 Edg/120.0")).toBe("PC Windows, Edge");
-    expect(libelleAppareil("Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) Gecko/20100101 Firefox/120.0")).toBe("Mac, Firefox");
-    expect(libelleAppareil(null)).toBe("Appareil");
-  });
-});
-
+// Appareils connectés de l'équipe (vague 3, bo-socle) : dernière activité, déconnexion d'un seul appareil.
+// Le libellé (« Chrome sur iPhone ») est celui du compte client, testé dans tests/unit/compte-appareils.test.ts.
 describe("appareils en base", () => {
   let db: PGlite;
   let gerant: string;
@@ -31,7 +20,7 @@ describe("appareils en base", () => {
 
   it("note l'appareil à la connexion et la dernière activité au plus toutes les cinq minutes", async () => {
     await session(membre, "appareil-test-1");
-    await db.query("select noter_appareil_personnel('appareil-test-1', 'iPad, Safari')");
+    await db.query("select noter_appareil_personnel('appareil-test-1', 'Safari sur iPad')");
     await db.query("update sessions_personnel set vue_le = now() - interval '10 minutes' where jeton_hache = 'appareil-test-1'");
     await db.query("select voir_session_personnel('appareil-test-1')");
     const v1 = (await db.query<{ v: string }>("select vue_le::text as v from sessions_personnel where jeton_hache = 'appareil-test-1'")).rows[0].v;
@@ -39,7 +28,7 @@ describe("appareils en base", () => {
     const v2 = (await db.query<{ v: string }>("select vue_le::text as v from sessions_personnel where jeton_hache = 'appareil-test-1'")).rows[0].v;
     expect(v2).toBe(v1);
     const liste = (await db.query<{ r: { appareil: string; actuel: boolean }[] }>("select appareils_personnel($1::uuid, $2::uuid, 'autre') as r", [membre, gerant])).rows[0].r;
-    expect(liste.find((a) => a.appareil === "iPad, Safari")?.actuel).toBe(false);
+    expect(liste.find((a) => a.appareil === "Safari sur iPad")?.actuel).toBe(false);
   });
 
   it("le gérant coupe un seul appareil, journalisé ; l'équipe de service ne peut ni lister ni couper", async () => {

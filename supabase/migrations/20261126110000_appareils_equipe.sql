@@ -1,5 +1,5 @@
 -- Appareils connectés de l'équipe (vague 3, bo-socle) : pour chaque membre, ses sessions ouvertes, avec le
--- type d'appareil (« iPad, Safari »), la date de connexion et la dernière activité, et « Déconnecter cet
+-- navigateur et l'appareil (« Safari sur iPad »), la date de connexion et la dernière activité, et « Déconnecter cet
 -- appareil » un par un (une tablette volée, un téléphone de livreur perdu) sans couper les autres.
 -- Rien de personnel : ni adresse IP complète ni empreinte du navigateur, seulement un libellé court tiré du
 -- navigateur à la connexion. La dernière activité est notée au plus une fois toutes les cinq minutes.
