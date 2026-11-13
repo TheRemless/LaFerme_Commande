@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { adresseDuCompte } from "./site";
+import { adresseDuCompte, codeDuPersonnel } from "./site";
 
 // Rapports du back-office (vague 3, bo-pilotage) : période, service, état vide ou chiffres, réseau coupé.
 // Les chiffres eux-mêmes sont vérifiés en base (tests/unit/pilotage-ventes-sql.test.ts).
@@ -11,15 +11,11 @@ let gestion: Page;
 test.beforeAll(async ({ browser }, info) => {
   gestion = await (await browser.newContext({ ...info.project.use, baseURL: info.project.use.baseURL })).newPage();
   const email = `rapports-${info.project.name}@laferme.test`;
-  await gestion.goto("/gestion/rapports");
+  // Connexion commune (tests/e2e/site.ts) : codeDuPersonnel attend le délai d'un code quand la CI réessaie.
   await adresseDuCompte(gestion, email);
+  await gestion.goto("/gestion/rapports");
   await gestion.getByLabel("E-mail", { exact: true }).fill(email);
-  await gestion.getByRole("button", { name: "Recevoir un code" }).click();
-  const code = gestion.locator(".note-preversion strong");
-  // Premier test sur un serveur qui vient de démarrer : la base embarquée se charge à la première demande,
-  // le code peut mettre plus de 5 s à s'afficher. Un second clic tomberait sur la limite d'un code par 30 s.
-  await expect(code).toHaveText(/^\d{8}$/, { timeout: 30000 });
-  await gestion.getByLabel("Code à 8 chiffres").fill(await code.innerText());
+  await gestion.getByLabel("Code à 8 chiffres").fill(await codeDuPersonnel(gestion));
   await gestion.getByRole("button", { name: "Me connecter" }).click();
   await expect(gestion.getByRole("heading", { level: 1, name: "Rapports" })).toBeVisible();
 });
