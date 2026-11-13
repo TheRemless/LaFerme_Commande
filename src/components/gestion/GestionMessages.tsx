@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { BarreEnregistrer, Champ, Chargement, EtatErreur, EtatVide, useConfirmer, useFormulaire, useNotifier } from "@/components/gestion/ui";
+import { MESSAGE_A_COMPLETER, MODELES_MESSAGES, resteACompleter } from "@/lib/messages-modeles";
 import { poster } from "@/lib/requete-client";
 import { ajouterJours, depuisHeureGeneve, heureTexte, instantGeneve, jourTexte } from "@/lib/service";
 import "./messages.css";
@@ -192,6 +193,7 @@ function valider(v: Valeurs): Partial<Record<keyof Valeurs, string>> {
   const e: Partial<Record<keyof Valeurs, string>> = {};
   const t = v.texte.replace(/\s+/g, " ").trim();
   if (t.length < 5 || t.length > 200) e.texte = "De 5 à 200 caractères.";
+  else if (resteACompleter(t)) e.texte = MESSAGE_A_COMPLETER;
   const { debut, fin } = bornes(v);
   const maintenant = Date.now();
   if (!v.tout_de_suite && (!debut || debut.getTime() < maintenant - 60_000)) e.debut_jour = "Un début à venir, ou « Tout de suite ».";
@@ -204,6 +206,7 @@ function valider(v: Valeurs): Partial<Record<keyof Valeurs, string>> {
 
 function Programmer({ apres }: { apres: () => Promise<void> }) {
   const notifier = useNotifier();
+  const confirmer = useConfirmer();
   // Figées au montage : recalculées à chaque rendu, elles changeraient à 22h00 ou à minuit et la relecture
   // de chaque minute effacerait la saisie en cours.
   const [depart] = useState(valeursDeDepart);
@@ -235,6 +238,29 @@ function Programmer({ apres }: { apres: () => Promise<void> }) {
 
   return (
     <form className="bo-msg-form" onSubmit={f.soumettre} noValidate>
+      <fieldset className="bo-msg-modeles">
+        <legend>Partir d&apos;un modèle</legend>
+        <p className="aide">Le modèle remplit le champ. Complétez les passages entre crochets, puis programmez : rien ne s&apos;affiche avant.</p>
+        <div className="bo-msg-modeles-liste">
+          {MODELES_MESSAGES.map((m) => (
+            <button
+              key={m.cle}
+              type="button"
+              className="bo-bouton bo-bouton-second"
+              onClick={async () => {
+                if (v.texte.trim() && v.texte !== m.texte) {
+                  const ok = await confirmer({ titre: "Remplacer le texte ?", texte: "Le texte déjà saisi sera remplacé par le modèle.", oui: "Remplacer" });
+                  if (!ok) return;
+                }
+                f.changer("texte", m.texte);
+                f.changer("emplacement", m.emplacement);
+              }}
+            >
+              {m.titre}
+            </button>
+          ))}
+        </div>
+      </fieldset>
       <Champ
         libelle="Texte lu par les clients"
         aide="Tel quel, sans mise en forme. Faites-le valider par Jérémy avant de le programmer. Jamais un nom ni un numéro de commande."

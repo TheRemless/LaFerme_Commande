@@ -270,9 +270,9 @@ test("réseau coupé : Je pars attend, repart seul, un seul e-mail au client", a
   const geste = () => marco.request.post("/api/livreur", { headers: ORIGINE, data: { cle, commande: id, geste: "livree" } });
   expect((await (await geste()).json()).ok).toBe(true);
   expect(await (await geste()).json()).toEqual({ ok: true, deja: true });
-  // Un seul e-mail « en route » pour cette commande (courriels de test de la base embarquée).
+  // Un seul e-mail à la commande (13.11.2026) : « en route » se lit au suivi, aucun e-mail ne part.
   const courriels = await (await request.get(`/dev/courriels?jeton=${jetons.get(c)}`)).text();
-  expect(courriels.match(new RegExp(`<h2>Commande ${c} en route`, "g"))?.length).toBe(1);
+  expect(courriels).not.toContain(`<h2>Commande ${c} en route`);
 });
 
 test("client absent : signalé par le livreur, clos sans remboursement par la tablette", async ({ request }) => {
@@ -339,7 +339,7 @@ test("commande annulée pendant la tournée (adresse introuvable) : remboursée,
   await expect(cours.locator(".tab-meta")).toContainText("Partie", { timeout: 10_000 });
   // Annuler une livraison partie rembourse tout : gérant seulement (audit de sécurité 2, S2-01).
   await expect(cours.getByRole("button", { name: "Annuler la commande" })).toHaveCount(0);
-  await expect(cours).toContainText("Seul le gérant peut annuler une livraison partie.");
+  await expect(cours).toContainText("Seul le gérant ou le responsable de service peut annuler une livraison partie.");
   const gerant = await (await browser.newContext({ baseURL: BASE, viewport: { width: 1024, height: 768 } })).newPage();
   await connecter(gerant, "/tablette", "gerant-livraison@laferme.test");
   await gerant.getByRole("button", { name: "Continuer sans son" }).click();

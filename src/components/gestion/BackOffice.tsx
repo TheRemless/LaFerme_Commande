@@ -5,7 +5,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FournisseurAlertes, useAlertes } from "@/components/gestion/alertes";
 import { FournisseurCarte, useCarte } from "@/components/gestion/contexte-carte";
-import { groupesPour, rubriqueDe, rubriqueOuverte, type Rubrique } from "@/components/gestion/navigation";
+import { FournisseurRole } from "@/components/gestion/droits";
+import { FournisseurMiseEnRoute, useMiseEnRoute } from "@/components/gestion/MiseEnRoute";
+import { avecMiseEnRoute, groupesPour, MISE_EN_ROUTE, rubriqueDe, rubriqueOuverte, type Rubrique } from "@/components/gestion/navigation";
 import { RechercheGlobale } from "@/components/gestion/RechercheGlobale";
 import { FournisseurConfirmation } from "@/components/gestion/ui/Confirmation";
 import { BandeauHorsLigne, DroitsInsuffisants } from "@/components/gestion/ui/Etats";
@@ -25,21 +27,25 @@ const CLE_MENU = "laferme.gestion.menu";
 // role : « responsable » seulement quand le rôle D1 est activé (contrôlé dans src/app/gestion/layout.tsx).
 export function BackOffice({ nom, role = "gerant", children }: { nom: string; role?: "gerant" | "responsable"; children: React.ReactNode }) {
   return (
-    <FournisseurConfirmation>
-      <FournisseurGarde>
-        <FournisseurNotifications>
-          <FournisseurRaccourcis>
-            <FournisseurCarte>
-              <FournisseurAlertes actif={role === "gerant"}>
-                <Coque nom={nom} role={role}>
-                  {children}
-                </Coque>
-              </FournisseurAlertes>
-            </FournisseurCarte>
-          </FournisseurRaccourcis>
-        </FournisseurNotifications>
-      </FournisseurGarde>
-    </FournisseurConfirmation>
+    <FournisseurRole value={role}>
+      <FournisseurConfirmation>
+        <FournisseurGarde>
+          <FournisseurNotifications>
+            <FournisseurRaccourcis>
+              <FournisseurCarte>
+                <FournisseurAlertes actif={role === "gerant"}>
+                  <FournisseurMiseEnRoute actif={role === "gerant"}>
+                    <Coque nom={nom} role={role}>
+                      {children}
+                    </Coque>
+                  </FournisseurMiseEnRoute>
+                </FournisseurAlertes>
+              </FournisseurCarte>
+            </FournisseurRaccourcis>
+          </FournisseurNotifications>
+        </FournisseurGarde>
+      </FournisseurConfirmation>
+    </FournisseurRole>
   );
 }
 
@@ -58,6 +64,12 @@ function Coque({ nom, role, children }: { nom: string; role: "gerant" | "respons
   const titre = useRef<HTMLHeadingElement>(null);
   const focusApres = useRef<"tiroir" | "menu" | "titre" | null>(null);
   const [erreurSortie, setErreurSortie] = useState<string | null>(null);
+  // Responsable de service sur l'accueil (réservé au gérant : les ventes) : il passe sur Commandes. La page le
+  // redirige côté serveur, mais pas après une connexion faite sur place (la coque se rafraîchit sans recharger).
+  useEffect(() => {
+    if (role === "responsable" && chemin === "/gestion") router.replace("/gestion/commandes");
+  }, [role, chemin, router]);
+  const miseEnRoute = useMiseEnRoute()?.donnees;
   const alertes = useAlertes()?.lecture.donnees?.alertes;
   const nbAlertes = alertes?.length ?? 0;
   const bloquant = Boolean(alertes?.some((x) => x.niveau === "bloquant"));
@@ -134,7 +146,8 @@ function Coque({ nom, role, children }: { nom: string; role: "gerant" | "respons
           </button>
         </div>
         <nav className="bo-nav" aria-label="Rubriques">
-          {groupesPour(role).map((g) => (
+          {/* Mise en route pas finie : en tête du menu. Tant qu'elle n'est pas lue, elle reste à sa place (pas de saut). */}
+          {avecMiseEnRoute(groupesPour(role), miseEnRoute?.finie ?? true).map((g) => (
             <div key={g.titre} className="bo-groupe">
               <p className="bo-groupe-titre">{g.titre}</p>
               <ul>
@@ -192,12 +205,13 @@ function Coque({ nom, role, children }: { nom: string; role: "gerant" | "respons
               {rubrique.titre}
             </h1>
           </div>
-          {role === "gerant" && <RechercheGlobale />}
+          <RechercheGlobale />
         </header>
         <BandeauHorsLigne />
         <main id="contenu" className="gestion bo-contenu">
           {/* Rubrique fermée à ce rôle (adresse tapée à la main) : on le dit, sans afficher l'écran. Les API refusent de toute façon. */}
-          {rubriqueOuverte(rubrique, role) ? children : <DroitsInsuffisants quoi={rubrique.titre.toLowerCase()} />}
+          {/* Responsable sur l'accueil : rien, le temps de passer sur Commandes (effet plus haut). */}
+          {role === "responsable" && chemin === "/gestion" ? null : rubriqueOuverte(rubrique, role) ? children : <DroitsInsuffisants quoi={rubrique.titre.toLowerCase()} />}
         </main>
       </div>
     </div>
@@ -207,6 +221,8 @@ function Coque({ nom, role, children }: { nom: string; role: "gerant" | "respons
 function LienRubrique({ rubrique, courante }: { rubrique: Rubrique; courante: boolean }) {
   const { carte } = useCarte();
   const alertes = useAlertes()?.lecture.donnees?.alertes;
+  const mer = useMiseEnRoute()?.donnees;
+  const restantes = mer && !mer.finie ? mer.total - mer.faites : 0;
   const router = useRouter();
   const peutPartir = usePeutPartir();
   // Badges : ce qui attend le gérant dans la rubrique. Accueil : les alertes, foncé si l'une bloque le service.
@@ -215,12 +231,16 @@ function LienRubrique({ rubrique, courante }: { rubrique: Rubrique; courante: bo
       ? carte.bloquants
       : rubrique.href === "/gestion" && alertes && alertes.length > 0
         ? alertes.length
-        : null;
+        : rubrique.href === MISE_EN_ROUTE.href && restantes > 0
+          ? restantes
+          : null;
   const bloquant = rubrique.href === "/gestion" && Boolean(alertes?.some((a) => a.niveau === "bloquant"));
   const description =
     rubrique.href === "/gestion"
       ? `${badge} alerte${badge !== null && badge > 1 ? "s" : ""} à régler${bloquant ? ", dont au moins une bloque le service" : ""}`
-      : `${badge} ${badge !== null && badge > 1 ? "plats bloquent" : "plat bloque"} la mise en ligne`;
+      : rubrique.href === MISE_EN_ROUTE.href
+        ? `${badge} étape${badge !== null && badge > 1 ? "s" : ""} à faire avant le premier service`
+        : `${badge} ${badge !== null && badge > 1 ? "plats bloquent" : "plat bloque"} la mise en ligne`;
   // Le nom du lien reste celui de la rubrique ; le badge est lu comme description.
   const idBadge = `bo-badge-${rubrique.href.replace(/\W+/g, "-")}`;
   return (

@@ -20,7 +20,7 @@ vi.mock("nodemailer", () => ({
   },
 }));
 
-const VARIABLES = ["SMTP_UTILISATEUR", "SMTP_MOT_DE_PASSE", "COURRIEL_EXPEDITEUR", "COURRIELS_PLAFOND_JOUR", "ALERTE_EMAIL", "CONTEXTE_DEPLOIEMENT"] as const;
+const VARIABLES = ["SMTP_UTILISATEUR", "SMTP_MOT_DE_PASSE", "COURRIEL_EXPEDITEUR", "COURRIELS_PLAFOND_JOUR", "ALERTE_EMAIL", "CONTEXTE_DEPLOIEMENT", "COURRIELS_ETAPES"] as const;
 let sauvegarde: Record<string, string | undefined> = {};
 beforeEach(() => {
   sauvegarde = Object.fromEntries(VARIABLES.map((v) => [v, process.env[v]]));
@@ -29,6 +29,8 @@ beforeEach(() => {
   process.env.COURRIEL_EXPEDITEUR = "La Ferme <commande@exemple.test>";
   process.env.ALERTE_EMAIL = "alertes@exemple.test";
   process.env.CONTEXTE_DEPLOIEMENT = "local";
+  // Les tests du quota se servent de « acceptée » et « prête » comme e-mails ordinaires : variante complète.
+  process.env.COURRIELS_ETAPES = "1";
   smtp.messages = [];
   smtp.panne = false;
 });
@@ -186,25 +188,31 @@ describe("quota d'envoi", () => {
   });
 });
 
-describe("variante « moins d'e-mails » (désactivée par défaut)", () => {
-  it("COURRIELS_REDUITS=1 : « prête » et « en route » ne partent plus, « acceptée » oui", async () => {
+describe("un seul e-mail à la commande (réglage par défaut, décision de Jérémy du 13.11.2026)", () => {
+  it("sans COURRIELS_ETAPES : « acceptée », « prête » et « en route » ne partent plus, le reste oui", async () => {
     const { envoyerCourriel } = await envoi();
     await plafondAvecLibres(50);
     const c = await commande();
-    await envoyerCourriel(message("prete", c, 700));
-    expect(smtp.messages.map((m) => m.subject)).toContain("Sujet prete 700");
-    process.env.COURRIELS_REDUITS = "1";
-    try {
-      await envoyerCourriel(message("prete", c, 701));
-      await envoyerCourriel(message("en_route", c, 702));
-      await envoyerCourriel(message("acceptation", c, 703));
-    } finally {
-      delete process.env.COURRIELS_REDUITS;
+    delete process.env.COURRIELS_ETAPES;
+    for (const [i, type] of (["acceptation", "prete", "en_route", "confirmation", "refus", "nouvelle_heure", "remboursement", "manque", "client_absent", "suivi"] as const).entries()) {
+      await envoyerCourriel(message(type, c, 700 + i));
     }
     const sujets = smtp.messages.map((m) => m.subject);
+    expect(sujets).not.toContain("Sujet acceptation 700");
     expect(sujets).not.toContain("Sujet prete 701");
     expect(sujets).not.toContain("Sujet en_route 702");
-    expect(sujets).toContain("Sujet acceptation 703");
+    for (const [i, type] of (["confirmation", "refus", "nouvelle_heure", "remboursement", "manque", "client_absent", "suivi"] as const).entries()) {
+      expect(sujets).toContain(`Sujet ${type} ${703 + i}`);
+    }
+  });
+
+  it("COURRIELS_ETAPES=1 rétablit les e-mails d'étape", async () => {
+    const { envoyerCourriel } = await envoi();
+    await plafondAvecLibres(50);
+    const c = await commande();
+    await envoyerCourriel(message("acceptation", c, 710));
+    await envoyerCourriel(message("en_route", c, 711));
+    expect(smtp.messages.map((m) => m.subject)).toEqual(expect.arrayContaining(["Sujet acceptation 710", "Sujet en_route 711"]));
   });
 });
 
