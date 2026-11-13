@@ -125,6 +125,9 @@ test("commande en invité sans la case, puis connexion : la commande est dans le
 
   await seConnecter(page, email);
   await expect(page.locator(".ancienne-num")).toHaveText(numero);
+  await expect(page.getByText("1 commande avec ce compte.")).toBeVisible();
+  // Moins de 30 commandes : pas de bouton pour les plus anciennes.
+  await expect(page.getByRole("button", { name: "Voir les commandes plus anciennes" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Recommander la même chose" })).toBeVisible();
   // Rien n'est recopié de la commande : une adresse e-mail mal tapée ne livre pas le téléphone d'un inconnu.
   await expect(page.getByLabel("Téléphone")).toHaveValue("");
