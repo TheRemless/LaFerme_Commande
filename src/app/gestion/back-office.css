@@ -3,7 +3,8 @@
    la feuille de papier du contenu : elle rejoint la page, on voit tout de suite où l'on est.
    Toutes les règles commencent par .bo : ce fichier n'agit pas hors de /gestion. */
 
-.bo {
+/* Jetons : aussi sur les fenêtres et les notifications, rendues hors de .bo par les fournisseurs du kit. */
+:is(.bo, .bo-boite, .bo-notifs) {
   --bo-cote: var(--beton-sombre);
   --bo-cote-survol: #636365;
   --bo-cote-texte: var(--blanc);
@@ -19,7 +20,9 @@
   --bo-hauteur-tete: 72px;
   --bo-taille: 15px;
   --bo-cible: 44px;
+}
 
+.bo {
   display: grid;
   grid-template-columns: var(--bo-largeur-menu) minmax(0, 1fr);
   min-height: 100vh;
@@ -450,4 +453,761 @@
   .bo[data-tiroir="ouvert"] .bo-cote {
     transition: transform 0.2s ease-out;
   }
+}
+
+/* =====================================================================
+   Kit du back-office (src/components/gestion/ui, docs/vague-3/kit-back-office.md)
+   Dense et lisible : 15 px, lignes de 44 px (36 px en compact), chiffres de même largeur,
+   aucune ombre ni dégradé, aucun rouge. Une erreur = cadre d'encre épais sur blanc, comme le site.
+   ===================================================================== */
+:is(.bo, .bo-boite, .bo-notifs) {
+  --bo-ligne: 44px;
+  --bo-ligne-compacte: 36px;
+  --bo-survol: #ebebe7;
+  --bo-choisie: #e3e6df;
+  --bo-voile: rgb(28 27 26 / 0.45);
+  --bo-trait-fort: #bdbdb8;
+}
+
+/* ---------- Boutons ---------- */
+.bo-bouton {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--bo-cible);
+  padding: 0 16px;
+  font: inherit;
+  font-size: var(--bo-taille);
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  border-radius: var(--bo-rayon);
+  cursor: pointer;
+}
+.bo-bouton:disabled,
+.bo-bouton[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.bo-bouton-principal {
+  color: var(--bo-surface);
+  background: var(--bo-texte);
+  border: 1.5px solid var(--bo-texte);
+}
+.bo-bouton-principal:hover:not(:disabled) {
+  background: #000;
+}
+/* Action qui ne se défait pas : même bouton, doublé d'un filet clair à l'intérieur. Les mots portent le risque. */
+.bo-bouton-principal[data-danger] {
+  box-shadow: inset 0 0 0 2px var(--bo-surface);
+}
+.bo-bouton-second {
+  color: var(--bo-texte);
+  background: var(--bo-surface);
+  border: 1.5px solid var(--bo-texte);
+}
+.bo-bouton-second:hover:not(:disabled),
+.bo-bouton-second[aria-pressed="true"] {
+  background: var(--bo-survol);
+}
+.bo-bouton-second[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 1px var(--bo-texte);
+}
+.bo-bouton-discret {
+  padding: 0 8px;
+  color: var(--bo-texte);
+  background: none;
+  border: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.bo-bouton-petit {
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 14px;
+}
+.bo :is(.bo-bouton, .bo-puce, .bo-tri, .bo-ouvrir, .bo-onglets-liste button, .bo-notif-fermer, .bo-panneau-fermer):focus-visible,
+.bo-boite :is(.bo-bouton):focus-visible,
+.bo-panneau :is(.bo-bouton, .bo-panneau-fermer):focus-visible {
+  outline: 2px solid var(--bo-texte);
+  outline-offset: 2px;
+}
+.bo summary.bo-bouton {
+  list-style: none;
+}
+.bo summary.bo-bouton::-webkit-details-marker {
+  display: none;
+}
+
+/* ---------- Champs et formulaires ---------- */
+.bo-champ {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.bo-champ label {
+  font-size: 14px;
+  font-weight: 600;
+}
+.bo-facultatif {
+  font-weight: 400;
+  color: var(--bo-texte-doux);
+}
+.bo-champ-aide {
+  margin: 0;
+  font-size: 14px;
+  color: var(--bo-texte-doux);
+}
+.bo-champ :is(input:not([type="checkbox"], [type="radio"]), select, textarea),
+.bo-periode input,
+.bo-recherche input {
+  width: 100%;
+  min-height: var(--bo-cible);
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 16px;
+  color: var(--bo-texte);
+  background: var(--bo-surface);
+  border: 1px solid var(--bo-trait-fort);
+  border-radius: var(--bo-rayon);
+}
+.bo-champ textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+.bo :is(.bo-champ, .bo-periode, .bo-recherche) :is(input, select, textarea):focus {
+  outline: none;
+  border-color: var(--bo-texte);
+  box-shadow: inset 0 0 0 1px var(--bo-texte);
+}
+.bo [aria-invalid="true"] {
+  border-color: var(--bo-texte) !important;
+  box-shadow: inset 0 0 0 2px var(--bo-texte) !important;
+}
+.bo-champ-erreur {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--bo-texte);
+}
+.bo-barre-enregistrer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--bo-trait);
+}
+.bo-barre-etat {
+  margin: 0;
+  font-size: 14px;
+  color: var(--bo-texte-doux);
+}
+.bo-barre-etat[data-etat="enregistre"] {
+  font-weight: 700;
+  color: var(--basilic);
+}
+.bo-barre-etat[data-etat="erreur"] {
+  padding: 6px 10px;
+  font-weight: 700;
+  color: var(--bo-texte);
+  background: var(--alerte-fond);
+  border: 2px solid var(--alerte-trait);
+  border-radius: var(--bo-rayon);
+}
+.bo-case {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  font-size: var(--bo-taille);
+  cursor: pointer;
+}
+.bo input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--bo-texte);
+}
+
+/* ---------- États ---------- */
+.bo-etat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 24px;
+  background: var(--bo-surface);
+  border: 1px dashed var(--bo-trait-fort);
+  border-radius: var(--bo-rayon);
+}
+.bo-etat-erreur {
+  border: 2px solid var(--alerte-trait);
+}
+.bo-etat-titre {
+  margin: 0;
+  font-weight: 700;
+}
+.bo-etat-texte {
+  margin: 0;
+  color: var(--bo-texte-doux);
+}
+.bo-chargement {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.bo-chargement-ligne {
+  display: block;
+  height: 36px;
+  background: var(--bo-survol);
+  border-radius: var(--bo-rayon);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .bo-chargement-ligne {
+    animation: bo-palpite 1.2s ease-in-out infinite alternate;
+  }
+}
+@keyframes bo-palpite {
+  to {
+    opacity: 0.45;
+  }
+}
+.bo-hors-ligne {
+  margin: 0;
+  padding: 10px 24px;
+  font-weight: 700;
+  color: var(--bo-surface);
+  background: var(--bo-texte);
+}
+
+/* ---------- Tableau de données ---------- */
+.bo-tableau {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.bo-tableau-outils {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 12px;
+}
+.bo-recherche {
+  flex: 1 1 260px;
+  max-width: 420px;
+}
+.bo-tableau-reglages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
+}
+.bo-menu-deroulant {
+  position: relative;
+}
+.bo-menu-deroulant > fieldset {
+  position: absolute;
+  right: 0;
+  z-index: 30;
+  min-width: 220px;
+  margin: 4px 0 0;
+  padding: 8px 12px;
+  background: var(--bo-surface);
+  border: 1px solid var(--bo-texte);
+  border-radius: var(--bo-rayon);
+}
+.bo-lot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 8px 12px;
+  color: var(--bo-surface);
+  background: var(--bo-texte);
+  border-radius: var(--bo-rayon);
+}
+.bo-lot p {
+  margin: 0 8px 0 0;
+  font-weight: 700;
+}
+.bo-lot .bo-bouton-second {
+  color: var(--bo-texte);
+}
+.bo-lot .bo-bouton-discret {
+  color: var(--bo-surface);
+}
+.bo-tableau-defile {
+  overflow: auto;
+  max-height: min(70vh, 900px);
+  background: var(--bo-surface);
+  border: 1px solid var(--bo-trait);
+  border-radius: var(--bo-rayon);
+}
+.bo-tableau-defile:focus-visible {
+  outline: 2px solid var(--bo-texte);
+  outline-offset: 2px;
+}
+.bo-tableau-defile[aria-busy] tbody {
+  opacity: 0.55;
+}
+.bo-tableau table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--bo-taille);
+}
+.bo-tableau th,
+.bo-tableau td {
+  height: var(--bo-ligne);
+  padding: 4px 12px;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--bo-trait);
+}
+.bo-tableau[data-compact] :is(th, td) {
+  height: var(--bo-ligne-compacte);
+  padding-block: 2px;
+  font-size: 14px;
+}
+.bo-tableau th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--bo-texte-doux);
+  background: var(--bo-fond);
+}
+.bo-tableau [data-nombre] {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.bo-tableau tbody tr:hover {
+  background: var(--bo-survol);
+}
+.bo-tableau tr[data-ouvrable] {
+  cursor: pointer;
+}
+.bo-tableau tr[data-choisie] {
+  background: var(--bo-choisie);
+}
+.bo-col-case {
+  width: 44px;
+}
+.bo-tri {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+[aria-sort] .bo-tri {
+  color: var(--bo-texte);
+}
+.bo-tri-sens {
+  width: 1ch;
+}
+.bo-ouvrir {
+  padding: 4px 0;
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  color: var(--bo-texte);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.bo-ouvrir:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.bo-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.bo-pagination p {
+  margin: 0 auto 0 0;
+  color: var(--bo-texte-doux);
+}
+
+/* ---------- Panneau de fiche et boîte de confirmation ---------- */
+.bo-panneau,
+.bo-boite {
+  padding: 0;
+  color: var(--bo-texte);
+  background: var(--bo-surface);
+  border: 0;
+}
+.bo-panneau::backdrop,
+.bo-boite::backdrop {
+  background: var(--bo-voile);
+}
+.bo-panneau {
+  inset: 0 0 0 auto;
+  width: min(520px, 100vw);
+  max-width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  margin: 0;
+  border-left: 1px solid var(--bo-texte);
+}
+.bo-panneau[data-large] {
+  width: min(720px, 100vw);
+}
+.bo-panneau-cadre {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.bo-panneau-tete {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 16px 12px 24px;
+  border-bottom: 1px solid var(--bo-trait);
+}
+.bo-panneau-tete h2 {
+  font-size: 28px;
+}
+.bo-panneau-sous {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--bo-texte-doux);
+}
+.bo-panneau-fermer,
+.bo-notif-fermer {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--bo-cible);
+  height: var(--bo-cible);
+  padding: 0;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-radius: var(--bo-rayon);
+  cursor: pointer;
+}
+.bo-panneau-corps {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 24px 24px;
+}
+.bo-panneau-pied {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 24px;
+  border-top: 1px solid var(--bo-trait);
+}
+.bo-boite {
+  width: min(460px, calc(100vw - 32px));
+  border: 1px solid var(--bo-texte);
+  border-radius: var(--bo-rayon);
+}
+.bo-boite-corps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px 24px;
+}
+.bo-boite-corps h2 {
+  font-size: 26px;
+}
+.bo-boite-texte {
+  color: var(--bo-texte-doux);
+}
+.bo-boite-boutons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+.bo-raccourcis {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+.bo-raccourcis div {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.bo-raccourcis dt {
+  min-width: 96px;
+}
+.bo-raccourcis dd {
+  margin: 0;
+}
+kbd {
+  display: inline-block;
+  min-width: 26px;
+  margin-right: 4px;
+  padding: 2px 6px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  background: var(--papier);
+  border: 1px solid var(--bo-trait-fort, #bdbdb8);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+}
+
+/* ---------- Notifications ---------- */
+.bo-notifs {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(420px, calc(100vw - 32px));
+  pointer-events: none;
+}
+.bo-notifs-erreurs {
+  bottom: auto;
+  top: 16px;
+}
+.bo-notif {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 4px 16px;
+  color: var(--bo-surface);
+  background: var(--bo-texte);
+  border-radius: var(--bo-rayon);
+  pointer-events: auto;
+}
+.bo-notif p {
+  flex: 1;
+  margin: 8px 0;
+  font-weight: 600;
+}
+.bo-notif .bo-bouton-discret {
+  color: var(--bo-surface);
+}
+.bo-notif .bo-bouton-discret:focus-visible,
+.bo-notif-fermer:focus-visible {
+  outline: 2px solid var(--bo-surface);
+  outline-offset: -2px;
+}
+.bo-notif[data-ton="erreur"] {
+  color: var(--bo-texte);
+  background: var(--alerte-fond);
+  border: 2px solid var(--alerte-trait);
+}
+.bo-notif[data-ton="erreur"] :is(.bo-bouton-discret, .bo-notif-fermer) {
+  color: var(--bo-texte);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .bo-notif {
+    animation: bo-entre 0.18s ease-out;
+  }
+}
+@keyframes bo-entre {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* ---------- Période ---------- */
+.bo-periode {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.bo-periode legend {
+  margin-bottom: 4px;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.bo-periode-raccourcis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.bo-puce {
+  min-height: 36px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--bo-texte);
+  background: var(--bo-surface);
+  border: 1px solid var(--bo-trait-fort);
+  border-radius: var(--bo-rayon);
+  cursor: pointer;
+}
+.bo-puce[aria-pressed="true"] {
+  font-weight: 700;
+  color: var(--bo-surface);
+  background: var(--bo-texte);
+  border-color: var(--bo-texte);
+}
+.bo-periode-dates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.bo-periode-dates label {
+  font-size: 14px;
+}
+.bo-periode-dates input {
+  width: auto;
+}
+
+/* ---------- Cartes de chiffres ---------- */
+.bo-chiffres {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+  gap: 12px;
+}
+.bo-chiffre {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px;
+  background: var(--bo-surface);
+  border: 1px solid var(--bo-trait);
+  border-radius: var(--bo-rayon);
+}
+.bo-chiffre p {
+  margin: 0;
+}
+.bo-chiffre-libelle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--bo-texte-doux);
+}
+.bo-chiffre-valeur {
+  font-size: 34px;
+  font-weight: 700;
+  font-stretch: 62%;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.bo-chiffre-unite {
+  font-size: 18px;
+  font-weight: 600;
+}
+.bo-chiffre-ecart {
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.bo-chiffre-ecart[data-sens="hausse"] {
+  font-weight: 700;
+}
+.bo-chiffre-aide {
+  font-size: 13px;
+  color: var(--bo-texte-doux);
+}
+.bo-chiffre-lien {
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* ---------- Onglets internes ---------- */
+.bo-onglets-liste {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--bo-trait);
+}
+.bo-onglets-liste button {
+  flex: none;
+  min-height: var(--bo-cible);
+  padding: 0 14px;
+  font: inherit;
+  font-size: var(--bo-taille);
+  font-weight: 600;
+  color: var(--bo-texte-doux);
+  background: none;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+}
+.bo-onglets-liste button[aria-selected="true"] {
+  color: var(--bo-texte);
+  border-bottom-color: var(--bo-texte);
+}
+.bo-onglet-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 20px;
+  margin-left: 6px;
+  padding: 0 5px;
+  font-size: 12px;
+  color: var(--bo-surface);
+  background: var(--bo-texte);
+  border-radius: 10px;
+}
+.bo-onglets-panneau {
+  padding-top: 16px;
+}
+.bo-onglets-panneau:focus-visible {
+  outline: 2px solid var(--bo-texte);
+  outline-offset: 4px;
+}
+
+@media (max-width: 767px) {
+  .bo-panneau {
+    width: 100vw;
+    border-left: 0;
+  }
+  .bo-panneau-tete,
+  .bo-panneau-corps,
+  .bo-panneau-pied {
+    padding-inline: 16px;
+  }
+  .bo-tableau-reglages {
+    margin-left: 0;
+  }
+  .bo-notifs {
+    right: 16px;
+    left: 16px;
+    width: auto;
+  }
+}
+
+/* Page de démonstration du kit (/gestion/kit, local seulement). */
+.bo-demo {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.bo-demo h2 {
+  margin-bottom: 12px;
+  font-size: 24px;
+}
+.bo-demo-etats,
+.bo-demo-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 560px;
 }
