@@ -7,6 +7,7 @@ import { poster } from "@/lib/requete-client";
 import { jourTexte } from "@/lib/service";
 import { CoupDeFeu } from "@/components/gestion/CoupDeFeu";
 import { DecalerCommandes } from "@/components/gestion/DecalerCommandes";
+import { SemaineType } from "@/components/gestion/SemaineType";
 import { TesterAdresse } from "@/components/gestion/TesterAdresse";
 import { ZoneOperations } from "@/components/gestion/ZoneOperations";
 import "./service.css";
@@ -112,15 +113,18 @@ export function GestionService() {
           </>
         )}
         {onglet === "horaires" && (
+          <>
+          <SemaineType horaires={d.horaires} recharger={charger} />
           <section className="ges-bloc">
             <h2>Horaires de livraison et de retrait</h2>
-            <p className="aide">Les jours absents sont fermés (dimanche et lundi). Heures de Genève.</p>
+            <p className="aide">Les heures de chaque service ouvert. Un jour absent est fermé chaque semaine (voir « Semaine type »). Heures de Genève.</p>
             <div className="ges-horaires">
               {d.horaires.map((h) => (
                 <LigneHoraire key={h.id} h={h} recharger={charger} />
               ))}
             </div>
           </section>
+          </>
         )}
         {onglet === "capacite" && (
           <>

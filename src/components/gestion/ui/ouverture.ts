@@ -16,6 +16,18 @@ export function demanderOuverture(c: CibleOuverture): void {
   } catch {}
 }
 
+// Une rubrique à onglets regarde, sans la consommer, si une fiche attend l'un de ses onglets.
+export function ouvertureEnAttente(type: CibleOuverture["type"]): boolean {
+  try {
+    const brut = sessionStorage.getItem(CLE);
+    if (!brut) return false;
+    const c = JSON.parse(brut) as CibleOuverture & { le: number };
+    return c.type === type && Date.now() - c.le < VALIDITE_MS;
+  } catch {
+    return false;
+  }
+}
+
 export function useOuverture(type: CibleOuverture["type"], ouvrir: (cle: string) => void): void {
   const derniere = useRef(ouvrir);
   derniere.current = ouvrir;

@@ -83,6 +83,10 @@ test("la fiche montre la commande, garde une note et enregistre un changement de
   await fiche.getByRole("button", { name: "Noter la réclamation" }).click();
   await expect(gestion.getByText("Réclamation notée.")).toBeVisible();
   await expect(fiche.getByText("Il manque la boisson.")).toBeVisible();
+  // Avant de rembourser, l'onglet Gestes renvoie au dossier pour un geste (plat offert ou réduction d'abord).
+  await fiche.getByRole("tab", { name: "Gestes" }).click();
+  await expect(fiche.getByRole("heading", { name: "Avant de rembourser" })).toBeVisible();
+  await expect(fiche.getByRole("link", { name: "Noter un geste" })).toHaveAttribute("href", "/gestion/clients");
 
   await fiche.getByRole("tab", { name: "Historique" }).click();
   await expect(fiche.getByText("Commande modifiée")).toBeVisible();
@@ -90,8 +94,14 @@ test("la fiche montre la commande, garde une note et enregistre un changement de
 
   const r = await new AxeBuilder({ page: gestion }).include("dialog").withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
   expect(r.violations.map((v) => v.id)).toEqual([]);
+  // « Noter un geste » ouvre le dossier dans la rubrique Clients, onglet Réclamations.
+  await fiche.getByRole("tab", { name: "Gestes" }).click();
+  await fiche.getByRole("link", { name: "Noter un geste" }).click();
+  await expect(gestion.getByRole("tab", { name: "Réclamations", selected: true })).toBeVisible();
+  await expect(gestion.getByRole("dialog").getByText("Il manque la boisson.")).toBeVisible();
   await gestion.keyboard.press("Escape");
-  await expect(fiche).toHaveCount(0);
+  await expect(gestion.getByRole("dialog")).toHaveCount(0);
+  await gestion.goto("/gestion/commandes");
 });
 
 test("« on ferme plus tôt » : deux commandes s'annulent d'un geste, avec un seul motif", async ({}, info) => {
@@ -120,8 +130,9 @@ test("« on ferme plus tôt » : deux commandes s'annulent d'un geste, avec un s
   await panneau.getByRole("button", { name: "Annuler ces commandes" }).click();
   await gestion.getByRole("button", { name: "Annuler 2 commandes" }).click();
   await expect(gestion.getByText("2 commandes annulées.")).toBeVisible();
-  // La pastille « À accepter » du premier test filtre encore : on l'efface pour revoir les deux commandes.
-  await gestion.getByRole("button", { name: "Effacer les filtres" }).click();
+  // Un filtre resté d'un test précédent cacherait les commandes annulées : on l'efface s'il y en a un.
+  const effacer = gestion.getByRole("button", { name: "Effacer les filtres" });
+  if (await effacer.isVisible()) await effacer.click();
   await expect(gestion.getByRole("row", { name: new RegExp(nom) }).filter({ hasText: "Refusée ou annulée" })).toHaveCount(2);
 });
 

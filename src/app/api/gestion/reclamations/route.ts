@@ -15,7 +15,9 @@ const ERREURS: Record<string, [string, number]> = {
   reclamation_close: ["Cette réclamation est close.", 409],
   geste_deja_note: ["Un geste est déjà noté sur cette réclamation.", 409],
   remboursement_invalide: ["Ce remboursement n'est pas celui de cette commande, ou il a échoué.", 409],
-  gestes_desactives: ["Offrir un plat à la prochaine commande n'est pas encore activé.", 409],
+  gestes_desactives: ["Les gestes pour la prochaine commande ne sont pas encore activés.", 409],
+  codes_desactives: ["Une réduction passe par un code promo : les codes promo ne sont pas encore activés.", 409],
+  reduction_invalide: ["Indiquez un montant, ou un pourcentage de 1 à 100.", 422],
   resolution_manquante: ["Écrivez comment la réclamation s'est réglée.", 422],
   detail_invalide: ["Précisez le geste (3 à 200 caractères).", 422],
 };

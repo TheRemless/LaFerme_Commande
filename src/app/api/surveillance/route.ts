@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { cleHmac, empreinte } from "@/lib/comptes/securite";
+import { tourRefusAutomatique } from "@/lib/refus-automatique";
 import { executerSurveillance } from "@/lib/surveillance";
 
 // Déclencheur de la surveillance (fonction planifiée Netlify, chaque minute en production). Sans le jeton
@@ -12,8 +13,14 @@ export async function POST(requete: Request) {
   if (recu.length !== attendu.length || !timingSafeEqual(recu, attendu)) {
     return NextResponse.json({ erreur: "Refusé." }, { status: 403, headers: { "Cache-Control": "no-store" } });
   }
+  // Refus automatique (C13) : ici seulement, jamais dans une requête de la tablette, et en premier, avec son
+  // propre budget de temps. Une erreur ne retient pas le reste de la surveillance.
+  const refus = await tourRefusAutomatique().catch((e) => {
+    console.error(`Refus automatique : ${e instanceof Error ? e.message : e}`);
+    return { refusees: [], repris: [] };
+  });
   const r = await executerSurveillance();
-  return NextResponse.json(r, { headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json({ ...r, refus_automatiques: refus.refusees.length, remboursements_repris: refus.repris.length }, { headers: { "Cache-Control": "no-store" } });
 }
 
 // Même calcul que netlify/functions/surveillance.mts : HMAC de « surveillance:planifiee » avec la clé des empreintes.

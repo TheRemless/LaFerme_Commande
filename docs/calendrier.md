@@ -48,3 +48,40 @@ Captures : `docs/rendus/vague-3/bo-operations/calendrier-1024.png` et `calendrie
 ## Avant et après la migration
 
 Avant la migration, `reservations_par_jour` n'existe pas. Le calendrier s'affiche quand même, avec `commandes_disponibles: false` et des nombres à zéro.
+
+## Ce que le gérant règle lui-même (audit du 13.11.2026)
+
+Demande de Jérémy : « Faudrait qu'on puisse ajuster nous-mêmes les jours de vacances ou fermetures depuis le back-office. Même s'il y a des jours fixes fermés chaque semaine, faut qu'on puisse avoir pas mal de choix ». Rien n'est figé dans le code : tout se règle au back-office.
+
+| Besoin | Où | Depuis |
+|---|---|---|
+| Jour fermé chaque semaine (midi, soir ou journée), ou service ouvert chaque semaine | Livraison et horaires, onglet Horaires, « Semaine type » | Ce PR (`20261213120000_semaine_type.sql`) |
+| Heures de chaque service ouvert | Livraison et horaires, onglet Horaires | Lot 7 |
+| Vacances sur une plage de dates | Livraison et horaires, onglet Fermetures, « Des journées entières », du … au … | Lot 7 |
+| Fermeture exceptionnelle d'un service (un midi, un soir) | Calendrier, fiche du jour, ou onglet Fermetures | Vague 2 et 3 |
+| Ouverture exceptionnelle (jour fermé d'habitude, autres heures) | Livraison et horaires, onglet Fermetures, « Ouvertures exceptionnelles » | Vague 2 |
+| Jours fériés de Genève | Calendrier : marqués « à confirmer », « Fermer » en un geste | Vague 3 |
+| Aperçu de ce que voit le client | Calendrier : le mois, jour par jour et service par service | Vague 3 |
+| Commandes déjà prises | Calendrier (par jour), message après une fermeture, et confirmation avant « Fermer chaque semaine » (commandes à venir ce jour de la semaine) | Vague 2 et 3 |
+
+Fériés : la liste suit la loi genevoise (rsGE J 1 45, calculée dans `src/lib/calendrier.ts`) et ne fait que proposer. Le restaurant ferme ou reste ouvert d'un geste.
+
+### Semaine type
+
+- Une case par jour et par service : ses heures et « Fermer », ou « Fermé » et « Ouvrir ». « Fermer la journée » ferme midi et soir d'un geste.
+- Fermer chaque semaine retire le service de la semaine (le journal garde ses heures, objet `horaire_semaine`). Avant, la confirmation dit combien de commandes déjà prises pour ce jour de la semaine restent valables (`commandes_jour_semaine`) : elles ne sont jamais annulées seules.
+- Ouvrir propose les heures du même service un autre jour, à vérifier, puis l'enregistre.
+- Gérant seulement, revérifié en base. Route `/api/gestion/service` (`semaine-fermer`, `semaine-ouvrir`, `semaine-commandes`).
+- Tests : `tests/unit/semaine-type-sql.test.ts`, `tests/e2e/gestion-service-v3.spec.ts` (ouvrir puis refermer le dimanche midi). Capture : `docs/rendus/vague-3/bo-operations/horaires-semaine-type-1024.png`.
+
+## Fermer le service du jour (rôle responsable de service)
+
+Une panne, un coup dur pendant le service : le gérant ou le responsable de service (droit `fermer_service` du tableau D1, quand `role_responsable_actif` est à true) ferme ce midi, ce soir ou toute la journée d'aujourd'hui, avec un motif lu par les clients. Migration `20261213130000_fermer_service_du_jour.sql`, serveur `src/lib/fermer-service.ts`.
+
+- **Aujourd'hui seulement** : la date vient de la base (heure de Genève), jamais de l'appelant. Les autres fermetures, les horaires et les zones restent au gérant.
+- **Déjà fermé** (toute la journée, ou ce service) : refusé, rien n'est ajouté.
+- **Après la fermeture**, la réponse donne les numéros des commandes déjà prises pour ce moment, à traiter sur la tablette, comme pour les autres fermetures. Les pages publiques se mettent à jour (cache de la config vidé), la tablette est prévenue.
+- **Contrôle** : `auteur_droit(p_personnel, 'fermer_service')` en base, journalisé (objet `fermeture`, au nom de l'auteur).
+- **Route du back-office** : `POST /api/gestion/fermer-jour { quoi: "midi" | "soir" | "journee", motif }`, derrière `exigerDroit(requete, "fermer_service")`. La tablette a son bouton, sur la même fonction `fermerServiceDuJour(personnel, quoi, motif)`.
+- Tests : `tests/unit/fermer-service-sql.test.ts` (responsable, gérant, refus de l'équipe, du livreur et du rôle éteint, déjà fermé, autres dates, horaires et zones refusés au responsable), `fermer-service.test.ts`.
+- E2e : `tests/e2e/fermer-service.spec.ts` (compte `responsable-operations-*` : la route et la base laissent passer le responsable, puis refusent un motif trop court ; une autre date, les horaires et les zones lui sont refusés ; l.équipe de service est refusée). Il ne ferme jamais le service du jour, car la base de test est commune.

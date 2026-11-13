@@ -1,9 +1,18 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { baseLocale } from "@/lib/db/locale";
 
 // E-mail « prête » ou « en route » (question de client-compte, vague 3) : une livraison ne reçoit
 // « Le livreur est en route » qu'au départ. La base refuse déjà « prête » pour une livraison (changer_statut) ;
 // la tablette ne l'envoie plus qu'au statut qui correspond au mode, même si cette règle changeait.
+
+// Par défaut, un seul e-mail à la commande (13.11.2026) : ces tests vérifient la variante complète
+// (COURRIELS_ETAPES=1), le dernier bloc le réglage par défaut.
+beforeAll(() => {
+  process.env.COURRIELS_ETAPES = "1";
+});
+afterAll(() => {
+  delete process.env.COURRIELS_ETAPES;
+});
 
 const { agir } = await import("@/lib/tablette");
 const personnel = { id: "00000000-0000-0000-0000-000000000000", email: "test@laferme.test", nom: "Test", role: "service" as const };
@@ -69,5 +78,21 @@ describe("E-mail d'acceptation envoyé par la tablette (client-compte, #143)", (
     const db = await baseLocale();
     const textes = (await db.query<{ texte: string }>("select texte from courriels where commande_id = $1 order by envoye_le", [id])).rows.map((r) => r.texte).join("\n");
     expect(textes).toMatch(/entre \d{1,2}h\d{2} et \d{1,2}h\d{2}/);
+  });
+});
+
+describe("Réglage par défaut : un seul e-mail à la commande (Jérémy, 13.11.2026)", () => {
+  it("ni « acceptée », ni « prête », ni « en route » ne partent ; l'état se lit au suivi", async () => {
+    delete process.env.COURRIELS_ETAPES;
+    try {
+      const retrait = await acceptee("retrait");
+      expect((await agir(retrait, { action: "statut", vers: "prete", de: "acceptee" }, personnel)).ok).toBe(true);
+      const livraison = await acceptee("livraison");
+      expect((await agir(livraison, { action: "statut", vers: "partie", de: "acceptee" }, personnel)).ok).toBe(true);
+      expect(await sujets(retrait)).toEqual([]);
+      expect(await sujets(livraison)).toEqual([]);
+    } finally {
+      process.env.COURRIELS_ETAPES = "1";
+    }
   });
 });

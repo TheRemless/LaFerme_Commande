@@ -60,5 +60,60 @@ Migration `supabase/migrations/20261210200000_pilotage_analyses.sql`, route `GET
 Migration `supabase/migrations/20261129120000_export_compta.sql`, module `src/lib/export-compta.ts`. Tests : `tests/unit/export-compta-sql.test.ts`.
 
 - `GET /api/gestion/export?debut=…&fin=…&format=jours` : une ligne par jour et par taux de TVA (ventes, en ligne, comptoir, dont livraison, TTC, TVA, remboursé en ligne, rendu en espèces, déduit au comptoir, TVA remboursée, net TTC, TVA nette, net HT), puis le total de la période par taux. Mêmes règles que le détail (`export_ventes`, `export_remboursements`) : une vente au jour de la commande, un remboursement au jour civil où il est fait. Les totaux tombent juste avec le détail, au centime (testé).
-- Aucun numéro de compte tant que la fiduciaire n'a pas dit quel logiciel et quel plan de comptes elle utilise (question D9). Le fichier s'ouvre dans un tableur et s'importe dans un logiciel comptable qui lit un CSV à point-virgule.
+- Ce CSV n'a aucun numéro de compte : il s'ouvre dans un tableur. Pour la comptabilité, l'export Crésus ci-dessous.
 - `GET /api/gestion/pilotage/remboursements` : remboursements en échec, ou demandés à Stripe il y a plus de 24 heures sans confirmation, les plus anciens d'abord, avec l'identifiant de la commande pour ouvrir sa fiche.
+
+## Export pour Crésus Comptabilité (D9)
+
+Décision de Jérémy du 13.11.2026 : la comptabilité se tient au restaurant avec Crésus Comptabilité (Epsitec), taux de 2,6 % confirmé. Migration `supabase/migrations/20261214120000_export_cresus.sql`, module `src/lib/export-cresus.ts`, écran « Export comptable » (choix « Écritures pour Crésus » et plan de comptes). Tests : `tests/unit/export-cresus.test.ts`, `tests/unit/export-cresus-sql.test.ts`, `tests/e2e/gestion.spec.ts`.
+
+### Format, d'après Epsitec
+
+Source : manuel Crésus Comptabilité, § 19.2 « Importer des données », page [support.cresus.ch/manuels/cresus-comptabilite/importer-des-donnees-236](https://support.cresus.ch/manuels/cresus-comptabilite/importer-des-donnees-236/) et PDF [cresus-comptabilite-1-232.pdf](https://support.cresus.ch/wp-content/documentation/1/cresus-comptabilite-1-232.pdf) (« © 2026 - EPSITEC »), lus le 13.11.2026. Complément : [Puis-je importer des écritures comptables ?](https://support.cresus.ch/puis-je-importer-des-ecritures-comptables/) (11.9.2023).
+
+| Point | Ce que dit Epsitec | Ce que fait l'export |
+|---|---|---|
+| Fichier | Texte, une écriture par ligne, champs séparés par une tabulation, lignes par CR+LF | Pareil, extension `.txt` |
+| Champs | Format simple : date (jj.mm.aaaa), compte au débit, compte au crédit, numéro de pièce, libellé, montant | Les six, dans cet ordre |
+| Numéro de pièce | Vide : Crésus prend le suivant selon les options d'importation | Vide |
+| Comptes | Doivent exister dans le plan comptable, Crésus fait un test de plausibilité | Plan réglable par le gérant |
+| Encodage | Pas dit | ASCII seul (accents retirés des libellés) : identique en Windows-1252 et en UTF-8 |
+| Montants | Pas de règle, l'exemple écrit « 92.95 » | Point décimal, deux décimales, sans séparateur de milliers |
+| En-tête | Pas dit | Aucune ligne d'en-tête |
+| Format étendu (codes TVA, écritures multiples) | 20 champs sur la page web, 19 dans le PDF (« Période » en plus sur la page), et l'exemple ne suit pas la liste | Pas utilisé tant qu'un fichier exporté par le Crésus du restaurant ne le tranche pas |
+
+Conséquence du format simple : les montants sont justes, mais Crésus ne rattache pas la TVA à un code TVA. Le décompte TVA se fait sur le compte TVA due, ou avec le format étendu une fois vérifié.
+
+### Écritures
+
+Par jour, par moyen d'encaissement (en ligne, comptoir en espèces, comptoir à la carte) :
+
+| Écriture | Débit | Crédit | Montant |
+|---|---|---|---|
+| Ventes HT | moyen | ventes | TTC moins TVA moins frais de livraison HT |
+| Frais de livraison HT | moyen | frais de livraison | frais TTC moins leur TVA |
+| TVA des ventes | moyen | TVA due | TVA des commandes |
+| Remboursements HT | remboursements | moyen | remboursé moins sa TVA |
+| TVA des remboursements | TVA due | moyen | TVA du remboursement |
+
+- Mêmes règles que le récapitulatif par jour : vente au jour de la commande, remboursement au jour où il est fait, sans commande refusée ni annulée. Les totaux tombent juste avec lui, au centime (testé).
+- En ligne : TWINT et cartes ensemble, la base ne les distingue pas et Stripe les verse ensemble. Les frais de Stripe ne sont pas dans le fichier. Ils se voient sur les versements de Stripe (rapprochement en attente de Jérémy).
+- Comptoir dont le moyen n'a pas été noté : compté en espèces. Manque déduit au comptoir : sort du moyen de la commande.
+- Une période avec deux taux de TVA est refusée avec un message : le plan n'a qu'un compte de ventes.
+
+### Plan de comptes proposé, à confirmer
+
+Rangé dans `reglages_prives` (`plan_comptes_cresus`), lu par le serveur seulement. L'écran le marque « à confirmer » tant que le gérant ne l'a pas enregistré. Chaque compte changé va au journal (« Plan de comptes Crésus »). Numéros pris dans la structure du plan comptable PME suisse, à vérifier dans le plan de Crésus du restaurant.
+
+| Rôle | Compte proposé |
+|---|---|
+| Caisse (espèces au comptoir) | 1000 |
+| Stripe (TWINT et cartes en ligne) | 1090 |
+| Terminal de cartes au comptoir | 1091 |
+| TVA due | 2200 |
+| Ventes 2,6 % | 3200 |
+| Frais de livraison | 3400 |
+| Remboursements aux clients | 3800 |
+
+Avant le premier vrai import : exporter une semaine, l'importer dans une copie de la comptabilité et comparer avec la clôture du jour.
+
