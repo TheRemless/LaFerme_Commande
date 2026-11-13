@@ -57,6 +57,22 @@ Onglet « En cours » :
 - Toucher une ligne ouvre la carte complète à côté (sous la barre, par-dessus la liste sous 900 px). Le détail ne s'affiche que si sa commande est dans la liste à l'écran.
 - L'ordre de « En cours » reste figé 8 secondes après un appui sur le tableau (`ordreStable`). Compteur « N en retard » et « N à lancer maintenant » sous les onglets. L'état des imprimantes ne s'écrit qu'une fois : « Imprimantes en ligne. » ou leur bandeau.
 
+### File allégée (vague 3)
+
+Mesures de qualite (`docs/charge.md`) : 163 à 185 Ko par relecture et par tablette, toutes les 5 à 15 secondes. Mesure locale sur le jeu de rush (148 commandes, dont 109 actives), `scripts/tablette/poids-file.mjs` :
+
+| Relecture | Avant | Après |
+|---|---|---|
+| Réponse complète | 157,8 Ko | 146,2 Ko |
+| Rien n'a changé | 161 Ko | 0 octet (204) |
+
+- Les commandes terminées ou refusées partent sans leurs lignes (`lignes_omises`). Leur détail (lignes et tickets) se charge au toucher par `GET /api/tablette/commande?id=…`. Les tâches d'impression ne concernent que les commandes actives.
+- Version : `versionFile` (`src/lib/tablette-file.ts`) hache tout ce que l'écran affiche, sauf l'heure. Une imprimante en ligne relue toutes les 10 s ne la change pas. La tablette renvoie `?version=` (en-tête `X-Version-File` de la réponse précédente). Rien de changé : 204 sans corps, l'heure du serveur dans `X-Maintenant`.
+- Le signe de vie (`?service=1`) et la surveillance passent avant la comparaison : une tablette calme reste « vivante » (test : 204 répétés pendant 4 minutes, `tests/unit/tablette-file.test.ts`).
+- La tablette garde l'écart entre son horloge et celle du serveur et recalcule toutes les 15 s ce qui dépend du temps (retards, « à lancer dans », passage d'« À l'avance » à la file) sans attendre de nouvelle donnée.
+- Les livraisons ne sont relues que si l'onglet « Livraisons » est ouvert ou qu'une livraison est en cours.
+- Piste suivante (qualite) : une fonction SQL de version (dernière modification des commandes du jour, des réglages et des tâches) pour ne même plus lire `file_tablette` quand rien n'a changé.
+
 ## Correctifs du 13.11.2026 (audit « samedi soir »)
 
 Détail : `docs/audits/samedi-soir.md`, « Suivi des corrections ».

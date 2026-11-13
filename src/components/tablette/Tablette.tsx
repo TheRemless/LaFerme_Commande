@@ -118,6 +118,8 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
   // Annulations faites par le client déjà vues (« Vu ») ou déjà sonnées sur cet appareil.
   const [annulationsVues, setAnnulationsVues] = useState<Set<string>>(new Set());
   const annulationsSonnees = useRef<Set<string> | null>(null);
+  // Détail complet des commandes terminées ouvertes (file allégée) : lignes et tickets.
+  const [completes, setCompletes] = useState<Map<string, { commande: CommandeTablette; taches: Tache[] }>>(new Map());
   // Commande ouverte en détail, à côté du tableau.
   const [ouverte, setOuverte] = useState<string | null>(null);
   const dernierAppui = useRef(0);
@@ -139,15 +141,29 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
   const enService = useRef(false);
   enService.current = demarre;
 
+  // File allégée (vague 3) : la tablette envoie la version qu'elle a ; rien de changé, le serveur répond 204 et donne
+  // seulement son heure. L'écart d'horloge gardé ici fait avancer les comptes à rebours entre deux relectures.
+  const version = useRef<string | null>(null);
+  const [decalage, setDecalage] = useState(0);
+  // Livraisons relues seulement si l'onglet est ouvert ou qu'une livraison est en cours (sinon, rien à afficher).
+  const besoinLivraisons = useRef(true);
   const charger = useCallback(async () => {
     try {
+      const params = new URLSearchParams();
+      if (enService.current) params.set("service", "1");
+      if (version.current) params.set("version", version.current);
       const [rep, repLivraisons] = await Promise.all([
-        fetch(enService.current ? "/api/tablette/file?service=1" : "/api/tablette/file", { cache: "no-store" }),
-        fetch("/api/tablette/livraisons", { cache: "no-store" }).catch(() => null),
+        fetch(`/api/tablette/file${params.size ? `?${params}` : ""}`, { cache: "no-store" }),
+        besoinLivraisons.current ? fetch("/api/tablette/livraisons", { cache: "no-store" }).catch(() => null) : null,
       ]);
       if (rep.status === 401) return router.refresh();
       if (!rep.ok) throw new Error(String(rep.status));
-      setDonnees(await rep.json());
+      const heureServeur = rep.headers.get("X-Maintenant");
+      if (heureServeur) setDecalage(new Date(heureServeur).getTime() - Date.now());
+      if (rep.status !== 204) {
+        setDonnees(await rep.json());
+        version.current = rep.headers.get("X-Version-File");
+      }
       if (repLivraisons?.ok) setLivraisons(await repLivraisons.json());
       setDernierContact(Date.now());
       setHorsLigne(false);
@@ -155,6 +171,15 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
       setHorsLigne(true);
     }
   }, [router]);
+
+  // Heure courante de la tablette, recalée sur le serveur : relue toutes les 15 s même sans nouvelle donnée
+  // (retards, « à lancer dans », passage d'« À l'avance » à la file à l'heure d'impression).
+  const [tic, setTic] = useState(0);
+  useEffect(() => {
+    const t = window.setInterval(() => setTic((x) => x + 1), 15_000);
+    return () => window.clearInterval(t);
+  }, []);
+  const maintenantIso = useMemo(() => new Date(Date.now() + decalage).toISOString(), [decalage, tic, donnees]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Signal Supabase Realtime : un message vide qui dit seulement « relis la file ».
   const [signal, setSignal] = useState(false);
@@ -186,7 +211,7 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
     return () => window.clearInterval(t);
   }, [charger, delai]);
 
-  const aujourdHui = donnees ? jourGeneve(donnees.maintenant) : "";
+  const aujourdHui = donnees ? jourGeneve(maintenantIso) : "";
   const avance = donnees?.reglages.impression_avance ?? IMPRESSION_AVANCE_DEFAUT;
   const rythme = donnees?.rythme ?? RYTHME_DEFAUT;
   const listes = useMemo(() => {
@@ -194,7 +219,7 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
     const pourPlusTard = (x: CommandeTablette) => x.quand_type === "creneau" && x.quand_date !== null && x.quand_date > aujourdHui;
     // Acceptée, sans ticket, et l'heure d'impression pas encore venue : elle attend dans « À l'avance » (SS-11, G08).
     const imprimees = new Set((donnees?.impression.taches ?? []).map((t) => t.commande_id));
-    const maintenant = donnees ? new Date(donnees.maintenant).getTime() : 0;
+    const maintenant = new Date(maintenantIso).getTime();
     const programmee = (x: CommandeTablette) =>
       x.statut === "acceptee" && x.heure_confirmee !== null && !imprimees.has(x.id) && heureImpression(x.heure_confirmee, avance[x.mode]).getTime() > maintenant;
     const parHeure = (a: CommandeTablette, b: CommandeTablette) =>
@@ -204,7 +229,7 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
       // Par urgence (vague 3) : en retard d'abord, puis par heure de lancement ; prêtes et parties à la fin.
       cours: c
         .filter((x) => ACCEPTEES.includes(x.statut) && !programmee(x))
-        .map((x) => ({ x, e: etatTemps(x, donnees!.maintenant, rythme) }))
+        .map((x) => ({ x, e: etatTemps(x, maintenantIso, rythme) }))
         .sort((a, b) => a.e.cle - b.e.cle)
         .map(({ x }) => x),
       // Une livraison programmée n'est pas encore en cuisine : pas à donner à un livreur avant ses tickets.
@@ -213,9 +238,9 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
       plusTard: new Set(c.filter(programmee).map((x) => x.id)),
       terminees: c.filter((x) => x.statut === "terminee" || x.statut === "refusee").reverse(),
     };
-  }, [donnees, aujourdHui, avance, rythme]);
+  }, [donnees, aujourdHui, avance, rythme, maintenantIso]);
   // Ce qui presse, pour chaque commande : texte, niveau et clé de tri.
-  const etats = useMemo(() => new Map((donnees?.commandes ?? []).map((x) => [x.id, etatTemps(x, donnees!.maintenant, rythme)])), [donnees, rythme]);
+  const etats = useMemo(() => new Map((donnees?.commandes ?? []).map((x) => [x.id, etatTemps(x, maintenantIso, rythme)])), [donnees, rythme, maintenantIso]);
 
   // Son répété toutes les 4 secondes tant qu'une commande du jour attend.
   useEffect(() => {
@@ -267,10 +292,10 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
 
   // Annulation par le client : bandeau jusqu'à « Vu » (20 minutes au plus) et une note grave, une fois par commande.
   // Au chargement de la page, celles déjà là ne sonnent pas.
-  const annulees = donnees ? annuleesParClient(donnees.commandes, donnees.maintenant).filter((c) => !annulationsVues.has(c.id)) : [];
+  const annulees = donnees ? annuleesParClient(donnees.commandes, maintenantIso).filter((c) => !annulationsVues.has(c.id)) : [];
   useEffect(() => {
     if (!donnees) return;
-    const ids = annuleesParClient(donnees.commandes, donnees.maintenant).map((c) => c.id);
+    const ids = annuleesParClient(donnees.commandes, maintenantIso).map((c) => c.id);
     if (annulationsSonnees.current === null) {
       annulationsSonnees.current = new Set(ids);
       return;
@@ -278,7 +303,12 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
     const nouvelles = ids.filter((id) => !annulationsSonnees.current!.has(id));
     nouvelles.forEach((id) => annulationsSonnees.current!.add(id));
     if (nouvelles.length && son && audio.current) sonnerAnnulation(audio.current);
-  }, [donnees, son]);
+  }, [donnees, son, maintenantIso]);
+
+  // Livraisons relues seulement quand elles servent : onglet ouvert ou livraison en cours (livreur, problème).
+  useEffect(() => {
+    besoinLivraisons.current = onglet === "livraisons" || listes.livraisons.length > 0;
+  }, [onglet, listes.livraisons.length]);
 
   // Le retour d'un geste réussi reste 8 secondes en bas de l'écran, sous le doigt, puis s'efface.
   useEffect(() => {
@@ -326,7 +356,26 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
   const liste = ordre ? ordre.map((id) => parId.get(id)!) : brute;
   // Le détail ne s'affiche que si sa commande est dans la liste à l'écran : il revient avec son onglet et ne cache
   // jamais une recherche.
-  const detail = ouverte ? (liste.find((c) => c.id === ouverte) ?? null) : null;
+  const detailFile = ouverte ? (liste.find((c) => c.id === ouverte) ?? null) : null;
+  // Terminée ou refusée : la file l'envoie sans ses lignes ; le détail complet arrive au toucher.
+  const complete = detailFile ? completes.get(detailFile.id) : undefined;
+  const detail = complete?.commande ?? detailFile;
+
+  // Détail d'une commande terminée, demandé une fois à l'ouverture.
+  const aCharger = detailFile && (detailFile as { lignes_omises?: boolean }).lignes_omises && !completes.has(detailFile.id) ? detailFile.id : null;
+  useEffect(() => {
+    if (!aCharger) return;
+    let annule = false;
+    fetch(`/api/tablette/commande?id=${aCharger}`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!annule && d) setCompletes((m) => new Map(m).set(aCharger, d));
+      })
+      .catch(() => undefined);
+    return () => {
+      annule = true;
+    };
+  }, [aCharger]);
   const retards = listes.cours.filter((c) => etats.get(c.id)?.niveau === "retard").length;
   const aLancer = listes.cours.filter((c) => etats.get(c.id)?.niveau === "maintenant").length;
   // Refus payés dont le remboursement n'est pas passé : visibles jusqu'au remboursement, même le lendemain.
@@ -533,9 +582,9 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
                   key={detail.id}
                   c={detail}
                   aujourdHui={aujourdHui}
-                  maintenant={donnees.maintenant}
+                  maintenant={maintenantIso}
                   avance={avance}
-                  taches={(donnees.impression.taches ?? []).filter((t) => t.commande_id === detail.id)}
+                  taches={complete?.taches ?? (donnees.impression.taches ?? []).filter((t) => t.commande_id === detail.id)}
                   livraison={livraisonDe.get(detail.id)}
                   gerant={gerant}
                   agir={(corps) => agir(detail.id, corps)}
@@ -552,7 +601,7 @@ export function Tablette({ nom, gerant = false, supabase }: { nom: string; geran
               key={c.id}
               c={c}
               aujourdHui={aujourdHui}
-              maintenant={donnees.maintenant}
+              maintenant={maintenantIso}
               avance={avance}
               taches={(donnees.impression.taches ?? []).filter((t) => t.commande_id === c.id)}
               livraison={livraisonDe.get(c.id)}
