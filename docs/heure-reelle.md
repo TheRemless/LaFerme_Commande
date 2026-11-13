@@ -54,7 +54,7 @@ Ils se règlent au back-office, rubrique « Réglages généraux », bloc « Ryt
 | `fourchette_livraison_minutes` | 15 | Largeur de la fourchette annoncée en livraison |
 | `fourchette_retrait_minutes` | 10 | Largeur de la fourchette annoncée au retrait |
 
-**Chiffre de Jérémy (13.11.2026)** pour le four : « On peut mettre 5 pizzas au four, pour préparer 5 pizzas il faut environ 3 minutes + 2 minutes de cuisson ». Cela fait 5 pizzas toutes les 5 minutes, donc **`debit_pizza_quart_heure` = 15**, posé en production par le chef le 13.11.2026 et dans la base locale par la migration `20261213140000_mise_en_situation_ops.sql` (seulement si la valeur était encore 0). Avec ce chiffre, 15 pizzas en file ne changent rien (15 minutes, sous la préparation habituelle de 20), et 30 pizzas donnent +10 minutes sur les heures annoncées.
+**Chiffre de Jérémy (13.11.2026)** pour le four : « On peut mettre 5 pizzas au four, pour préparer 5 pizzas il faut environ 3 minutes + 2 minutes de cuisson ». Cela fait 5 pizzas toutes les 5 minutes, donc **`debit_pizza_quart_heure` = 15**, posé en production par le chef le 13.11.2026, et par la migration `20261213140000_mise_en_situation_ops.sql` là où il valait encore 0. La base de test (donnees-test.sql) le remet à 0 pour que les tests e2e, qui partagent une base chargée de commandes, ne dépendent pas de leur ordre. Avec ce chiffre, 15 pizzas en file ne changent rien (15 minutes, sous la préparation habituelle de 20), et 30 pizzas donnent +10 minutes sur les heures annoncées.
 
 La cuisine et les livreurs n'ont pas encore de chiffre : `debit_cuisine_quart_heure` et `livraisons_par_livreur_heure` restent à 0. Ils sont alors ignorés et ne bloquent rien : la livraison suit le four. Test : `tests/unit/heure-reelle-four.test.ts`.
 
