@@ -27,7 +27,19 @@ export type Relecture<T> = {
 export function useRelecture<T>(
   lire: (signal: AbortSignal) => Promise<T>,
   dependances: unknown[],
-  { intervalleMs = 15_000, actif = true, messageErreur = "Pas de mise à jour. Vérifiez le réseau." }: { intervalleMs?: number; actif?: boolean; messageErreur?: string } = {},
+  {
+    intervalleMs = 15_000,
+    actif = true,
+    messageErreur = "Pas de mise à jour. Vérifiez le réseau.",
+    arrierePlan = false,
+  }: {
+    intervalleMs?: number;
+    actif?: boolean;
+    messageErreur?: string;
+    /** Relire aussi quand l'onglet est caché (alertes qui préviennent hors de l'écran ; le navigateur espace alors
+     *  les relectures à une par minute environ). */
+    arrierePlan?: boolean;
+  } = {},
 ): Relecture<T> {
   const [donnees, setDonnees] = useState<T | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -75,14 +87,14 @@ export function useRelecture<T>(
 
   useEffect(() => {
     if (!actif) return;
-    const t = setInterval(() => document.visibilityState === "visible" && relire(false), intervalleMs);
+    const t = setInterval(() => (arrierePlan || document.visibilityState === "visible") && relire(false), intervalleMs);
     const vu = () => document.visibilityState === "visible" && relire(false);
     document.addEventListener("visibilitychange", vu);
     return () => {
       clearInterval(t);
       document.removeEventListener("visibilitychange", vu);
     };
-  }, [actif, intervalleMs, relire]);
+  }, [actif, intervalleMs, relire, arrierePlan]);
 
   useEffect(() => () => enVol.current?.abort(), []);
 

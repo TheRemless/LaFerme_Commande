@@ -1,35 +1,29 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { ReglagesAlertes, useAlertes } from "@/components/gestion/alertes";
 import { useCarte } from "@/components/gestion/contexte-carte";
 import { GROUPES_VISIBLES } from "@/components/gestion/navigation";
-import { CarteChiffre, Chargement, EtatErreur, IconeGestion, montant, nombre, useRelecture } from "@/components/gestion/ui";
+import { CarteChiffre, Chargement, demanderOuverture, EtatErreur, IconeGestion, montant, nombre } from "@/components/gestion/ui";
 import type { Alerte, DonneesAccueil, EtatRestaurant } from "@/lib/accueil-gestion";
+import type { EtatQuota } from "@/lib/courriel/quota";
 import { heureDe } from "@/lib/heures";
 import { heureTexte, jourTexte } from "@/lib/service";
 
 // Accueil du back-office : la journée en un coup d'œil (vague 3). Dans l'ordre : ce qui attend un geste
 // (alertes), les commandes du moment, le service en cours contre le même service la semaine passée,
-// l'état du restaurant, puis le plan des rubriques. Relu toutes les 20 secondes tant que la page est visible.
+// l'état du restaurant, puis le plan des rubriques. Relu toutes les 20 secondes par le centre d'alertes de la
+// coque (src/components/gestion/alertes.tsx), qui porte aussi les alertes sur les autres pages.
 
-type Reponse = DonneesAccueil & { alertes: Alerte[] };
-const RELECTURE_MS = 20_000;
+// Au-delà, « et n autres » : la liste filtrée les montre toutes.
+const COMMANDES_MONTREES = 6;
 
 export function AccueilGestion() {
   const { carte } = useCarte();
-  const { donnees: d, erreur, recharger } = useRelecture<Reponse>(
-    async (signal) => {
-      const r = await fetch("/api/gestion/accueil", { cache: "no-store", signal });
-      if (r.status === 401) {
-        window.location.reload();
-        throw new Error("Session terminée.");
-      }
-      if (!r.ok) throw new Error(String(r.status));
-      return r.json();
-    },
-    [],
-    { intervalleMs: RELECTURE_MS, messageErreur: "Les chiffres du jour n'ont pas pu être chargés." },
-  );
+  const centre = useAlertes();
+  const { donnees: d, erreur, recharger } = centre?.lecture ?? { donnees: null, erreur: null, recharger: () => {} };
 
   return (
     <div className="bo-accueil">
@@ -103,7 +97,7 @@ export function AccueilGestion() {
             <h2 id="accueil-restaurant" className="bo-accueil-titre">
               Restaurant
             </h2>
-            {d.restaurant ? <Restaurant r={d.restaurant} /> : <p className="aide">État du restaurant indisponible.</p>}
+            {d.restaurant ? <Restaurant r={d.restaurant} quota={d.quota} /> : <p className="aide">État du restaurant indisponible.</p>}
           </section>
         </>
       )}
@@ -145,12 +139,30 @@ export function AccueilGestion() {
 }
 
 function Alertes({ alertes }: { alertes: Alerte[] }) {
-  if (alertes.length === 0) return <p className="bo-accueil-calme">Rien ne demande votre attention.</p>;
+  const [reglages, setReglages] = useState(false);
+  const regler = (
+    <>
+      <button type="button" className="bo-bouton bo-bouton-second bo-bouton-petit" onClick={() => setReglages(true)}>
+        Régler les alertes
+      </button>
+      {reglages && <ReglagesAlertes onFermer={() => setReglages(false)} />}
+    </>
+  );
+  if (alertes.length === 0)
+    return (
+      <div className="bo-alertes-entete">
+        <p className="bo-accueil-calme">Rien ne demande votre attention.</p>
+        {regler}
+      </div>
+    );
   return (
     <section aria-labelledby="accueil-alertes" className="bo-alertes">
-      <h2 id="accueil-alertes" className="bo-accueil-titre">
-        À régler ({alertes.length})
-      </h2>
+      <div className="bo-alertes-entete">
+        <h2 id="accueil-alertes" className="bo-accueil-titre">
+          À régler ({alertes.length})
+        </h2>
+        {regler}
+      </div>
       <ul>
         {alertes.map((a) => (
           <li key={a.cle} data-niveau={a.niveau}>
@@ -162,14 +174,20 @@ function Alertes({ alertes }: { alertes: Alerte[] }) {
               {(a.detail || a.depuis) && (
                 <p className="bo-alerte-detail">
                   {a.detail}
-                  {a.depuis ? `${a.detail ? " " : ""}Depuis ${heureDe(a.depuis)}.` : ""}
+                  {a.depuis ? `${a.detail ? " " : ""}Depuis ${a.commandes ? jourEtHeure(a.depuis) : heureDe(a.depuis)}.` : ""}
                 </p>
               )}
+              {a.commandes && <CommandesAlerte alerte={a} />}
             </div>
             {a.geste && (
               <a className="bo-bouton bo-bouton-second bo-bouton-petit" href={a.geste.href}>
                 {a.geste.texte}
               </a>
+            )}
+            {a.liste && (
+              <Link className="bo-bouton bo-bouton-second bo-bouton-petit" href={a.liste.href}>
+                {a.liste.texte}
+              </Link>
             )}
           </li>
         ))}
@@ -178,7 +196,39 @@ function Alertes({ alertes }: { alertes: Alerte[] }) {
   );
 }
 
-function Restaurant({ r }: { r: EtatRestaurant }) {
+// Chaque commande ouvre sa fiche dans Commandes (sans son numéro dans l'adresse) ; son jour est écrit, car les
+// numéros repartent à 1 chaque jour.
+function CommandesAlerte({ alerte }: { alerte: Alerte }) {
+  const router = useRouter();
+  const liste = alerte.commandes ?? [];
+  const reste = liste.length - COMMANDES_MONTREES;
+  return (
+    <ul className="bo-alerte-commandes" aria-label={`Commandes concernées : ${alerte.titre}`}>
+      {liste.slice(0, COMMANDES_MONTREES).map((c) => (
+        <li key={c.id}>
+          <button
+            type="button"
+            className="bo-alerte-commande"
+            onClick={() => {
+              demanderOuverture({ type: "commande", cle: c.id });
+              router.push("/gestion/commandes");
+            }}
+          >
+            N° {c.numero}, {jourTexte(c.jour)}
+          </button>
+        </li>
+      ))}
+      {reste > 0 && <li className="bo-alerte-reste">et {reste} autre{reste > 1 ? "s" : ""}</li>}
+    </ul>
+  );
+}
+
+function jourEtHeure(iso: string): string {
+  const jour = new Intl.DateTimeFormat("fr-CH", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Zurich" }).format(new Date(iso));
+  return `le ${jour} à ${heureDe(iso)}`;
+}
+
+function Restaurant({ r, quota }: { r: EtatRestaurant; quota: EtatQuota | null }) {
   const lignes: string[] = [];
   const l = r.livraison;
   if (l.etat === "ouvert") lignes.push(`Ouvert : livraison et à emporter${r.retard_minutes ? `, retard de ${r.retard_minutes} min annoncé aux clients` : ""}.`);
@@ -199,6 +249,11 @@ function Restaurant({ r }: { r: EtatRestaurant }) {
           {r.ruptures.length === 0
             ? "Aucun plat en rupture."
             : `En rupture : ${r.ruptures.map((p) => (p.jusqu_au ? `${p.nom} (jusqu'au ${jourTexte(p.jusqu_au)})` : p.nom)).join(", ")}.`}
+        </li>
+        <li>
+          {quota
+            ? `E-mails : ${nombre(quota.envoyes)} sur ${nombre(quota.plafond)} aujourd'hui${quota.refuses > 0 ? `, ${nombre(quota.refuses)} pas partis (limite atteinte)` : ""}.`
+            : "E-mails : compteur indisponible."}
         </li>
       </ul>
       <Link className="lien" href="/gestion/horaires">

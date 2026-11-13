@@ -44,4 +44,20 @@ describe("appareils en base", () => {
     expect(j.rows[0].apres.sessions_coupees).toBe(1);
     await db.query("delete from sessions_personnel where jeton_hache like 'appareil-test-%'");
   });
+
+  it("la liste de l'équipe donne la dernière activité, plus récente que la connexion", async () => {
+    await db.query(
+      "insert into sessions_personnel (personnel_id, jeton_hache, expire_le, cree_le, vue_le) values ($1::uuid, 'appareil-test-4', now() + interval '1 day', now() - interval '20 days', now() - interval '1 hour')",
+      [membre],
+    );
+    type M = { id: string; derniere_connexion: string | null; derniere_activite: string | null };
+    const liste = (await db.query<{ r: M[] }>("select liste_personnel($1::uuid) as r", [gerant])).rows[0].r;
+    const m = liste.find((x) => x.id === membre)!;
+    expect(new Date(m.derniere_activite!).getTime()).toBeGreaterThan(new Date(m.derniere_connexion!).getTime());
+    expect(Date.now() - new Date(m.derniere_activite!).getTime()).toBeLessThan(2 * 3600_000);
+    // Personne qui ne s'est jamais connecté : les deux dates manquent, l'écran dit « Jamais connecté ».
+    const jamais = liste.find((x) => x.id !== membre && x.id !== gerant && x.derniere_connexion === null);
+    if (jamais) expect(jamais.derniere_activite).toBeNull();
+    await db.query("delete from sessions_personnel where jeton_hache like 'appareil-test-%'");
+  });
 });

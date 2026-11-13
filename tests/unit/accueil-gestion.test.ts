@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { alertesDe, resumerCommandes, type DonneesAccueil } from "@/lib/accueil-gestion";
+import { alertesDe, livraisonAuService, resumerCommandes, type DonneesAccueil } from "@/lib/accueil-gestion";
+import { aNotifier, lirePreferences, PREFERENCES_PAR_DEFAUT, titreAvecCompteur, TYPES_ALERTE } from "@/lib/alertes-types";
+import type { ConfigService } from "@/lib/service";
 import type { CommandeTablette } from "@/lib/tablette";
 
 // Accueil du back-office (vague 3) : ce que le gérant voit en premier. Les calculs de ventes sont ceux de
@@ -134,5 +136,97 @@ describe("alertes", () => {
   it("le quota épuisé devient bloquant", () => {
     const a = alertesDe({ ...vide, quota: { envoyes: 500, refuses: 4, plafond: 500, restants: 0, libere_a: null, alerte: true } });
     expect(a[0]).toMatchObject({ cle: "courriels", niveau: "bloquant" });
+  });
+
+  it("chaque alerte a un type réglable", () => {
+    const a = alertesDe({
+      ...vide,
+      tablette_muette: true,
+      hier_a_encaisser: 2,
+      livreurs_prevus: 0,
+      quota: { envoyes: 420, refuses: 0, plafond: 500, restants: 80, libere_a: null, alerte: true },
+      remboursements: { echecs: [{ numero: 1, cree_le: "2026-11-10T12:00:00Z" }], bloques: [] },
+    });
+    const types = new Set(TYPES_ALERTE.map((t) => t.type));
+    expect(a.length).toBeGreaterThan(3);
+    for (const x of a) expect(types.has(x.type)).toBe(true);
+  });
+
+  it("les remboursements et le comptoir citent chaque commande avec son jour, et la liste filtrée", () => {
+    const a = alertesDe({
+      ...vide,
+      hier_a_encaisser: 2,
+      hier_a_encaisser_commandes: [
+        { id: "c1", numero: 30, jour: "2026-11-10" },
+        { id: "c2", numero: 30, jour: "2026-11-11" },
+      ],
+      remboursements: {
+        echecs: [
+          { numero: 36, cree_le: "2026-11-09T12:00:00Z", commande_id: "r1", jour: "2026-11-09" },
+          { numero: 36, cree_le: "2026-11-09T12:05:00Z", commande_id: "r1", jour: "2026-11-09" },
+          { numero: 4, cree_le: "2026-11-12T19:00:00Z", commande_id: "r2", jour: "2026-11-12" },
+        ],
+        bloques: [],
+      },
+    });
+    const r = a.find((x) => x.cle === "remboursements")!;
+    // Deux essais sur la même commande : une seule fiche. Le numéro n'est plus répété dans le texte.
+    expect(r.commandes).toEqual([
+      { id: "r1", numero: 36, jour: "2026-11-09" },
+      { id: "r2", numero: 4, jour: "2026-11-12" },
+    ]);
+    expect(r.detail).toBe("Le client n'a pas été remboursé.");
+    expect(r.liste?.href).toBe("/gestion/commandes?remboursement=echec&du=2026-11-09&au=2026-11-13");
+    const c = a.find((x) => x.cle === "comptoir-hier")!;
+    expect(c.commandes?.map((x) => x.jour)).toEqual(["2026-11-10", "2026-11-11"]);
+    expect(c.liste?.href).toBe("/gestion/commandes?moyen=comptoir&paiement=a_encaisser_retrait&du=2026-11-06&au=2026-11-12");
+    // Aucune donnée de client dans une adresse.
+    for (const x of a) expect(x.liste?.href ?? "").not.toMatch(/@|Léa|Essai/);
+  });
+
+  it("aucun livreur prévu : alerte, bloquante pendant le service ; rien quand la livraison n'est pas ouverte", () => {
+    expect(alertesDe({ ...vide, livreurs_prevus: 0 })[0]).toMatchObject({ cle: "livreurs", titre: "Aucun livreur prévu ce soir", niveau: "attention", geste: { href: "/gestion/livreurs" } });
+    expect(alertesDe({ ...vide, livreurs_prevus: 2 })).toEqual([]);
+    expect(alertesDe({ ...vide, livreurs_prevus: null })).toEqual([]);
+  });
+
+  it("la livraison compte comme ouverte seulement avant la fin du service et avec une zone livrée à ce service", () => {
+    const config = {
+      reglages: { creneau_minutes: 15, preparation_minutes: 20, retard_minutes: 0 },
+      horaires: [{ jour: 5, service: "soir", premiere_heure: "18:30", derniere_heure: "22:30", derniere_commande: "22:00", derniere_commande_pizzas: "22:15" }],
+      ouvertures: [],
+      fermetures: [],
+      zones: [{ numero: 1, nom: "Onex", frais_centimes: 0, minimum_centimes: 0, delai_min: 30, delai_max: 45, active: true, proposition: false, services: ["soir"] }],
+      npa: [],
+      pause: null,
+    } as unknown as ConfigService;
+    expect(livraisonAuService(config, maintenant, "2026-11-13", "soir")).toBe(true);
+    expect(livraisonAuService(config, new Date("2026-11-13T22:00:00Z"), "2026-11-13", "soir")).toBe(false);
+    expect(livraisonAuService({ ...config, zones: [{ ...config.zones[0], services: ["midi"] }] }, maintenant, "2026-11-13", "soir")).toBe(false);
+  });
+});
+
+describe("préférences des alertes (par appareil)", () => {
+  const alerte = (cle: string, type: (typeof TYPES_ALERTE)[number]["type"]) => ({ cle, type, niveau: "attention" as const, titre: cle });
+
+  it("relit un stockage abîmé avec les valeurs par défaut, notifications coupées", () => {
+    expect(lirePreferences(null)).toEqual(PREFERENCES_PAR_DEFAUT);
+    expect(lirePreferences({ notifier: "oui", types: { comptoir: true, inconnu: true, retard: 3 } })).toEqual({
+      notifier: false,
+      types: { ...PREFERENCES_PAR_DEFAUT.types, comptoir: true },
+    });
+  });
+
+  it("notifie seulement les alertes nouvelles d'un type choisi", () => {
+    const prefs = { notifier: true, types: { ...PREFERENCES_PAR_DEFAUT.types, comptoir: false } };
+    const a = [alerte("tablette", "tablette"), alerte("comptoir-hier", "comptoir"), alerte("retard", "retard")];
+    expect(aNotifier(a, new Set(["retard"]), prefs).map((x) => x.cle)).toEqual(["tablette"]);
+    expect(aNotifier(a, new Set(), { ...prefs, notifier: false })).toEqual([]);
+  });
+
+  it("met le compteur devant le titre de l'onglet sans l'empiler", () => {
+    expect(titreAvecCompteur("Commandes | La Ferme", 3)).toBe("(3) Commandes | La Ferme");
+    expect(titreAvecCompteur("(3) Commandes | La Ferme", 1)).toBe("(1) Commandes | La Ferme");
+    expect(titreAvecCompteur("(3) Commandes | La Ferme", 0)).toBe("Commandes | La Ferme");
   });
 });

@@ -9,14 +9,39 @@ import { jourTexte } from "@/lib/service";
 // L'équipe (audit du gérant, G03) : qui peut se connecter à la tablette, qui au back-office.
 // Retirer coupe l'accès tout de suite. Il reste toujours au moins un gérant (contrôlé en base).
 
-type Membre = { id: string; email: string; nom: string; role: "service" | "gerant" | "livreur" | "responsable"; actif: boolean; sessions: number; derniere_connexion: string | null };
+type Membre = {
+  id: string;
+  email: string;
+  nom: string;
+  role: "service" | "gerant" | "livreur" | "responsable";
+  actif: boolean;
+  sessions: number;
+  derniere_connexion: string | null;
+  /** Dernier passage sur un de ses appareils (connexion ou activité). Absent avant la migration 20261212200000. */
+  derniere_activite?: string | null;
+};
 
+// Libellés courts dans les listes (une liste longue débordait à 1280 px), le détail en aide sous la liste.
 const ROLES = {
   service: "Tablette",
-  responsable: "Responsable de service (tablette, remboursements, commandes passées)",
+  responsable: "Responsable de service",
   gerant: "Tablette et back-office",
-  livreur: "Livreur (ses livraisons sur son téléphone)",
+  livreur: "Livreur",
 } as const;
+const DETAIL_ROLES: Record<Membre["role"], string> = {
+  service: "Accepte et suit les commandes sur la tablette.",
+  responsable: "Tablette, remboursements et commandes passées.",
+  gerant: "Tablette et tout le back-office.",
+  livreur: "Ses livraisons sur son téléphone.",
+};
+
+/** « Connecté sur 2 appareils. Dernière activité le … » ; « Jamais connecté. » quand aucune session n'existe. */
+export function presence(m: Pick<Membre, "sessions" | "derniere_connexion" | "derniere_activite">): string {
+  const vu = m.derniere_activite ?? m.derniere_connexion;
+  if (!vu) return "Jamais connecté.";
+  const etat = m.sessions ? `Connecté sur ${m.sessions} appareil${m.sessions > 1 ? "s" : ""}` : "Pas connecté";
+  return `${etat}. Dernière activité le ${quand(vu)}.`;
+}
 
 export function GestionEquipe() {
   const ids = useId();
@@ -55,6 +80,15 @@ export function GestionEquipe() {
       <section className="ges-bloc">
         <h2>Équipe</h2>
         <p>Chacun se connecte avec son adresse e-mail et le code à 8 chiffres qu&apos;il reçoit. Retirer quelqu&apos;un coupe son accès tout de suite.</p>
+        <ul className="aide ges-roles">
+          {(Object.keys(ROLES) as Membre["role"][])
+            .filter((r) => r !== "responsable" || d.responsable_actif)
+            .map((r) => (
+              <li key={r}>
+                <strong>{ROLES[r]}</strong> : {DETAIL_ROLES[r].charAt(0).toLowerCase() + DETAIL_ROLES[r].slice(1)}
+              </li>
+            ))}
+        </ul>
         {message && (
           <p className={message.ok ? "tab-message" : "panier-alerte"} role={message.ok ? "status" : "alert"}>
             {message.texte}
@@ -69,10 +103,7 @@ export function GestionEquipe() {
                 <br />
                 {m.email}
                 <br />
-                <span className="aide">
-                  {m.sessions ? `Connecté sur ${m.sessions} appareil${m.sessions > 1 ? "s" : ""}` : "Pas connecté"}
-                  {m.derniere_connexion ? `. Dernière connexion le ${jourTexte(jourGeneveDe(m.derniere_connexion))} à ${heureDe(m.derniere_connexion)}.` : "."}
-                </span>
+                <span className="aide">{presence(m)}</span>
               </div>
               <div className="ges-equipe-actions">
                 <label className="sr-only" htmlFor={`${ids}-role-${m.id}`}>
@@ -133,12 +164,20 @@ export function GestionEquipe() {
           </div>
           <div className="champ">
             <label htmlFor={`${ids}-role`}>Accès</label>
-            <select id={`${ids}-role`} value={nouveau.role} onChange={(e) => setNouveau({ ...nouveau, role: e.target.value as Membre["role"] })}>
+            <select
+              id={`${ids}-role`}
+              aria-describedby={`${ids}-role-aide`}
+              value={nouveau.role}
+              onChange={(e) => setNouveau({ ...nouveau, role: e.target.value as Membre["role"] })}
+            >
               <option value="service">{ROLES.service}</option>
               {d.responsable_actif && <option value="responsable">{ROLES.responsable}</option>}
               <option value="gerant">{ROLES.gerant}</option>
               <option value="livreur">{ROLES.livreur}</option>
             </select>
+            <p id={`${ids}-role-aide`} className="aide">
+              {DETAIL_ROLES[nouveau.role]}
+            </p>
           </div>
           <button type="submit" className="bouton-principal champ-large" disabled={envoi}>
             Ajouter

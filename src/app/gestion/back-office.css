@@ -151,6 +151,11 @@
   background: var(--bo-surface);
   border-radius: 11px;
 }
+/* Accueil : au moins une alerte bloque le service. */
+.bo-badge[data-bloquant] {
+  color: var(--bo-surface);
+  background: var(--bo-texte);
+}
 .bo-lien[aria-current="page"] .bo-badge {
   color: var(--bo-cote-texte);
   background: var(--bo-cote);
@@ -1298,7 +1303,7 @@
   border-left: 4px solid var(--basilic);
   border-radius: var(--bo-rayon);
 }
-.bo-alertes ul {
+.bo-alertes > ul {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1306,7 +1311,7 @@
   padding: 0;
   list-style: none;
 }
-.bo-alertes li {
+.bo-alertes > ul > li {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -1319,7 +1324,7 @@
   border-radius: var(--bo-rayon);
 }
 /* Ce qui bloque le service : cadre d'encre épais, comme toute alerte du site. */
-.bo-alertes li[data-niveau="bloquant"] {
+.bo-alertes > ul > li[data-niveau="bloquant"] {
   border: 2px solid var(--alerte-trait);
   border-left-width: 6px;
 }
@@ -1505,4 +1510,101 @@
 .ges-appareils li > div {
   display: flex;
   flex-direction: column;
+}
+
+/* ---------- Centre d'alertes (relance du chef de produit, 13.11) ---------- */
+.bo-alertes-entete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+.bo-alertes-entete .bo-accueil-titre {
+  margin-bottom: 0;
+}
+.bo-alertes-entete .bo-accueil-calme {
+  flex: 1 1 280px;
+}
+.bo-alertes > .bo-alertes-entete {
+  margin-bottom: 10px;
+}
+.bo-alerte-commandes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.bo-alerte-commande {
+  min-height: 36px;
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  color: var(--bo-texte);
+  background: var(--bo-fond);
+  border: 1px solid var(--bo-trait-fort);
+  border-radius: var(--bo-rayon);
+  cursor: pointer;
+}
+.bo-alerte-commande:hover {
+  border-color: var(--bo-texte);
+}
+.bo-alerte-reste {
+  font-size: 14px;
+  color: var(--bo-texte-doux);
+}
+.bo-reglages-alertes {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+}
+.bo-reglages-alertes p {
+  margin: 0;
+}
+.bo-alertes-types {
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--bo-trait);
+  border-radius: var(--bo-rayon);
+}
+.bo-alertes-types legend {
+  padding: 0 4px;
+  font-weight: 700;
+}
+.bo-alertes-types:disabled {
+  color: var(--bo-texte-doux);
+}
+.bo-alerte-refus {
+  padding: 8px 12px;
+  font-weight: 600;
+  background: var(--alerte-fond);
+  border: 2px solid var(--alerte-trait);
+  border-radius: var(--bo-rayon);
+}
+
+/* Équipe : la liste d'accès ne déborde plus à droite (1280 px), un e-mail long passe à la ligne. */
+.bo .ges-equipe li > div:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.bo .ges-equipe-actions {
+  flex-shrink: 0;
+}
+.bo .ges-equipe-actions select {
+  max-width: 100%;
+}
+.bo .ges-roles {
+  margin: 0;
+  padding-left: 20px;
+}
+
+/* Téléphone : le nombre d'alertes sur « Menu », sur fond du papier pour se détacher du bouton. */
+.bo-bouton-menu .bo-badge:not([data-bloquant]) {
+  background: var(--bo-fond);
+  border: 1px solid var(--bo-trait);
 }

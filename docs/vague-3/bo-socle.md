@@ -14,6 +14,7 @@ Ce que `bo-socle` a construit, pour l'équipe et pour les autres sessions. Le ki
 Le bouton « Recherche » de l'en-tête, ou ⌘K sur Mac et Ctrl+K sur PC. Il trouve :
 - une commande par son numéro, le nom ou le téléphone du client ;
 - un client par son nom ou son téléphone ;
+- le nom avant le prénom (« bonardi yanis » : chaque mot doit figurer, dans n'importe quel ordre) et le début d'un e-mail tapé sans @ (« yanis.bon », trois caractères au moins avec une lettre). La liste de Commandes et la rubrique Clients en profitent aussi ;
 - un plat ;
 - une rubrique par son nom ou ce qu'on y fait.
 
@@ -44,3 +45,21 @@ Dans Équipe, chaque membre connecté a un bouton « Appareils (n) ». Il ouvre 
 - Migration `20261210250000_appareils_equipe.sql` : colonnes `appareil` et `vue_le` de `sessions_personnel`, fonctions `noter_appareil_personnel`, `voir_session_personnel`, `appareils_personnel` et `couper_appareil_personnel`. Ces deux dernières sont réservées au gérant et la coupure va au journal. Le code marche avant la migration : la connexion ignore l'échec de `noter_appareil_personnel`.
 - Le jour où D1 est activé, couper un appareil passe au droit `deconnecter_appareil` (responsable de service).
 - Tests : `tests/unit/appareils-equipe.test.ts`, `tests/e2e/gestion-appareils.spec.ts`.
+
+## Alertes (relance du chef de produit, 13.11)
+
+L'accueil ne suffisait pas : Giuseppe en salle ne regarde pas l'accueil. Le centre d'alertes (`src/components/gestion/alertes.tsx`) lit `/api/gestion/accueil` une seule fois pour toute la coque, toutes les 20 secondes, même onglet caché (le navigateur espace alors à une lecture par minute environ). Gérant seulement : l'accueil est réservé au gérant.
+
+- **Sur toutes les pages** : le nombre d'alertes devant le titre de l'onglet (« (3) Commandes »), un badge sur « Accueil » dans le menu et sur le bouton « Menu » au téléphone. Badge foncé quand une alerte bloque le service.
+- **Notifications du navigateur**, à demander sur chaque appareil (« Régler les alertes » sur l'accueil). Seulement une alerte apparue après l'ouverture de la page, d'un type coché, et pas quand l'accueil est sous les yeux. Une alerte réglée puis revenue prévient de nouveau. Le back-office doit rester ouvert dans un onglet.
+- **Types réglables** (`src/lib/alertes-types.ts`, clés stables) : `acceptation`, `tablette`, `pause`, `impression`, `retard`, `livreurs`, `remboursements`, `courriels`, `comptoir`. Par défaut tout est coché sauf remboursements et comptoir, qui peuvent attendre la fin du service. Les préférences restent dans le navigateur (`laferme.gestion.alertes`). Le réglage des alertes **par e-mail** est chez `bo-operations` : reprendre ces clés.
+- **Alertes avec une issue** : remboursements (en échec, pas confirmés) et commandes au comptoir pas encaissées citent chaque commande avec son jour (« N° 39, jeudi 12 novembre », les numéros repartent chaque jour). Un clic ouvre sa fiche dans Commandes, sans rien mettre dans l'adresse. « Voir la liste » ouvre Commandes filtrée par l'adresse : `?remboursement=echec|en_cours&du=&au=` et `?moyen=comptoir&paiement=a_encaisser_retrait&du=&au=`. La lecture de ces filtres et le filtre `remboursement` de `liste_commandes_gestion` sont à faire par `bo-commandes` (contrat envoyé le 13.11) ; d'ici là, le lien ouvre la liste du jour.
+- **Aucun livreur prévu** : alerte quand la livraison est ouverte au service en cours (au moins une zone livrée, service pas fini) et que le planning (`bo-operations`) n'a personne de présent. Elle dit que la livraison reste ouverte aux clients : que faire dans ce cas reste à trancher avec `bo-operations`.
+- **E-mails** : « E-mails : n sur 500 aujourd'hui » dans le bloc Restaurant, en plus de l'alerte à 80 %.
+- Tests : `tests/unit/accueil-gestion.test.ts`, `tests/e2e/gestion-accueil.spec.ts`.
+
+## Équipe
+
+- La liste d'accès de chaque membre a des libellés courts (« Livreur » au lieu de « Livreur (ses livraisons sur son téléphone) »), le détail est écrit sous le titre et sous le champ d'ajout. Elle ne déborde plus à 1280 px.
+- Chaque membre montre sa dernière activité (connexion ou passage sur un appareil), ou « Jamais connecté ». `liste_personnel` donne `derniere_activite` (migration `20261212200000_recherche_equipe.sql`, numéro provisoire).
+
