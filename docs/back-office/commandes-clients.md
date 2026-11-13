@@ -35,7 +35,7 @@ Migration `supabase/migrations/20261127130000_reclamations.sql`, aucun objet par
   - Les deux sont **désactivés par défaut** (réglage `gestes_commerciaux_actifs`, D3) ; la réduction attend aussi `codes_promo_actifs` (sans lui, le site ne propose pas de champ « Code »).
   - « Remboursement » relie un remboursement déjà fait par « Rembourser » sur la même commande ; « aucun » avec une raison.
   - Fiche d'une commande : tant qu'une réclamation attend son geste, l'onglet « Gestes » affiche « Avant de rembourser » et « Noter un geste », qui ouvre le dossier dans Clients, onglet Réclamations.
-  - nLPD : codes personnels et plats offerts partent dans l'export du client ; à la suppression du compte, les plats offerts en attente et les codes pas encore utilisés sont effacés, un code déjà utilisé est éteint et détaché du client. Migration `20261212170000_geste_reduction.sql`.
+  - nLPD : codes personnels et plats offerts partent dans l'export du client ; à la suppression du compte, les plats offerts en attente et les codes pas encore utilisés sont effacés, un code déjà utilisé est éteint et détaché du client. Migration `20261213190000_geste_reduction.sql`.
 - **Liste** (`reclamations_gestion`) : ouvertes d'abord, filtres état, type, période, commande ; compteurs par état. La fiche complète d'une commande liste ses réclamations.
 
 ## Écrans (vague 3)

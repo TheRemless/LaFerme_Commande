@@ -153,6 +153,12 @@ describe("suivre, geste, clore", () => {
     expect(await evaluer("reduc+promo@exemple.ch", null)).toMatchObject({ ok: true, remise_centimes: 600 });
     expect(await evaluer("nouvelle@exemple.ch", "+41 79 555 12 34")).toMatchObject({ ok: true, remise_centimes: 600 });
     expect(await erreur("noter_geste_reclamation($1, $2, $3)", [r.id, { geste: "plat_offert", detail: "Un dessert" }, gerant])).toContain("geste_deja_note");
+    // Promotions : modifier un code personnel ne met au journal ni l'e-mail ni le téléphone du client.
+    await f("modifier_code($1, $2, $3)", [code, { minimum_centimes: 1000 }, gerant]);
+    const journal = JSON.stringify((await db.query("select avant, apres from journal_gestion where objet = 'code_promo' and cle = $1", [code])).rows);
+    expect(journal).toContain(code);
+    expect(journal).not.toContain("reduc@exemple.ch");
+    expect(journal).not.toContain("41795551234");
     // Journal et fil du dossier disent le geste.
     const suivis = (await f<{ suivis: { texte: string }[] }>("fiche_reclamation_gestion($1)", [r.id])).suivis.map((x) => x.texte);
     expect(suivis.at(-1)).toBe(`Geste : réduction de 15 % sur la prochaine commande, code ${code}`);

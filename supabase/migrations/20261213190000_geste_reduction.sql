@@ -8,10 +8,13 @@
 -- Tables partagées, ajouts seuls : trois colonnes en fin de codes_promo (bo-carte), une contrainte et une colonne
 -- sur reclamations (bo-commandes). Objets recréés, chacun depuis sa dernière définition :
 --   evaluer_code (bo-carte, depuis 20261210180000_codes_promo_commande.sql) : seul ajout, un code lié à un client
---     n'est accepté que pour son e-mail ou son téléphone ;
+--     n'est accepté que pour son e-mail ou son téléphone (contrôlé juste après la recherche du code : un autre client
+--     reçoit « inconnu », comme pour un code qui n'existe pas) ;
+--   modifier_code (bo-carte, depuis 20261210120000_codes_promo.sql) : seul changement, l'e-mail et le téléphone
+--     du client ne vont pas au journal (demande de bo-carte) ;
 --   noter_geste_reclamation, fiche_reclamation_gestion (depuis 20261127130000_reclamations.sql) ;
 --   donnees_gestion_client (depuis 20261127120000_clients.sql) et effacer_notes_client
---     (depuis 20261212160000_marque_effacee_avec_compte.sql) : nLPD, codes personnels et plats offerts.
+--     (depuis 20261213180000_marque_effacee_avec_compte.sql) : nLPD, codes personnels et plats offerts.
 -- Compatible avant et après : mêmes signatures, droits gardés (create or replace).
 
 alter table codes_promo add column client_email text check (client_email is null or client_email = lower(btrim(client_email)));
@@ -45,6 +48,13 @@ begin
   if not found then
     return jsonb_build_object('ok', false, 'raison', 'inconnu');
   end if;
+  -- Code personnel (geste après une réclamation, bo-commandes) : seulement pour l'e-mail ou le téléphone du client.
+  -- Pour un autre client, le code n'existe pas (rien ne dit qu'il est réservé à quelqu'un). Sans e-mail ni
+  -- téléphone (panier), la suite vaut comme pour « une fois par client » : à vérifier au paiement.
+  if (c.client_email is not null or c.client_telephone is not null) and (v_email is not null or v_tel is not null)
+    and not (coalesce(v_email = c.client_email, false) or coalesce(v_tel = c.client_telephone, false)) then
+    return jsonb_build_object('ok', false, 'raison', 'inconnu');
+  end if;
   if not c.actif then
     return jsonb_build_object('ok', false, 'raison', 'inactif');
   end if;
@@ -76,12 +86,6 @@ begin
     end if;
     return jsonb_build_object('ok', false, 'raison', 'client_inconnu');
   end if;
-  -- Code personnel (geste après une réclamation, bo-commandes) : seulement pour l'e-mail ou le téléphone du client.
-  -- Pour un autre client, le code n'existe pas (rien ne dit qu'il est réservé à quelqu'un).
-  if (c.client_email is not null or c.client_telephone is not null)
-    and not (coalesce(v_email = c.client_email, false) or coalesce(v_tel = c.client_telephone, false)) then
-    return jsonb_build_object('ok', false, 'raison', 'inconnu');
-  end if;
   if c.une_fois_par_client and exists (
     select 1 from utilisations_codes u join commandes x on x.id = u.commande_id
     where u.code_id = c.id and commande_compte(x)
@@ -101,6 +105,42 @@ begin
     when 'montant' then least(c.valeur, v_sous_total)
     else v_frais end;
   return jsonb_build_object('ok', true, 'code', c.code, 'type', c.type, 'remise_centimes', remise);
+end;
+$$;
+
+-- ---------- Modifier un code : jamais les coordonnées du client au journal ----------
+
+create or replace function modifier_code(p_code text, p jsonb, p_personnel uuid) returns boolean
+language plpgsql as $$
+declare
+  avant codes_promo%rowtype;
+  apres codes_promo%rowtype;
+begin
+  perform gerant_nom(p_personnel);
+  select * into avant from codes_promo where code = p_code for update;
+  if not found then
+    return false;
+  end if;
+  if (p ? 'type' or p ? 'valeur') and exists (select 1 from utilisations_codes where code_id = avant.id) then
+    raise exception 'code_deja_utilise';
+  end if;
+  update codes_promo set
+    libelle = case when p ? 'libelle' then btrim(p ->> 'libelle') else libelle end,
+    actif = coalesce((p ->> 'actif')::boolean, actif),
+    type = coalesce(p ->> 'type', type),
+    valeur = case when p ? 'valeur' then (p ->> 'valeur')::integer else valeur end,
+    minimum_centimes = coalesce((p ->> 'minimum_centimes')::integer, minimum_centimes),
+    debut = case when p ? 'debut' then (p ->> 'debut')::date else debut end,
+    fin = case when p ? 'fin' then (p ->> 'fin')::date else fin end,
+    plafond_utilisations = case when p ? 'plafond_utilisations' then (p ->> 'plafond_utilisations')::integer else plafond_utilisations end,
+    premiere_commande = coalesce((p ->> 'premiere_commande')::boolean, premiere_commande),
+    une_fois_par_client = coalesce((p ->> 'une_fois_par_client')::boolean, une_fois_par_client)
+  where id = avant.id
+  returning * into apres;
+  -- Un code personnel (geste) : ni l'e-mail ni le téléphone du client au journal.
+  perform journaliser(p_personnel, 'code_promo', p_code, to_jsonb(avant) - 'id' - 'cree_le' - 'client_email' - 'client_telephone',
+    to_jsonb(apres) - 'id' - 'cree_le' - 'client_email' - 'client_telephone');
+  return true;
 end;
 $$;
 
@@ -160,14 +200,18 @@ begin
     if t is null or v is null or not ((t = 'pourcentage' and v between 1 and 100) or (t = 'montant' and v > 0)) then
       raise exception 'reduction_invalide';
     end if;
+    -- creer_code de bo-carte (validation, journal « code_promo » sans coordonnées) ; le code naît inactif. Puis il
+    -- est lié au client et allumé ici, sans modifier_code (rien à journaliser de plus que le geste).
     loop
       code_net := 'LAFERME-' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 8));
       exit when not exists (select 1 from codes_promo where code = code_net);
     end loop;
-    insert into codes_promo (code, libelle, type, valeur, minimum_centimes, debut, plafond_utilisations, premiere_commande,
-        une_fois_par_client, actif, client_email, client_telephone, reclamation_id)
-      values (code_net, 'Geste après une réclamation', t, v, 0, (now() at time zone 'Europe/Zurich')::date, 1, false,
-        true, true, email_normal(r.email), (select telephone_normal(c.client_telephone) from commandes c where c.id = r.commande_id), r.id)
+    perform creer_code(jsonb_build_object('code', code_net, 'libelle', 'Geste après une réclamation', 'type', t, 'valeur', v,
+      'minimum_centimes', 0, 'debut', (now() at time zone 'Europe/Zurich')::date, 'plafond_utilisations', 1,
+      'premiere_commande', false, 'une_fois_par_client', true), p_personnel);
+    update codes_promo set actif = true, client_email = email_normal(r.email),
+        client_telephone = (select telephone_normal(c.client_telephone) from commandes c where c.id = r.commande_id), reclamation_id = r.id
+      where code = code_net
       returning id into code_ref;
     d := case t when 'montant' then 'CHF ' || (v / 100.0)::numeric(10, 2)::text else v::text || ' %' end
       || ' sur la prochaine commande, code ' || code_net;
