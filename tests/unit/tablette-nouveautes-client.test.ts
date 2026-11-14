@@ -21,15 +21,27 @@ describe("tickets", () => {
     const [pizza, cuisine] = ticketsDeCommande({ ...base, destinataire: { nom: "Marc Dupont", telephone: "078 111 22 33" }, couverts: true }, { accepteLe: "2026-11-10T18:10:00Z" });
     expect(textes(pizza.contenu)).toContain("Pour : Marc Dupont   078 111 22 33");
     expect(textes(pizza.contenu)).toMatch(/1 x Pizza Margherita\npour Hugo/);
-    expect(textes(cuisine.contenu)).not.toContain("pour ");
+    expect(textes(cuisine.contenu)).not.toMatch(/\npour /);
     // Le sac se fait en cuisine quand il y a des lignes cuisine.
-    expect(textes(cuisine.contenu)).toContain("+ COUVERTS ET SERVIETTES");
+    expect(textes(cuisine.contenu)).toContain("[ ] COUVERTS ET SERVIETTES");
     expect(textes(pizza.contenu)).not.toContain("COUVERTS");
+  });
+
+  it("sac (réponse de Jérémy du 14.11) : tous les articles en cases à cocher, boissons comprises, sur le seul ticket du sac", () => {
+    const c: CommandePourTicket = { ...base, lignes: [...base.lignes, { nom: "Coca-Cola 33 cl", qte: 2, station: "comptoir", details: [] }] };
+    const tickets = ticketsDeCommande(c, { accepteLe: "2026-11-10T18:10:00Z" });
+    // Pas de ticket de préparation pour le comptoir.
+    expect(tickets.map((t) => t.station)).toEqual(["pizza", "cuisine"]);
+    const [pizza, cuisine] = tickets;
+    expect(textes(cuisine.contenu)).toMatch(/SAC : COCHER CHAQUE ARTICLE\n\[ \] 1 x Pizza Margherita \(pour Hugo\)\n\[ \] 1 x Pasta alla carbonara\n\[ \] 2 x Coca-Cola 33 cl/);
+    expect(textes(pizza.contenu)).not.toContain("SAC");
   });
 
   it("rien de nouveau quand le client n'a rien demandé", () => {
     const t = ticketsDeCommande(base, { accepteLe: "2026-11-10T18:10:00Z" }).map((x) => textes(x.contenu)).join("\n");
     expect(t).not.toMatch(/Pour :|COUVERTS|ALLERGIE/);
+    // La liste du sac, elle, est toujours là, sur le ticket du sac.
+    expect(t).toContain("SAC : COCHER CHAQUE ARTICLE");
   });
 });
 

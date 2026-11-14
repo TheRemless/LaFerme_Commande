@@ -227,6 +227,39 @@ test("tournée de deux livraisons, ordre proposé, Je pars, Livrée : plus rien 
   await expect(carte).toContainText(/Livrée/, { timeout: 15_000 });
 });
 
+test("« Je prends » : deux livreurs au même instant, un seul gagne ; le livreur range sa tournée (14.11)", async ({ request }) => {
+  const a = await livraison(request, ONEX);
+  const b = await livraison(request, LIGNON);
+  await marco.reload();
+  const section = marco.locator(".liv-a-prendre");
+  await expect(section.locator("li", { hasText: `N° ${a},` })).toBeVisible({ timeout: 15_000 });
+  // Quartier et heure seulement : pas l'adresse complète avant de prendre.
+  await expect(section).not.toContainText("Gros-Chêne");
+  const liste = (await (await marco.request.get("/api/livreur")).json()) as { a_prendre: { commande_id: string; numero: number }[] };
+  const idDe = (n: string) => liste.a_prendre.find((x) => String(x.numero) === n)!.commande_id;
+  // Course : les deux téléphones touchent « Je prends » au même instant.
+  const prendre = (page: Page) => page.request.post("/api/livreur/tournee", { headers: ORIGINE, data: { action: "prendre", commande: idDe(a) } });
+  const [rm, ri] = await Promise.all([prendre(marco), prendre(ines)]);
+  expect([rm.status(), ri.status()].sort()).toEqual([200, 409]);
+  const perdant = rm.status() === 409 ? rm : ri;
+  expect(((await perdant.json()) as { message: string }).message).toMatch(/^Déjà prise par (Marco|Inès)\.$/);
+  // Marco prend le second à l'écran, puis range sa tournée.
+  await marco.reload();
+  await section.locator("li", { hasText: `N° ${b},` }).getByRole("button", { name: "Je prends" }).click();
+  await expect(marco.locator(".liv-info")).toContainText(`N° ${b} est à vous.`);
+  await expect(arret(marco, b)).toBeVisible();
+  await expect(arret(marco, b)).toContainText("Avenue du Lignon 40");
+  await marco.screenshot({ path: "test-results/livreurs/livreur-375-je-prends.png", fullPage: true });
+  if (rm.status() === 200) {
+    await avant(marco.locator(".liv-arret"), "n°", a, b);
+    await arret(marco, b).getByRole("button", { name: `Livrer le n° ${b} plus tôt` }).click();
+    await avant(marco.locator(".liv-arret"), "n°", b, a);
+    // Même ordre sur la tablette, fait à la main.
+    await ongletLivraisons().click();
+    await avant(tournee("Marco").locator(".liv-arret-tab"), "N°", b, a);
+  }
+});
+
 test("deux livreurs et réattribution : l'ancien ne voit plus l'adresse", async ({ request }) => {
   const c = await livraison(request, ONEX_BIS);
   await ongletLivraisons().click();

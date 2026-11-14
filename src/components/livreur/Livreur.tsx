@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import "./livreur.css";
-import type { Geste, LivraisonLivreur, Probleme, RetireeLivreur } from "@/lib/livreur";
+import type { APrendre, Geste, LivraisonLivreur, Probleme, RetireeLivreur } from "@/lib/livreur";
 import { poster } from "@/lib/requete-client";
 import { heureDe as heure } from "@/lib/heures";
 import { prixChf } from "@/lib/prix";
@@ -16,7 +16,7 @@ import { usePartagePosition, type EtatPartage } from "./partage-position";
 // adresse) et repart seul au retour du signal. Le serveur reconnaît la clé : jamais deux fois.
 // Les adresses ne sont gardées qu'en mémoire, jamais dans le stockage du téléphone.
 
-type Donnees = { livraisons: LivraisonLivreur[]; retirees: RetireeLivreur[] };
+type Donnees = { livraisons: LivraisonLivreur[]; retirees: RetireeLivreur[]; a_prendre?: APrendre[] };
 type EnAttente = { cle: string; commande: string; geste: Geste; motif?: Probleme; detail?: string; numero: number };
 
 const STOCKAGE = "laferme-livreur-gestes";
@@ -207,6 +207,26 @@ export function Livreur({ nom, supabase }: { nom: string; supabase: { url: strin
     return () => fermer?.();
   }, [supabase, charger]);
 
+  // « Je prends » et « Plus tôt / Plus tard » : il faut du réseau (pas de file d'attente, la base tranche).
+  const [prise, setPrise] = useState<string | null>(null);
+  async function prendre(a: APrendre) {
+    setPrise(a.commande_id);
+    setMessage(null);
+    const r = await poster("/api/livreur/tournee", { action: "prendre", commande: a.commande_id });
+    if (r.statut === 0) setMessage("Pas de réseau. Réessayez au retour du signal.");
+    else if (r.ok) setMessage(`N° ${a.numero} est à vous. L'adresse est dans vos livraisons.`);
+    else setMessage(`N° ${a.numero} : ${String(r.donnees.message ?? r.donnees.erreur ?? "Pas pris.")}`);
+    setPrise(null);
+    await charger();
+  }
+  async function deplacer(l: LivraisonLivreur, sens: -1 | 1) {
+    setMessage(null);
+    const r = await poster("/api/livreur/tournee", { action: "deplacer", commande: l.commande_id, sens });
+    if (r.statut === 0) setMessage("Pas de réseau. Réessayez au retour du signal.");
+    else if (!r.ok) setMessage(String(r.donnees.message ?? r.donnees.erreur ?? "L'ordre n'a pas changé."));
+    await charger();
+  }
+
   function geste(l: { commande_id: string; numero: number }, g: Geste, extra: { motif?: Probleme; detail?: string } = {}) {
     setMessage(null);
     majAttente([...attenteRef.current, { cle: cleNeuve(), commande: l.commande_id, geste: g, numero: l.numero, ...extra }]);
@@ -289,6 +309,28 @@ export function Livreur({ nom, supabase }: { nom: string; supabase: { url: strin
         </div>
       ))}
 
+      {/* À prendre (réponse de Jérémy du 14.11) : le livreur choisit ses commandes. Quartier et heure seulement :
+          l'adresse complète n'arrive qu'une fois la commande prise. */}
+      {(donnees?.a_prendre?.length ?? 0) > 0 && (
+        <section className="liv-a-prendre" aria-labelledby="liv-a-prendre-titre">
+          <h2 id="liv-a-prendre-titre">À prendre ({donnees!.a_prendre!.length})</h2>
+          <ul>
+            {donnees!.a_prendre!.map((a) => (
+              <li key={a.commande_id} className="liv-a-prendre-ligne">
+                <p>
+                  <strong>N° {a.numero}</strong>, {a.npa} {a.localite}
+                  {a.heure ? `, pour ${heure(a.heure)}` : ""}. {a.articles} article{a.articles > 1 ? "s" : ""}
+                  {a.pizzas > 0 ? `, dont ${a.pizzas} pizza${a.pizzas > 1 ? "s" : ""}` : ""}.
+                </p>
+                <button type="button" className="bouton-principal" disabled={prise !== null} onClick={() => prendre(a)}>
+                  {prise === a.commande_id ? "Un instant…" : "Je prends"}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {aPartir.length > 1 && (
         <button type="button" className="bouton-principal liv-tout" onClick={() => aPartir.forEach((l) => geste(l, "partie"))}>
           Je pars avec les {aPartir.length}
@@ -311,6 +353,9 @@ export function Livreur({ nom, supabase }: { nom: string; supabase: { url: strin
               geste={(g, extra) => geste(l, g, extra)}
               replie={enRoute && l.commande_id !== courant?.commande_id && !deplies.has(l.commande_id)}
               deplier={() => setDeplies((x) => new Set(x).add(l.commande_id))}
+              deplacer={livraisons.length > 1 ? (sens) => deplacer(l, sens) : undefined}
+              premier={i === 0}
+              dernier={i === livraisons.length - 1}
             />
           ))}
         </ol>
@@ -344,6 +389,9 @@ function Arret({
   geste,
   replie = false,
   deplier,
+  deplacer,
+  premier = false,
+  dernier = false,
 }: {
   l: LivraisonLivreur;
   rang: number;
@@ -352,6 +400,10 @@ function Arret({
   geste: (g: Geste, extra?: { motif?: Probleme; detail?: string }) => void;
   replie?: boolean;
   deplier?: () => void;
+  // Le livreur range sa tournée (réponse de Jérémy du 14.11) : absent s'il n'a qu'un arrêt.
+  deplacer?: (sens: -1 | 1) => void;
+  premier?: boolean;
+  dernier?: boolean;
 }) {
   const ids = useId();
   const [probleme, setProbleme] = useState<Probleme | null>(null);
@@ -435,6 +487,17 @@ function Arret({
             </>
           )}
         </p>
+      )}
+
+      {deplacer && (
+        <div className="liv-ordre">
+          <button type="button" className="bouton-second" disabled={premier} aria-label={`Livrer le n° ${l.numero} plus tôt`} onClick={() => deplacer(-1)}>
+            Plus tôt
+          </button>
+          <button type="button" className="bouton-second" disabled={dernier} aria-label={`Livrer le n° ${l.numero} plus tard`} onClick={() => deplacer(1)}>
+            Plus tard
+          </button>
+        </div>
       )}
 
       <div className="liv-liens">

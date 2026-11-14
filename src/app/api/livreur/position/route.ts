@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { corpsJson, refus } from "@/lib/comptes/api";
-import { exigerLivreur } from "@/lib/personnel/session";
+import { exigerLivreurOuChef } from "@/lib/livreur";
 import { effacerPosition, noterPosition } from "@/lib/position-livreur";
 
 // Téléphone du livreur pendant le trajet : POST { lat, lon, precision } envoie sa position, POST { fin: true } l'efface
@@ -10,7 +10,7 @@ const SANS_CACHE = { "Cache-Control": "no-store, private" };
 const nombre = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
 
 export async function POST(requete: Request) {
-  const g = await exigerLivreur(requete);
+  const g = await exigerLivreurOuChef(requete);
   if ("reponse" in g) return g.reponse;
   const c = await corpsJson(requete);
   if (c?.fin === true) {

@@ -33,3 +33,17 @@ describe("choix du livreur", () => {
     expect(tourneesAffichees(equipe, null, new Set()).length).toBe(6);
   });
 });
+
+describe("gérant ou responsable qui peut livrer (14.11)", () => {
+  it("ne compte pas parmi les livreurs : dans « Donner à… », sauf page de livraisons ouverte", async () => {
+    const { choixLivreurs, tourneesAffichees } = await import("@/components/tablette/livraisons-choix");
+    const l = (id: string, role = "livreur", vu_le: string | null = null) => ({ id, nom: id, actif: true, vu_le, role });
+    const maintenant = Date.parse("2026-11-14T19:00:00Z");
+    const equipe = [l("marco"), l("ines"), l("giuseppe", "gerant")];
+    expect(choixLivreurs(equipe, null, maintenant)).toEqual({ boutons: [equipe[0], equipe[1]], menu: [equipe[2]] });
+    const connecte = [l("marco"), l("giuseppe", "gerant", "2026-11-14T18:30:00Z")];
+    expect(choixLivreurs(connecte, null, maintenant).boutons.map((x) => x.id)).toEqual(["marco", "giuseppe"]);
+    expect(tourneesAffichees(equipe, null, new Set()).map((x) => x.id)).toEqual(["marco", "ines"]);
+    expect(tourneesAffichees(equipe, null, new Set(["giuseppe"])).map((x) => x.id)).toEqual(["marco", "ines", "giuseppe"]);
+  });
+});
