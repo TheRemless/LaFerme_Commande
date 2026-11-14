@@ -31,7 +31,7 @@ export const CGV: PageLegale = {
       titre: "Paiement",
       contenu: [
         "En ligne, par TWINT ou carte bancaire, au moment de la commande. Le paiement est traité par Stripe. Le restaurant ne voit pas vos données de carte.",
-        "Au comptoir, pour une commande à emporter seulement. Le paiement à la livraison n'est pas proposé.",
+        "Au comptoir, pour une commande à emporter. Pour une commande passée par téléphone, à la livraison ou au retrait, en espèces ou par carte.",
       ],
     },
     {

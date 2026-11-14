@@ -45,4 +45,14 @@ describe("ébauches légales", () => {
     // L'e-mail reste demandé, pas deviné.
     expect(JSON.stringify(MENTIONS)).toContain("[adresse e-mail du restaurant]");
   });
+
+  it("CGV, paiement : au comptoir pour l'emporter, à la livraison ou au retrait pour une commande par téléphone", () => {
+    // Commande prise au téléphone (#248), payée à la livraison ou au retrait ; les livreurs auront un terminal de
+    // carte (Jérémy, 14.11.2026). L'ancienne phrase « pas de paiement à la livraison » ne doit pas revenir.
+    const paiement = CGV.sections.find((s) => s.titre === "Paiement");
+    const texte = JSON.stringify(paiement?.contenu);
+    expect(texte).toContain("Au comptoir, pour une commande à emporter.");
+    expect(texte).toContain("Pour une commande passée par téléphone, à la livraison ou au retrait, en espèces ou par carte.");
+    expect(JSON.stringify(CGV).toLowerCase()).not.toContain("paiement à la livraison n'est pas proposé");
+  });
 });
