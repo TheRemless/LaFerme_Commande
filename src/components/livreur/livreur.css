@@ -111,3 +111,21 @@
 .liv-ordre button {
   min-height: 48px;
 }
+
+/* Complément d'une commande modifiée à encaisser à la porte (vague 3, bo-commandes). */
+.liv-complement {
+  margin: 8px 0;
+  padding: 8px 12px;
+  border: 2px solid var(--encre);
+  border-radius: 4px;
+}
+
+.liv-complement-boutons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.liv-complement-boutons .bouton-second {
+  min-height: 48px;
+}

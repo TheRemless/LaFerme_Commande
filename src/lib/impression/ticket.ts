@@ -53,7 +53,19 @@ function paiement(c: CommandePourTicket): string {
 // Une tâche par poste qui a des lignes. Le ticket dit aussi ce qui sort à l'autre poste.
 export function ticketsDeCommande(
   c: CommandePourTicket,
-  { accepteLe, reimpression = false }: { accepteLe: string | Date; reimpression?: boolean },
+  {
+    accepteLe,
+    reimpression = false,
+    entete,
+    complement,
+  }: {
+    accepteLe: string | Date;
+    reimpression?: boolean;
+    // Commande modifiée (vague 3, bo-commandes) : « AJOUT » en tête, seulement les lignes ajoutées ; complément de
+    // la différence à encaisser à la porte ou au comptoir.
+    entete?: string;
+    complement?: { centimes: number; ou: "porte" | "comptoir" };
+  },
 ): { station: "pizza" | "cuisine"; contenu: LigneTicket[] }[] {
   const stations = (["pizza", "cuisine"] as const).filter((s) => c.lignes.some((l) => l.station === s) || (s === posteDuSac(c) && c.lignes.length > 0));
   return stations.map((station) => {
@@ -61,6 +73,7 @@ export function ticketsDeCommande(
     const autre = station === "pizza" ? "cuisine" : "pizza";
     const ailleurs = c.lignes.filter((l) => l.station === autre).reduce((n, l) => n + l.qte, 0);
     const contenu: LigneTicket[] = [];
+    if (entete) contenu.push({ t: "texte", texte: entete, taille: 2, gras: true, inverse: true });
     if (reimpression) contenu.push({ t: "texte", texte: "RÉIMPRESSION", gras: true });
     contenu.push({ t: "deux", gauche: station === "pizza" ? "PIZZA" : "CUISINE", droite: `N° ${String(c.numero).padStart(3, "0")}`, taille: 3, gras: true });
     // Prise au téléphone (vague 3, bo-commandes) : juste sous l'en-tête, à la demande de tablette.
@@ -102,6 +115,10 @@ export function ticketsDeCommande(
     contenu.push({ t: "filet" });
     if (ailleurs > 0) contenu.push({ t: "texte", texte: `Aussi ${autre === "pizza" ? "aux pizzas" : "en cuisine"} : ${ailleurs} article${ailleurs > 1 ? "s" : ""}` });
     contenu.push({ t: "texte", texte: `Paiement : ${paiement(c)}`, gras: true });
+    if (complement && complement.centimes > 0) {
+      const montant = `CHF ${(complement.centimes / 100).toFixed(2)}`;
+      contenu.push({ t: "texte", texte: `À ENCAISSER ${complement.ou === "porte" ? "À LA LIVRAISON" : "AU RETRAIT"} : ${montant} (complément)`, gras: true, inverse: true });
+    }
     return { station, contenu };
   });
 }

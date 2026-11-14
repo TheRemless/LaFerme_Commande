@@ -397,6 +397,46 @@ export function Livreur({ nom, supabase }: { nom: string; supabase: { url: strin
   );
 }
 
+// Complément d'une commande modifiée (vague 3, bo-commandes) : le client paie la différence à la porte.
+function ComplementPorte({ complement }: { complement: { id: string; centimes: number } }) {
+  const [etat, setEtat] = useState<"attente" | "envoi" | "fait" | string>("attente");
+  async function encaisser(moyen: "especes" | "carte") {
+    setEtat("envoi");
+    try {
+      const rep = await fetch("/api/livreur/complement", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ complement: complement.id, moyen }),
+      });
+      const r = (await rep.json()) as { ok?: boolean; message?: string; erreur?: string };
+      setEtat(r.ok ? "fait" : (r.message ?? r.erreur ?? "Pas encaissé. Réessayez."));
+    } catch {
+      setEtat("Pas de réseau. Réessayez.");
+    }
+  }
+  if (etat === "fait") return <p className="liv-contenu">Complément de {prixChf(complement.centimes)} encaissé.</p>;
+  return (
+    <div className="liv-complement">
+      <p className="liv-contenu">
+        <strong>Complément à encaisser : {prixChf(complement.centimes)}</strong> (commande modifiée).
+      </p>
+      <div className="liv-complement-boutons">
+        <button type="button" className="bouton-second" disabled={etat === "envoi"} onClick={() => encaisser("especes")}>
+          Complément encaissé : espèces
+        </button>
+        <button type="button" className="bouton-second" disabled={etat === "envoi"} onClick={() => encaisser("carte")}>
+          Complément encaissé : carte
+        </button>
+      </div>
+      {etat !== "attente" && etat !== "envoi" && (
+        <p className="liv-probleme" role="alert">
+          {etat}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function Arret({
   l,
   rang,
@@ -490,6 +530,7 @@ function Arret({
         {l.pizzas > 0 ? `, dont ${l.pizzas} ${l.pizzas > 1 ? "pizzas" : "pizza"}` : ""}. {l.paye ? "Payée en ligne, rien à encaisser." : `À encaisser : ${prixChf(l.total_centimes)}.`}
         {l.canal === "telephone" && " Prise au téléphone."}
       </p>
+      {l.complement && <ComplementPorte complement={l.complement} />}
 
       {motifAffiche && (
         <p className="liv-probleme">

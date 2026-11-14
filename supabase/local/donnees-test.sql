@@ -169,3 +169,8 @@ update reglages set valeur = '0'::jsonb where cle = 'debit_pizza_quart_heure';
 insert into personnel (email, nom, role) values
   ('telephone-bureau@laferme.test', 'Téléphone bureau', 'service'),
   ('telephone-mobile@laferme.test', 'Téléphone mobile', 'service');
+
+-- Changer les plats d'une commande (bo-commandes, tests/e2e/gestion-difference.spec.ts) : un gérant par projet Playwright.
+insert into personnel (email, nom, role) values
+  ('difference-bureau@laferme.test', 'Différence bureau', 'gerant'),
+  ('difference-mobile@laferme.test', 'Différence mobile', 'gerant');

@@ -5,7 +5,11 @@ import { fonctionSql } from "@/lib/db/serveur";
 import { centimes, dateValide } from "@/lib/gestion";
 import { filtresListe, texteNote, UUID } from "@/lib/gestion-commandes";
 import { actionGestion, type ActionGestion } from "@/lib/actions-gestion";
+import { chargerCarte } from "@/lib/carte";
+import { chargerCatalogue } from "@/lib/catalogue";
+import { abandonnerModification, apercuDifference, modifierPlats } from "@/lib/difference";
 import { modifierCommande } from "@/lib/modifier-commande";
+import { origineSure } from "@/lib/origine";
 import type { ActionDroit } from "@/lib/personnel/droits";
 import { exigerDroit, exigerGerant } from "@/lib/personnel/session";
 import { recreerCommande } from "@/lib/recreer-commande";
@@ -38,6 +42,11 @@ const DROITS: Record<string, ActionDroit> = {
   rembourser: "rembourser",
   modifier: "modifier_commande",
   annuler: "annuler_apres_prete",
+  // Changer les plats à la demande du client (vague 3) : gérant ou responsable, la base revérifie (auteur_droit).
+  carte: "modifier_commande",
+  apercu_plats: "modifier_commande",
+  modifier_plats: "modifier_commande",
+  abandonner_modification: "modifier_commande",
 };
 
 export async function POST(requete: Request) {
@@ -87,7 +96,30 @@ export async function POST(requete: Request) {
     if (!fiche) return refus("Commande inconnue.", 404);
     // Plats offerts en attente pour ce client (D3) : liste vide tant que gestes_commerciaux_actifs est faux.
     const platsOfferts = await fonctionSql<unknown[]>("gestes_en_attente", { p_email: fiche.client_email ?? "" }).catch(() => []);
-    return NextResponse.json({ ...fiche, reclamations: reclamations?.lignes ?? [], plats_offerts: platsOfferts }, sansCache);
+    // Modifications des plats et compléments (vague 3) : absents tant que la base n'est pas migrée.
+    const difference = await fonctionSql<unknown>("modifications_commande_gestion", { p_commande: c.id }).catch(() => null);
+    return NextResponse.json({ ...fiche, reclamations: reclamations?.lignes ?? [], plats_offerts: platsOfferts, difference }, sansCache);
+  }
+
+  if (c.action === "carte") {
+    const [{ categories }, catalogue] = await Promise.all([chargerCarte(), chargerCatalogue()]);
+    return NextResponse.json({ categories, catalogue }, sansCache);
+  }
+
+  if (c.action === "apercu_plats" || c.action === "modifier_plats") {
+    if (typeof c.id !== "string" || !UUID.test(c.id)) return refus("Commande inconnue.", 404);
+    const d = { cle: c.cle, de: c.de, lignes: c.lignes, adresse: c.adresse, details: c.details, reglement: c.reglement };
+    if (c.action === "apercu_plats") return NextResponse.json(await apercuDifference(c.id, d), sansCache);
+    const origine = origineSure(requete);
+    if (!origine) return refus("Adresse du site inconnue.", 503);
+    const r = await modifierPlats(c.id, d, g.personnel, origine);
+    return NextResponse.json(r, { status: r.ok ? 200 : 409, ...sansCache });
+  }
+
+  if (c.action === "abandonner_modification") {
+    if (typeof c.modification !== "string" || !UUID.test(c.modification)) return refus("Modification inconnue.", 404);
+    const r = await abandonnerModification(c.modification, g.personnel);
+    return NextResponse.json(r, { status: r.ok ? 200 : 409, ...sansCache });
   }
 
   if (c.action === "offrir") {

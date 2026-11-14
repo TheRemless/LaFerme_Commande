@@ -105,6 +105,14 @@ describe("export_cresus", () => {
     await commande("2026-12-05", { total: 2052, tva: 52, moyen: "comptoir", comptoir: "especes", paiement: "encaisse" });
     await remboursement(a, 1026, "stripe", "2026-12-05T23:30:00+01:00");
     await remboursement(a, 2000, "stripe", "2026-12-06T10:00:00+01:00", "en_cours");
+    // Commande modifiée (bo-commandes) : un complément payé par le lien et un encaissé à la porte, dont des frais.
+    // Montants d'essai, comme les commandes ci-dessus.
+    await db.query(
+      `insert into complements (commande_id, montant_centimes, tva_centimes, frais_centimes, moyen, statut, moyen_encaissement, encaisse_le)
+       values ($1, 1026, 26, 0, 'en_ligne', 'encaisse', 'stripe', now()), ($1, 513, 13, 500, 'porte', 'encaisse', 'especes', now()),
+              ($1, 400, 10, 0, 'porte', 'a_encaisser', null, null)`,
+      [a],
+    );
     const recap = await f<RecapJour[]>("export_recap_jours($1, $2)", ["2026-12-01", "2026-12-31"]);
     const lignes = await f<LigneCresus[]>("export_cresus($1, $2)", ["2026-12-01", "2026-12-31"]);
     const r = ecrituresCresus(lignes, COMPTES);

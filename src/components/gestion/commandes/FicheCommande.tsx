@@ -25,6 +25,10 @@ import {
   useNotifier,
 } from "@/components/gestion/ui";
 import Link from "next/link";
+import {
+  ChangerPlats,
+  type DifferenceFiche,
+} from "@/components/gestion/commandes/ChangerPlats";
 import { useDroit, useRoleGestion } from "@/components/gestion/droits";
 import { nouvelleCle } from "@/lib/cle";
 import { jourGeneveDe } from "@/lib/heures";
@@ -128,6 +132,8 @@ type Fiche = {
     derniere_le: string;
   } | null;
   chronologie: Evenement[];
+  // Modifications des plats et compléments (vague 3) : absent tant que la base n'est pas migrée.
+  difference?: DifferenceFiche | null;
   // Plats offerts en attente pour ce client (D3), vides tant que le réglage est éteint.
   plats_offerts?: {
     id: string;
@@ -710,6 +716,19 @@ function Gestes({
       {gerant && IMPRIMABLE.includes(fiche.statut) && (
         <Reimprimer fiche={fiche} apres={apres} />
       )}
+      {peutModifier &&
+        fiche.difference &&
+        ["nouvelle", "acceptee", "en_preparation", "prete"].includes(
+          fiche.statut,
+        ) && (
+          <ChangerPlats
+            commande={fiche.id}
+            statut={fiche.statut}
+            mode={fiche.mode}
+            difference={fiche.difference}
+            apres={apres}
+          />
+        )}
       {!peutModifier ? null : MODIFIABLE.includes(fiche.statut) ? (
         <Modifier fiche={fiche} apres={apres} />
       ) : (

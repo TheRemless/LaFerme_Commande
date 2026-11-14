@@ -30,6 +30,8 @@ export type LivraisonLivreur = {
   total_centimes: number;
   // Commande prise au téléphone (vague 3, bo-commandes) : « telephone ». Absent avant la migration.
   canal?: "site" | "telephone";
+  // Complément d'une commande modifiée à encaisser à la porte (vague 3, bo-commandes), le premier non encaissé.
+  complement?: { id: string; centimes: number } | null;
   probleme: Probleme | null;
   probleme_detail: string | null;
 };
