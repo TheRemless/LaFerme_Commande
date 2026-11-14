@@ -89,7 +89,10 @@ describe("commandes_touchees", () => {
 
   it("aucun nom ni téléphone ; un visiteur ne l'appelle pas", async () => {
     const r = await touchees(["pizza-margherita"], null, null);
-    expect(JSON.stringify(r)).not.toMatch(/Touchee|079|laferme\.test/);
+    expect(r.length).toBeGreaterThan(0);
+    // Le numéro entier, pas « 079 » seul : un UUID de la réponse peut contenir ces trois chiffres (CI de #249).
+    expect(JSON.stringify(r)).not.toMatch(/Touchee|079 000 00 00|laferme\.test/);
+    expect(r.flatMap((x) => Object.keys(x)).filter((k) => /client|nom|telephone|email/.test(k))).toEqual([]);
     expect((await db.query<{ r: boolean }>("select has_function_privilege('anon', 'commandes_touchees(text[], text, date)', 'execute') as r")).rows[0].r).toBe(false);
   });
 });
