@@ -986,7 +986,7 @@ function CarteCommande({
                 <span className="tab-ligne-nom">
                   {l.qte} × {l.nom}
                 </span>
-                <span className="tab-poste">{l.station === "pizza" ? "Pizza" : "Cuisine"}</span>
+                <span className="tab-poste">{l.station === "pizza" ? "Pizza" : l.station === "comptoir" ? "Comptoir" : "Cuisine"}</span>
               </span>
               {l.pour?.trim() && <span className="tab-pour">pour {l.pour.trim()}</span>}
               {l.details.length > 0 && (
