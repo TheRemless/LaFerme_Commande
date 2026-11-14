@@ -164,3 +164,8 @@ insert into personnel (email, nom, role) values
 -- reste à 0 (ignoré), comme cuisine et livreurs. Le calcul avec 15 est vérifié par les tests qui posent leur propre
 -- débit (tests/unit/heure-reelle-four.test.ts, heure-reelle-sql, charge-postes-sql).
 update reglages set valeur = '0'::jsonb where cle = 'debit_pizza_quart_heure';
+
+-- Commande prise au téléphone (bo-commandes, tests/e2e/tablette-telephone.spec.ts) : un membre de service par projet Playwright.
+insert into personnel (email, nom, role) values
+  ('telephone-bureau@laferme.test', 'Téléphone bureau', 'service'),
+  ('telephone-mobile@laferme.test', 'Téléphone mobile', 'service');

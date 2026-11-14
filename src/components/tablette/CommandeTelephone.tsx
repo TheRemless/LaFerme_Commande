@@ -267,7 +267,10 @@ export function CommandeTelephone({
     return (
       <section className="tel-fait" aria-labelledby={`${ids}-fait`}>
         <h1 id={`${ids}-fait`}>Commande n° {resultat.numero} enregistrée</h1>
-        <p>{resultat.message}</p>
+        <p>
+          Heure annoncée au client : {resultat.heure}.
+          {client.email.trim() ? " Il reçoit le récapitulatif par e-mail." : ""}
+        </p>
         <p>
           Elle est acceptée et ses tickets partent selon l&apos;heure. Dites au
           client :{" "}
