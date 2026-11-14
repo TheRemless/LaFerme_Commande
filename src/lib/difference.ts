@@ -335,9 +335,10 @@ async function apresApplication(a: Application): Promise<void> {
         console.error(`Ticket AJOUT non créé pour la commande ${c.numero} : ${e instanceof Error ? e.message : e}`),
       );
     }
+    // Le montant encore dû s'imprime de lui-même sur « MODIFIÉE » (imprimerModification).
     const changements = [
       ...retires.map((l) => ({ champ: "Retiré", avant: texteLigne(cat, l), apres: "rien" })),
-      ...(complement && !ajouts.length ? [{ champ: "À encaisser", avant: "rien", apres: `CHF ${(complement.centimes / 100).toFixed(2)} (complément)` }] : []),
+      ...(complement && !ajouts.length ? [{ champ: "Complément", avant: "rien", apres: `CHF ${(complement.centimes / 100).toFixed(2)}` }] : []),
     ];
     if (changements.length) await imprimerModification(c.id, changements).catch((e) => console.error(`Ticket MODIFIÉE non créé pour la commande ${c.numero} : ${e instanceof Error ? e.message : e}`));
   }

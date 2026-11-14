@@ -17,5 +17,19 @@ export async function imprimerModification(commandeId: string, changements: Chan
   const c = (await commandeParId(commandeId)) as (CommandePourTicket & { statut: string; tickets_le?: string | null }) | null;
   if (!c || !c.tickets_le || !EN_COURS.has(c.statut)) return 0;
   const station = posteDuSac(c);
-  return fonctionSql<number>("creer_taches_impression", { p_commande: commandeId, p: [{ station, contenu: ticketModification(c, utiles) }], p_reimpression: true });
+  const du = await montantDu(commandeId, c).catch(() => undefined);
+  return fonctionSql<number>("creer_taches_impression", { p_commande: commandeId, p: [{ station, contenu: ticketModification(c, utiles, new Date(), du) }], p_reimpression: true });
+}
+
+// Ce qui reste à encaisser, comme la page du livreur : commande à encaisser (total moins les manques déduits), ou
+// compléments d'une commande modifiée encore dus à la porte ou au comptoir (vague 3, bo-commandes).
+async function montantDu(commandeId: string, c: CommandePourTicket & { total_centimes?: number }): Promise<{ centimes: number; complement: boolean } | undefined> {
+  if (c.statut_paiement === "a_encaisser_retrait") {
+    const manques = await fonctionSql<{ commande_id: string; deduit_centimes: number }[]>("manques_en_cours", {}).catch(() => []);
+    const deduit = manques.find((m) => m.commande_id === commandeId)?.deduit_centimes ?? 0;
+    return { centimes: (c.total_centimes ?? 0) - deduit, complement: false };
+  }
+  const d = await fonctionSql<{ complements: { montant_centimes: number; statut: string }[] } | null>("modifications_commande_gestion", { p_commande: commandeId });
+  const centimes = (d?.complements ?? []).filter((k) => k.statut === "a_encaisser").reduce((t, k) => t + k.montant_centimes, 0);
+  return centimes > 0 ? { centimes, complement: true } : undefined;
 }

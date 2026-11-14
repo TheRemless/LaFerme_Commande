@@ -1,4 +1,5 @@
 import type { PostePlat } from "@/lib/postes-plat";
+import { prixChf } from "@/lib/prix";
 
 // Ticket de cuisine 80 mm (docs/recherche/prompt-v1-ancien-site.md §8). Une liste de lignes mises en
 // forme, figée à l'acceptation, puis rendue en image pour l'imprimante, en texte de secours, ou en grand
@@ -267,7 +268,14 @@ export function posteDuSac(c: Pick<CommandePourTicket, "lignes">): "pizza" | "cu
 
 // Une commande acceptée change (téléphone, consignes, adresse) après la sortie de ses tickets : un seul ticket, au
 // poste qui fait le sac, avec chaque changement puis l'état à jour. Les plats ne changent jamais ici.
-export function ticketModification(c: CommandePourTicket, changements: Changement[], maintenant: string | Date = new Date()): LigneTicket[] {
+// du : ce qui reste à encaisser à la porte ou au comptoir (commande à encaisser, ou complément d'une commande
+// modifiée), comme la page du livreur. Absent ou 0 : tout est payé, rien n'est imprimé (vague 3, bo-commandes).
+export function ticketModification(
+  c: CommandePourTicket,
+  changements: Changement[],
+  maintenant: string | Date = new Date(),
+  du?: { centimes: number; complement: boolean },
+): LigneTicket[] {
   const contenu: LigneTicket[] = [
     { t: "texte", texte: "MODIFIÉE", taille: 3, gras: true },
     { t: "deux", gauche: c.mode === "livraison" ? "LIVRAISON" : "À EMPORTER", droite: `N° ${String(c.numero).padStart(3, "0")}`, taille: 3, gras: true },
@@ -280,6 +288,7 @@ export function ticketModification(c: CommandePourTicket, changements: Changemen
     contenu.push({ t: "texte", texte: `après : ${ch.apres || "(vide)"}`, retrait: true, gras: true, inverse: true });
   }
   contenu.push({ t: "filet" });
+  if (du && du.centimes > 0) contenu.push({ t: "texte", texte: `À ENCAISSER : ${prixChf(du.centimes)}${du.complement ? " (COMPLÉMENT)" : ""}`, gras: true });
   contenu.push({ t: "texte", texte: `Client : ${c.client_prenom} ${c.client_nom.charAt(0)}.   ${c.client_telephone}` });
   if (c.destinataire?.nom) contenu.push({ t: "texte", texte: `Pour : ${c.destinataire.nom}   ${c.destinataire.telephone}`, gras: true });
   if (c.mode === "livraison" && c.adresse) {
