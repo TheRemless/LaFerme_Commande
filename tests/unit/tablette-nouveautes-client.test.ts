@@ -37,6 +37,13 @@ describe("tickets", () => {
     expect(textes(pizza.contenu)).not.toContain("SAC");
   });
 
+  it("boissons seulement : un ticket, celui du sac, en cuisine", () => {
+    const c: CommandePourTicket = { ...base, lignes: [{ nom: "Coca-Cola 33 cl", qte: 2, station: "comptoir", details: [] }] };
+    const tickets = ticketsDeCommande(c, { accepteLe: "2026-11-10T18:10:00Z" });
+    expect(tickets.map((t) => t.station)).toEqual(["cuisine"]);
+    expect(textes(tickets[0].contenu)).toContain("[ ] 2 x Coca-Cola 33 cl");
+  });
+
   it("rien de nouveau quand le client n'a rien demandé", () => {
     const t = ticketsDeCommande(base, { accepteLe: "2026-11-10T18:10:00Z" }).map((x) => textes(x.contenu)).join("\n");
     expect(t).not.toMatch(/Pour :|COUVERTS|ALLERGIE/);

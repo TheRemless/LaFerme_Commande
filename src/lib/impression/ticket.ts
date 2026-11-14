@@ -51,7 +51,7 @@ export function ticketsDeCommande(
   c: CommandePourTicket,
   { accepteLe, reimpression = false }: { accepteLe: string | Date; reimpression?: boolean },
 ): { station: "pizza" | "cuisine"; contenu: LigneTicket[] }[] {
-  const stations = (["pizza", "cuisine"] as const).filter((s) => c.lignes.some((l) => l.station === s));
+  const stations = (["pizza", "cuisine"] as const).filter((s) => c.lignes.some((l) => l.station === s) || (s === posteDuSac(c) && c.lignes.length > 0));
   return stations.map((station) => {
     const lignes = c.lignes.filter((l) => l.station === station);
     const autre = station === "pizza" ? "cuisine" : "pizza";
@@ -236,9 +236,10 @@ export function listeDuSac(c: Pick<CommandePourTicket, "lignes" | "couverts">): 
   return contenu;
 }
 
-// Poste qui fait le sac : la cuisine s'il y a des lignes cuisine, sinon les pizzas.
+// Poste qui fait le sac : la cuisine s'il y a des lignes cuisine, sinon les pizzas. Commande sans pizza ni plat
+// cuisiné (boissons et desserts du comptoir seulement) : la cuisine, qui reçoit alors le seul ticket, celui du sac.
 export function posteDuSac(c: Pick<CommandePourTicket, "lignes">): "pizza" | "cuisine" {
-  return c.lignes.some((l) => l.station === "cuisine") ? "cuisine" : "pizza";
+  return c.lignes.some((l) => l.station === "cuisine") || !c.lignes.some((l) => l.station === "pizza") ? "cuisine" : "pizza";
 }
 
 // Une commande acceptée change (téléphone, consignes, adresse) après la sortie de ses tickets : un seul ticket, au
