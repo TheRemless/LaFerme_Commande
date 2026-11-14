@@ -3,6 +3,7 @@ import { chargerDonneesCarte } from "@/lib/catalogue";
 import { sourceDonnees, type SourceDonnees } from "@/lib/db/lecture";
 import { PHOTOS_RETIREES } from "@/lib/photos";
 import { dateDe } from "@/lib/plat-du-jour";
+import type { PostePlat } from "@/lib/postes-plat";
 
 // Une ligne de la vue carte_publique (supabase/migrations/20261105120000_carte.sql).
 export type LignePlat = {
@@ -21,7 +22,7 @@ export type LignePlat = {
   provenances_a_fournir: string[];
   allergenes: string | null;
   a_options: boolean;
-  station: "pizza" | "cuisine";
+  station: PostePlat;
   // Plat du jour : date (lue en texte ou en Date selon la base) et service. Null pour la carte.
   jour?: string | null;
   jour_service?: "midi" | "soir" | "journee" | null;

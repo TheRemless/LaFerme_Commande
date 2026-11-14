@@ -6,6 +6,7 @@ import { PhotoPlat } from "@/components/gestion/PhotoPlat";
 import { NouveauGroupe, ReglerGroupe } from "@/components/gestion/carte/Groupes";
 import { PanneauLateral, useGardeModifications } from "@/components/gestion/ui";
 import { PHOTOS, estPhotoEnvoyee } from "@/lib/photos";
+import { AIDE_POSTE, POSTES_PLAT, type PostePlat } from "@/lib/postes-plat";
 import { poster } from "@/lib/requete-client";
 
 export type ServiceJour = "midi" | "soir" | "journee";
@@ -17,7 +18,7 @@ export type PlatGestion = {
   prix_centimes: number;
   prix_a_valider: boolean;
   commandable: boolean;
-  station: "pizza" | "cuisine";
+  station: PostePlat;
   photo: string | null;
   provenance: string | null;
   provenances_a_fournir: string[];
@@ -401,11 +402,17 @@ export function FichePlat({ plat, donnees, recharger }: { plat: PlatGestion; don
             </div>
           )}
           <div className="champ">
-            <label htmlFor={`${ids}-station`}>Poste (imprimante)</label>
-            <select id={`${ids}-station`} value={f.station} onChange={(e) => setF({ ...f, station: e.target.value as "pizza" | "cuisine" })}>
-              <option value="pizza">Pizza</option>
-              <option value="cuisine">Cuisine</option>
+            <label htmlFor={`${ids}-station`}>Poste</label>
+            <select id={`${ids}-station`} aria-describedby={`${ids}-station-aide`} value={f.station} onChange={(e) => setF({ ...f, station: e.target.value as PostePlat })}>
+              {POSTES_PLAT.map(([v, t]) => (
+                <option key={v} value={v}>
+                  {t}
+                </option>
+              ))}
             </select>
+            <p className="aide" id={`${ids}-station-aide`}>
+              {AIDE_POSTE}
+            </p>
           </div>
           {!duJour && <ChoixGroupes groupes={donnees.groupes} choisis={f.groupes} changer={(g) => setF({ ...f, groupes: g })} />}
           <div className="champ">
@@ -572,12 +579,18 @@ export function NouveauPlat({ donnees, fermer, cree }: { donnees: DonneesCarte; 
           </select>
         </div>
         <div className="champ">
-          <label htmlFor={`${ids}-station`}>Poste (imprimante)</label>
-          <select id={`${ids}-station`} value={f.station} onChange={(e) => setF({ ...f, station: e.target.value })} required>
+          <label htmlFor={`${ids}-station`}>Poste</label>
+          <select id={`${ids}-station`} aria-describedby={`${ids}-station-aide`} value={f.station} onChange={(e) => setF({ ...f, station: e.target.value })} required>
             <option value="">Choisir</option>
-            <option value="pizza">Pizza</option>
-            <option value="cuisine">Cuisine</option>
+            {POSTES_PLAT.map(([v, t]) => (
+              <option key={v} value={v}>
+                {t}
+              </option>
+            ))}
           </select>
+          <p className="aide" id={`${ids}-station-aide`}>
+            {AIDE_POSTE}
+          </p>
         </div>
         <div className="champ">
           <label htmlFor={`${ids}-nom`}>Nom affiché</label>
@@ -817,11 +830,17 @@ export function GestionPlatDuJour({ donnees, recharger }: { donnees: DonneesCart
             <textarea id={`${ids}-description`} rows={2} maxLength={400} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} />
           </div>
           <div className="champ">
-            <label htmlFor={`${ids}-station`}>Poste (imprimante)</label>
-            <select id={`${ids}-station`} value={f.station} onChange={(e) => setF({ ...f, station: e.target.value })}>
-              <option value="pizza">Pizza</option>
-              <option value="cuisine">Cuisine</option>
+            <label htmlFor={`${ids}-station`}>Poste</label>
+            <select id={`${ids}-station`} aria-describedby={`${ids}-station-aide`} value={f.station} onChange={(e) => setF({ ...f, station: e.target.value })}>
+              {POSTES_PLAT.map(([v, t]) => (
+                <option key={v} value={v}>
+                  {t}
+                </option>
+              ))}
             </select>
+            <p className="aide" id={`${ids}-station-aide`}>
+              {AIDE_POSTE}
+            </p>
           </div>
           <div className="champ">
             <label htmlFor={`${ids}-provenance`}>Provenance affichée</label>

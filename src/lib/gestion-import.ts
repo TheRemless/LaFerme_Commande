@@ -1,6 +1,7 @@
 import "server-only";
 import { centimes, slugDe } from "@/lib/gestion";
 import { Classeur, type Feuille, type Valeur } from "@/lib/xlsx-lecture";
+import { estPostePlat, type PostePlat } from "@/lib/postes-plat";
 
 // Import du tableau docs/validation-carte.xlsx rempli par Jérémy (onglets Carte, Suppléments pizza,
 // Choix des pâtes). On ne lit que les cases jaunes : prix validé, commandable, station, provenance,
@@ -13,7 +14,7 @@ type PlatActuel = {
   prix_centimes: number;
   prix_a_valider: boolean;
   commandable: boolean;
-  station: "pizza" | "cuisine";
+  station: PostePlat;
   provenance: string | null;
   provenances_a_fournir: string[];
   allergenes: string | null;
@@ -112,7 +113,7 @@ export function lireTableau(fichier: ArrayBuffer, actuelle: CarteActuelle): Aper
     const station = cellule(carte, r, iStation);
     if (station !== null) {
       const s = normal(String(station));
-      if (s !== "pizza" && s !== "cuisine") apercu.avertissements.push(`Ligne ${r} (${nom}) : station « ${station} » inconnue, ignorée.`);
+      if (!estPostePlat(s)) apercu.avertissements.push(`Ligne ${r} (${nom}) : station « ${station} » inconnue, ignorée.`);
       else if (s !== p.station) {
         champs.station = s;
         changements.push({ champ: "Station", avant: p.station, apres: s });

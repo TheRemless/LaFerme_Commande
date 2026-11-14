@@ -131,7 +131,7 @@ def main():
             "prixPropose": prix_salle if prix_salle is not None else p["prixUber"],
             "sourcePrix": "salle" if prix_salle is not None else "uber",
             "prixAValider": True,
-            "station": "pizza" if p["c"] == "Pizzas" or nom.startswith("Chiacchiere") else "cuisine",
+            "station": "pizza" if p["c"] == "Pizzas" or nom.startswith("Chiacchiere") else "comptoir" if p["c"] == "Boissons" else "cuisine",
             "groupes": p.get("o", []),
             "retraits": retraits(p),
             "provenancesConnues": connues,

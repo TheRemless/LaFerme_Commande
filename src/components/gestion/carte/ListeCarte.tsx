@@ -10,6 +10,7 @@ import { CommandesTouchees, EpuiserPoste, RupturesGroupees } from "@/components/
 import { jourCourtFr } from "@/components/gestion/carte/dates";
 import { enregistrer } from "@/components/gestion/enregistrer";
 import { PanneauLateral, TableauDonnees, montant, useConfirmer, useNotifier, useOuverture, type Colonne, type Tri } from "@/components/gestion/ui";
+import { libellePoste } from "@/lib/postes-plat";
 
 // La carte en liste dense (vague 3) : 80 plats et plus d'un coup d'œil, ce qui manque à chacun, le prix
 // modifiable sur place, les gestes en lot (prix, validation, épuisé jusqu'à une date, remise en vente).
@@ -194,7 +195,7 @@ export function ListeCarte({ donnees, recharger, version }: { donnees: DonneesCa
       valeur: (p) => (p.etiquettes ?? []).map((e) => ETIQUETTES.find(([v]) => v === e)?.[1] ?? e).join(", "),
       cacheeParDefaut: true,
     },
-    { cle: "poste", titre: "Poste", valeur: (p) => (p.station === "pizza" ? "Pizza" : "Cuisine"), cacheeParDefaut: true },
+    { cle: "poste", titre: "Poste", valeur: (p) => libellePoste(p.station), cacheeParDefaut: true },
   ];
 
   async function valider(cles: string[], vider: () => void) {
