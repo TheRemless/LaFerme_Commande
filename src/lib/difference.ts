@@ -85,9 +85,11 @@ async function calculer(commandeId: string, d: Record<string, unknown>): Promise
   let details: unknown = null;
   let zoneNumero: number | null = null;
   let livraison: { frais_centimes: number; minimum_centimes: number } | null = null;
+  // Frais actuels : ceux de la dernière adresse appliquée (une commande payée garde ses frais payés au départ).
+  const fraisActuels = await fonctionSql<number>("frais_commande", { p_commande: c.id }).catch(() => c.frais_centimes);
   if (c.mode === "livraison") {
     const zoneActuelle = config.zones.find((z) => z.numero === c.zone_numero);
-    livraison = { frais_centimes: c.frais_centimes, minimum_centimes: zoneActuelle?.minimum_centimes ?? 0 };
+    livraison = { frais_centimes: fraisActuels, minimum_centimes: zoneActuelle?.minimum_centimes ?? 0 };
     // Nouvelle adresse (une autre zone, plus chère ou non) : contrôlée comme au site, ses frais remplacent les anciens.
     if (d.adresse && typeof d.adresse === "object") {
       const r = await zoneServeur(config, d.adresse, true);
@@ -107,6 +109,8 @@ async function calculer(commandeId: string, d: Record<string, unknown>): Promise
   if (fausse) return { ok: false, message: `${nomClient(fausse.nom, platDe(catalogue, fausse.slug)?.categorie_slug === "pizzas")} : ${fausse.erreur}` };
   if (totaux.manque_minimum_centimes > 0) return { ok: false, message: "Le minimum de commande de la zone n'est pas atteint." };
 
+  // Prénom par ligne (« pour Léa ») gardé pour une ligne déjà là.
+  const pourDe = new Map(c.lignes.map((l) => [cleLigne({ slug: l.plat_slug, choix: l.choix ?? {}, retraits: l.retraits ?? [], note: l.note ?? "" }), (l as { pour?: string }).pour ?? ""]));
   const lignes: LigneSql[] = totaux.lignes.map((l) => ({
     slug: l.slug,
     nom: l.nom,
@@ -118,7 +122,7 @@ async function calculer(commandeId: string, d: Record<string, unknown>): Promise
     prix_choix: prixChoix(catalogue, l),
     retraits: l.retraits,
     note: l.note.trim(),
-    pour: "",
+    pour: pourDe.get(cleLigne({ slug: l.slug, choix: l.choix, retraits: l.retraits, note: l.note })) ?? "",
   }));
 
   // Ajouts et retraits, ligne par ligne (même plat, mêmes options) : pour les tickets et l'e-mail.
@@ -137,7 +141,7 @@ async function calculer(commandeId: string, d: Record<string, unknown>): Promise
   }
   const retires = [...avant.values()].filter((x) => x.qte > 0);
 
-  const valeur = c.lignes.reduce((t, l) => t + l.total_centimes, 0) + c.frais_centimes;
+  const valeur = c.lignes.reduce((t, l) => t + l.total_centimes, 0) + fraisActuels;
   const difference = totaux.total_centimes - valeur;
   const reglements: Reglement[] =
     c.statut_paiement === "a_encaisser_retrait"
@@ -208,6 +212,7 @@ export async function modifierPlats(commandeId: string, d: Record<string, unknow
         adresse: r.adresse,
         details_livraison: r.details,
         zone_numero: r.zoneNumero,
+        valeur_avant: r.valeur,
       },
       p_personnel: p.id,
     });
@@ -222,7 +227,9 @@ export async function modifierPlats(commandeId: string, d: Record<string, unknow
   if (m.reglement === "lien") {
     const montant = m.difference_centimes;
     const suivi = `${origine}/suivi/${r.c.jeton_suivi}`;
-    const session = await passerelle().creerSession({
+    let session: { id: string; url: string };
+    try {
+      session = await passerelle().creerSession({
       commandeId: r.c.id,
       numero: r.c.numero,
       email: r.c.client_email,
@@ -234,8 +241,17 @@ export async function modifierPlats(commandeId: string, d: Record<string, unknow
       reference: `complement_${m.id}`,
       cheminDoublure: `/paiement-test/complement/${m.id}`,
       description: `La Ferme, complément de la commande ${r.c.numero}`,
-    });
-    await fonctionSql("lier_session_modification", { p_modification: m.id, p_session: session.id });
+      });
+    } catch (e) {
+      // Pas de lien : la modification est abandonnée tout de suite, l'équipe peut recommencer.
+      console.error(`Lien du complément non créé pour la commande ${r.c.numero} : ${e instanceof Error ? e.message : e}`);
+      await fonctionSql("abandonner_modification", { p_modification: m.id, p_personnel: p.id }).catch(() => {});
+      return { ok: false, message: "Le lien de paiement n'a pas pu être créé. Rien n'a changé : réessayez, ou choisissez « à encaisser »." };
+    }
+    if (!(await fonctionSql<boolean | null>("lier_session_modification", { p_modification: m.id, p_session: session.id }))) {
+      await passerelle().expirerSession(session.id).catch(() => {});
+      return { ok: false, message: "La commande a changé entre-temps. Rechargez la fiche." };
+    }
     const ajouts = r.ajouts.map((l) => texteLigne(r.catalogue, l));
     if (r.c.client_email) {
       await envoyerCourriel({ commandeId: r.c.id, destinataire: r.c.client_email, ...courrielLienComplement(r.c, ajouts, montant, session.url) }).catch((e) =>
@@ -267,6 +283,7 @@ type Application = {
   applique: boolean;
   raison?: string;
   a_rembourser?: boolean;
+  montant_centimes?: number | null;
   commande_id?: string;
   numero?: number;
   reglement?: Reglement;
@@ -314,7 +331,7 @@ async function apresApplication(a: Application): Promise<void> {
     if (changements.length) await imprimerModification(c.id, changements).catch((e) => console.error(`Ticket MODIFIÉE non créé pour la commande ${c.numero} : ${e instanceof Error ? e.message : e}`));
   }
   if (a.remboursement && a.remboursement.moyen === "stripe" && a.remboursement.statut === "en_cours") {
-    const r = await rembourserLigne(a.remboursement, c, `modification-${a.remboursement.id}`).catch((e) => ({ ok: false, message: String(e) }));
+    const r = await rembourserLigne(a.remboursement, c, a.remboursement.cle ?? `modification-${a.remboursement.id}`).catch((e) => ({ ok: false, message: String(e) }));
     if (!r.ok) console.error(`Remboursement de la modification non abouti pour la commande ${c.numero} : ${r.message}`);
   }
   if (c.client_email) {
@@ -349,13 +366,20 @@ export async function confirmerComplement(modificationId: string, evenement: str
     await apresApplication(a);
     return true;
   }
-  if (a.raison === "commande_finie" && a.a_rembourser) {
-    await alerter("Complément payé sur une commande déjà partie", [
-      "Un client a payé le complément d'une commande modifiée, mais la commande était déjà partie, terminée ou annulée.",
-      "La modification ne s'est pas appliquée. Remboursez le complément depuis Stripe.",
-    ]).catch((e) => console.error(`Alerte non envoyée : ${e instanceof Error ? e.message : e}`));
-  } else if (a.raison === "session" || a.raison === "montant") {
-    console.error(`Paiement de complément non rapproché (${a.raison}) pour la modification ${modificationId}.`);
+  // Argent reçu sans modification appliquée : le gérant est alerté pour rembourser (qualite, relecture DIFFÉRENCE).
+  const montant = a.montant_centimes ? `CHF ${(a.montant_centimes / 100).toFixed(2)}` : "le complément";
+  const commande = a.numero ? `la commande ${a.numero}` : "une commande modifiée";
+  const raisons: Record<string, string> = {
+    commande_finie: `Le client a payé ${montant} pour ${commande}, mais elle était déjà partie, terminée ou annulée. La modification ne s'est pas appliquée.`,
+    abandonnee_payee: `Le client a payé ${montant} pour ${commande}, mais la modification avait été abandonnée. Rien n'a changé dans la commande.`,
+    montant: `Un paiement de ${montant} est arrivé pour ${commande}, au lieu du montant attendu. La modification ne s'est pas appliquée.`,
+  };
+  if (a.raison && raisons[a.raison] && (a.a_rembourser || a.raison === "montant")) {
+    await alerter("Complément payé sans modification", [raisons[a.raison], "Remboursez ce paiement depuis Stripe."]).catch((e) =>
+      console.error(`Alerte non envoyée : ${e instanceof Error ? e.message : e}`),
+    );
+  } else if (a.raison === "session") {
+    console.error(`Paiement de complément non rapproché (session) pour la modification ${modificationId}.`);
   }
   return false;
 }
@@ -366,10 +390,21 @@ export async function expirerComplement(modificationId: string, sessionId: strin
 
 // L'équipe renonce à une modification en attente de paiement : le lien est fermé chez Stripe.
 export async function abandonnerModification(modificationId: string, p: Personnel): Promise<ResultatDifference> {
+  // Le lien d'abord : déjà payé, la modification va s'appliquer ; sinon il est fermé chez Stripe avant l'abandon.
+  const session = await fonctionSql<string | null>("lien_modification", { p_modification: modificationId });
+  if (session) {
+    const etat = await passerelle().lireSession(session).catch(() => null);
+    if (etat?.statut === "paye") return { ok: false, message: "Le client vient de payer : la modification s'applique dans un instant. Rechargez la fiche." };
+    try {
+      await passerelle().expirerSession(session);
+    } catch (e) {
+      console.error(`Lien non fermé chez Stripe : ${e instanceof Error ? e.message : e}`);
+      return { ok: false, message: "Le lien n'a pas pu être fermé chez Stripe. Réessayez dans un instant." };
+    }
+  }
   try {
     const r = await fonctionSql<{ abandonnee: boolean; stripe_session_id?: string | null }>("abandonner_modification", { p_modification: modificationId, p_personnel: p.id });
     if (!r.abandonnee) return { ok: false, message: "Cette modification n'attend plus rien." };
-    if (r.stripe_session_id) await passerelle().expirerSession(r.stripe_session_id).catch((e) => console.error(`Lien non fermé chez Stripe : ${e instanceof Error ? e.message : e}`));
     return { ok: true, message: "Modification abandonnée. Le lien de paiement ne marche plus." };
   } catch (e) {
     if (e instanceof Error && e.message.includes("droit_refuse")) return { ok: false, message: ERREURS.droit_refuse };

@@ -52,6 +52,8 @@ create table complements (
   modification_id uuid references modifications_commande (id) on delete set null,
   montant_centimes integer not null check (montant_centimes > 0),
   tva_centimes integer not null check (tva_centimes >= 0),
+  -- Part du complément due à des frais de livraison plus chers (autre zone), pour l'export.
+  frais_centimes integer not null default 0 check (frais_centimes >= 0 and frais_centimes <= montant_centimes),
   moyen text not null check (moyen in ('en_ligne', 'porte', 'comptoir')),
   statut text not null default 'a_encaisser' check (statut in ('a_encaisser', 'encaisse')),
   moyen_encaissement text check (moyen_encaissement in ('stripe', 'especes', 'carte')),
@@ -59,6 +61,9 @@ create table complements (
   cree_le timestamptz not null default now(),
   encaisse_le timestamptz,
   encaisse_par text,
+  -- Complément payé par le lien, rendu au refus ou à l'annulation de la commande (src/lib/commandes.ts).
+  rembourse_le timestamptz,
+  stripe_refund_id text,
   check ((statut = 'encaisse') = (moyen_encaissement is not null and encaisse_le is not null))
 );
 create index complements_commande_idx on complements (commande_id);
@@ -68,12 +73,22 @@ alter table complements enable row level security;
 revoke all on modifications_commande, complements from anon, authenticated;
 grant select, insert, update, delete on modifications_commande, complements to service_role;
 
--- Valeur actuelle d'une commande : ses plats et ses frais (ce que le client a commandé, avant ou après une
+-- Frais de livraison actuels : ceux de la dernière modification appliquée (une autre adresse), sinon ceux de la commande.
+-- Une commande payée garde ses frais payés au départ (frais_centimes) : la différence passe par complements.
+create function frais_commande(p_commande uuid) returns integer
+language sql stable as $$
+  select coalesce(
+    (select m.frais_centimes from modifications_commande m where m.commande_id = p_commande and m.statut = 'appliquee'
+      order by m.fini_le desc, m.cree_le desc limit 1),
+    (select frais_centimes from commandes where id = p_commande));
+$$;
+
+-- Valeur actuelle d'une commande : ses plats et ses frais actuels (ce que le client a commandé, avant ou après une
 -- modification). Pour une commande payée, différente de total_centimes (le montant payé au départ).
 create function valeur_commande(p_commande uuid) returns integer
 language sql stable as $$
   select (coalesce((select sum(l.total_centimes) from commande_lignes l where l.commande_id = p_commande), 0)
-    + (select frais_centimes from commandes where id = p_commande))::integer;
+    + frais_commande(p_commande))::integer;
 $$;
 
 -- Applique une modification : nouvelles lignes, adresse, argent (complément ou remboursement), historique, journal.
@@ -90,9 +105,26 @@ declare
   i integer := 0;
   l jsonb;
   engage integer;
+  reste integer;
+  x complements%rowtype;
+  frais_avant integer;
 begin
   select * into m from modifications_commande where id = p_modification for update;
-  if not found or m.statut <> 'en_attente' then
+  if not found or m.statut in ('appliquee', 'payee_non_appliquee') then
+    return jsonb_build_object('applique', false, 'raison', 'deja');
+  end if;
+  if m.statut = 'abandonnee' then
+    -- Lien payé après l'abandon (le client payait au moment où l'équipe renonçait, ou la session n'a pas pu être
+    -- fermée) : l'argent est reçu sans modification. Noté une fois, et le gérant est alerté (src/lib/difference.ts).
+    if m.reglement = 'lien' and p_evenement is not null then
+      insert into evenements_paiement (id, commande_id, type) values (p_evenement, m.commande_id, 'complement') on conflict (id) do nothing;
+      if not found then
+        return jsonb_build_object('applique', false, 'raison', 'deja');
+      end if;
+      update modifications_commande set statut = 'payee_non_appliquee', stripe_payment_intent = p_payment_intent, fini_le = now() where id = m.id;
+      return jsonb_build_object('applique', false, 'raison', 'abandonnee_payee', 'a_rembourser', true, 'commande_id', m.commande_id,
+        'numero', (select numero from commandes where id = m.commande_id), 'montant_centimes', p_montant);
+    end if;
     return jsonb_build_object('applique', false, 'raison', 'deja');
   end if;
   if m.reglement = 'lien' then
@@ -104,7 +136,8 @@ begin
       return jsonb_build_object('applique', false, 'raison', 'deja');
     end if;
     if p_montant is distinct from m.difference_centimes then
-      return jsonb_build_object('applique', false, 'raison', 'montant');
+      return jsonb_build_object('applique', false, 'raison', 'montant', 'commande_id', m.commande_id,
+        'numero', (select numero from commandes where id = m.commande_id), 'montant_centimes', p_montant);
     end if;
   end if;
   select * into c from commandes where id = m.commande_id for update;
@@ -113,9 +146,11 @@ begin
     -- s'applique pas. Le gérant le voit et rembourse (src/lib/difference.ts l'alerte).
     update modifications_commande set statut = case when m.reglement = 'lien' then 'payee_non_appliquee' else 'abandonnee' end,
       stripe_payment_intent = coalesce(p_payment_intent, stripe_payment_intent), fini_le = now() where id = m.id;
-    return jsonb_build_object('applique', false, 'raison', 'commande_finie', 'a_rembourser', m.reglement = 'lien');
+    return jsonb_build_object('applique', false, 'raison', 'commande_finie', 'a_rembourser', m.reglement = 'lien',
+      'commande_id', c.id, 'numero', c.numero, 'montant_centimes', p_montant);
   end if;
 
+  frais_avant := frais_commande(c.id);
   delete from commande_lignes where commande_id = c.id;
   for l in select * from jsonb_array_elements(m.lignes) loop
     i := i + 1;
@@ -137,26 +172,44 @@ begin
   end if;
 
   if m.reglement in ('lien', 'porte', 'comptoir') then
-    insert into complements (commande_id, modification_id, montant_centimes, tva_centimes, moyen, statut, moyen_encaissement, stripe_payment_intent, encaisse_le, encaisse_par)
+    insert into complements (commande_id, modification_id, montant_centimes, tva_centimes, frais_centimes, moyen, statut, moyen_encaissement, stripe_payment_intent, encaisse_le, encaisse_par)
     values (c.id, m.id, m.difference_centimes, round(m.difference_centimes * c.taux_tva_pourcent / (100 + c.taux_tva_pourcent))::integer,
+      least(greatest(m.frais_centimes - frais_avant, 0), m.difference_centimes),
       case when m.reglement = 'lien' then 'en_ligne' else m.reglement end,
       case when m.reglement = 'lien' then 'encaisse' else 'a_encaisser' end,
       case when m.reglement = 'lien' then 'stripe' end, p_payment_intent,
       case when m.reglement = 'lien' then now() end, case when m.reglement = 'lien' then 'stripe' end)
     returning * into k;
   elsif m.reglement = 'remboursement' then
+    -- Un complément encore à encaisser (porte, comptoir) se réduit d'abord : on ne rembourse pas ce qui n'est pas payé.
+    reste := -m.difference_centimes;
+    for x in select * from complements where commande_id = c.id and statut = 'a_encaisser' order by cree_le desc for update loop
+      exit when reste <= 0;
+      if x.montant_centimes <= reste then
+        delete from complements where id = x.id;
+        reste := reste - x.montant_centimes;
+      else
+        update complements set montant_centimes = x.montant_centimes - reste,
+          tva_centimes = round((x.montant_centimes - reste) * c.taux_tva_pourcent / (100 + c.taux_tva_pourcent))::integer,
+          frais_centimes = least(x.frais_centimes, x.montant_centimes - reste)
+        where id = x.id;
+        reste := 0;
+      end if;
+    end loop;
     select coalesce(sum(montant_centimes), 0) into engage from remboursements where commande_id = c.id and statut in ('fait', 'en_cours');
-    if engage - m.difference_centimes > c.total_centimes then
+    if reste > 0 and engage + reste > c.total_centimes then
       raise exception 'montant_trop_eleve';
     end if;
+    if reste > 0 then
     insert into remboursements (commande_id, cle, montant_centimes, motif, moyen, statut, personnel_id, personnel_nom, fait_le)
-    values (c.id, 'modification-' || m.id, -m.difference_centimes, 'Commande modifiée à la demande du client',
+    values (c.id, 'modification-' || m.id, reste, 'Commande modifiée à la demande du client',
       case when c.moyen_paiement = 'en_ligne' then 'stripe' else 'especes' end,
       case when c.moyen_paiement = 'en_ligne' then 'en_cours' else 'fait' end,
       m.personnel_id, m.personnel_nom, case when c.moyen_paiement = 'en_ligne' then null else now() end)
     returning * into rb;
     if rb.statut = 'fait' then
       perform maj_rembourse(c.id);
+    end if;
     end if;
   end if;
 
@@ -208,6 +261,10 @@ begin
     raise exception 'modification_en_attente';
   end if;
   valeur := valeur_commande(c.id);
+  -- La commande a changé depuis le calcul du serveur (une autre modification) : les ajouts seraient faux.
+  if p ? 'valeur_avant' and (p ->> 'valeur_avant')::integer <> valeur then
+    raise exception 'deja_change';
+  end if;
   diff := (p ->> 'total_centimes')::integer - valeur;
   if c.statut_paiement = 'a_encaisser_retrait' then
     reg := 'aucun';
@@ -295,6 +352,27 @@ language sql as $$
   returning true;
 $$;
 
+-- Session du lien d'une modification en attente (pour la lire et la fermer chez Stripe avant d'abandonner).
+create function lien_modification(p_modification uuid) returns text
+language sql stable as $$
+  select stripe_session_id from modifications_commande where id = p_modification and statut = 'en_attente';
+$$;
+
+-- Commande refusée ou annulée après un complément payé par le lien : ces compléments se rendent aussi.
+create function complements_a_rembourser(p_commande uuid) returns jsonb
+language sql stable as $$
+  select coalesce(jsonb_agg(jsonb_build_object('id', k.id, 'montant_centimes', k.montant_centimes, 'stripe_payment_intent', k.stripe_payment_intent)), '[]'::jsonb)
+  from complements k
+  where k.commande_id = p_commande and k.moyen = 'en_ligne' and k.statut = 'encaisse' and k.rembourse_le is null
+    and k.stripe_payment_intent is not null;
+$$;
+
+create function noter_complement_rembourse(p_complement uuid, p_refund text) returns boolean
+language sql as $$
+  update complements set rembourse_le = now(), stripe_refund_id = p_refund where id = p_complement and rembourse_le is null
+  returning true;
+$$;
+
 -- Complément encaissé à la porte (le livreur de la commande) ou au comptoir (l'équipe), en espèces ou par carte.
 create function encaisser_complement(p_complement uuid, p_moyen text, p_personnel uuid) returns boolean
 language plpgsql as $$
@@ -310,9 +388,12 @@ begin
   if pe.id is null or k.id is null then
     return false;
   end if;
-  if not (pe.role in ('service', 'gerant', 'responsable')
+  if not (pe.role in ('service', 'gerant') or (pe.role = 'responsable' and role_responsable_actif())
           or (pe.role = 'livreur' and exists (select 1 from livraisons l where l.commande_id = k.commande_id and l.livreur_id = pe.id and l.retiree_le is null))) then
     raise exception 'droit_refuse';
+  end if;
+  if exists (select 1 from commandes where id = k.commande_id and statut in ('refusee', 'annulee')) then
+    return false;
   end if;
   update complements set statut = 'encaisse', moyen_encaissement = p_moyen, encaisse_le = now(),
     encaisse_par = case when pe.role = 'livreur' then 'livreur:' else 'tablette:' end || pe.nom
@@ -333,6 +414,7 @@ create function modifications_commande_gestion(p_commande uuid) returns jsonb
 language sql stable as $$
   select jsonb_build_object(
     'valeur_centimes', valeur_commande(p_commande),
+    'frais_centimes', frais_commande(p_commande),
     'lignes', coalesce((select jsonb_agg(jsonb_build_object('slug', l.plat_slug, 'nom', l.nom, 'qte', l.qte, 'choix', l.choix,
         'retraits', l.retraits, 'note', l.note, 'total_centimes', l.total_centimes) order by l.position)
       from commande_lignes l where l.commande_id = p_commande), '[]'::jsonb),
@@ -472,11 +554,11 @@ language sql stable as $$
     'encaissements', jsonb_build_object(
       'en_ligne', (
         select jsonb_build_object('commandes', count(*), 'centimes', coalesce(sum(total_centimes), 0)
-          + (select coalesce(sum(montant_centimes), 0) from complements_jour where moyen = 'en_ligne' and statut = 'encaisse'))
+          + (select coalesce(sum(montant_centimes), 0) from complements_jour where moyen = 'en_ligne' and statut = 'encaisse' and statut_commande <> 'refusee'))
         from jour where moyen_paiement = 'en_ligne' and statut <> 'refusee' and statut_paiement in ('paye', 'rembourse')
       ),
       'complements', jsonb_build_object(
-        'en_ligne_centimes', (select coalesce(sum(montant_centimes), 0) from complements_jour where moyen = 'en_ligne' and statut = 'encaisse'),
+        'en_ligne_centimes', (select coalesce(sum(montant_centimes), 0) from complements_jour where moyen = 'en_ligne' and statut = 'encaisse' and statut_commande <> 'refusee'),
         'especes_centimes', (select coalesce(sum(montant_centimes), 0) from complements_jour where statut = 'encaisse' and moyen_encaissement = 'especes'),
         'carte_centimes', (select coalesce(sum(montant_centimes), 0) from complements_jour where statut = 'encaisse' and moyen_encaissement = 'carte'),
         'a_encaisser_centimes', (select coalesce(sum(montant_centimes), 0) from complements_jour where statut = 'a_encaisser')
@@ -541,7 +623,7 @@ language sql stable as $$
     select o.jour, o.taux_tva_pourcent as taux,
       case when o.moyen_paiement = 'en_ligne' then 'stripe' when o.moyen_comptoir = 'carte' then 'terminal' else 'caisse' end as moyen,
       o.total_centimes, o.tva_centimes, o.frais_centimes,
-      round(o.frais_centimes * o.taux_tva_pourcent / (100 + o.taux_tva_pourcent))::integer as tva_frais
+      round(o.frais_centimes * o.taux_tva_pourcent / (100 + o.taux_tva_pourcent))::integer as tva_frais, false as complement
     from commandes o
     where o.jour between p_debut and p_fin
       and o.statut_paiement in ('paye', 'encaisse', 'rembourse')
@@ -552,7 +634,8 @@ language sql stable as $$
   complements_v as (
     select o.jour, o.taux_tva_pourcent as taux,
       case when k.moyen = 'en_ligne' then 'stripe' when k.moyen_encaissement = 'carte' then 'terminal' else 'caisse' end as moyen,
-      k.montant_centimes as total_centimes, k.tva_centimes, 0 as frais_centimes, 0 as tva_frais
+      k.montant_centimes as total_centimes, k.tva_centimes, k.frais_centimes,
+      round(k.frais_centimes * o.taux_tva_pourcent / (100 + o.taux_tva_pourcent))::integer as tva_frais, true as complement
     from complements k join commandes o on o.id = k.commande_id
     where o.jour between p_debut and p_fin and k.statut = 'encaisse' and o.statut not in ('refusee', 'annulee')
   ),
@@ -569,7 +652,7 @@ language sql stable as $$
       and o.statut not in ('refusee', 'annulee')
   ),
   lignes as (
-    select jour, taux, 'vente' as sorte, moyen, count(*) as nombre, sum(total_centimes) as ttc, sum(tva_centimes) as tva,
+    select jour, taux, 'vente' as sorte, moyen, count(*) filter (where not complement) as nombre, sum(total_centimes) as ttc, sum(tva_centimes) as tva,
       sum(frais_centimes) as frais, sum(tva_frais) as tva_frais
     from (select * from ventes union all select * from complements_v) v group by jour, taux, moyen
     union all
@@ -583,11 +666,11 @@ language sql stable as $$
   from lignes;
 $$;
 
-revoke execute on function valeur_commande(uuid), appliquer_modification(uuid, text, text, integer), preparer_modification(uuid, jsonb, uuid),
+revoke execute on function lien_modification(uuid), complements_a_rembourser(uuid), noter_complement_rembourse(uuid, text), frais_commande(uuid), valeur_commande(uuid), appliquer_modification(uuid, text, text, integer), preparer_modification(uuid, jsonb, uuid),
   lier_session_modification(uuid, text), abandonner_modification(uuid, uuid), encaisser_complement(uuid, text, uuid),
   modifications_commande_gestion(uuid), confirmer_complement(uuid, text, text, text, integer, text), expirer_complement(uuid, text), complement_doublure(uuid)
   from public, anon, authenticated;
-grant execute on function valeur_commande(uuid), appliquer_modification(uuid, text, text, integer), preparer_modification(uuid, jsonb, uuid),
+grant execute on function lien_modification(uuid), complements_a_rembourser(uuid), noter_complement_rembourse(uuid, text), frais_commande(uuid), valeur_commande(uuid), appliquer_modification(uuid, text, text, integer), preparer_modification(uuid, jsonb, uuid),
   lier_session_modification(uuid, text), abandonner_modification(uuid, uuid), encaisser_complement(uuid, text, uuid),
   modifications_commande_gestion(uuid), confirmer_complement(uuid, text, text, text, integer, text), expirer_complement(uuid, text), complement_doublure(uuid)
   to service_role;

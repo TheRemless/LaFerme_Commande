@@ -140,6 +140,8 @@ export async function rembourserCommande(commandeId: string, motif: string): Pro
   await fonctionSql("noter_remboursement_refus", { p_commande: c.id, p_refund_id: r.id, p_fait: r.statut === "succeeded", p_motif: motif }).catch((e) =>
     console.error(`Suivi du remboursement de la commande ${c.numero} non noté : ${e instanceof Error ? e.message : e}`),
   );
+  // Compléments payés par le lien après une modification (vague 3, bo-commandes) : rendus aussi, chacun sur son paiement.
+  await rembourserComplements(c).catch((e) => console.error(`Compléments de la commande ${c.numero} non remboursés : ${e instanceof Error ? e.message : e}`));
   if (applique) {
     const m = courrielRemboursement(c, motif);
     await envoyerCourriel({ commandeId: c.id, destinataire: c.client_email, ...m }).catch((e) =>
@@ -147,6 +149,22 @@ export async function rembourserCommande(commandeId: string, motif: string): Pro
     );
   }
   return { rembourse: applique };
+}
+
+async function rembourserComplements(c: Commande): Promise<void> {
+  const liste = await fonctionSql<{ id: string; montant_centimes: number; stripe_payment_intent: string }[]>("complements_a_rembourser", { p_commande: c.id });
+  for (const k of liste) {
+    const cle = `complement-${k.id}`;
+    const r = remboursementSimule(k.stripe_payment_intent, cle) ?? (await passerelle().rembourser(k.stripe_payment_intent, { montantCentimes: k.montant_centimes, cle }));
+    if (r.statut === "failed" || r.statut === "canceled") {
+      await alerter(`Commande ${c.numero} : complément à rembourser`, [
+        `La commande ${c.numero} est refusée ou annulée. Son complément de ${(k.montant_centimes / 100).toFixed(2)} CHF, payé par le lien, n'a pas pu être remboursé.`,
+        "Remboursez-le depuis Stripe.",
+      ]).catch((e) => console.error(`Alerte non envoyée : ${e instanceof Error ? e.message : e}`));
+      continue;
+    }
+    await fonctionSql("noter_complement_rembourse", { p_complement: k.id, p_refund: r.id });
+  }
 }
 
 // ---------- Remboursement après coup (audit du gérant, G02) ----------

@@ -51,7 +51,13 @@ Jamais de débit sur la carte du client sans son accord sur le moment. Gérant, 
 - **E-mails** (si le client en a un) : le lien du complément, puis la commande modifiée (ajouté, retiré, remboursé ou à payer).
 - **Une modification à la fois** : une seconde attend que la première soit payée ou abandonnée (« Abandonner la modification » ferme le lien chez Stripe).
 - **Doublure** : sans clé Stripe, le lien mène à `/paiement-test/complement/<id>`, qui simule le paiement par le même chemin que le webhook.
-- **Limite connue** : rembourser plus tard un complément payé par le lien ne passe pas par l'écran (le remboursement après coup vise le paiement de départ). Il se fait depuis Stripe.
+- **Argent reçu sans modification** (relectures de qualite et de sécurité) : un lien payé après l'abandon, sur une commande déjà partie, ou pour un autre montant passe en `payee_non_appliquee` (ou reste noté), et le gérant reçoit une alerte « Complément payé sans modification » pour rembourser depuis Stripe. « Abandonner » lit d'abord la session chez Stripe : déjà payée, l'abandon est refusé ; sinon le lien est fermé avant l'abandon. Un lien qui ne se crée pas abandonne la modification tout de suite.
+- **Commande refusée ou annulée** après un complément payé par le lien : `rembourserCommande` rend aussi chaque complément sur son propre paiement (clé `complement-<id>`), noté `rembourse_le` ; un refus de Stripe alerte le gérant.
+- **Frais actuels** : une nouvelle adresse dans une autre zone fait payer la différence de frais une seule fois (`frais_commande` lit ceux de la dernière modification appliquée ; la part de frais du complément va dans l'export).
+- **Baisse après un complément encore dû** : le complément à encaisser se réduit d'abord, on ne rembourse pas ce qui n'est pas payé.
+- **Commande changée entre-temps** (deux personnes en même temps) : refus « La commande a changé entre-temps », rien n'est enregistré.
+- **Chiffres** (relecture de bo-pilotage) : les compléments comptent aussi dans `export_recap_jours`, `export_ventes` (une ligne « (complément) » sous la commande) et `pilotage_synthese` (ventes de la clôture et des rapports), jamais dans le compte des commandes. Migration `20261215140000_difference_compta.sql`. Le CSV de la clôture a ses lignes « Compléments ».
+- **Limite connue** : rembourser plus tard un complément payé par le lien ne passe pas par l'écran (le remboursement après coup vise le paiement de départ, et son plafond ne compte que lui). Il se fait depuis Stripe.
 - Base : migration `20261215130000_difference.sql` (tables `modifications_commande` et `complements` ; recrées : `livraisons_livreur`, `file_tablette`, `cloture_rapport`, `export_cresus`). Tests : `tests/unit/difference-sql.test.ts`, `tests/unit/difference.test.ts` (webhook signé), `tests/e2e/gestion-difference.spec.ts`.
 
 ## Responsable de service (D1, oui de Jérémy le 13.11.2026)

@@ -135,4 +135,20 @@ describe("changer les plats d'une commande payée", () => {
       process.env.STRIPE_SECRET_KEY = "sk_test_factice";
     }
   });
+
+  it("commande refusée après un complément payé par le lien : le complément est remboursé aussi, sur son paiement", async () => {
+    const c = await commandePayee([MARGHERITA]);
+    const db = await baseLocale();
+    // Paiements de la doublure (remboursés sans réseau) : la commande et son complément.
+    await db.query("update commandes set stripe_payment_intent = $2 where id = $1", [c.id, `pi_doublure_${c.id}`]);
+    const k = (await db.query<{ id: string }>(
+      "insert into complements (commande_id, montant_centimes, tva_centimes, moyen, statut, moyen_encaissement, stripe_payment_intent, encaisse_le) values ($1, 450, 11, 'en_ligne', 'encaisse', 'stripe', $2, now()) returning id",
+      [c.id, `pi_doublure_complement_${c.id}`],
+    )).rows[0].id;
+    const { rembourserCommande } = await import("@/lib/commandes");
+    expect(await rembourserCommande(c.id, "Fermé plus tôt")).toMatchObject({ rembourse: true });
+    const apres = (await db.query<{ rembourse_le: string | null; stripe_refund_id: string | null }>("select rembourse_le, stripe_refund_id from complements where id = $1", [k])).rows[0];
+    expect(apres.rembourse_le).not.toBeNull();
+    expect(apres.stripe_refund_id).toBeTruthy();
+  });
 });

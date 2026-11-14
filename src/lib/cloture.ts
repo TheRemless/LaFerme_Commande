@@ -30,6 +30,8 @@ export type RapportCloture = {
     comptoir_non_note?: { commandes: number; centimes: number };
     attendu_especes_centimes?: number;
     attendu_carte_centimes?: number;
+    // Compléments des commandes modifiées (vague 3, bo-commandes), absents d'un rapport enregistré avant eux.
+    complements?: { en_ligne_centimes: number; especes_centimes: number; carte_centimes: number; a_encaisser_centimes: number };
   };
   a_encaisser: { numero: number; mode: string; statut: string; du_centimes: number; heure: string }[];
   remboursements: {
@@ -130,6 +132,14 @@ export function csvCloture(j: ClotureJour): string {
           ligne("dont espèces", e.comptoir_especes.commandes, chf(e.comptoir_especes.centimes)),
           ligne("dont carte", e.comptoir_carte.commandes, chf(e.comptoir_carte.centimes)),
           ligne("dont moyen pas noté", e.comptoir_non_note.commandes, chf(e.comptoir_non_note.centimes)),
+        ]
+      : []),
+    ...(e.complements
+      ? [
+          ligne("Compléments payés par lien (dans « En ligne »)", "", chf(e.complements.en_ligne_centimes)),
+          ligne("Compléments encaissés en espèces", "", chf(e.complements.especes_centimes)),
+          ligne("Compléments encaissés par carte", "", chf(e.complements.carte_centimes)),
+          ligne("Compléments encore à encaisser", "", chf(e.complements.a_encaisser_centimes)),
         ]
       : []),
     ligne("Déduit au comptoir (manques)", "", chf(e.deductions_centimes)),
