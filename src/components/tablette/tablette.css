@@ -703,3 +703,11 @@
   min-height: 48px;
   text-decoration: none;
 }
+
+/* Complément d'une commande modifiée à encaisser (vague 3, bo-commandes). */
+.tab-complement {
+  margin: 8px 0;
+  padding: 8px 12px;
+  border: 2px solid var(--encre);
+  border-radius: 4px;
+}

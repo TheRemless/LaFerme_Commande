@@ -151,7 +151,7 @@ export async function rembourserCommande(commandeId: string, motif: string): Pro
 
 // ---------- Remboursement après coup (audit du gérant, G02) ----------
 
-type LigneRemboursement = {
+export type LigneRemboursement = {
   id: string;
   commande_id: string;
   montant_centimes: number;
@@ -231,6 +231,13 @@ export async function rembourserApresCoup(
   if (r.moyen === "especes") return { ok: true, message: `CHF ${montant} notés comme rendus en espèces.` };
   if (r.statut === "en_cours") return { ok: true, message: `Remboursement de CHF ${montant} demandé à Stripe, en attente de sa confirmation. Le client reçoit un e-mail.` };
   return { ok: true, message: r.deja && !envoyer ? `Remboursement de CHF ${montant} déjà fait.` : `CHF ${montant} remboursés. Le client reçoit un e-mail.` };
+}
+
+// Ligne de remboursement déjà créée en base (commande modifiée moins chère, vague 3, bo-commandes) : envoyée à
+// Stripe par le même chemin que les autres, avec sa clé.
+export async function rembourserLigne(r: LigneRemboursement, c: Commande, cle: string): Promise<{ ok: boolean; message?: string }> {
+  const s = await rembourserChezStripe(r, c, r.montant_centimes, cle);
+  return "refus" in s ? s.refus : { ok: true };
 }
 
 // Remboursement Stripe d'une ligne « en cours » (G02 et manque signalé, G07). La clé du geste sert de clé

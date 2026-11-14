@@ -29,6 +29,8 @@ export type CommandeTablette = {
   moyen_paiement: "en_ligne" | "comptoir";
   // Commande prise au téléphone par l'équipe (vague 3, bo-commandes) : « telephone ». Absent avant la migration.
   canal?: "site" | "telephone";
+  // Compléments d'une commande modifiée encore à encaisser (vague 3, bo-commandes). Absent avant la migration.
+  complements?: { id: string; centimes: number; moyen: "en_ligne" | "porte" | "comptoir" }[];
   client_prenom: string;
   client_nom: string;
   client_telephone: string;

@@ -265,6 +265,36 @@ begin
 end;
 $$;
 
+-- Paiement du lien reçu (webhook Stripe ou doublure) : la session doit être celle de la modification, en francs.
+create function confirmer_complement(p_modification uuid, p_session text, p_evenement text, p_payment_intent text, p_montant integer, p_devise text)
+returns jsonb
+language plpgsql as $$
+begin
+  if p_devise is distinct from 'chf' or not exists (
+    select 1 from modifications_commande where id = p_modification and reglement = 'lien' and stripe_session_id = p_session) then
+    return jsonb_build_object('applique', false, 'raison', 'session');
+  end if;
+  return appliquer_modification(p_modification, p_evenement, p_payment_intent, p_montant);
+end;
+$$;
+
+-- Page de paiement de test (doublure, jamais en production) : le montant et le suivi d'une modification en attente.
+create function complement_doublure(p_modification uuid) returns jsonb
+language sql stable as $$
+  select jsonb_build_object('difference_centimes', m.difference_centimes, 'jeton_suivi', o.jeton_suivi, 'numero', o.numero)
+  from modifications_commande m join commandes o on o.id = m.commande_id
+  where m.id = p_modification and m.statut = 'en_attente' and m.reglement = 'lien'
+    and m.stripe_session_id = 'doublure_complement_' || p_modification::text;
+$$;
+
+-- Lien expiré ou paiement échoué (webhook) : seulement pour la session de la modification.
+create function expirer_complement(p_modification uuid, p_session text) returns boolean
+language sql as $$
+  update modifications_commande set statut = 'abandonnee', fini_le = now()
+  where id = p_modification and statut = 'en_attente' and stripe_session_id = p_session
+  returning true;
+$$;
+
 -- Complément encaissé à la porte (le livreur de la commande) ou au comptoir (l'équipe), en espèces ou par carte.
 create function encaisser_complement(p_complement uuid, p_moyen text, p_personnel uuid) returns boolean
 language plpgsql as $$
@@ -303,6 +333,9 @@ create function modifications_commande_gestion(p_commande uuid) returns jsonb
 language sql stable as $$
   select jsonb_build_object(
     'valeur_centimes', valeur_commande(p_commande),
+    'lignes', coalesce((select jsonb_agg(jsonb_build_object('slug', l.plat_slug, 'nom', l.nom, 'qte', l.qte, 'choix', l.choix,
+        'retraits', l.retraits, 'note', l.note, 'total_centimes', l.total_centimes) order by l.position)
+      from commande_lignes l where l.commande_id = p_commande), '[]'::jsonb),
     'modifications', coalesce((select jsonb_agg(jsonb_build_object('id', m.id, 'statut', m.statut, 'reglement', m.reglement,
         'difference_centimes', m.difference_centimes, 'total_centimes', m.total_centimes, 'par', m.personnel_nom,
         'cree_le', m.cree_le, 'fini_le', m.fini_le, 'lien', m.stripe_session_id is not null) order by m.cree_le)
@@ -552,7 +585,9 @@ $$;
 
 revoke execute on function valeur_commande(uuid), appliquer_modification(uuid, text, text, integer), preparer_modification(uuid, jsonb, uuid),
   lier_session_modification(uuid, text), abandonner_modification(uuid, uuid), encaisser_complement(uuid, text, uuid),
-  modifications_commande_gestion(uuid) from public, anon, authenticated;
+  modifications_commande_gestion(uuid), confirmer_complement(uuid, text, text, text, integer, text), expirer_complement(uuid, text), complement_doublure(uuid)
+  from public, anon, authenticated;
 grant execute on function valeur_commande(uuid), appliquer_modification(uuid, text, text, integer), preparer_modification(uuid, jsonb, uuid),
   lier_session_modification(uuid, text), abandonner_modification(uuid, uuid), encaisser_complement(uuid, text, uuid),
-  modifications_commande_gestion(uuid) to service_role;
+  modifications_commande_gestion(uuid), confirmer_complement(uuid, text, text, text, integer, text), expirer_complement(uuid, text), complement_doublure(uuid)
+  to service_role;

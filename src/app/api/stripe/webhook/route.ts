@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { confirmerComplement, expirerComplement } from "@/lib/difference";
 import type Stripe from "stripe";
 import { annulerPaiement, appliquerEtatRemboursement, confirmerPaiement } from "@/lib/commandes";
 import { clientStripe, etatRemboursement } from "@/lib/paiement/passerelle";
@@ -30,6 +31,17 @@ export async function POST(requete: Request) {
     const commandeId = session.metadata?.commande_id ?? session.client_reference_id;
     if (!commandeId) return NextResponse.json({ recu: true });
     const paymentIntent = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
+    // Complément d'une commande modifiée (vague 3, bo-commandes) : jamais le paiement de la commande elle-même.
+    const modification = session.metadata?.type === "complement" ? session.metadata.modification_id : undefined;
+    if (session.metadata?.type === "complement") {
+      if (!modification || !/^[0-9a-f-]{36}$/.test(modification)) return NextResponse.json({ recu: true });
+      if ((evenement.type === "checkout.session.completed" || evenement.type === "checkout.session.async_payment_succeeded") && session.payment_status === "paid") {
+        await confirmerComplement(modification, evenement.id, { sessionId: session.id, montantCentimes: session.amount_total, devise: session.currency, paymentIntent: paymentIntent ?? null });
+      } else if (evenement.type === "checkout.session.async_payment_failed" || evenement.type === "checkout.session.expired") {
+        await expirerComplement(modification, session.id);
+      }
+      return NextResponse.json({ recu: true });
+    }
     switch (evenement.type) {
       case "checkout.session.completed":
       case "checkout.session.async_payment_succeeded":

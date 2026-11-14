@@ -296,6 +296,52 @@ export function courrielCourt(c: Commande, sujet: string, phrases: string[], ave
   return courrielType(c, "suivi", sujet, phrases, avecSuivi);
 }
 
+// Commande modifiée au téléphone, plus chère (vague 3, bo-commandes) : le lien de paiement de la différence. Rien ne
+// change avant le paiement : la cuisine reçoit l'ajout dès qu'il est payé.
+export function courrielLienComplement(c: Commande, ajouts: string[], montantCentimes: number, url: string) {
+  const phrases = [
+    ...(ajouts.length ? [`Ajouté à votre commande n° ${c.numero} : ${ajouts.join(", ")}.`] : [`Votre commande n° ${c.numero} change à votre demande.`]),
+    `Le complément est de ${prixChf(montantCentimes)}. Payez-le avec le bouton ci-dessous, il reste valable 30 minutes.`,
+    "Nous préparons l'ajout dès que le paiement arrive. Sans paiement, votre commande reste comme avant.",
+  ];
+  const texte = [`Bonjour ${c.client_prenom},`, "", ...phrases, "", `Payer le complément : ${url}`, `Une question ? ${TELEPHONE}`, "", RESTAURANT].join("\n");
+  const html = enveloppe(
+    `
+<p>Bonjour ${echapper(c.client_prenom)},</p>
+${phrases.map((p) => `<p>${echapper(p)}</p>`).join("\n")}
+${bouton(url, `Payer ${prixChf(montantCentimes)}`)}
+<p>Une question ? ${TELEPHONE}</p>`,
+    c.origine,
+    phrases[0],
+  );
+  return { sujet: `Commande ${c.numero}, complément à payer`, texte, html, type: "suivi" as TypeCourriel };
+}
+
+// Commande modifiée au téléphone, appliquée (vague 3, bo-commandes) : ce qui a changé et ce que ça coûte en plus ou en moins.
+export function courrielPlatsModifies(
+  c: Commande,
+  { ajouts, retires, difference, reglement }: { ajouts: string[]; retires: string[]; difference: number; reglement: string },
+) {
+  const argent =
+    reglement === "remboursement"
+      ? `Nous vous remboursons ${prixChf(-difference)} sur votre moyen de paiement.`
+      : reglement === "lien"
+        ? `Nous avons bien reçu le complément de ${prixChf(difference)}.`
+        : reglement === "porte"
+          ? `Le complément de ${prixChf(difference)} se paie à la livraison, en espèces ou par carte.`
+          : reglement === "comptoir"
+            ? `Le complément de ${prixChf(difference)} se paie au comptoir en venant la chercher.`
+            : c.statut_paiement === "a_encaisser_retrait"
+              ? `Le nouveau total à payer est de ${prixChf(c.total_centimes)}.`
+              : null;
+  return courrielCourt(c, `Commande ${c.numero} modifiée, La Ferme`, [
+    `Votre commande n° ${c.numero} a été modifiée à votre demande.`,
+    ...(ajouts.length ? [`Ajouté : ${ajouts.join(", ")}.`] : []),
+    ...(retires.length ? [`Retiré : ${retires.join(", ")}.`] : []),
+    ...(argent ? [argent] : []),
+  ]);
+}
+
 function heurePhrase(c: Commande, iso: string, config: ConfigHeure = null): string {
   const quand = quandPlage(c, instantGeneve(new Date(iso)).minutes, config);
   return c.mode === "livraison" ? `Le livreur passe chez vous ${quand}.` : `Elle sera prête ${quand}, Route de Chancy 132 à Onex.`;

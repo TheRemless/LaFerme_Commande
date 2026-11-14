@@ -78,3 +78,23 @@
 .bo-filtres-plus > summary { display: inline-flex; align-items: center; list-style: none; cursor: pointer; }
 .bo-filtres-plus > summary::-webkit-details-marker { display: none; }
 .bo-filtres-plus[open] > summary { margin-bottom: 12px; }
+
+/* Changer les plats d'une commande (vague 3, bo-commandes). */
+.bo-plat-ligne {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bo-plat-qte {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.bo-plats-choix {
+  max-height: 280px;
+  overflow-y: auto;
+}
