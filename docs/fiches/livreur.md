@@ -15,6 +15,8 @@ Restaurant : 022 792 16 89
 
 ## Une tournée
 
+Avant de partir, prendre le terminal de carte s'il y a un montant à encaisser.
+
 1. Le comptoir vous donne une ou plusieurs commandes. Elles apparaissent dans l'ordre de passage.
 2. Vérifier les sacs avec les numéros.
 3. Toucher « Je pars ». Avec plusieurs sacs, « Je pars avec les 2 ». Le client reçoit un e-mail.
@@ -49,8 +51,8 @@ Restaurant : 022 792 16 89
 | Dans quel ordre je livre ? | Dans l'ordre affiché. « Plus tôt » et « Plus tard » déplacent un arrêt. Le comptoir peut aussi le changer. |
 | Puis-je prendre une commande moi-même ? | Oui. Sous vos livraisons, « À prendre » liste les commandes sans livreur, avec le numéro, la localité, l'heure et le nombre d'articles. Toucher « Je prends ». L'adresse s'affiche alors dans vos livraisons. |
 | Laquelle prendre ? | La liste montre aussi des commandes prévues plus tard. Regarder l'heure, puis demander au comptoir si le sac est prêt. |
-| Je dois encaisser une commande entière. | Encaisser le montant affiché. Rapporter l'argent ou le reçu de carte au comptoir, qui note le paiement. |
-| Je dois encaisser un complément. | Encaisser le montant, puis toucher « Complément encaissé : espèces » ou « Complément encaissé : carte ». |
+| Je dois encaisser une commande entière. | À encaisser : espèces ou carte, avec votre terminal. Encaisser le montant affiché. Rapporter l'argent ou le reçu de carte au comptoir, qui note le paiement. |
+| Je dois encaisser un complément. | Espèces ou carte, là aussi. Encaisser le montant, puis toucher « Complément encaissé : espèces » ou « Complément encaissé : carte ». |
 | Je n'ai pas de téléphone ce soir. | Le dire au comptoir. Il note « Partie » puis « Livrée » sur la tablette. |
 | J'ai perdu mon téléphone. | Appeler le restaurant tout de suite. Le gérant coupe votre accès. |
 | Le restaurant voit où je suis ? | Non. Il voit seulement l'heure de la dernière mise à jour de votre page. |
