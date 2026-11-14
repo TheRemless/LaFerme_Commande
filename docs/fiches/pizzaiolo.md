@@ -19,6 +19,9 @@ En cas de problème, prévenir le comptoir.
 | « + COUVERTS ET SERVIETTES » | À glisser dans le sac. |
 | « pour Léa » sous un plat | Le plat est pour cette personne. L'écrire sur le carton. |
 | « Paiement », en bas | Payée en ligne ou à encaisser au comptoir. |
+| « TÉLÉPHONE », sous le numéro | La commande a été prise au téléphone par le comptoir. Elle se prépare comme les autres. |
+| « SAC : COCHER CHAQUE ARTICLE », en bas | La liste de tout le sac, une case par article. Elle sort sur le ticket du poste qui fait le sac. |
+| « Paiement : À ENCAISSER À LA LIVRAISON » | Le livreur encaisse à la porte. |
 | « RÉIMPRESSION » | Quelqu'un a redemandé ce ticket. Ne pas refaire la commande. |
 | « RENVOI : CE TICKET EST PEUT-ÊTRE DÉJÀ SORTI » | L'imprimante l'a peut-être déjà sorti. Vérifier avant de refaire. |
 | « ANNULÉE », « NE PAS PRÉPARER » | La commande est annulée. Arrêter. |
@@ -44,7 +47,7 @@ Le ticket ne porte pas de prix.
 | Un ticket sort pour 20h alors qu'il est 19h. | C'est une commande passée à l'avance. Son ticket sort avant l'heure promise. Regarder l'heure écrite dessus. |
 | Le comptoir me dit « À lancer ». | Cette commande doit commencer maintenant pour tenir son heure. |
 | Le comptoir me dit « À sortir dans 6 min ». | Dans 6 minutes, elle doit être au comptoir ou partir en livraison. |
-| Qui met les boissons et les desserts dans le sac ? | Le comptoir. Si un dessert sort sur votre ticket, le signaler au comptoir. |
+| Qui met les boissons dans le sac ? | Le comptoir. Une boisson ne sort plus sur votre ticket, sauf dans la liste du sac. |
 | La pizza est prête, je fais quoi ? | La passer au comptoir avec son ticket. C'est le comptoir qui touche « Prête ». |
 
 ## Si un écran est posé au four
