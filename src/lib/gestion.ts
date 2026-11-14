@@ -2,6 +2,7 @@
 // une valeur douteuse rend une erreur claire. Fonctions pures, testées sans base.
 import { celluleCsv } from "@/components/gestion/ui/csv";
 import { estPhotoEnvoyee, PHOTOS } from "@/lib/photos";
+import { estPostePlat } from "@/lib/postes-plat";
 
 // Une seule règle CSV pour tout le back-office : celle du kit (formules neutralisées, seul un nombre garde son signe).
 export { celluleCsv };
@@ -50,7 +51,7 @@ export function champsPlat(v: unknown): Resultat<Record<string, unknown>> {
     p.commandable = c.commandable;
   }
   if ("station" in c) {
-    if (c.station !== "pizza" && c.station !== "cuisine") return { ok: false, erreur: "Station : pizza ou cuisine." };
+    if (!estPostePlat(c.station)) return { ok: false, erreur: "Poste : four, cuisine ou comptoir." };
     p.station = c.station;
   }
   if ("photo" in c) {
@@ -119,7 +120,7 @@ export function champsNouveauPlat(v: unknown): Resultat<Record<string, unknown>>
   for (const [cle, message] of [
     ["nom", "Indiquez le nom du plat."],
     ["prix", "Indiquez le prix."],
-    ["station", "Choisissez le poste : pizza ou cuisine."],
+    ["station", "Choisissez le poste : four, cuisine ou comptoir."],
   ] as const) {
     if (!(cle in c) || c[cle] === "") return { ok: false, erreur: message };
   }
@@ -145,7 +146,7 @@ export function champsPlatDuJour(v: unknown, aujourdhui: string): Resultat<Recor
   for (const [cle, message] of [
     ["nom", "Indiquez le nom du plat."],
     ["prix", "Indiquez le prix."],
-    ["station", "Choisissez le poste : pizza ou cuisine."],
+    ["station", "Choisissez le poste : four, cuisine ou comptoir."],
   ] as const) {
     if (!(cle in c) || c[cle] === "") return { ok: false, erreur: message };
   }

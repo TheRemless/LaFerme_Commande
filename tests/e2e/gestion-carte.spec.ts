@@ -42,7 +42,7 @@ test("un plat neuf naît hors de la vente et dit ce qui lui manque", async () =>
   await gestion.getByRole("button", { name: "Ajouter un plat" }).click();
   const form = gestion.locator("form", { has: gestion.getByRole("heading", { name: "Nouveau plat" }) });
   await form.getByLabel("Catégorie").selectOption({ label: "Pâtes et risottos" });
-  await form.getByLabel("Poste (imprimante)").selectOption("cuisine");
+  await form.getByLabel("Poste", { exact: true }).selectOption("cuisine");
   await form.getByLabel("Nom affiché").fill(nom);
   await form.getByLabel("Prix (CHF)").fill("12.30");
   await form.getByLabel("Retraits gratuits").fill("parmesan");
@@ -84,6 +84,22 @@ test("une photo s'envoie, s'affiche en aperçu, puis se retire", async () => {
   await fiche.getByRole("button", { name: "Oui, retirer la photo" }).click();
   await expect(fiche.locator(".ges-photo").getByRole("status")).toHaveText("Photo retirée.");
   expect((await gestion.request.get(fichier)).status()).toBe(404);
+});
+
+test("le poste se choisit par plat : four, cuisine ou comptoir", async ({}, info) => {
+  const fiche = gestion.locator(".ges-fiche");
+  const poste = fiche.getByLabel("Poste", { exact: true });
+  await expect(poste).toHaveValue("cuisine");
+  expect(await poste.locator("option").allTextContents()).toEqual(["Four", "Cuisine", "Comptoir"]);
+  await expect(poste).toHaveAccessibleDescription("Le four et la cuisine reçoivent un ticket de préparation. Un article au comptoir n'en a pas, l'équipe le met dans le sac.");
+  await poste.selectOption("comptoir");
+  await fiche.getByRole("button", { name: "Enregistrer le plat" }).click();
+  await expect(fiche.getByRole("status").filter({ hasText: "Enregistré." })).toBeVisible();
+  if (process.env.RENDUS === "1") {
+    await poste.scrollIntoViewIfNeeded();
+    await gestion.screenshot({ path: `docs/rendus/vague-3/bo-carte/${info.project.name === "mobile" ? "m" : "b"}-carte-poste-comptoir.png` });
+  }
+  await expect(poste).toHaveValue("comptoir");
 });
 
 test("l'envoi d'une photo est refusé sans session de gérant", async ({ request }) => {

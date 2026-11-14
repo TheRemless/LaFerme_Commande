@@ -2,6 +2,7 @@ import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { baseLocale } from "@/lib/db/locale";
 import { verifierContexte } from "@/lib/environnement";
+import type { PostePlat } from "@/lib/postes-plat";
 
 // Accès en écriture réservé au serveur : commandes, paiements, courriels.
 // Supabase avec la clé secrète quand elle est là, sinon la base embarquée (développement, tests).
@@ -123,7 +124,7 @@ export type LigneCommande = {
   position: number;
   plat_slug: string;
   nom: string;
-  station: "pizza" | "cuisine";
+  station: PostePlat;
   qte: number;
   unitaire_centimes: number;
   total_centimes: number;

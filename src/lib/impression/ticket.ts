@@ -1,3 +1,5 @@
+import type { PostePlat } from "@/lib/postes-plat";
+
 // Ticket de cuisine 80 mm (docs/recherche/prompt-v1-ancien-site.md §8). Une liste de lignes mises en
 // forme, figée à l'acceptation, puis rendue en image pour l'imprimante, en texte de secours, ou en grand
 // sur la tablette. Pas de prix sur les tickets de poste. Fonctions pures, sans base ni réseau.
@@ -19,8 +21,8 @@ export type CommandePourTicket = {
   heure_confirmee: string | null;
   statut_paiement: string;
   moyen_paiement: string;
-  // « comptoir » (bo-carte, boissons et desserts tout prêts) : pas de ticket de préparation, seulement le sac.
-  lignes: { nom: string; qte: number; station: "pizza" | "cuisine" | "comptoir"; details: string[]; pour?: string }[];
+  // « comptoir » (20261215150000) : aucune tâche de préparation, l'article ne sort que sur le ticket du sac.
+  lignes: { nom: string; qte: number; station: PostePlat; details: string[]; pour?: string }[];
   // Allergie ou intolérance signalée par le client pour toute la commande (vide ou absent : rien de signalé).
   allergie?: string | null;
   // Vague 3 (client-commande) : personne qui reçoit la commande, couverts et serviettes demandés.
