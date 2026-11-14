@@ -53,7 +53,7 @@ export function ticketsDeCommande(
   c: CommandePourTicket,
   { accepteLe, reimpression = false }: { accepteLe: string | Date; reimpression?: boolean },
 ): { station: "pizza" | "cuisine"; contenu: LigneTicket[] }[] {
-  const stations = (["pizza", "cuisine"] as const).filter((s) => c.lignes.some((l) => l.station === s));
+  const stations = (["pizza", "cuisine"] as const).filter((s) => c.lignes.some((l) => l.station === s) || (s === posteDuSac(c) && c.lignes.length > 0));
   return stations.map((station) => {
     const lignes = c.lignes.filter((l) => l.station === station);
     const autre = station === "pizza" ? "cuisine" : "pizza";
@@ -92,8 +92,9 @@ export function ticketsDeCommande(
       // Retraits en gras, note du client en négatif : lisibles à un mètre.
       for (const d of l.details) contenu.push({ t: "texte", texte: d, retrait: true, gras: d.startsWith("SANS") || estNote(d), inverse: estNote(d) });
     }
-    // Couverts et serviettes : sur le ticket du poste qui fait le sac (cuisine s'il y a des lignes cuisine).
-    if (c.couverts && station === posteDuSac(c)) contenu.push({ t: "texte", texte: "+ COUVERTS ET SERVIETTES", gras: true });
+    // Sac (réponse de Jérémy du 14.11 : « c'est nous qui mettons dans le sac ») : sur le ticket du poste qui fait le
+    // sac, tous les articles de la commande en cases à cocher, boissons et desserts compris, puis les couverts.
+    if (station === posteDuSac(c)) contenu.push(...listeDuSac(c));
     contenu.push({ t: "filet" });
     if (ailleurs > 0) contenu.push({ t: "texte", texte: `Aussi ${autre === "pizza" ? "aux pizzas" : "en cuisine"} : ${ailleurs} article${ailleurs > 1 ? "s" : ""}` });
     contenu.push({ t: "texte", texte: `Paiement : ${paiement(c)}`, gras: true });
@@ -227,9 +228,20 @@ export function svgTicket(lignes: LigneTicket[]): string {
 
 export type Changement = { champ: string; avant: string; apres: string };
 
-// Poste qui fait le sac : la cuisine s'il y a des lignes cuisine, sinon les pizzas.
+// Liste du sac : une case par article de la commande (tous les postes), puis couverts et serviettes.
+export function listeDuSac(c: Pick<CommandePourTicket, "lignes" | "couverts">): LigneTicket[] {
+  const contenu: LigneTicket[] = [{ t: "filet" }, { t: "texte", texte: "SAC : COCHER CHAQUE ARTICLE", gras: true }];
+  for (const l of c.lignes) {
+    contenu.push({ t: "texte", texte: `[ ] ${l.qte} x ${l.nom}${l.pour?.trim() ? ` (pour ${l.pour.trim()})` : ""}` });
+  }
+  if (c.couverts) contenu.push({ t: "texte", texte: "[ ] COUVERTS ET SERVIETTES", gras: true });
+  return contenu;
+}
+
+// Poste qui fait le sac : la cuisine s'il y a des lignes cuisine, sinon les pizzas. Commande sans pizza ni plat
+// cuisiné (boissons et desserts du comptoir seulement) : la cuisine, qui reçoit alors le seul ticket, celui du sac.
 export function posteDuSac(c: Pick<CommandePourTicket, "lignes">): "pizza" | "cuisine" {
-  return c.lignes.some((l) => l.station === "cuisine") ? "cuisine" : "pizza";
+  return c.lignes.some((l) => l.station === "cuisine") || !c.lignes.some((l) => l.station === "pizza") ? "cuisine" : "pizza";
 }
 
 // Une commande acceptée change (téléphone, consignes, adresse) après la sortie de ses tickets : un seul ticket, au

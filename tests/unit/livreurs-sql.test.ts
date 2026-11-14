@@ -82,7 +82,7 @@ describe("attribution", () => {
     const c = await livraison("nouvelle");
     expect(await attribuer(c, marco)).toBe("commande");
     await db.query("update commandes set statut = 'acceptee' where id = $1", [c]);
-    expect(await attribuer(c, await id("equipe@laferme.test"))).toBe("livreur");
+    expect(await attribuer(c, await id("equipe-bureau@laferme.test"))).toBe("livreur"); // équipe de service : le gérant, lui, peut livrer (14.11)
     expect(await attribuer(c, marco)).toBe("ok");
     expect(await attribuer(c, marco)).toBe("deja");
   });

@@ -69,3 +69,45 @@
 .livreur:has(.liv-position) {
   padding-bottom: 140px;
 }
+/* À prendre : une ligne par commande sans livreur, « Je prends » sous le pouce. */
+.liv-a-prendre {
+  margin: 12px 0;
+  padding: 12px 14px;
+  background: var(--blanc);
+  border: 2px solid var(--encre);
+  border-radius: 4px;
+}
+.liv-a-prendre h2 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+.liv-a-prendre ul {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.liv-a-prendre-ligne {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+.liv-a-prendre-ligne p {
+  margin: 0;
+}
+.liv-a-prendre-ligne button {
+  min-width: 112px;
+  min-height: 48px;
+}
+/* Ordre de la tournée, sur chaque arrêt. */
+.liv-ordre {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 8px 0;
+}
+.liv-ordre button {
+  min-height: 48px;
+}

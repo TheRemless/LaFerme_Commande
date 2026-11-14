@@ -48,7 +48,8 @@ export type CommandeTablette = {
   // Paiement en ligne confirmé, ou création pour le comptoir : point de départ de « Attend depuis ».
   attend_depuis: string;
   // pour : prénom de la personne à qui va le plat (client-commande, vide si le réglage est éteint).
-  lignes: { nom: string; qte: number; station: "pizza" | "cuisine"; choix: Record<string, string[]>; retraits: string[]; note: string; details: string[]; pour?: string }[];
+  // « comptoir » (bo-carte, 20261215150000) : boissons et desserts mis dans le sac, sans ticket de préparation.
+  lignes: { nom: string; qte: number; station: "pizza" | "cuisine" | "comptoir"; choix: Record<string, string[]>; retraits: string[]; note: string; details: string[]; pour?: string }[];
   // Vague 3 (client-commande, migration 20261212110000) : facultatifs, absents avant la migration.
   allergie?: string;
   destinataire?: { nom: string; telephone: string } | null;

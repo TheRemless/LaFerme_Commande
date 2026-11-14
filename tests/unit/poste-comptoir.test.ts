@@ -196,7 +196,10 @@ describe("poste comptoir, règles pures", () => {
     } as unknown as CommandePourTicket;
     const t = ticketsDeCommande(c, { accepteLe: "2026-11-20T18:00:00Z" });
     expect(t.map((x) => x.station)).toEqual(["pizza"]);
-    expect(JSON.stringify(t)).not.toContain("Thé froid");
+    // Pas de ligne de préparation pour la boisson : seulement sa case dans la liste du sac (tablette, #246).
+    const lignes = t[0].contenu.flatMap((x) => (x.t === "texte" ? [x.texte] : []));
+    expect(lignes).not.toContain("2 x Thé froid citron");
+    expect(lignes).toContain("[ ] 2 x Thé froid citron");
     // Seule l'autre station de préparation est annoncée en pied de ticket, pas le comptoir.
     expect(JSON.stringify(t)).not.toContain("Aussi");
   });

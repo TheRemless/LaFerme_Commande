@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import "./livreur.css";
-import type { Geste, LivraisonLivreur, Probleme, RetireeLivreur } from "@/lib/livreur";
+import type { APrendre, Geste, LivraisonLivreur, Probleme, RetireeLivreur } from "@/lib/livreur";
 import { poster } from "@/lib/requete-client";
 import { heureDe as heure } from "@/lib/heures";
 import { prixChf } from "@/lib/prix";
@@ -16,7 +16,7 @@ import { usePartagePosition, type EtatPartage } from "./partage-position";
 // adresse) et repart seul au retour du signal. Le serveur reconnaît la clé : jamais deux fois.
 // Les adresses ne sont gardées qu'en mémoire, jamais dans le stockage du téléphone.
 
-type Donnees = { livraisons: LivraisonLivreur[]; retirees: RetireeLivreur[] };
+type Donnees = { livraisons: LivraisonLivreur[]; retirees: RetireeLivreur[]; a_prendre?: APrendre[] };
 type EnAttente = { cle: string; commande: string; geste: Geste; motif?: Probleme; detail?: string; numero: number };
 
 const STOCKAGE = "laferme-livreur-gestes";
@@ -63,6 +63,8 @@ function bip(ctx: AudioContext) {
   }
 }
 
+const A_PRENDRE_VISIBLES = 5;
+
 const telLien = (t: string) => `tel:${t.replace(/[^+\d]/g, "")}`;
 
 export function Livreur({ nom, supabase }: { nom: string; supabase: { url: string; cle: string } | null }) {
@@ -82,6 +84,7 @@ export function Livreur({ nom, supabase }: { nom: string; supabase: { url: strin
   const audio = useRef<AudioContext | null>(null);
   const [sonActif, setSonActif] = useState(false);
   const connues = useRef<Set<string> | null>(null);
+  const prisesParMoi = useRef<Set<string>>(new Set());
 
   const majAttente = useCallback((v: EnAttente[]) => {
     attenteRef.current = v;
@@ -157,7 +160,8 @@ export function Livreur({ nom, supabase }: { nom: string; supabase: { url: strin
   useEffect(() => {
     if (!donnees) return;
     const ids = donnees.livraisons.map((l) => l.commande_id);
-    const nouvelles = connues.current ? donnees.livraisons.filter((l) => !connues.current!.has(l.commande_id)) : [];
+    // Une commande qu'il vient de prendre lui-même (« Je prends ») n'est pas une surprise : pas d'alerte.
+    const nouvelles = connues.current ? donnees.livraisons.filter((l) => !connues.current!.has(l.commande_id) && !prisesParMoi.current.has(l.commande_id)) : [];
     connues.current = new Set(ids);
     if (nouvelles.length === 0) return;
     setMessage(nouvelles.length === 1 ? `Nouvelle livraison pour vous : n° ${nouvelles[0].numero}.` : `${nouvelles.length} nouvelles livraisons pour vous.`);
@@ -206,6 +210,30 @@ export function Livreur({ nom, supabase }: { nom: string; supabase: { url: strin
     });
     return () => fermer?.();
   }, [supabase, charger]);
+
+  // « Je prends » et « Plus tôt / Plus tard » : il faut du réseau (pas de file d'attente, la base tranche).
+  const [prise, setPrise] = useState<string | null>(null);
+  const [toutVoir, setToutVoir] = useState(false);
+  async function prendre(a: APrendre) {
+    setPrise(a.commande_id);
+    setMessage(null);
+    const r = await poster("/api/livreur/tournee", { action: "prendre", commande: a.commande_id });
+    if (r.statut === 0) setMessage("Pas de réseau. Réessayez au retour du signal.");
+    else if (r.ok) {
+      prisesParMoi.current.add(a.commande_id);
+      setMessage(`N° ${a.numero} est à vous. L'adresse est dans vos livraisons.`);
+    }
+    else setMessage(`N° ${a.numero} : ${String(r.donnees.message ?? r.donnees.erreur ?? "Pas pris.")}`);
+    setPrise(null);
+    await charger();
+  }
+  async function deplacer(l: LivraisonLivreur, sens: -1 | 1) {
+    setMessage(null);
+    const r = await poster("/api/livreur/tournee", { action: "deplacer", commande: l.commande_id, sens });
+    if (r.statut === 0) setMessage("Pas de réseau. Réessayez au retour du signal.");
+    else if (!r.ok) setMessage(String(r.donnees.message ?? r.donnees.erreur ?? "L'ordre n'a pas changé."));
+    await charger();
+  }
 
   function geste(l: { commande_id: string; numero: number }, g: Geste, extra: { motif?: Probleme; detail?: string } = {}) {
     setMessage(null);
@@ -298,7 +326,9 @@ export function Livreur({ nom, supabase }: { nom: string; supabase: { url: strin
       {donnees === null ? (
         <p className="liv-vide">{horsLigne ? "Pas de réseau. Vos livraisons s'afficheront au retour du signal." : "Chargement…"}</p>
       ) : livraisons.length === 0 ? (
-        <p className="liv-vide">Rien pour vous pour le moment. La page se met à jour seule.</p>
+        <p className="liv-vide">
+          {(donnees.a_prendre?.length ?? 0) > 0 ? "Aucune livraison pour vous. Prenez-en une plus bas." : "Rien pour vous pour le moment. La page se met à jour seule."}
+        </p>
       ) : (
         <ol className="liv-liste">
           {livraisons.map((l, i) => (
@@ -311,9 +341,40 @@ export function Livreur({ nom, supabase }: { nom: string; supabase: { url: strin
               geste={(g, extra) => geste(l, g, extra)}
               replie={enRoute && l.commande_id !== courant?.commande_id && !deplies.has(l.commande_id)}
               deplier={() => setDeplies((x) => new Set(x).add(l.commande_id))}
+              deplacer={livraisons.length > 1 ? (sens) => deplacer(l, sens) : undefined}
+              premier={i === 0}
+              dernier={i === livraisons.length - 1}
             />
           ))}
         </ol>
+      )}
+
+      {/* À prendre (réponse de Jérémy du 14.11) : le livreur choisit ses commandes. Quartier et heure seulement :
+          l'adresse complète n'arrive qu'une fois la commande prise. Après sa tournée, cachée pendant le trajet,
+          les 5 plus pressées d'abord. */}
+      {!enRoute && (donnees?.a_prendre?.length ?? 0) > 0 && (
+        <section className="liv-a-prendre" aria-labelledby="liv-a-prendre-titre">
+          <h2 id="liv-a-prendre-titre">À prendre ({donnees!.a_prendre!.length})</h2>
+          <ul>
+            {donnees!.a_prendre!.slice(0, toutVoir ? undefined : A_PRENDRE_VISIBLES).map((a) => (
+              <li key={a.commande_id} className="liv-a-prendre-ligne">
+                <p>
+                  <strong>N° {a.numero}</strong>, {a.npa} {a.localite}
+                  {a.heure ? `, pour ${heure(a.heure)}` : ""}. {a.articles} article{a.articles > 1 ? "s" : ""}
+                  {a.pizzas > 0 ? `, dont ${a.pizzas} pizza${a.pizzas > 1 ? "s" : ""}` : ""}.
+                </p>
+                <button type="button" className="bouton-principal" disabled={prise !== null} onClick={() => prendre(a)}>
+                  {prise === a.commande_id ? "Un instant…" : "Je prends"}
+                </button>
+              </li>
+            ))}
+          </ul>
+          {!toutVoir && donnees!.a_prendre!.length > A_PRENDRE_VISIBLES && (
+            <button type="button" className="lien" onClick={() => setToutVoir(true)}>
+              Voir les {donnees!.a_prendre!.length - A_PRENDRE_VISIBLES} autres
+            </button>
+          )}
+        </section>
       )}
 
       {/* En route, d'une main : l'arrêt en cours a ses deux gestes sous le pouce, en bas de l'écran. */}
@@ -344,6 +405,9 @@ function Arret({
   geste,
   replie = false,
   deplier,
+  deplacer,
+  premier = false,
+  dernier = false,
 }: {
   l: LivraisonLivreur;
   rang: number;
@@ -352,6 +416,10 @@ function Arret({
   geste: (g: Geste, extra?: { motif?: Probleme; detail?: string }) => void;
   replie?: boolean;
   deplier?: () => void;
+  // Le livreur range sa tournée (réponse de Jérémy du 14.11) : absent s'il n'a qu'un arrêt.
+  deplacer?: (sens: -1 | 1) => void;
+  premier?: boolean;
+  dernier?: boolean;
 }) {
   const ids = useId();
   const [probleme, setProbleme] = useState<Probleme | null>(null);
@@ -435,6 +503,17 @@ function Arret({
             </>
           )}
         </p>
+      )}
+
+      {deplacer && (
+        <div className="liv-ordre">
+          <button type="button" className="bouton-second" disabled={premier} aria-label={`Livrer le n° ${l.numero} plus tôt`} onClick={() => deplacer(-1)}>
+            Plus tôt
+          </button>
+          <button type="button" className="bouton-second" disabled={dernier} aria-label={`Livrer le n° ${l.numero} plus tard`} onClick={() => deplacer(1)}>
+            Plus tard
+          </button>
+        </div>
       )}
 
       <div className="liv-liens">

@@ -2,7 +2,8 @@ import "server-only";
 import { courrielClientAbsent, courrielPrete } from "@/lib/courriel/modeles";
 import { envoyerCourriel } from "@/lib/courriel/envoi";
 import { commandeParId, fonctionSql } from "@/lib/db/serveur";
-import { auteur, type Personnel } from "@/lib/personnel/session";
+import { auteur, exigerPersonnel, type Personnel } from "@/lib/personnel/session";
+import { refus } from "@/lib/comptes/api";
 import { signalerTablette } from "@/lib/tablette";
 import { alerter } from "@/lib/surveillance";
 import { prixChf } from "@/lib/prix";
@@ -75,7 +76,8 @@ export async function gesteLivreur(
 
 // ---------- Tablette ----------
 
-export type LivreurTablette = { id: string; nom: string; actif: boolean; vu_le: string | null };
+// role : « livreur », ou « gerant » / « responsable » qui peut livrer (réponse de Jérémy du 14.11).
+export type LivreurTablette = { id: string; nom: string; actif: boolean; vu_le: string | null; role?: string };
 export type LivraisonTablette = {
   commande_id: string;
   numero: number;
@@ -162,3 +164,45 @@ export async function agirLivraison(a: ActionLivraison, p: Personnel): Promise<{
   if (ok) await signalerTablette();
   return ok ? { ok, message } : { ok, message: message ?? "Cette livraison a déjà changé. La liste se met à jour." };
 }
+
+// ---------- Le livreur choisit ses commandes et son ordre (réponses de Jérémy du 14.11.2026) ----------
+
+// Routes du téléphone : un livreur, ou un gérant ou un responsable qui peut livrer (peut_livrer, relu à chaque appel).
+export async function exigerLivreurOuChef(requete: Request, options: { lecture?: boolean } = {}) {
+  const g = await exigerPersonnel(requete, { ...options, roles: ["livreur", "gerant", "responsable"] });
+  if ("reponse" in g) return g;
+  if (g.personnel.role !== "livreur" && !(await peutLivrer(g.personnel))) return { reponse: refus("Réservé aux livreurs.", 403) };
+  return g;
+}
+
+export const peutLivrer = (p: Personnel) => fonctionSql<boolean>("peut_livrer", { p_personnel: p.id });
+
+// Livraisons acceptées, tickets sortis, sans livreur : quartier et heure, sans l'adresse complète avant de prendre.
+export type APrendre = { commande_id: string; numero: number; heure: string | null; npa: string; localite: string; zone: number | null; articles: number; pizzas: number };
+export const livraisonsAPrendre = () => fonctionSql<APrendre[]>("livraisons_a_prendre", {});
+
+// « Je prends » : atomique en base. Ordre proposé recalculé comme à la tablette, sauf ordre déjà fait à la main.
+export async function prendreLivraison(p: Personnel, commande: string): Promise<{ ok: boolean; message?: string }> {
+  const r = await fonctionSql<{ ok: boolean; raison?: string; par?: string }>("prendre_livraison", { p_commande: commande, p_livreur: p.id });
+  if (!r.ok) {
+    return {
+      ok: false,
+      message:
+        r.raison === "prise" ? `Déjà prise par ${r.par}.` : r.raison === "livreur" ? "Votre compte ne peut pas livrer." : "Cette commande n'est plus à prendre. La liste se met à jour.",
+    };
+  }
+  const liste = await arrets(p.id);
+  if (!liste.some((x) => x.ordre_manuel)) await ordonner(p.id, proposerOrdre(liste), false, `livreur:${p.nom}`);
+  await signalerTablette();
+  return { ok: true };
+}
+
+// « Plus tôt » / « Plus tard » sur le téléphone : même fonction que la tablette, l'ordre fait à la main n'est plus
+// recalculé. La base pose la marque de masquage si l'arrêt en cours change (position en direct).
+export async function deplacerParLivreur(p: Personnel, commande: string, sens: -1 | 1): Promise<{ ok: boolean; message?: string }> {
+  const nouvel = deplacer((await arrets(p.id)).map((x) => x.commande_id), commande, sens);
+  const ok = nouvel ? await ordonner(p.id, nouvel, true, `livreur:${p.nom}`) : false;
+  if (ok) await signalerTablette();
+  return ok ? { ok } : { ok, message: "Cet ordre a déjà changé. La liste se met à jour." };
+}
+
