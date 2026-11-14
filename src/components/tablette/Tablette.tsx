@@ -839,6 +839,46 @@ function decaler(iso: string, minutes: number): string {
   return new Date(new Date(iso).getTime() + minutes * 60_000).toISOString();
 }
 
+// Complément d'une commande modifiée (vague 3, bo-commandes) : encaissé au retrait, ou au retour du livreur.
+function ComplementAEncaisser({ complement, recharger }: { complement: { id: string; centimes: number; moyen: string }; recharger: () => void | Promise<void> }) {
+  const [envoi, setEnvoi] = useState(false);
+  const [erreur, setErreur] = useState<string | null>(null);
+  async function encaisser(moyen: "especes" | "carte") {
+    setEnvoi(true);
+    setErreur(null);
+    try {
+      const rep = await fetch("/api/tablette/complement", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ complement: complement.id, moyen }) });
+      const r = (await rep.json()) as { ok?: boolean; message?: string; erreur?: string };
+      if (r.ok) await recharger();
+      else setErreur(r.message ?? r.erreur ?? "Pas encaissé.");
+    } catch {
+      setErreur("Pas de réseau. Réessayez.");
+    } finally {
+      setEnvoi(false);
+    }
+  }
+  return (
+    <div className="tab-complement">
+      <p>
+        <strong>Complément à encaisser {complement.moyen === "porte" ? "à la livraison" : "au retrait"} : {prixChf(complement.centimes)}</strong>
+      </p>
+      <div className="boutons-ligne">
+        <button type="button" className="bouton-second" disabled={envoi} onClick={() => encaisser("especes")}>
+          Complément encaissé en espèces
+        </button>
+        <button type="button" className="bouton-second" disabled={envoi} onClick={() => encaisser("carte")}>
+          par carte
+        </button>
+      </div>
+      {erreur && (
+        <p className="panier-alerte" role="alert">
+          {erreur}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function CarteCommande({
   c,
   aujourdHui,
@@ -1051,6 +1091,9 @@ function CarteCommande({
             </p>
           )}
           <p className="tab-paiement">{paiement}</p>
+          {(c.complements ?? []).map((k) => (
+            <ComplementAEncaisser key={k.id} complement={k} recharger={recharger} />
+          ))}
           {c.manques && c.manques.length > 0 && (
             <p className="tab-manque">
               Manque : {c.manques.join(" ; ")}. {prixChf(deduit).replace(" ", "\u00a0")} {c.statut_paiement === "a_encaisser_retrait" ? "déduits" : "remboursés"}.

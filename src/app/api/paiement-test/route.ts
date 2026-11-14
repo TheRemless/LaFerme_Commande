@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { annulerPaiement, appliquerEtatRemboursement, confirmerPaiement } from "@/lib/commandes";
-import { commandeParId } from "@/lib/db/serveur";
+import { commandeParId, fonctionSql } from "@/lib/db/serveur";
+import { confirmerComplement, expirerComplement } from "@/lib/difference";
 import { doublureActive } from "@/lib/paiement/passerelle";
 
 // Doublure de Stripe pour les préversions sans compte Stripe : simule l'issue du paiement en passant
@@ -10,7 +11,18 @@ export async function POST(requete: Request) {
   if (!doublureActive()) {
     return NextResponse.json({ erreur: "Introuvable." }, { status: 404 });
   }
-  const corps = (await requete.json().catch(() => ({}))) as { commande?: unknown; issue?: unknown; remboursement?: unknown };
+  const corps = (await requete.json().catch(() => ({}))) as { commande?: unknown; issue?: unknown; remboursement?: unknown; complement?: unknown };
+  // Complément d'une commande modifiée (vague 3, bo-commandes), par le même chemin que le webhook.
+  if (corps.complement !== undefined) {
+    if (typeof corps.complement !== "string" || !/^[0-9a-f-]{36}$/.test(corps.complement)) return NextResponse.json({ erreur: "Complément inconnu." }, { status: 404 });
+    const m = await fonctionSql<{ difference_centimes: number; jeton_suivi: string } | null>("complement_doublure", { p_modification: corps.complement });
+    if (!m) return NextResponse.json({ erreur: "Complément inconnu." }, { status: 404 });
+    const session = `doublure_complement_${corps.complement}`;
+    if (corps.issue === "paye") {
+      await confirmerComplement(corps.complement, `doublure:complement:${corps.complement}:paye`, { sessionId: session, montantCentimes: m.difference_centimes, devise: "chf", paymentIntent: `pi_doublure_complement_${corps.complement}` });
+    } else await expirerComplement(corps.complement, session);
+    return NextResponse.json({ redirection: `/suivi/${m.jeton_suivi}` });
+  }
   // Fin d'un remboursement de la doublure joué « en attente » (DOUBLURE_REMBOURSEMENT=pending), par le même
   // chemin que le webhook charge.refund.updated (audit de sécurité 2, S2-03).
   if (corps.remboursement !== undefined) {

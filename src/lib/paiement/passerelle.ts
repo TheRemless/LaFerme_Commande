@@ -16,6 +16,12 @@ export type DemandeSession = {
   urlRetour: string;
   urlAnnulation: string;
   origine: string;
+  // Paiement d'un complément (commande modifiée, vague 3, bo-commandes) : métadonnées lues par le webhook pour le
+  // distinguer du paiement de la commande, référence et page de la doublure à part. Absents : une commande.
+  metadata?: Record<string, string>;
+  reference?: string;
+  cheminDoublure?: string;
+  description?: string;
 };
 
 export type EtatSession = {
@@ -83,10 +89,10 @@ const passerelleStripe = (s: Stripe): Passerelle => ({
         mode: "payment",
         currency: "chf",
         locale: "fr",
-        customer_email: d.email,
+        customer_email: d.email || undefined,
         client_reference_id: d.commandeId,
-        metadata: { commande_id: d.commandeId },
-        payment_intent_data: { metadata: { commande_id: d.commandeId }, description: `La Ferme, commande ${d.numero}` },
+        metadata: { commande_id: d.commandeId, ...d.metadata },
+        payment_intent_data: { metadata: { commande_id: d.commandeId, ...d.metadata }, description: d.description ?? `La Ferme, commande ${d.numero}` },
         line_items: d.lignes.map((l) => ({
           quantity: l.qte,
           price_data: { currency: "chf", unit_amount: l.unitaire_centimes, product_data: { name: l.libelle.slice(0, 250) } },
@@ -134,8 +140,8 @@ const passerelleStripe = (s: Stripe): Passerelle => ({
 const passerelleDoublure: Passerelle = {
   nom: "doublure",
   async creerSession(d) {
-    const id = `doublure_${d.commandeId}`;
-    return { id, url: `${d.origine}/paiement-test/${d.commandeId}` };
+    const id = `doublure_${d.reference ?? d.commandeId}`;
+    return { id, url: `${d.origine}${d.cheminDoublure ?? `/paiement-test/${d.commandeId}`}` };
   },
   // L'état vit dans la base (événements appliqués par la page de test) : rien à relire ailleurs.
   async lireSession() {
