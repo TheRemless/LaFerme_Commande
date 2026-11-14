@@ -54,6 +54,7 @@ export function VuePoste({ station }: { station: Station }) {
         <h1>{TITRE[station]}</h1>
         <p aria-live="polite">
           {vue === null ? "Chargement…" : vue.en_cours.length === 0 ? "Rien à sortir." : `${vue.en_cours.length} en cours`}
+          {vue && vue.plus_tard > 0 ? `, ${vue.plus_tard} plus tard (elles arrivent ici à la sortie de leurs tickets)` : ""}
         </p>
         <a className="bouton-second" href="/tablette">
           Tablette

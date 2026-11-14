@@ -10,3 +10,29 @@ describe("envoi de la position", () => {
     expect(envoyerMaintenant({ arret: "a", le: 1000 }, "b", 1001)).toBe(true);
   });
 });
+
+describe("arrêt suivi, stabilisé", () => {
+  it("un null passager (rechargement après « Je pars ») n'arrête pas le partage ; un null qui dure, si", async () => {
+    const { vi } = await import("vitest");
+    const { suiviArret, DELAI_FIN_MS } = await import("@/components/livreur/partage-position");
+    vi.useFakeTimers();
+    const vus: (string | null)[] = [];
+    const s = suiviArret(DELAI_FIN_MS, (a) => vus.push(a));
+    s.changer("c1");
+    s.changer(null);
+    vi.advanceTimersByTime(300);
+    s.changer("c1");
+    vi.advanceTimersByTime(DELAI_FIN_MS * 2);
+    expect(vus).toEqual(["c1", "c1"]);
+    s.changer(null);
+    vi.advanceTimersByTime(DELAI_FIN_MS - 1);
+    expect(vus).toEqual(["c1", "c1"]);
+    vi.advanceTimersByTime(1);
+    expect(vus).toEqual(["c1", "c1", null]);
+    s.changer(null);
+    s.arreter();
+    vi.advanceTimersByTime(DELAI_FIN_MS);
+    expect(vus).toEqual(["c1", "c1", null]);
+    vi.useRealTimers();
+  });
+});

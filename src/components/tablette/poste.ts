@@ -20,12 +20,16 @@ export type CommandePoste = {
   allergie: string;
 };
 export type SortiePoste = { id: string; numero: number; pret_le: string; par_le_poste: boolean; rouvrable: boolean; plats: number };
-export type VuePoste = { en_cours: CommandePoste[]; sorties: SortiePoste[]; reste: { nom: string; qte: number }[] };
+// plus_tard : commandes dont l'heure de mise en route n'est pas encore venue (hors file et hors « Reste à sortir »).
+export type VuePoste = { en_cours: CommandePoste[]; sorties: SortiePoste[]; reste: { nom: string; qte: number }[]; plus_tard: number };
 
 const EN_CUISINE = new Set(["acceptee", "en_preparation"]);
 
-export function vuePoste(commandes: CommandeTablette[], postes: PosteActif[], station: Station): VuePoste {
+// maintenant : une commande dont a_faire_le est à venir n'est pas encore au poste (M2 de la mise en situation : à 15h,
+// les commandes du soir comptaient dans « Reste à sortir »). Sans maintenant, tout est montré.
+export function vuePoste(commandes: CommandeTablette[], postes: PosteActif[], station: Station, maintenant?: Date): VuePoste {
   const parId = new Map(commandes.map((c) => [c.id, c]));
+  let plus_tard = 0;
   const en_cours: CommandePoste[] = [];
   const sorties: SortiePoste[] = [];
   for (const p of postes) {
@@ -35,6 +39,10 @@ export function vuePoste(commandes: CommandeTablette[], postes: PosteActif[], st
     const lignes = c.lignes.filter((l) => l.station === station);
     if (p.pret_le === null) {
       if (!EN_CUISINE.has(c.statut)) continue;
+      if (maintenant && new Date(p.a_faire_le).getTime() > maintenant.getTime()) {
+        plus_tard += 1;
+        continue;
+      }
       en_cours.push({
         id: c.id,
         numero: c.numero,
@@ -63,7 +71,7 @@ export function vuePoste(commandes: CommandeTablette[], postes: PosteActif[], st
   const total = new Map<string, number>();
   for (const c of en_cours) for (const l of c.lignes) total.set(l.nom, (total.get(l.nom) ?? 0) + l.qte);
   const reste = [...total].map(([nom, qte]) => ({ nom, qte })).sort((a, b) => b.qte - a.qte || a.nom.localeCompare(b.nom, "fr"));
-  return { en_cours, sorties: sorties.slice(0, 6), reste };
+  return { en_cours, sorties: sorties.slice(0, 6), reste, plus_tard };
 }
 
 // « Pizza Margherita » → « Margherita » au poste pizza : le mot du poste n'apprend rien au pizzaiolo.

@@ -11,6 +11,9 @@ export const metadata: Metadata = { title: "Tablette, La Ferme", robots: PRIVE, 
 
 export default async function PageTablette() {
   const personnel = await personnelCourant();
+  // Commandes au back-office (lien du bandeau des remboursements) : gérant, ou responsable au rôle ouvert.
+  const backOffice =
+    personnel && personnel.role !== "livreur" ? await fonctionSql<boolean>("droit_personnel", { p_personnel: personnel.id, p_action: "voir_commandes" }) : false;
   // Annuler une livraison partie : gérant, ou responsable de service au rôle ouvert (D1). Pour l'écran seulement,
   // le serveur revérifie (droit_personnel, puis auteur_droit en base).
   const annulerPartie =
@@ -31,7 +34,7 @@ export default async function PageTablette() {
           </a>
         </div>
       ) : (
-        <Tablette nom={personnel.nom} annulerPartie={annulerPartie} supabase={url && cle ? { url, cle } : null} />
+        <Tablette nom={personnel.nom} annulerPartie={annulerPartie} backOffice={backOffice} supabase={url && cle ? { url, cle } : null} />
       )}
     </main>
   );
