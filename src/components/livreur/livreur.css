@@ -90,13 +90,16 @@
 }
 .liv-a-prendre-ligne {
   display: grid;
-  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
 }
 .liv-a-prendre-ligne p {
   margin: 0;
 }
 .liv-a-prendre-ligne button {
-  min-height: 52px;
+  min-width: 112px;
+  min-height: 48px;
 }
 /* Ordre de la tournée, sur chaque arrêt. */
 .liv-ordre {

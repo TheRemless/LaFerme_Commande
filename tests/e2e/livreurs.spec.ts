@@ -232,6 +232,13 @@ test("« Je prends » : deux livreurs au même instant, un seul gagne ; le livre
   const b = await livraison(request, LIGNON);
   await marco.reload();
   const section = marco.locator(".liv-a-prendre");
+  // Les 5 plus pressées d'abord : une commande restée d'un autre cas peut passer devant.
+  const toutVoir = async () => {
+    await expect(section).toBeVisible({ timeout: 15_000 });
+    const autres = section.getByRole("button", { name: /^Voir les \d+ autres$/ });
+    if (await autres.isVisible()) await autres.click();
+  };
+  await toutVoir();
   await expect(section.locator("li", { hasText: `N° ${a},` })).toBeVisible({ timeout: 15_000 });
   // Quartier et heure seulement : pas l'adresse complète avant de prendre.
   await expect(section).not.toContainText("Gros-Chêne");
@@ -245,6 +252,7 @@ test("« Je prends » : deux livreurs au même instant, un seul gagne ; le livre
   expect(((await perdant.json()) as { message: string }).message).toMatch(/^Déjà prise par (Marco|Inès)\.$/);
   // Marco prend le second à l'écran, puis range sa tournée.
   await marco.reload();
+  await toutVoir();
   await section.locator("li", { hasText: `N° ${b},` }).getByRole("button", { name: "Je prends" }).click();
   await expect(marco.locator(".liv-info")).toContainText(`N° ${b} est à vous.`);
   await expect(arret(marco, b)).toBeVisible();
