@@ -105,6 +105,13 @@ async function avant(liste: ReturnType<Page["locator"]>, prefixe: string, premie
 async function carteAuSuivi(request: APIRequestContext, numero: string): Promise<boolean> {
   return (await (await request.get(`/suivi/${jetons.get(numero)}`)).text()).includes("Carte du quartier, avec notre livreur au centre.");
 }
+// Position du livreur envoyée comme son téléphone (même route, même session, mêmes règles en base).
+const DEPART = { lat: 46.1843, lon: 6.0921, precision: 15 };
+const LOIN = { lat: 46.201, lon: 6.096, precision: 15 };
+async function positionDeMarco(p: { lat: number; lon: number; precision: number }): Promise<void> {
+  const r = await marco.request.post("/api/livreur/position", { headers: ORIGINE, data: p });
+  expect(r.ok(), await r.text()).toBe(true);
+}
 const arret = (page: Page, numero: string) => page.locator(".liv-arret", { hasText: `n° ${numero}` });
 
 test.beforeAll(async ({ browser }, info) => {
@@ -186,7 +193,9 @@ test("tournée de deux livraisons, ordre proposé, Je pars, Livrée : plus rien 
   await expect(marco.locator(".liv-position")).toHaveText(`Le client du n° ${a} voit votre position jusqu'à «\u00a0Livrée\u00a0».`, { timeout: 15_000 });
   await marco.screenshot({ path: "test-results/livreurs/livreur-375-position.png" });
   // Suivi (client-compte) : la carte au client de l'arrêt en cours seulement, jamais au suivant de la tournée.
-  await expect.poll(() => carteAuSuivi(request, a), { timeout: 15_000 }).toBe(true);
+  // Les positions qu'on vérifie au suivi passent par la route du livreur, avec sa session : mêmes règles en base que
+  // celles du téléphone. Le Chromium de la CI ne fait pas suivre setGeolocation à watchPosition (constaté le 14.11).
+  await expect.poll(async () => (await positionDeMarco(DEPART), await carteAuSuivi(request, a)), { timeout: 30_000, intervals: [3_000] }).toBe(true);
   expect(await carteAuSuivi(request, b)).toBe(false);
   if (process.env.RENDUS === "1") {
     for (const largeur of [375, 320]) {
@@ -204,11 +213,11 @@ test("tournée de deux livraisons, ordre proposé, Je pars, Livrée : plus rien 
   // de la porte du premier (point de masquage de tablette), puis voit la sienne quand il s'en éloigne.
   expect(await carteAuSuivi(request, a)).toBe(false);
   expect(await carteAuSuivi(request, b)).toBe(false);
-  // Le téléphone envoie au plus une position toutes les 20 s, à chaque changement : le livreur roule encore un peu.
-  await contexteMarco.setGeolocation({ latitude: 46.2, longitude: 6.096, accuracy: 15 });
-  await marco.waitForTimeout(21_000);
-  await contexteMarco.setGeolocation({ latitude: 46.201, longitude: 6.096, accuracy: 15 });
-  await expect.poll(() => carteAuSuivi(request, b), { timeout: 45_000, intervals: [2_000] }).toBe(true);
+  // Premier point de l'arrêt b, à la porte de a : il devient le point de masquage. Puis le livreur roule vers Le Lignon
+  // (1,9 km) ; la base n'écrit qu'un point toutes les 10 s, d'où la répétition.
+  await positionDeMarco(DEPART);
+  expect(await carteAuSuivi(request, b)).toBe(false);
+  await expect.poll(async () => (await positionDeMarco(LOIN), await carteAuSuivi(request, b)), { timeout: 40_000, intervals: [3_000] }).toBe(true);
   await arret(marco, b).getByRole("button", { name: "Livrée" }).click();
   await expect(arret(marco, b)).toHaveCount(0);
   await tablette.getByRole("button", { name: /^Terminées/ }).click();
