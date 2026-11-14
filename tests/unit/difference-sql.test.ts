@@ -138,6 +138,12 @@ describe("modifier les plats d'une commande", () => {
     const r1 = await modifier(c, demande(`difference-${n}-zone2-001`, lignes, zone2));
     expect(r1).toMatchObject({ reglement: "porte", applique: true, difference_centimes: 500 });
     expect((await db.query<{ frais_centimes: number }>("select frais_centimes from complements where commande_id = $1", [c])).rows[0].frais_centimes).toBe(500);
+    // Rapports et export : les mêmes frais une fois le complément encaissé (relecture de bo-pilotage).
+    const kz = (await db.query<{ id: string }>("select id from complements where commande_id = $1", [c])).rows[0].id;
+    expect(await f<boolean>("encaisser_complement($1, 'carte', $2)", [kz, id.gerant])).toBe(true);
+    const jour = (await db.query<{ j: string }>("select jour_service::text as j from commandes where id = $1", [c])).rows[0].j;
+    const recap = await f<{ frais_centimes: number }[]>("export_recap_jours($1, $1)", [jour]);
+    expect((await f<{ frais_centimes: number }>("pilotage_synthese($1, $1)", [jour])).frais_centimes).toBe(recap.reduce((t, l) => t + l.frais_centimes, 0));
     expect(await f<number>("valeur_commande($1)", [c])).toBe(3300);
     const r2 = await modifier(c, demande(`difference-${n}-zone2-002`, lignes, { ...zone2, adresse: { ...zone2.adresse, numero: "7" } }));
     expect(r2).toMatchObject({ reglement: "aucun", difference_centimes: 0 });

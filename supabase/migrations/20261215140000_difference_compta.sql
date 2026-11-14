@@ -105,7 +105,7 @@ language sql stable as $$
   -- Compléments des commandes modifiées (vague 3, bo-commandes), au jour de service de la commande : dans les ventes
   -- (encaissés ou à encaisser, comme les commandes), pas dans le compte des commandes.
   compl as (
-    select k.montant_centimes, k.tva_centimes, k.statut, k.moyen, o.mode, o.taux_tva_pourcent
+    select k.montant_centimes, k.tva_centimes, k.frais_centimes, k.statut, k.moyen, o.mode, o.taux_tva_pourcent
     from complements k join commandes o on o.id = k.commande_id
     where o.jour_service between p_debut and p_fin
       and o.statut not in ('paiement_en_attente', 'annulee', 'refusee')
@@ -216,7 +216,8 @@ language sql stable as $$
       count(*) filter (where statut_paiement = 'a_encaisser_retrait') as a_encaisser,
       coalesce(sum(total_centimes) filter (where statut_paiement = 'a_encaisser_retrait'), 0)::bigint
         + (select coalesce(sum(montant_centimes) filter (where statut = 'a_encaisser'), 0) from compl)::bigint as a_encaisser_ttc,
-      coalesce(sum(frais_centimes) filter (where mode = 'livraison'), 0)::bigint as frais,
+      coalesce(sum(frais_centimes) filter (where mode = 'livraison'), 0)::bigint
+        + (select coalesce(sum(frais_centimes) filter (where mode = 'livraison'), 0) from compl)::bigint as frais,
       count(*) filter (where mode = 'livraison') as livraisons,
       coalesce(sum(total_centimes) filter (where mode = 'livraison'), 0)::bigint
         + (select coalesce(sum(montant_centimes) filter (where mode = 'livraison'), 0) from compl)::bigint as livraison_ttc,
