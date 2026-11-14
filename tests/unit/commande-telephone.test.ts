@@ -71,6 +71,26 @@ describe("commande prise au téléphone, côté serveur", () => {
     expect(await prendreCommandeTelephone(await demande({ lignes: [] }), p, "http://localhost:3000")).toMatchObject({ ok: false, champ: "plats" });
   });
 
+  it("avec une boisson : sa case dans le ticket du sac, et la livraison dans « À prendre » une fois les tickets sortis", async () => {
+    const r = await prendreCommandeTelephone(
+      await demande({ lignes: [{ slug: "pizza-margherita", qte: 1, choix: {}, retraits: [], note: "" }, { slug: "coca-cola", qte: 2, choix: {}, retraits: [], note: "" }] }),
+      await equipier(),
+      "http://localhost:3000",
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const { imprimerCommande } = await import("@/lib/impression/service");
+    await imprimerCommande(r.id);
+    const db = await baseLocale();
+    const taches = (await db.query<{ station: string; contenu: unknown }>("select station, contenu from taches_impression where commande_id = $1", [r.id])).rows;
+    expect(taches.map((t) => t.station)).toEqual(["pizza"]);
+    const texte = texteTicket(taches[0].contenu as Parameters<typeof texteTicket>[0]);
+    expect(texte).toMatch(/\[ \] 2 x Coca-Cola/);
+    expect(texte).toContain("TELEPHONE");
+    const aPrendre = (await db.query<{ r: { commande_id: string }[] }>("select livraisons_a_prendre() as r")).rows[0].r;
+    expect(aPrendre.some((x) => x.commande_id === r.id)).toBe(true);
+  });
+
   it("ticket : la marque TÉLÉPHONE et le paiement à la livraison", () => {
     const c: CommandePourTicket = {
       numero: 7, mode: "livraison", client_prenom: "Giulia", client_nom: "Rossi", client_telephone: "079 555 12 34",
