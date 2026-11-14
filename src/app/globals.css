@@ -3798,3 +3798,61 @@ body.fiche-ouverte {
   margin: 0 0 4px;
   font-size: 16px;
 }
+
+/* Carte du livreur au suivi (vague 3, client-compte) : carte grise de swisstopo atténuée sur blanc, le livreur
+   en disque basilic cerclé de blanc, seule couleur du bloc. Cadre d'encre fin, ni ombre ni arrondi, aucune animation. */
+.carte-livreur {
+  margin: 16px 0;
+}
+.carte-livreur-cadre {
+  position: relative;
+  height: 220px;
+  overflow: hidden;
+  background: var(--blanc);
+  border: 1px solid var(--encre);
+}
+.carte-livreur-tuiles {
+  position: absolute;
+  width: 768px;
+  height: 768px;
+}
+.carte-livreur-tuiles img {
+  position: absolute;
+  display: block;
+  width: 256px;
+  height: 256px;
+  max-width: none;
+  opacity: 0.5;
+}
+.carte-livreur-point,
+.carte-livreur-precision {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+}
+.carte-livreur-point {
+  width: 24px;
+  height: 24px;
+  background: var(--basilic);
+  border: 4px solid var(--blanc);
+  outline: 2px solid var(--encre);
+}
+.carte-livreur-precision {
+  background: rgb(63 106 53 / 0.15);
+  border: 1px solid rgb(63 106 53 / 0.6);
+}
+.carte-livreur-source {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  padding: 2px 6px;
+  background: var(--blanc);
+  color: var(--encre);
+  font-size: 12px;
+}
+.carte-livreur figcaption {
+  margin-top: 8px;
+  font-size: 16px;
+}
