@@ -38,6 +38,17 @@ Migration `supabase/migrations/20261210150000_etiquettes.sql`. Tests : `tests/un
 - La carte publique les donne (`carte_publique.etiquettes`) pour le filtre et la fiche, affichés par `client-commande`.
 - Journal : objet `etiquettes`, avant et après.
 
+## Poste d'un plat : four, cuisine ou comptoir (vague 3, 14.11.2026)
+
+Décision de Jérémy du 14.11.2026 : l'équipe du comptoir met boissons et desserts prêts dans le sac.
+
+- **Trois postes.** Fiche d'un plat, nouveau plat et plat du jour : champ « Poste » (four, cuisine, comptoir) avec une aide d'une ligne. La liste a une colonne « Poste », cachée par défaut. Valeurs en base : `pizza`, `cuisine`, `comptoir` (enum `station`, migration 20261215150000).
+- **Comptoir.** Pas de ticket de préparation (`ticketsDeCommande` ne crée de tâche que pour le four et la cuisine), pas de ligne dans `commande_postes` (déclencheur recréé dans 20261215151000), aucun débit : `charge_cuisine()` ne compte que `pizza` et `cuisine`. L'article apparaît seulement sur le ticket du sac et sur l'écran comptoir (session tablette).
+- **Boissons au comptoir** par la migration 20261215151000 (catégorie `boissons`, y compris les boissons ajoutées au back-office). Les desserts restent où ils sont : Jérémy choisit plat par plat. Les commandes déjà passées gardent le poste figé sur leurs lignes. `docs/carte-proposee.json` et `supabase/seed.sql` suivent.
+- **Règle des pizzas du soir.** Un panier « pizzas seulement » peut aussi contenir des articles au comptoir (une boisson ne demande pas la cuisine), mais il lui faut au moins une pizza (`pizzasSeulement`, `src/lib/postes-plat.ts`). Sur la carte, à l'heure des pizzas seules, les articles au comptoir restent commandables.
+- **Ruptures.** « Four en panne » ne touche que le four ou la cuisine : un article au comptoir n'est épuisé que par sa catégorie ou un à un.
+- Tests : `tests/unit/poste-comptoir.test.ts` (enum, boissons, desserts intacts, choix au back-office et journal, `commande_postes`, charge, règle des pizzas, tickets), `tests/e2e/gestion-carte.spec.ts` (« le poste se choisit par plat »).
+
 ## Écran : la carte en liste (vague 3)
 
 Rubrique `/gestion/carte`, onglet « Liste » (par défaut). Code : `src/components/gestion/carte/` (liste, prix en lot, parties de la fiche), sur le kit du back-office. Test : `tests/e2e/gestion-carte-liste.spec.ts`. Captures : `docs/rendus/vague-3/bo-carte/`.

@@ -2,6 +2,7 @@
 // navigateur (affichage immédiat) et sur le serveur (/api/panier), qui seul fait foi.
 // Tous les prix viennent du catalogue lu en base : aucun montant n'est écrit ici.
 import type { Dispo } from "@/lib/disponibilite";
+import { pizzasSeulement, type PostePlat } from "@/lib/postes-plat";
 
 // par_defaut : cochée d'avance sur la fiche (le client peut la décocher).
 export type OptionCatalogue = { nom: string; prix_centimes: number; prix_a_valider: boolean; rupture?: boolean; par_defaut?: boolean };
@@ -13,7 +14,7 @@ export type PlatCatalogue = {
   categorie_slug: string;
   prix_centimes: number;
   prix_a_valider: boolean;
-  station: "pizza" | "cuisine";
+  station: PostePlat;
   rupture_motif: string | null;
   groupes: string[];
   retraits: RetraitCatalogue[];
@@ -133,7 +134,7 @@ export function calculerPanier(cat: Catalogue, lignes: LignePanier[], livraison:
     // TVA comprise dans le prix : part = total × taux / (100 + taux).
     tva_centimes: Math.round((total * taux) / (100 + taux)),
     manque_minimum_centimes: manque,
-    pizzas_seulement: plats.length > 0 && plats.every((p) => p.station === "pizza"),
+    pizzas_seulement: pizzasSeulement(plats.map((p) => p.station)),
     prix_a_valider: plats.some((p) => p.prix_a_valider) || optionsAValider,
     valide: calculees.length > 0 && lignes.length <= LIMITES.lignes && calculees.every((l) => !l.erreur) && manque === 0,
   };

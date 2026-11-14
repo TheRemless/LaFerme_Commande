@@ -199,7 +199,7 @@ export function CarteCommande({
             const rendre = (p: LignePlat, j: number) => {
               const motif =
                 p.rupture_motif ??
-                (seulementPizzas && p.station !== "pizza" ? "Seulement les pizzas à cette heure." : null) ??
+                (seulementPizzas && p.station !== "pizza" && p.station !== "comptoir" ? "Seulement les pizzas à cette heure." : null) ??
                 motifPlat(catalogue, p.slug, moment, aujourdhui);
               return (
                 <li key={p.slug} className={`plat ${p.photo ? "a-photo" : "sans-image"}${motif ? " epuise" : ""}`} data-slug={p.slug}>
