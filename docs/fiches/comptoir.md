@@ -2,7 +2,7 @@
 
 Vous acceptez les commandes, vous donnez les sacs, vous encaissez.
 
-En cas de problème, appeler : ______________________
+En cas de problème, appeler le restaurant : 022 792 16 89
 
 ## Au début du service
 
@@ -53,6 +53,16 @@ En cas de problème, appeler : ______________________
 Une livraison se lance plus tôt qu'un retrait à la même heure, car le trajet est compté.
 
 Sous les onglets, le compteur donne le nombre de commandes en retard et le nombre « à lancer maintenant ».
+
+## Le sac
+
+Le comptoir met les boissons et les desserts dans le sac. Le four et la cuisine ne s'en occupent pas.
+
+1. Prendre les plats du four et de la cuisine, avec leurs tickets.
+2. Ajouter les boissons et les desserts de la commande. Ils sont sur la tablette, dans la commande ouverte.
+3. Vérifier le numéro sur chaque ticket, puis fermer le sac.
+
+À venir : un ticket du sac sortira au comptoir, avec une case à cocher par article.
 
 ## Les livraisons
 

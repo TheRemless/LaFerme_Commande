@@ -30,7 +30,7 @@ Les fiches à imprimer pour l'équipe sont dans [fiches/](fiches/).
 | Un ordinateur sur le même réseau que les imprimantes | Ouvrir la page de réglages de chaque imprimante | |
 | Le téléphone de chaque livreur, avec Internet mobile | La page `/livreur` | |
 | Un téléphone en 4G, hors Wi-Fi du restaurant | Passer la commande d'essai comme un client. Sert aussi de tablette de secours | |
-| Les pages imprimées : [pannes.md](pannes.md) et les six fiches | Près de la tablette et à chaque poste | Le numéro à appeler reste à écrire dessus |
+| Les pages imprimées : [pannes.md](pannes.md) et les six fiches | Près de la tablette et à chaque poste | Le numéro à appeler est celui du restaurant, 022 792 16 89 |
 
 <a id="avant"></a>
 
@@ -76,8 +76,9 @@ Back-office, rubrique « Équipe », cadre « Ajouter quelqu'un » en bas de pag
 | Tablette et back-office | Jérémy, Giuseppe | Tout |
 | Livreur | Chaque livreur | `/livreur`, rien d'autre |
 
+- La tablette du comptoir tourne avec un compte « Comptoir » commun, à l'accès « Tablette » (décision de Jérémy du 14.11.2026). Son adresse e-mail reste à créer par Jérémy. Le code de connexion y arrive : elle doit être lisible sur place.
 - Une personne a un seul accès. Un compte gérant n'ouvre pas `/livreur` (le site répond « Votre compte donne accès à la tablette »). Voir M4.
-- La tablette du comptoir reste connectée 60 jours. Chaque geste est signé du prénom du compte connecté.
+- La tablette du comptoir reste connectée 60 jours. Chaque geste est signé « Comptoir », pas du prénom de la personne.
 - Un livreur reste connecté 12 heures. Il se reconnecte à chaque service.
 
 <a id="tablette"></a>
@@ -179,7 +180,7 @@ Commander une troisième fois, payée en ligne. Toucher « Refuser », choisir u
 | Les livreurs | Onglet « Livraisons » | « Prévus ce soir » avec les bons prénoms. Sous chaque prénom, l'heure de la dernière mise à jour de son téléphone |
 | Les ruptures | « Pause, délai, ruptures » | Aucun plat « Épuisé » par erreur |
 | Les alertes | Boîte e-mail des alertes | Ouverte sur un téléphone |
-| Les fiches | Comptoir, four, cuisine, livreurs | Imprimées, numéro à appeler écrit |
+| Les fiches | Comptoir, four, cuisine, livreurs | Imprimées |
 | Les essais | Back-office, « Commandes » | Les trois commandes d'essai terminées, refusée ou remboursées |
 
 ## Pendant le premier service
@@ -202,6 +203,6 @@ La liste classée, avec le propriétaire de chaque point, est dans le fichier d'
 | N° | Manque | Ce qu'on fait le jour J en attendant |
 |---|---|---|
 | M1 | Aucune imprimante réelle n'a été branchée. L'accès à sa page de réglages n'est pas vérifié | Brancher la première imprimante plusieurs jours avant |
-| M4 | Un gérant n'ouvre pas `/livreur` | Le patron qui livre fait noter « Partie » puis « Livrée » sur la tablette |
+| M4 | Un gérant n'ouvre pas encore `/livreur`. Décidé le 14.11.2026 : il pourra livrer sans second compte, en construction | Le patron qui livre fait noter « Partie » puis « Livrée » sur la tablette |
 | M5 | Son, vibration et notification du livreur : construits (#238), pas vérifiés sur un vrai téléphone | Le comptoir prévient aussi le livreur de vive voix |
 | M6 | Débit du four posé à 15 dans la vraie base le 13.11.2026. Cuisine et livreurs à zéro | Vérifier les valeurs dans « Réglages généraux » |

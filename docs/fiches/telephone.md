@@ -8,7 +8,7 @@ Pour retrouver sa commande, taper son nom, son téléphone ou son numéro de com
 
 | Il dit | Je fais |
 |---|---|
-| « Je veux commander. » | Prendre la commande sur papier, comme avant. Le site ne permet pas encore de saisir une commande pour un client. Lui dire qu'il peut aussi commander sur le site. |
+| « Je veux commander. » | Prendre la commande sur papier, comme avant. Lui dire qu'il peut aussi commander sur le site. À venir : la commande au téléphone se saisira dans le site. |
 | « Où en est ma commande ? » | La chercher. La ligne dit son état et son heure. Lui rappeler sa page de suivi, dans l'e-mail de confirmation. |
 | « Elle est en retard. » | La chercher. Lui donner l'heure affichée. Prévenir le comptoir. |
 | « Je veux changer un plat. » | Pas possible. Annuler la commande, puis il recommande sur le site. |

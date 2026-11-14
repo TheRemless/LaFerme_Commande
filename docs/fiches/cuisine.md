@@ -31,7 +31,7 @@ Le ticket ne porte pas de prix.
 | Je me demande | Réponse |
 |---|---|
 | Le plat du jour sort où ? | Au poste choisi par le gérant quand il le publie. |
-| Les boissons et les desserts sortent où ? | Sur le ticket du poste réglé pour chaque plat dans la carte. Demander au gérant qui les met dans le sac. |
+| Qui met les boissons et les desserts dans le sac ? | Le comptoir. Si une boisson sort sur votre ticket, la laisser au comptoir. |
 | Une commande a un plat et des pizzas. | Chaque poste a son ticket. Le vôtre dit combien d'articles sortent au four. Se parler pour sortir ensemble. |
 | Un plat est fini. | Le dire au comptoir tout de suite. Il le met « Épuisé » sur la tablette jusqu'à demain. |
 | Je ne peux pas faire un plat déjà commandé. | Le dire au comptoir. Il touche « Il manque… » et le client est prévenu. |
