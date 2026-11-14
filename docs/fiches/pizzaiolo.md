@@ -44,6 +44,7 @@ Le ticket ne porte pas de prix.
 | Un ticket sort pour 20h alors qu'il est 19h. | C'est une commande passée à l'avance. Son ticket sort avant l'heure promise. Regarder l'heure écrite dessus. |
 | Le comptoir me dit « À lancer ». | Cette commande doit commencer maintenant pour tenir son heure. |
 | Le comptoir me dit « À sortir dans 6 min ». | Dans 6 minutes, elle doit être au comptoir ou partir en livraison. |
+| Qui met les boissons et les desserts dans le sac ? | Le comptoir. Si un dessert sort sur votre ticket, le signaler au comptoir. |
 | La pizza est prête, je fais quoi ? | La passer au comptoir avec son ticket. C'est le comptoir qui touche « Prête ». |
 
 ## Si un écran est posé au four

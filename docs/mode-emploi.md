@@ -1,6 +1,6 @@
 # Mode d'emploi
 
-Trois pages à imprimer. La première se colle en cuisine près de la tablette, la deuxième reste avec le gérant, la troisième se donne à chaque livreur. Elles décrivent le site tel qu'il est au 16.11.2026. Le numéro à appeler reste à remplir.
+Trois pages à imprimer. La première se colle en cuisine près de la tablette, la deuxième reste avec le gérant, la troisième se donne à chaque livreur. Elles décrivent le site tel qu'il est au 16.11.2026. Le numéro à appeler est celui du restaurant.
 
 Fiches par poste, plus récentes (13.11.2026) : [fiches/](fiches/). Installation au restaurant : [mise-en-service.md](mise-en-service.md).
 
@@ -10,7 +10,7 @@ Ce que voit le client qui commande, pour répondre au téléphone : `docs/vague-
 
 ## Page 1. La tablette (à afficher en cuisine)
 
-Numéro à appeler en cas de problème : ______________________
+Numéro à appeler en cas de problème : le restaurant, 022 792 16 89
 
 ### Ouvrir le service
 
@@ -106,7 +106,7 @@ Taper le numéro, le nom ou le téléphone du client dans la case « N°, nom ou
 
 Adresse : la page `/gestion` du site, au téléphone ou à l'ordinateur. Connexion avec l'e-mail du gérant et le code reçu par e-mail.
 
-Numéro à appeler en cas de problème : ______________________
+Numéro à appeler en cas de problème : le restaurant, 022 792 16 89
 
 Le back-office s'ouvre sur l'accueil. Les rubriques sont dans le menu à gauche, rangées par groupe (Commandes et clients, Carte et offre, Chiffres, Réglages du restaurant, Équipe). Au téléphone, toucher « Menu » en haut à gauche. Sur ordinateur, « Réduire le menu » ne garde que les icônes.
 

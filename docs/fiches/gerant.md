@@ -2,7 +2,7 @@
 
 Le back-office est à la page `/gestion` du site, sur téléphone ou ordinateur. La tablette est à la page `/tablette`.
 
-En cas de problème, appeler : ______________________
+En cas de problème, appeler le restaurant : 022 792 16 89
 
 ## Ouverture (10 minutes avant le service)
 
@@ -62,7 +62,7 @@ Si une commande du jour change après la clôture, un bandeau le dit. Toucher «
 | Un nouveau | « Équipe », « Ajouter quelqu'un ». Prénom, e-mail, accès. |
 | Quelqu'un part | « Retirer ». Son accès est coupé tout de suite. |
 | Un téléphone ou la tablette est perdu | « Déconnecter partout ». |
-| Je livre moi-même ce soir | Mon compte gérant n'ouvre pas la page du livreur. Faire noter « Partie » puis « Livrée » sur la tablette. |
+| Je livre moi-même ce soir | À venir : mon compte gérant ouvrira la page du livreur, sans second compte. En attendant, faire noter « Partie » puis « Livrée » sur la tablette. |
 | Quelqu'un ne reçoit pas son code | Attendre 30 secondes, « Renvoyer un code », regarder les indésirables. |
 
 ## Chaque semaine

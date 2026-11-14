@@ -45,7 +45,7 @@ Restaurant : 022 792 16 89
 | J'ai touché « Livrée » par erreur. | Appeler le restaurant. Vous ne pouvez pas revenir en arrière. |
 | Le client veut payer ou ajouter quelque chose. | Rien à encaisser. Il appelle le restaurant. |
 | Le client dit qu'il manque un plat. | Lui dire d'appeler le restaurant. Le signaler au comptoir à votre retour. |
-| Dans quel ordre je livre ? | Dans l'ordre affiché. Le comptoir peut le changer. |
+| Dans quel ordre je livre ? | Dans l'ordre affiché. Le comptoir peut le changer. À venir : vous pourrez prendre vos commandes et choisir votre ordre sur cette page. |
 | Je n'ai pas de téléphone ce soir. | Le dire au comptoir. Il note « Partie » puis « Livrée » sur la tablette. |
 | J'ai perdu mon téléphone. | Appeler le restaurant tout de suite. Le gérant coupe votre accès. |
 | Le restaurant voit où je suis ? | Non. Il voit seulement l'heure de la dernière mise à jour de votre page. |
