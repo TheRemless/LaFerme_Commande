@@ -488,6 +488,7 @@ function Arret({
       <p className="liv-contenu">
         {l.articles} {l.articles > 1 ? "articles" : "article"}
         {l.pizzas > 0 ? `, dont ${l.pizzas} ${l.pizzas > 1 ? "pizzas" : "pizza"}` : ""}. {l.paye ? "Payée en ligne, rien à encaisser." : `À encaisser : ${prixChf(l.total_centimes)}.`}
+        {l.canal === "telephone" && " Prise au téléphone."}
       </p>
 
       {motifAffiche && (

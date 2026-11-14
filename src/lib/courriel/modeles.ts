@@ -116,7 +116,12 @@ function modeTexte(c: Commande, estimation: number | null = null, config: Config
 }
 
 export function courrielConfirmation(c: Commande, cat: Catalogue | null, estimation: number | null = null, config: ConfigHeure = null) {
-  const paiement = c.moyen_paiement === "comptoir" ? `À payer au comptoir en venant la chercher, ${prixChf(c.total_centimes)}.` : `Payée en ligne, ${prixChf(c.total_centimes)}.`;
+  const paiement =
+    c.moyen_paiement !== "comptoir"
+      ? `Payée en ligne, ${prixChf(c.total_centimes)}.`
+      : c.mode === "livraison"
+        ? `À payer à la livraison, en espèces ou par carte, ${prixChf(c.total_centimes)}.`
+        : `À payer au comptoir en venant la chercher, ${prixChf(c.total_centimes)}.`;
   const lignes = c.lignes.map((l) => ({ titre: `${l.qte} × ${nomClient(l.nom, l.station === "pizza")}`, prix: prixCourt(l.total_centimes), details: detailsLigne(cat, l) }));
   const sommes = [
     ["Sous-total", prixChf(c.sous_total_centimes)],

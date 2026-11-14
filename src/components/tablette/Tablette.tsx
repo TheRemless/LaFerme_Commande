@@ -580,6 +580,10 @@ export function Tablette({
             onChange={(e) => setRecherche(e.target.value)}
           />
         </div>
+        {/* Commande prise au téléphone (vague 3, bo-commandes) : toute l'équipe, quel que soit l'onglet ouvert. */}
+        <a className="bouton-second tab-telephone-nouvelle" href="/tablette/telephone">
+          Commande téléphone
+        </a>
         <button
           type="button"
           className="bouton-second"
@@ -912,7 +916,7 @@ function CarteCommande({
     c.statut_paiement === "paye"
       ? `Payée en ligne ${prixChf(c.total_centimes)}`
       : c.statut_paiement === "a_encaisser_retrait"
-        ? `À encaisser au comptoir ${prixChf(c.total_centimes - deduit)}`
+        ? `À encaisser ${c.mode === "livraison" ? "à la livraison" : "au comptoir"} ${prixChf(c.total_centimes - deduit)}`
         : c.statut_paiement === "encaisse"
           ? `Encaissée ${prixChf(c.total_centimes)}${c.moyen_comptoir === "especes" ? " en espèces" : c.moyen_comptoir === "carte" ? " par carte" : ""}`
           : c.statut_paiement === "rembourse"
@@ -974,6 +978,7 @@ function CarteCommande({
         )}
       </div>
 
+      {c.canal === "telephone" && <p className="tab-telephone">Prise au téléphone</p>}
       {c.avertissement && c.statut === "nouvelle" && <p className="tab-avertissement">{c.avertissement}</p>}
       {/* Allergie de toute la commande (client-commande) : en négatif, avant les plats, comme sur le ticket. */}
       {c.allergie?.trim() && <p className="tab-allergie">Allergie : {c.allergie.trim()}</p>}

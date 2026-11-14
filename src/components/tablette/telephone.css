@@ -1,0 +1,163 @@
+/* Commande prise au téléphone (vague 3, bo-commandes) : direction Béton de la tablette, traits et aplats,
+   cibles tactiles de 48 px au moins. */
+
+.tel {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 16px 16px 120px;
+  color: var(--encre);
+}
+
+.tel-tete {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--encre);
+}
+
+.tel-tete h1,
+.tel-fait h1 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.tel section {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--filet);
+}
+
+.tel h2 {
+  margin: 0 0 12px;
+  font-size: 1.15rem;
+}
+
+.tel-choix,
+.tel-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tel-choix button,
+.tel-categories button {
+  min-height: 48px;
+  padding: 0 18px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--encre);
+  background: var(--blanc);
+  border: 2px solid var(--encre);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.tel-choix button[aria-pressed="true"],
+.tel-categories button[aria-pressed="true"] {
+  color: var(--blanc);
+  background: var(--encre);
+}
+
+.tel-suggestions,
+.tel-plats,
+.tel-panier {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tel-suggestions button,
+.tel-plats button {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  font: inherit;
+  text-align: left;
+  color: var(--encre);
+  background: var(--blanc);
+  border: 0;
+  border-bottom: 1px solid var(--filet);
+  cursor: pointer;
+}
+
+.tel-plats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  column-gap: 16px;
+}
+
+.tel-prix {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tel-panier {
+  margin-top: 16px;
+  border-top: 2px solid var(--encre);
+}
+
+.tel-panier li {
+  display: grid;
+  grid-template-columns: 1fr auto 6.5em;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--filet);
+}
+
+.tel-panier .tel-prix {
+  text-align: right;
+}
+
+.tel-qte {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.tel-qte button {
+  width: 48px;
+  height: 48px;
+  font: inherit;
+  font-size: 1.3rem;
+  color: var(--encre);
+  background: var(--blanc);
+  border: 2px solid var(--encre);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.tel-grille {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0 16px;
+}
+
+.tel-envoi .bouton-principal {
+  min-width: 260px;
+}
+
+.tel-fait {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 48px 16px;
+}
+
+@media (max-width: 600px) {
+  .tel-panier li {
+    grid-template-columns: 1fr auto;
+  }
+  .tel-panier .tel-prix {
+    grid-column: 2;
+  }
+  .tel-envoi .bouton-principal {
+    width: 100%;
+    min-width: 0;
+  }
+}

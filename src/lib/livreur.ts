@@ -28,6 +28,8 @@ export type LivraisonLivreur = {
   pizzas: number;
   paye: boolean;
   total_centimes: number;
+  // Commande prise au téléphone (vague 3, bo-commandes) : « telephone ». Absent avant la migration.
+  canal?: "site" | "telephone";
   probleme: Probleme | null;
   probleme_detail: string | null;
 };

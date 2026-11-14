@@ -27,6 +27,8 @@ export type CommandeTablette = {
   statut: string;
   statut_paiement: string;
   moyen_paiement: "en_ligne" | "comptoir";
+  // Commande prise au téléphone par l'équipe (vague 3, bo-commandes) : « telephone ». Absent avant la migration.
+  canal?: "site" | "telephone";
   client_prenom: string;
   client_nom: string;
   client_telephone: string;

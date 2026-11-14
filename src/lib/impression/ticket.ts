@@ -28,6 +28,8 @@ export type CommandePourTicket = {
   // Vague 3 (client-commande) : personne qui reçoit la commande, couverts et serviettes demandés.
   destinataire?: { nom: string; telephone: string } | null;
   couverts?: boolean;
+  // Commande prise au téléphone par l'équipe (vague 3, bo-commandes) : « telephone ».
+  canal?: string | null;
 };
 
 // Note du client sur un plat : écrite « … » par detailsTablette.
@@ -43,7 +45,7 @@ function heure(iso: string | Date): string {
 function paiement(c: CommandePourTicket): string {
   if (c.statut_paiement === "paye") return "PAYÉ EN LIGNE";
   if (c.statut_paiement === "encaisse") return "ENCAISSÉ";
-  if (c.statut_paiement === "a_encaisser_retrait") return "À ENCAISSER AU RETRAIT";
+  if (c.statut_paiement === "a_encaisser_retrait") return c.mode === "livraison" ? "À ENCAISSER À LA LIVRAISON" : "À ENCAISSER AU RETRAIT";
   if (c.statut_paiement === "rembourse") return "REMBOURSÉ";
   return "PAIEMENT EN ATTENTE";
 }
@@ -61,6 +63,8 @@ export function ticketsDeCommande(
     const contenu: LigneTicket[] = [];
     if (reimpression) contenu.push({ t: "texte", texte: "RÉIMPRESSION", gras: true });
     contenu.push({ t: "deux", gauche: station === "pizza" ? "PIZZA" : "CUISINE", droite: `N° ${String(c.numero).padStart(3, "0")}`, taille: 3, gras: true });
+    // Prise au téléphone (vague 3, bo-commandes) : juste sous l'en-tête, à la demande de tablette.
+    if (c.canal === "telephone") contenu.push({ t: "texte", texte: "TÉLÉPHONE", gras: true });
     // Allergie en tête des deux postes, en négatif : c'est la seule ligne qui peut blesser un client.
     const allergie = c.allergie?.trim();
     if (allergie) contenu.push({ t: "texte", texte: `ALLERGIE : ${allergie}`, taille: 2, gras: true, inverse: true });

@@ -686,3 +686,20 @@
   outline: 2px solid var(--encre);
   outline-offset: -1px;
 }
+
+/* Commande prise au téléphone (vague 3, bo-commandes) : la marque sur la carte, le bouton d'accès. */
+.tab-telephone {
+  margin: 8px 0 0;
+  padding: 4px 8px;
+  display: inline-block;
+  font-weight: 700;
+  border: 2px solid var(--encre);
+  border-radius: 4px;
+}
+
+.tab-telephone-nouvelle {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  text-decoration: none;
+}
