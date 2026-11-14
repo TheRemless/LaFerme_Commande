@@ -6,7 +6,7 @@ import { envoyerCourriel } from "@/lib/courriel/envoi";
 import { courrielLienComplement, courrielPlatsModifies } from "@/lib/courriel/modeles";
 import { commandeParId, fonctionSql, type Commande } from "@/lib/db/serveur";
 import { imprimerModification } from "@/lib/impression/modification";
-import { ticketsDeCommande } from "@/lib/impression/ticket";
+import { posteDuSac, ticketsDeCommande } from "@/lib/impression/ticket";
 import { nomClient } from "@/lib/nom-plat";
 import { passerelle } from "@/lib/paiement/passerelle";
 import { calculerPanier, platDe, prixChoix, type Catalogue } from "@/lib/panier";
@@ -288,10 +288,18 @@ async function apresApplication(a: Application): Promise<void> {
   // Tickets seulement si les premiers sont sortis : sinon ils sortiront déjà avec les nouveaux plats.
   if (c.tickets_le && ["acceptee", "en_preparation", "prete"].includes(c.statut)) {
     if (ajouts.length) {
+      const sac = posteDuSac({ lignes: c.lignes.map((l) => ({ nom: l.nom, qte: l.qte, station: l.station, details: [] })) });
       const tickets = ticketsDeCommande(
         {
           ...c,
-          lignes: ajouts.map((l) => ({ nom: l.nom, qte: l.qte, station: l.station as "pizza" | "cuisine", details: detailsTablette(cat, l), pour: l.pour })),
+          // Une boisson (poste « comptoir ») ajoutée part au poste qui fait le sac de la commande entière.
+          lignes: ajouts.map((l) => ({
+            nom: l.nom,
+            qte: l.qte,
+            station: (l.station === "comptoir" ? sac : l.station) as "pizza" | "cuisine",
+            details: detailsTablette(cat, l),
+            pour: l.pour,
+          })),
         },
         { accepteLe: c.accepte_le ?? new Date(), entete: "AJOUT", complement },
       );

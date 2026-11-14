@@ -110,7 +110,10 @@ export function ChangerPlats({
       })),
     );
     if (!carte) {
-      const r = await poster("/api/gestion/commandes", { action: "carte" });
+      const r = await poster("/api/gestion/commandes", {
+        action: "carte",
+        id: commande,
+      });
       if (r.ok) {
         const d = r.donnees as {
           categories: Categorie[];
@@ -229,6 +232,7 @@ export function ChangerPlats({
     if (!ok) return;
     const r = await poster("/api/gestion/commandes", {
       action: "abandonner_modification",
+      id: commande,
       modification: id,
     });
     const res = r.donnees as { message?: string; erreur?: string };

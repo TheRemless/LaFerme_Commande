@@ -8,7 +8,9 @@ import type { Synthese } from "@/lib/pilotage";
 export type Ecart =
   | { type: "remise_sans_encaissement"; numero: number; centimes: number }
   | { type: "remboursement_echec" | "remboursement_en_cours"; numero: number; centimes: number }
-  | { type: "pas_terminee"; numero: number; statut: string; centimes: number };
+  | { type: "pas_terminee"; numero: number; statut: string; centimes: number }
+  // Commande modifiée (vague 3, bo-commandes) : complément à la porte ou au comptoir pas marqué encaissé.
+  | { type: "complement_sans_encaissement"; numero: number; centimes: number; moyen: string };
 
 export type RapportCloture = {
   jour: string;
@@ -77,6 +79,7 @@ const LIBELLE_ECART: Record<Ecart["type"], string> = {
   remboursement_echec: "Remboursement en échec",
   remboursement_en_cours: "Remboursement pas encore confirmé",
   pas_terminee: "Commande pas terminée",
+  complement_sans_encaissement: "Complément de commande modifiée pas marqué encaissé",
 };
 export const libelleEcart = (e: Ecart) => LIBELLE_ECART[e.type];
 

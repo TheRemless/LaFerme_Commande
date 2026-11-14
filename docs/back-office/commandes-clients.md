@@ -38,6 +38,22 @@ Migration `supabase/migrations/20261127130000_reclamations.sql`, aucun objet par
   - nLPD : codes personnels et plats offerts partent dans l'export du client ; à la suppression du compte, les plats offerts en attente et les codes pas encore utilisés sont effacés, un code déjà utilisé est éteint et détaché du client. Migration `20261213190000_geste_reduction.sql`.
 - **Liste** (`reclamations_gestion`) : ouvertes d'abord, filtres état, type, période, commande ; compteurs par état. La fiche complète d'une commande liste ses réclamations.
 
+## Changer les plats à la demande du client (décision du chef du 14.11.2026)
+
+Jamais de débit sur la carte du client sans son accord sur le moment. Gérant, ou responsable de service (droit `modifier_commande`). Fiche de la commande, onglet « Gestes », « Changer les plats » (`src/components/gestion/commandes/ChangerPlats.tsx`), statuts nouvelle, acceptée, en préparation et prête.
+
+- **Calcul** : `src/lib/difference.ts` recalcule tout depuis la base (`calculerPanier`), jamais depuis le navigateur. Valeur actuelle = plats + frais (`valeur_commande`). Différence = nouveau total − valeur actuelle. Ajouts et retraits ligne par ligne (même plat, mêmes options).
+- **À encaisser** (comptoir, téléphone) : appliquée tout de suite, le total de la commande change.
+- **Payée, moins chère** : appliquée ; remboursement de la différence (Stripe, ou espèces si payée au comptoir), ligne `remboursements` à la clé `modification-<id>`. Le total payé de la commande ne bouge pas : l'export voit la vente puis le remboursement, comme pour un remboursement après coup.
+- **Payée, plus chère** : par défaut un lien de paiement Stripe de la différence (session de 30 minutes, métadonnées `type = complement`, `modification_id`), envoyé par e-mail si le client en a un, et affiché à copier. Rien ne change avant le paiement : le webhook (`confirmerComplement`, session et montant vérifiés en base, événement une seule fois) applique la modification et note le complément payé. Lien expiré ou paiement échoué : la modification est abandonnée. Repli au choix de l'équipe : complément à encaisser à la porte (livraison) ou au comptoir (retrait).
+- **Compléments** (table `complements`, un seul modèle) : lien (moyen en ligne, encaissé au webhook), porte, comptoir. Encaissé en espèces ou par carte sur la page du livreur (`/api/livreur/complement`, sa livraison seulement) ou à la tablette (`/api/tablette/complement`). Clôture : encaissements par moyen, compléments à encaisser, écart « complement_sans_encaissement » dans « À vérifier ». Crésus : une vente de plus au jour de la commande, TVA au taux de la commande.
+- **Tickets** (si les premiers sont sortis) : « AJOUT » aux postes concernés, seulement les lignes ajoutées ; une boisson ajoutée part au poste qui fait le sac. Retraits et complément sans ajout : « MODIFIÉE ». Complément à encaisser imprimé en négatif.
+- **E-mails** (si le client en a un) : le lien du complément, puis la commande modifiée (ajouté, retiré, remboursé ou à payer).
+- **Une modification à la fois** : une seconde attend que la première soit payée ou abandonnée (« Abandonner la modification » ferme le lien chez Stripe).
+- **Doublure** : sans clé Stripe, le lien mène à `/paiement-test/complement/<id>`, qui simule le paiement par le même chemin que le webhook.
+- **Limite connue** : rembourser plus tard un complément payé par le lien ne passe pas par l'écran (le remboursement après coup vise le paiement de départ). Il se fait depuis Stripe.
+- Base : migration `20261215130000_difference.sql` (tables `modifications_commande` et `complements` ; recrées : `livraisons_livreur`, `file_tablette`, `cloture_rapport`, `export_cresus`). Tests : `tests/unit/difference-sql.test.ts`, `tests/unit/difference.test.ts` (webhook signé), `tests/e2e/gestion-difference.spec.ts`.
+
 ## Responsable de service (D1, oui de Jérémy le 13.11.2026)
 
 Le responsable n'agit qu'avec le réglage `role_responsable_actif` à vrai ; sans lui, tout reste au gérant. Liste de bo-socle, tableau dans `src/lib/personnel/droits.ts`.
