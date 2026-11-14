@@ -56,18 +56,34 @@ Sous les onglets, le compteur donne le nombre de commandes en retard et le nombr
 
 ## Le sac
 
-Le comptoir met les boissons et les desserts dans le sac. Le four et la cuisine ne s'en occupent pas.
+Le comptoir met les boissons dans le sac. Sur la tablette, une boisson porte l'étiquette « Comptoir ». Elle ne sort ni au four ni en cuisine. Un dessert suit le poste que le gérant lui a donné dans la carte (four, cuisine ou comptoir).
 
 1. Prendre les plats du four et de la cuisine, avec leurs tickets.
-2. Ajouter les boissons et les desserts de la commande. Ils sont sur la tablette, dans la commande ouverte.
-3. Vérifier le numéro sur chaque ticket, puis fermer le sac.
+2. Lire le bas du ticket du poste qui fait le sac. Il porte « SAC : COCHER CHAQUE ARTICLE », avec une case par article, boissons comprises.
+3. Ajouter les boissons, cocher chaque case, puis fermer le sac.
 
-À venir : un ticket du sac sortira au comptoir, avec une case à cocher par article.
+## Une commande au téléphone
+
+1. Toucher « Commande téléphone », en haut de la tablette.
+2. Choisir « Livraison » ou « À emporter ».
+3. En livraison, taper la rue et le numéro, puis choisir l'adresse proposée. La zone, les frais et le minimum s'affichent dessous. Écrire le nom sur la sonnette.
+4. Toucher une catégorie, puis un plat. Sa fiche s'ouvre avec les suppléments et les retraits. Toucher « Ajouter ».
+5. Choisir l'heure. Une heure pleine est refusée, en prendre une autre.
+6. Écrire le prénom et le téléphone. L'e-mail est facultatif. Une allergie se note ici.
+7. Lire le total au client, puis toucher « Enregistrer la commande ».
+
+| Je me demande | Réponse |
+|---|---|
+| Le bouton « Enregistrer la commande » reste gris. | Il manque l'adresse, la sonnette, un plat, le prénom ou le téléphone. Ou le minimum de la zone n'est pas atteint. L'écran ne le dit pas, comparer « Plats » au minimum écrit sous l'adresse. |
+| Faut-il l'accepter ensuite ? | Non. Elle est déjà acceptée. Ses tickets sortent selon l'heure. |
+| Comment le client paie ? | À la livraison ou au retrait, en espèces ou par carte. L'écran le rappelle après l'enregistrement. |
+| Comment je la reconnais ? | La ligne dit « (téléphone) » ainsi que « à encaisser » avec le montant. |
+| Le livreur revient avec l'argent. | Onglet « Terminées », chercher la commande, toucher « Espèces » ou « Carte ». Son téléphone ne note pas ce paiement. |
 
 ## Les livraisons
 
 1. Onglet « Livraisons ». À gauche, les commandes sans livreur.
-2. Toucher « À » suivi du prénom du livreur.
+2. Toucher « À » suivi du prénom du livreur. Un livreur peut aussi prendre lui-même une commande sur son téléphone.
 3. Son téléphone sonne et vibre si sa page est ouverte. Dans le doute, le prévenir de vive voix.
 4. À droite, la tournée de chaque livreur. « Plus tôt » et « Plus tard » changent l'ordre.
 
@@ -88,6 +104,6 @@ Le comptoir met les boissons et les desserts dans le sac. Le four et la cuisine 
 
 ## Ce que je ne fais pas
 
-- Changer les plats d'une commande. On l'annule puis le client recommande.
+- Changer les plats d'une commande. Le gérant ou le responsable le fait dans le back-office.
 - Rembourser une commande déjà prête ou partie. C'est le gérant.
 - Toucher « Déconnexion » pendant le service.

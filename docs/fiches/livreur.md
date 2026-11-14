@@ -26,7 +26,8 @@ Restaurant : 022 792 16 89
 - Le rang dans la tournée et l'heure promise au client, en grand.
 - L'adresse, l'étage, le nom sur la sonnette, le code d'entrée, la consigne du client.
 - Le nombre d'articles. Pas le détail des plats.
-- Le paiement. Tout est payé en ligne, rien à encaisser.
+- Le paiement. « Payée en ligne, rien à encaisser », ou « À encaisser » avec le montant pour une commande prise au téléphone.
+- « Complément à encaisser », avec un montant, quand le client a ajouté un plat après avoir payé.
 
 ## Mes questions
 
@@ -43,9 +44,13 @@ Restaurant : 022 792 16 89
 | La page dit « donnée à un autre livreur ». | Si vous avez le sac, appeler le restaurant. Puis « Compris ». |
 | La page demande mon e-mail en route. | Se reconnecter. Vos livraisons sont toujours là. |
 | J'ai touché « Livrée » par erreur. | Appeler le restaurant. Vous ne pouvez pas revenir en arrière. |
-| Le client veut payer ou ajouter quelque chose. | Rien à encaisser. Il appelle le restaurant. |
+| Le client veut ajouter quelque chose à la porte. | Il appelle le restaurant. N'encaisser que ce que la page affiche. |
 | Le client dit qu'il manque un plat. | Lui dire d'appeler le restaurant. Le signaler au comptoir à votre retour. |
-| Dans quel ordre je livre ? | Dans l'ordre affiché. Le comptoir peut le changer. À venir : vous pourrez prendre vos commandes et choisir votre ordre sur cette page. |
+| Dans quel ordre je livre ? | Dans l'ordre affiché. « Plus tôt » et « Plus tard » déplacent un arrêt. Le comptoir peut aussi le changer. |
+| Puis-je prendre une commande moi-même ? | Oui. Sous vos livraisons, « À prendre » liste les commandes sans livreur, avec le numéro, la localité, l'heure et le nombre d'articles. Toucher « Je prends ». L'adresse s'affiche alors dans vos livraisons. |
+| Laquelle prendre ? | La liste montre aussi des commandes prévues plus tard. Regarder l'heure, puis demander au comptoir si le sac est prêt. |
+| Je dois encaisser une commande entière. | Encaisser le montant affiché. Rapporter l'argent ou le reçu de carte au comptoir, qui note le paiement. |
+| Je dois encaisser un complément. | Encaisser le montant, puis toucher « Complément encaissé : espèces » ou « Complément encaissé : carte ». |
 | Je n'ai pas de téléphone ce soir. | Le dire au comptoir. Il note « Partie » puis « Livrée » sur la tablette. |
 | J'ai perdu mon téléphone. | Appeler le restaurant tout de suite. Le gérant coupe votre accès. |
 | Le restaurant voit où je suis ? | Non. Il voit seulement l'heure de la dernière mise à jour de votre page. |
