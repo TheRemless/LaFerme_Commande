@@ -3,6 +3,7 @@
 import { useEffect, useId, useState } from "react";
 import { FichePlat } from "@/components/carte/FichePlat";
 import { montant, useConfirmer, useNotifier } from "@/components/gestion/ui";
+import { chercherAdresses, type Adresse } from "@/lib/adresse";
 import type { Categorie, LignePlat } from "@/lib/carte";
 import { nomClient } from "@/lib/nom-plat";
 import type { Catalogue, LignePanier } from "@/lib/panier";
@@ -95,6 +96,27 @@ export function ChangerPlats({
   const [cle, setCle] = useState(nouvelleCle);
   const [envoi, setEnvoi] = useState(false);
   const [lien, setLien] = useState<string | null>(null);
+  // Livraison : nouvelle adresse, peut-être dans une autre zone (frais recalculés par le serveur).
+  const [saisie, setSaisie] = useState("");
+  const [suggestions, setSuggestions] = useState<Adresse[]>([]);
+  const [adresse, setAdresse] = useState<Adresse | null>(null);
+
+  useEffect(() => {
+    if (mode !== "livraison" || adresse || saisie.trim().length < 3) {
+      setSuggestions([]);
+      return;
+    }
+    const ctrl = new AbortController();
+    const t = setTimeout(() => {
+      chercherAdresses(saisie, ctrl.signal)
+        .then(setSuggestions)
+        .catch(() => setSuggestions([]));
+    }, 250);
+    return () => {
+      clearTimeout(t);
+      ctrl.abort();
+    };
+  }, [saisie, mode, adresse]);
 
   async function ouvrir() {
     setOuvert(true);
@@ -137,6 +159,7 @@ export function ChangerPlats({
         action: "apercu_plats",
         id: commande,
         lignes,
+        adresse,
       });
       if (!annule) setApercu(r.donnees as Apercu);
     }, 250);
@@ -144,7 +167,7 @@ export function ChangerPlats({
       annule = true;
       clearTimeout(t);
     };
-  }, [ouvert, lignes, commande]);
+  }, [ouvert, lignes, commande, adresse]);
 
   function quantite(i: number, delta: number) {
     setLignes((avant) =>
@@ -202,6 +225,7 @@ export function ChangerPlats({
       cle,
       de: statut,
       lignes,
+      adresse,
       reglement: choisi,
     });
     setEnvoi(false);
@@ -361,6 +385,45 @@ export function ChangerPlats({
               </li>
             ))}
           </ul>
+          {mode === "livraison" && (
+            <div className="bo-champ">
+              <label htmlFor={`${ids}-adresse`}>
+                Nouvelle adresse (seulement si elle change)
+              </label>
+              <input
+                id={`${ids}-adresse`}
+                autoComplete="off"
+                value={saisie}
+                onChange={(e) => {
+                  setSaisie(e.target.value);
+                  setAdresse(null);
+                }}
+              />
+              {suggestions.length > 0 && (
+                <ul className="bo-fiche-liste" aria-label="Adresses trouvées">
+                  {suggestions.map((a) => (
+                    <li
+                      key={`${a.rue}-${a.numero}-${a.npa}-${a.featureId ?? ""}`}
+                    >
+                      <button
+                        type="button"
+                        className="bo-bouton bo-bouton-discret bo-bouton-petit"
+                        onClick={() => {
+                          setAdresse(a);
+                          setSaisie(
+                            `${a.rue} ${a.numero}, ${a.npa} ${a.localite}`,
+                          );
+                          setSuggestions([]);
+                        }}
+                      >
+                        {a.rue} {a.numero}, {a.npa} {a.localite}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
           {carte && (
             <>
               <div
