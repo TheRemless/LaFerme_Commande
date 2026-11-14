@@ -393,7 +393,9 @@ function Resume({ fiche }: { fiche: Fiche }) {
             <tr>
               <th scope="row" colSpan={2}>
                 {fiche.statut_paiement === "a_encaisser_retrait"
-                  ? "Total à payer au comptoir"
+                  ? fiche.mode === "livraison"
+                    ? "Total à payer à la livraison"
+                    : "Total à payer au comptoir"
                   : fiche.statut_paiement === "en_attente"
                     ? "Total"
                     : "Total payé"}

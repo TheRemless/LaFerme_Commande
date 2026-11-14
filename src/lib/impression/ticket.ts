@@ -28,6 +28,8 @@ export type CommandePourTicket = {
   // Vague 3 (client-commande) : personne qui reçoit la commande, couverts et serviettes demandés.
   destinataire?: { nom: string; telephone: string } | null;
   couverts?: boolean;
+  // Commande prise au téléphone par l'équipe (vague 3, bo-commandes) : « telephone ».
+  canal?: string | null;
 };
 
 // Note du client sur un plat : écrite « … » par detailsTablette.
@@ -43,7 +45,7 @@ function heure(iso: string | Date): string {
 function paiement(c: CommandePourTicket): string {
   if (c.statut_paiement === "paye") return "PAYÉ EN LIGNE";
   if (c.statut_paiement === "encaisse") return "ENCAISSÉ";
-  if (c.statut_paiement === "a_encaisser_retrait") return "À ENCAISSER AU RETRAIT";
+  if (c.statut_paiement === "a_encaisser_retrait") return c.mode === "livraison" ? "À ENCAISSER À LA LIVRAISON" : "À ENCAISSER AU RETRAIT";
   if (c.statut_paiement === "rembourse") return "REMBOURSÉ";
   return "PAIEMENT EN ATTENTE";
 }
@@ -71,6 +73,8 @@ export function ticketsDeCommande(
       taille: 2,
       gras: true,
     });
+    // Prise au téléphone : rien n'est payé, et le client n'a peut-être pas d'e-mail (vague 3).
+    if (c.canal === "telephone") contenu.push({ t: "texte", texte: "TÉLÉPHONE", gras: true });
     const jour = JOUR.format(new Date(c.heure_confirmee ?? accepteLe));
     contenu.push({ t: "deux", gauche: jour.charAt(0).toUpperCase() + jour.slice(1), droite: `acceptée ${heure(accepteLe)}` });
     contenu.push({ t: "texte", texte: `Client : ${c.client_prenom} ${c.client_nom.charAt(0)}.   ${c.client_telephone}` });

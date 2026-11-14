@@ -95,6 +95,8 @@ async function dejaParti(c: Courriel): Promise<boolean> {
 
 export async function envoyerCourriel(c: Courriel): Promise<void> {
   if (courrielSupprime(c.type)) return;
+  // Commande prise au téléphone sans e-mail (vague 3) : rien à envoyer, ni maintenant ni plus tard (prête, refus…).
+  if (!c.destinataire || !c.destinataire.trim()) return;
   const smtp = courrielConfigure();
   if (smtp) {
     if (await dejaParti(c)) return;

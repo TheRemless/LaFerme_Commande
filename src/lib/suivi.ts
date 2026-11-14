@@ -56,13 +56,14 @@ export function phraseRemboursement(r: RemboursementSuivi): PhraseRemboursement 
 }
 
 // Libellé du total. « Remboursée » seulement quand tout ce qui a été demandé chez Stripe est confirmé.
-export function libellePaiement(c: Pick<Commande, "statut_paiement">, remboursements: RemboursementSuivi[]): string {
+export function libellePaiement(c: Pick<Commande, "statut_paiement"> & { mode?: string }, remboursements: RemboursementSuivi[]): string {
   const stripe = remboursements.filter((r) => r.moyen === "stripe");
   switch (c.statut_paiement) {
     case "paye":
       return "Payée en ligne";
     case "a_encaisser_retrait":
-      return "À payer au comptoir";
+      // Livraison prise au téléphone (vague 3) : payée au livreur.
+      return c.mode === "livraison" ? "À payer à la livraison" : "À payer au comptoir";
     case "rembourse":
       return stripe.every((r) => r.statut === "fait") ? "Remboursée" : "Payée en ligne";
     case "encaisse":
