@@ -63,6 +63,8 @@ export function ticketsDeCommande(
     const contenu: LigneTicket[] = [];
     if (reimpression) contenu.push({ t: "texte", texte: "RÉIMPRESSION", gras: true });
     contenu.push({ t: "deux", gauche: station === "pizza" ? "PIZZA" : "CUISINE", droite: `N° ${String(c.numero).padStart(3, "0")}`, taille: 3, gras: true });
+    // Prise au téléphone (vague 3, bo-commandes) : juste sous l'en-tête, à la demande de tablette.
+    if (c.canal === "telephone") contenu.push({ t: "texte", texte: "TÉLÉPHONE", gras: true });
     // Allergie en tête des deux postes, en négatif : c'est la seule ligne qui peut blesser un client.
     const allergie = c.allergie?.trim();
     if (allergie) contenu.push({ t: "texte", texte: `ALLERGIE : ${allergie}`, taille: 2, gras: true, inverse: true });
@@ -73,8 +75,6 @@ export function ticketsDeCommande(
       taille: 2,
       gras: true,
     });
-    // Prise au téléphone : rien n'est payé, et le client n'a peut-être pas d'e-mail (vague 3).
-    if (c.canal === "telephone") contenu.push({ t: "texte", texte: "TÉLÉPHONE", gras: true });
     const jour = JOUR.format(new Date(c.heure_confirmee ?? accepteLe));
     contenu.push({ t: "deux", gauche: jour.charAt(0).toUpperCase() + jour.slice(1), droite: `acceptée ${heure(accepteLe)}` });
     contenu.push({ t: "texte", texte: `Client : ${c.client_prenom} ${c.client_nom.charAt(0)}.   ${c.client_telephone}` });

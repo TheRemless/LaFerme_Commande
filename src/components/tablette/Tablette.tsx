@@ -580,6 +580,10 @@ export function Tablette({
             onChange={(e) => setRecherche(e.target.value)}
           />
         </div>
+        {/* Commande prise au téléphone (vague 3, bo-commandes) : toute l'équipe, quel que soit l'onglet ouvert. */}
+        <a className="bouton-second tab-telephone-nouvelle" href="/tablette/telephone">
+          Commande téléphone
+        </a>
         <button
           type="button"
           className="bouton-second"
@@ -607,10 +611,6 @@ export function Tablette({
             Déconnexion
           </button>
         )}
-        {/* Commande prise au téléphone (vague 3, bo-commandes) : toute l'équipe, page à part. */}
-        <a className="bouton-second tab-telephone-nouvelle" href="/tablette/telephone">
-          Nouvelle commande (téléphone)
-        </a>
         {/* Les onglets restent en haut de l'écran quand on descend dans la liste. */}
         <nav className="tab-onglets" aria-label="Commandes">
           {ONGLETS.map(([cle, titre]) => (

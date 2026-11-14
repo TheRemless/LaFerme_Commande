@@ -21,7 +21,7 @@ test.beforeAll(async ({ browser }, info) => {
   await page.getByRole("button", { name: "Me connecter" }).click();
   await page.getByRole("button", { name: "Continuer sans son" }).click();
   // Le bouton de la file mène à la saisie.
-  await page.getByRole("link", { name: "Nouvelle commande (téléphone)" }).click();
+  await page.getByRole("link", { name: "Commande téléphone" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Nouvelle commande (téléphone)" })).toBeVisible();
   prenom = `Tel${info.project.name}${passage()}`;
 });
