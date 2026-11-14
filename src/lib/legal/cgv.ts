@@ -16,7 +16,8 @@ export const CGV: PageLegale = {
       titre: "Commande et acceptation",
       contenu: [
         "La commande est enregistrée quand le paiement en ligne est confirmé, ou à son envoi pour un paiement au comptoir. Vous recevez aussitôt un e-mail de confirmation.",
-        "Le contrat est conclu quand le restaurant accepte la commande. Il vous envoie alors un e-mail avec l'heure de livraison ou de retrait.",
+        "Une commande passée par téléphone est enregistrée par l'équipe pendant l'appel. Si vous donnez votre adresse e-mail, vous recevez le récapitulatif et le lien de suivi.",
+        "Le contrat est conclu quand le restaurant accepte la commande. L'heure de livraison ou de retrait s'affiche alors sur la page de suivi.",
         "Le restaurant peut refuser une commande, par exemple quand la cuisine est complète ou qu'un plat est épuisé. Le montant payé en ligne est alors remboursé en entier sur le moyen de paiement utilisé.",
       ],
     },
@@ -31,7 +32,7 @@ export const CGV: PageLegale = {
       titre: "Paiement",
       contenu: [
         "En ligne, par TWINT ou carte bancaire, au moment de la commande. Le paiement est traité par Stripe. Le restaurant ne voit pas vos données de carte.",
-        "Au comptoir, pour une commande à emporter seulement. Le paiement à la livraison n'est pas proposé.",
+        "Au comptoir, pour une commande à emporter. Pour une commande passée par téléphone, à la livraison ou au retrait, en espèces ou par carte.",
       ],
     },
     {

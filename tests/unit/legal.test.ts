@@ -45,4 +45,26 @@ describe("ébauches légales", () => {
     // L'e-mail reste demandé, pas deviné.
     expect(JSON.stringify(MENTIONS)).toContain("[adresse e-mail du restaurant]");
   });
+
+  it("CGV, paiement : au comptoir pour l'emporter, à la livraison ou au retrait pour une commande par téléphone", () => {
+    // Commande prise au téléphone (#248), payée à la livraison ou au retrait ; les livreurs auront un terminal de
+    // carte (Jérémy, 14.11.2026). L'ancienne phrase « pas de paiement à la livraison » ne doit pas revenir.
+    const paiement = CGV.sections.find((s) => s.titre === "Paiement");
+    const texte = JSON.stringify(paiement?.contenu);
+    expect(texte).toContain("Au comptoir, pour une commande à emporter.");
+    expect(texte).toContain("Pour une commande passée par téléphone, à la livraison ou au retrait, en espèces ou par carte.");
+    expect(JSON.stringify(CGV).toLowerCase()).not.toContain("paiement à la livraison n'est pas proposé");
+  });
+
+  it("CGV, commande : la phrase en ligne inchangée, la commande par téléphone et l'heure au suivi", () => {
+    const commande = JSON.stringify(CGV.sections.find((s) => s.titre === "Commande et acceptation")?.contenu);
+    expect(commande).toContain(
+      "La commande est enregistrée quand le paiement en ligne est confirmé, ou à son envoi pour un paiement au comptoir. Vous recevez aussitôt un e-mail de confirmation.",
+    );
+    expect(commande).toContain("Une commande passée par téléphone est enregistrée par l'équipe pendant l'appel.");
+    expect(commande).toContain("Si vous donnez votre adresse e-mail, vous recevez le récapitulatif et le lien de suivi.");
+    // Un seul e-mail à la commande (#221) : l'acceptation n'envoie plus d'e-mail, l'heure se lit au suivi.
+    expect(commande).not.toContain("Il vous envoie alors un e-mail avec l'heure");
+    expect(commande).toContain("L'heure de livraison ou de retrait s'affiche alors sur la page de suivi.");
+  });
 });
