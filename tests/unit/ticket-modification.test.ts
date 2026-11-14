@@ -24,6 +24,16 @@ describe("ticketModification", () => {
   });
 });
 
+describe("ticketModification : montant encore dû (bo-commandes)", () => {
+  it("à encaisser ou complément dû : une ligne en gras ; tout payé ou 0 : rien", () => {
+    const ch = [{ champ: "Téléphone", avant: "079 111 22 33", apres: "079 444 55 66" }];
+    expect(texteTicket(ticketModification(c, ch, "2026-11-13T18:20:00Z", { centimes: 1250, complement: false }))).toMatch(/A ENCAISSER : CHF 12\.50\n/);
+    expect(texteTicket(ticketModification(c, ch, "2026-11-13T18:20:00Z", { centimes: 300, complement: true }))).toContain("A ENCAISSER : CHF 3.00 (COMPLEMENT)");
+    expect(texteTicket(ticketModification(c, ch, "2026-11-13T18:20:00Z", { centimes: 0, complement: true }))).not.toContain("A ENCAISSER");
+    expect(texteTicket(ticketModification(c, ch, "2026-11-13T18:20:00Z"))).not.toContain("A ENCAISSER");
+  });
+});
+
 describe("imprimerModification", () => {
   let n = 0;
   async function commande(statut: string, lignes: ("pizza" | "cuisine")[]) {
@@ -55,6 +65,18 @@ describe("imprimerModification", () => {
     await db.query("select premiers_tickets($1, $2::jsonb)", [id, JSON.stringify([{ station: "pizza", contenu: [] }])]);
     expect(await imprimerModification(id, ch)).toBe(1);
     expect((await taches(db, id)).map((x) => x.station)).toEqual(["pizza"]);
+  });
+
+  it("complément encore dû à la porte : le ticket dit combien encaisser ; payée en ligne sans complément : rien", async () => {
+    const { db, id } = await commande("acceptee", ["pizza"]);
+    await db.query("select premiers_tickets($1, $2::jsonb)", [id, JSON.stringify([{ station: "pizza", contenu: [] }])]);
+    expect(await imprimerModification(id, ch)).toBe(1);
+    expect(texteTicket((await taches(db, id))[0].contenu)).not.toContain("A ENCAISSER");
+    // Montant d'essai, posé directement (le geste vient de « Changer les plats »).
+    await db.query("insert into complements (commande_id, montant_centimes, tva_centimes, moyen) values ($1, 450, 11, 'porte')", [id]);
+    expect(await imprimerModification(id, [{ champ: "Nom", avant: "Rossi", apres: "Rosso" }])).toBe(1);
+    const derniers = await taches(db, id);
+    expect(texteTicket(derniers[derniers.length - 1].contenu)).toContain("A ENCAISSER : CHF 4.50 (COMPLEMENT)");
   });
 
   it("rien avant les premiers tickets, rien pour une commande finie, rien sans vrai changement", async () => {
