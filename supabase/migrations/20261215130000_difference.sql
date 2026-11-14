@@ -108,6 +108,8 @@ declare
   reste integer;
   x complements%rowtype;
   frais_avant integer;
+  du_avant integer;
+  du_apres integer;
 begin
   select * into m from modifications_commande where id = p_modification for update;
   if not found or m.statut in ('appliquee', 'payee_non_appliquee') then
@@ -183,6 +185,7 @@ begin
   elsif m.reglement = 'remboursement' then
     -- Un complément encore à encaisser (porte, comptoir) se réduit d'abord : on ne rembourse pas ce qui n'est pas payé.
     reste := -m.difference_centimes;
+    select coalesce(sum(montant_centimes), 0) into du_avant from complements where commande_id = c.id and statut = 'a_encaisser';
     for x in select * from complements where commande_id = c.id and statut = 'a_encaisser' order by cree_le desc for update loop
       exit when reste <= 0;
       if x.montant_centimes <= reste then
@@ -196,6 +199,7 @@ begin
         reste := 0;
       end if;
     end loop;
+    select coalesce(sum(montant_centimes), 0) into du_apres from complements where commande_id = c.id and statut = 'a_encaisser';
     select coalesce(sum(montant_centimes), 0) into engage from remboursements where commande_id = c.id and statut in ('fait', 'en_cours');
     if reste > 0 and engage + reste > c.total_centimes then
       raise exception 'montant_trop_eleve';
@@ -223,7 +227,9 @@ begin
       jsonb_build_object('numero', c.numero, 'valeur_centimes', m.total_centimes, 'reglement', m.reglement));
   return jsonb_build_object('applique', true, 'commande_id', c.id, 'numero', c.numero, 'reglement', m.reglement,
     'difference_centimes', m.difference_centimes, 'ajouts', m.ajouts, 'retires', m.retires,
-    'remboursement', case when rb.id is not null then to_jsonb(rb) end, 'complement', case when k.id is not null then to_jsonb(k) end);
+    'remboursement', case when rb.id is not null then to_jsonb(rb) end, 'complement', case when k.id is not null then to_jsonb(k) end,
+    -- Baisse déduite d'un complément encore dû : ce que le client avait à payer avant et après (rien ne repart).
+    'du_avant_centimes', du_avant, 'du_apres_centimes', du_apres);
 end;
 $$;
 

@@ -271,12 +271,21 @@ export async function modifierPlats(commandeId: string, d: Record<string, unknow
   const montant = (Math.abs(m.difference_centimes) / 100).toFixed(2);
   const texte: Record<Reglement, string> = {
     aucun: r.c.statut_paiement === "a_encaisser_retrait" ? `Commande modifiée. Nouveau total à encaisser : CHF ${(r.totaux.total_centimes / 100).toFixed(2)}.` : "Commande modifiée, même montant.",
-    remboursement: `Commande modifiée. CHF ${montant} remboursés au client.`,
+    remboursement: remboursementTexte(m as unknown as Application),
     porte: `Commande modifiée. Complément de CHF ${montant} à encaisser à la livraison.`,
     comptoir: `Commande modifiée. Complément de CHF ${montant} à encaisser au retrait.`,
     lien: "",
   };
   return { ok: true, message: texte[m.reglement] };
+}
+
+// Message à l'équipe pour une baisse : seulement ce qui repart vraiment, et le complément dû qui baisse.
+function remboursementTexte(a: Application): string {
+  const chf = (c: number) => `CHF ${(c / 100).toFixed(2)}`;
+  const morceaux = ["Commande modifiée."];
+  if (a.du_avant_centimes) morceaux.push(`Complément à encaisser : ${chf(a.du_avant_centimes)} → ${chf(a.du_apres_centimes ?? 0)}.`);
+  if (a.remboursement?.montant_centimes) morceaux.push(`${chf(a.remboursement.montant_centimes)} remboursés au client.`);
+  return morceaux.join(" ");
 }
 
 type Application = {
@@ -291,6 +300,8 @@ type Application = {
   ajouts?: LigneSql[];
   retires?: { nom: string; qte: number; station: string }[];
   remboursement?: (LigneRemboursement & { cle?: string }) | null;
+  du_avant_centimes?: number | null;
+  du_apres_centimes?: number | null;
   complement?: { montant_centimes: number; moyen: string } | null;
 };
 
@@ -343,6 +354,8 @@ async function apresApplication(a: Application): Promise<void> {
         retires: retires.map((l) => texteLigne(cat, l)),
         difference: a.difference_centimes ?? 0,
         reglement: a.reglement ?? "aucun",
+        rembourse: a.remboursement?.montant_centimes ?? null,
+        du: a.du_avant_centimes ? { avant: a.du_avant_centimes, apres: a.du_apres_centimes ?? 0 } : null,
       }),
     }).catch((e) => console.error(`E-mail de modification non envoyé pour la commande ${c.numero} : ${e instanceof Error ? e.message : e}`));
   }

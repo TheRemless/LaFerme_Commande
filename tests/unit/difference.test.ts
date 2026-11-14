@@ -118,6 +118,24 @@ describe("changer les plats d'une commande payée", () => {
     expect(m.texte).toContain("se paie à la livraison");
   });
 
+  it("baisse déduite d'un complément encore dû : l'e-mail ne parle pas de remboursement, rien ne repart", async () => {
+    const { modifierPlats } = await import("@/lib/difference");
+    const { chargerConfigService } = await import("@/lib/config-service");
+    const minimum = (await chargerConfigService()).zones.find((z) => z.numero === 1)?.minimum_centimes ?? 0;
+    const prix = (await chargerCatalogue()).plats["pizza-margherita"].prix_centimes;
+    const pizzas = { ...MARGHERITA, qte: Math.min(20, Math.ceil(minimum / prix) + 1) };
+    const c = await commandePayee([pizzas], "livraison");
+    expect(await modifierPlats(c.id, { cle: `dette-${randomUUID()}`, de: "acceptee", lignes: [pizzas, COCA], reglement: "porte" }, gerant, "http://localhost:3000")).toMatchObject({ ok: true });
+    const r = await modifierPlats(c.id, { cle: `dette-${randomUUID()}`, de: "acceptee", lignes: [pizzas] }, gerant, "http://localhost:3000");
+    expect(r).toMatchObject({ ok: true });
+    if (r.ok) expect(r.message).not.toMatch(/rembours/);
+    const db = await baseLocale();
+    expect((await db.query("select 1 from remboursements where commande_id = $1", [c.id])).rows).toHaveLength(0);
+    const m = (await db.query<{ texte: string }>("select texte from courriels where commande_id = $1 order by envoye_le desc limit 1", [c.id])).rows[0];
+    expect(m.texte).toContain("Vous n'avez plus de complément à payer pour votre modification.");
+    expect(m.texte).not.toMatch(/rembours/i);
+  });
+
   it("moins chère : appliquée, remboursée par la doublure de Stripe, e-mail au client", async () => {
     const { modifierPlats } = await import("@/lib/difference");
     delete process.env.STRIPE_SECRET_KEY;

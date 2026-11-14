@@ -320,11 +320,34 @@ ${bouton(url, `Payer ${prixChf(montantCentimes)}`)}
 // Commande modifiée au téléphone, appliquée (vague 3, bo-commandes) : ce qui a changé et ce que ça coûte en plus ou en moins.
 export function courrielPlatsModifies(
   c: Commande,
-  { ajouts, retires, difference, reglement }: { ajouts: string[]; retires: string[]; difference: number; reglement: string },
+  {
+    ajouts,
+    retires,
+    difference,
+    reglement,
+    rembourse = null,
+    du = null,
+  }: {
+    ajouts: string[];
+    retires: string[];
+    difference: number;
+    reglement: string;
+    // Moins cher : la part vraiment remboursée, et le complément encore dû avant et après (déduit d'abord).
+    rembourse?: number | null;
+    du?: { avant: number; apres: number } | null;
+  },
 ) {
+  const baisse = [
+    ...(du && du.avant > 0 && du.apres > 0 && du.apres !== du.avant
+      ? [`Le montant à payer pour votre modification passe de ${prixChf(du.avant)} à ${prixChf(du.apres)}.`]
+      : du && du.avant > 0 && du.apres === 0
+        ? ["Vous n'avez plus de complément à payer pour votre modification."]
+        : []),
+    ...(rembourse && rembourse > 0 ? [`Nous vous remboursons ${prixChf(rembourse)} sur votre moyen de paiement.`] : []),
+  ];
   const argent =
     reglement === "remboursement"
-      ? `Nous vous remboursons ${prixChf(-difference)} sur votre moyen de paiement.`
+      ? baisse.join(" ") || null
       : reglement === "lien"
         ? `Nous avons bien reçu le complément de ${prixChf(difference)}.`
         : reglement === "porte"
