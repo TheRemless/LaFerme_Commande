@@ -92,10 +92,10 @@ async function envoyer(corps: string, signer = true) {
 }
 
 describe("S2-03 : la passerelle rend l'état du remboursement", () => {
-  it("doublure : « succeeded » par défaut, « pending » sur demande", () => {
-    expect(paiement.remboursementSimule("pi_doublure_a", "cle-a")).toEqual({ id: "re_doublure_cle-a", statut: "succeeded" });
+  it("doublure : « succeeded » par défaut, « pending » sur demande", async () => {
+    expect(await paiement.remboursementSimule("pi_doublure_a", { cle: "cle-a" })).toEqual({ id: "re_doublure_cle-a", statut: "succeeded" });
     process.env.DOUBLURE_REMBOURSEMENT = "pending";
-    expect(paiement.remboursementSimule("pi_doublure_a", "cle-a")).toEqual({ id: "re_doublure_cle-a", statut: "pending" });
+    expect(await paiement.remboursementSimule("pi_doublure_a", { cle: "cle-a" })).toEqual({ id: "re_doublure_cle-a", statut: "pending" });
   });
 });
 

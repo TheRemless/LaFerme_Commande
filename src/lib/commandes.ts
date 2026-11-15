@@ -8,7 +8,7 @@ import { chargerConfigService } from "@/lib/config-service";
 import { appliquerPaiement, commandeParId, fonctionSql, type Commande } from "@/lib/db/serveur";
 import type { Catalogue } from "@/lib/panier";
 import { pauseEnCours, quandPossible, type ConfigService } from "@/lib/service";
-import { type EtatRemboursement, paiementDisponible, passerelle, remboursementSimule } from "@/lib/paiement/passerelle";
+import { type EtatRemboursement, paiementDisponible, paiementSimule, passerelle, remboursementSimule } from "@/lib/paiement/passerelle";
 import { alerter } from "@/lib/surveillance";
 import { signalerTablette } from "@/lib/tablette";
 
@@ -128,22 +128,35 @@ export async function reconcilier(c: Commande): Promise<Commande> {
 export async function rembourserCommande(commandeId: string, motif: string): Promise<{ rembourse: boolean }> {
   const c = await commandeParId(commandeId);
   if (!c || c.moyen_paiement !== "en_ligne" || c.statut_paiement !== "paye" || !c.stripe_payment_intent) return { rembourse: false };
-  const r = remboursementSimule(c.stripe_payment_intent) ?? (await passerelle().rembourser(c.stripe_payment_intent));
-  // Stripe a refusé tout de suite : rien n'est rendu (la tablette propose de recommencer).
-  if (r.statut === "failed" || r.statut === "canceled") {
-    console.error(`Remboursement de la commande ${c.numero} refusé par Stripe (${r.statut}).`);
-    return { rembourse: false };
+  // Seulement ce qui reste du paiement de départ (relecture de qualite sur #257) : après une baisse qui l'a vidé, un
+  // remboursement complet serait refusé par Stripe (charge_already_refunded) et le complément jamais rendu.
+  const reste = await fonctionSql<number>("reste_paiement_depart", { p_commande: c.id });
+  let idDepart = `solde-${c.id}`;
+  if (reste > 0) {
+    const pi = c.stripe_payment_intent;
+    const r = (await remboursementSimule(pi, { montantCentimes: reste })) ?? (await passerelle().rembourser(pi, { montantCentimes: reste }));
+    // Stripe a refusé tout de suite : rien n'est rendu (la tablette propose de recommencer).
+    if (r.statut === "failed" || r.statut === "canceled") {
+      console.error(`Remboursement de la commande ${c.numero} refusé par Stripe (${r.statut}).`);
+      return { rembourse: false };
+    }
+    idDepart = r.id;
+    // Accepté par Stripe : une ligne suit le remboursement jusqu'à sa confirmation (charge.refund.updated) ; un échec
+    // plus tard alerte le restaurant (audit de sécurité 2, S2-03).
+    await fonctionSql("noter_remboursement_refus", { p_commande: c.id, p_refund_id: r.id, p_fait: r.statut === "succeeded", p_motif: motif }).catch((e) =>
+      console.error(`Suivi du remboursement de la commande ${c.numero} non noté : ${e instanceof Error ? e.message : e}`),
+    );
   }
-  // Accepté par Stripe : le client lit « remboursé », comme avant. Une ligne suit le remboursement jusqu'à sa
-  // confirmation (charge.refund.updated) ; un échec plus tard alerte le restaurant (audit de sécurité 2, S2-03).
-  const applique = await appliquerPaiement(`remboursement:${r.id}`, c.id, "rembourse");
-  await fonctionSql("noter_remboursement_refus", { p_commande: c.id, p_refund_id: r.id, p_fait: r.statut === "succeeded", p_motif: motif }).catch((e) =>
-    console.error(`Suivi du remboursement de la commande ${c.numero} non noté : ${e instanceof Error ? e.message : e}`),
-  );
-  // Compléments payés par le lien après une modification (vague 3, bo-commandes) : rendus aussi, chacun sur son paiement.
-  await rembourserComplements(c).catch((e) => console.error(`Compléments de la commande ${c.numero} non remboursés : ${e instanceof Error ? e.message : e}`));
+  // Toujours ensuite : les compléments payés par le lien après une modification (vague 3, bo-commandes), chacun sur
+  // son paiement, pour ce qui en reste.
+  const complements = await rembourserComplements(c).catch((e) => {
+    console.error(`Compléments de la commande ${c.numero} non remboursés : ${e instanceof Error ? e.message : e}`);
+    return 0;
+  });
+  // Le client lit « remboursé », comme avant.
+  const applique = await appliquerPaiement(`remboursement:${idDepart}`, c.id, "rembourse");
   if (applique) {
-    const m = courrielRemboursement(c, motif);
+    const m = courrielRemboursement(c, motif, reste + complements);
     await envoyerCourriel({ commandeId: c.id, destinataire: c.client_email, ...m }).catch((e) =>
       console.error(`Courriel de remboursement non envoyé pour la commande ${c.numero} : ${e instanceof Error ? e.message : e}`),
     );
@@ -151,11 +164,15 @@ export async function rembourserCommande(commandeId: string, motif: string): Pro
   return { rembourse: applique };
 }
 
-async function rembourserComplements(c: Commande): Promise<void> {
+// Rend ce qui reste de chaque complément payé par le lien ; renvoie le montant accepté par Stripe.
+async function rembourserComplements(c: Commande): Promise<number> {
+  let rendu = 0;
   const liste = await fonctionSql<{ id: string; montant_centimes: number; stripe_payment_intent: string }[]>("complements_a_rembourser", { p_commande: c.id });
   for (const k of liste) {
     const cle = `complement-${k.id}`;
-    const r = remboursementSimule(k.stripe_payment_intent, cle) ?? (await passerelle().rembourser(k.stripe_payment_intent, { montantCentimes: k.montant_centimes, cle }));
+    const r =
+      (await remboursementSimule(k.stripe_payment_intent, { montantCentimes: k.montant_centimes, cle })) ??
+      (await passerelle().rembourser(k.stripe_payment_intent, { montantCentimes: k.montant_centimes, cle }));
     if (r.statut === "failed" || r.statut === "canceled") {
       await alerter(`Commande ${c.numero} : complément à rembourser`, [
         `La commande ${c.numero} est refusée ou annulée. Son complément de ${(k.montant_centimes / 100).toFixed(2)} CHF, payé par le lien, n'a pas pu être remboursé.`,
@@ -164,7 +181,9 @@ async function rembourserComplements(c: Commande): Promise<void> {
       continue;
     }
     await fonctionSql("noter_complement_rembourse", { p_complement: k.id, p_refund: r.id });
+    rendu += k.montant_centimes;
   }
+  return rendu;
 }
 
 // ---------- Remboursement après coup (audit du gérant, G02) ----------
@@ -279,8 +298,8 @@ async function rembourserChezStripe(
     const pi = r.payment_intent_cible ?? c.stripe_payment_intent ?? "";
     // Relance : la première demande a pu aboutir chez Stripe sans que sa réponse arrive (délai, réseau). On
     // reprend ce remboursement au lieu d'en créer un second, que Stripe accepterait après 24 heures.
-    const repris = !remboursementSimule(pi, cle) && r.deja ? ((await passerelle().retrouverRemboursement?.(pi, r.id)) ?? null) : null;
-    const s = remboursementSimule(pi, cle) ?? repris ?? (await passerelle().rembourser(pi, { montantCentimes, cle, remboursementId: r.id }));
+    const repris = !paiementSimule(pi) && r.deja ? ((await passerelle().retrouverRemboursement?.(pi, r.id)) ?? null) : null;
+    const s = (await remboursementSimule(pi, { montantCentimes, cle })) ?? repris ?? (await passerelle().rembourser(pi, { montantCentimes, cle, remboursementId: r.id }));
     if (s.statut === "failed" || s.statut === "canceled") {
       await fonctionSql("terminer_remboursement", { p_id: r.id, p_ok: false, p_refund_id: s.id, p_erreur: `Stripe : ${s.statut}` });
       return { refus: { ok: false, message: "Stripe a refusé le remboursement. Rien n'a été rendu. Réessayez plus tard ou vérifiez dans Stripe." } };

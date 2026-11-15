@@ -194,13 +194,18 @@ export function courrielRefusRemboursementEnCours(c: Commande, motif: string) {
   return { sujet, texte, html, type: "refus" as TypeCourriel };
 }
 
-export function courrielRemboursement(c: Commande, motif: string) {
+// montantCentimes : ce qui repart vraiment maintenant (après une baisse déjà remboursée, moins que le total).
+export function courrielRemboursement(c: Commande, motif: string, montantCentimes = c.total_centimes) {
   const sujet = `Commande ${c.numero} annulée, La Ferme`;
+  const phrase =
+    montantCentimes > 0
+      ? `Nous vous remboursons ${prixChf(montantCentimes)} sur le moyen de paiement utilisé.`
+      : "Le montant payé vous a déjà été remboursé sur le moyen de paiement utilisé.";
   const texte = [
     `Bonjour ${c.client_prenom},`,
     "",
     phraseAnnulation(c, motif).texte,
-    `Nous vous remboursons ${prixChf(c.total_centimes)} sur le moyen de paiement utilisé.`,
+    phrase,
     DELAI_REMBOURSEMENT,
     "",
     `Une question ? ${TELEPHONE}`,
@@ -210,7 +215,7 @@ export function courrielRemboursement(c: Commande, motif: string) {
   const html = enveloppe(`
 <p>Bonjour ${echapper(c.client_prenom)},</p>
 <p>${phraseAnnulation(c, motif).html}</p>
-<p>Nous vous remboursons ${prixChf(c.total_centimes)} sur le moyen de paiement utilisé.</p>
+<p>${phrase}</p>
 <p>${DELAI_REMBOURSEMENT}</p>
 <p>Une question ? ${TELEPHONE}</p>`, c.origine, phraseAnnulation(c, motif).texte);
   return { sujet, texte, html, type: "refus" as TypeCourriel };
