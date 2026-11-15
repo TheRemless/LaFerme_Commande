@@ -5,7 +5,7 @@
 // du rapport et journalise (cloture_jour, cloturer_jour : docs/pilotage.md). Rien n'est recalculé ici.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Champ, Chargement, EtatErreur, montant, nombre, useConfirmer, useNotifier, decalerJour } from "@/components/gestion/ui";
-import { libelleEcart, montantCompte, regrouperEcarts, type ClotureJour as Donnees } from "@/lib/cloture";
+import { libelleEcart, lignesComplements, montantCompte, regrouperEcarts, type ClotureJour as Donnees } from "@/lib/cloture";
 import { heureDe, jourGeneveDe } from "@/lib/heures";
 import { jourDeService } from "@/lib/pilotage";
 import { poster } from "@/lib/requete-client";
@@ -106,6 +106,7 @@ export function ClotureJour() {
     en && en.comptoir_especes && en.comptoir_carte && en.comptoir_non_note && en.attendu_especes_centimes !== undefined && en.attendu_carte_centimes !== undefined
       ? { especes: en.comptoir_especes, carte: en.comptoir_carte, nonNote: en.comptoir_non_note, attenduEspeces: en.attendu_especes_centimes, attenduCarte: en.attendu_carte_centimes }
       : null;
+  const complements = lignesComplements(en?.complements);
 
   return (
     <div className="clo">
@@ -186,6 +187,29 @@ export function ClotureJour() {
                           <th scope="row">dont moyen pas noté</th>
                           <td className="clo-nb">{nombre(moyens.nonNote.commandes)}</td>
                           <td className="clo-nb">CHF {montant(moyens.nonNote.centimes)}</td>
+                        </tr>
+                      )}
+                    </>
+                  )}
+                  {complements && (
+                    <>
+                      <tr>
+                        <th scope="row">Compléments encaissés (commandes modifiées)</th>
+                        <td />
+                        <td className="clo-nb">CHF {montant(complements.encaisse)}</td>
+                      </tr>
+                      {complements.lignes.map((l) => (
+                        <tr className="clo-detail" key={l.libelle}>
+                          <th scope="row">{l.libelle}</th>
+                          <td />
+                          <td className="clo-nb">CHF {montant(l.centimes)}</td>
+                        </tr>
+                      ))}
+                      {complements.aEncaisser > 0 && (
+                        <tr>
+                          <th scope="row">Compléments encore à encaisser</th>
+                          <td />
+                          <td className="clo-nb">CHF {montant(complements.aEncaisser)}</td>
                         </tr>
                       )}
                     </>
