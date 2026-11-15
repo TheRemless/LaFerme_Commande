@@ -80,6 +80,7 @@ describe("ébauches légales", () => {
       "Elle ne sert ni au comptoir ni pour une commande passée par téléphone.",
       "Elle expire 12 mois après votre dernière commande. Un e-mail vous prévient 30 jours avant",
       "Après sa première commande livrée ou retirée, vous recevez chacun CHF 10 dans votre cagnotte",
+      "Le crédit est repris si cette commande est remboursée en entier.",
       "Un proche n'a qu'un seul parrain. Un compte parraine au plus 10 proches par mois.",
     ]) {
       expect(texte).toContain(regle);
