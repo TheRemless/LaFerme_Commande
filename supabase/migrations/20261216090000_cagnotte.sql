@@ -133,18 +133,21 @@ language sql stable as $$
 $$;
 
 -- Montant des plats qui donne droit au gain : plats, moins la remise sur les plats, la cagnotte utilisée et l'argent
--- déjà rendu (remboursements faits, en ligne, en espèces ou déduits au comptoir).
+-- déjà rendu sur le paiement de la commande (remboursements faits, en ligne, en espèces ou déduits au comptoir).
 create function base_cagnotte(o commandes) returns integer
 language sql stable as $$
   select greatest(
     o.sous_total_centimes - remise_plats(o) - o.cagnotte_centimes
-      - coalesce((select sum(r.montant_centimes) from remboursements r where r.commande_id = o.id and r.statut = 'fait'), 0),
+      - coalesce((select sum(r.montant_centimes) from remboursements r where r.commande_id = o.id and r.statut = 'fait'
+                  -- Un complément payé par lien (bo-commandes, 20261216130000) n'est jamais entré dans la base : son
+                  -- remboursement ne la réduit pas. Lu par la ligne entière, la colonne arrive après cette migration.
+                  and to_jsonb(r) ->> 'complement_id' is null and to_jsonb(r) ->> 'payment_intent_cible' is null), 0),
     0)::integer;
 $$;
 
 -- ---------- Mouvements liés aux commandes ----------
 
--- Gain à la remise (livrée ou retirée). Une seule fois par commande ; rien si l'interrupteur est éteint, sans compte,
+-- Gain à la remise (livrée ou retirée) d'une commande payée. Une seule fois par commande ; rien si l'interrupteur est éteint, sans compte,
 -- pour une commande détachée d'un compte supprimé ou une livraison close « client absent ».
 create function crediter_cagnotte(p_commande uuid) returns integer
 language plpgsql as $$
@@ -154,8 +157,11 @@ declare
   g integer;
 begin
   select * into o from commandes where id = p_commande;
-  if not found or o.statut <> 'terminee' or o.compte_id is null or o.detachee_du_compte
-     or o.motif is not distinct from 'Client absent à la livraison.' or not fidelite_active() then
+  -- Payée en ligne ou encaissée au comptoir (relecture de qualite) : une commande retirée sans être encaissée ne
+  -- rapporte rien tant que l'encaissement n'est pas fait. Le motif « client absent » est le texte posé par
+  -- clore_client_absent (20261119090000) dans la même mise à jour que le statut.
+  if not found or o.statut <> 'terminee' or o.statut_paiement not in ('paye', 'encaisse') or o.compte_id is null
+     or o.detachee_du_compte or o.motif is not distinct from 'Client absent à la livraison.' or not fidelite_active() then
     return 0;
   end if;
   if exists (select 1 from cagnotte_mouvements where commande_id = o.id and type = 'gain') then
@@ -221,7 +227,8 @@ $$;
 create function cagnotte_au_statut() returns trigger
 language plpgsql as $$
 begin
-  if new.statut = 'terminee' and old.statut is distinct from 'terminee' then
+  if (new.statut = 'terminee' and old.statut is distinct from 'terminee')
+     or (new.statut = 'terminee' and new.statut_paiement in ('paye', 'encaisse') and old.statut_paiement is distinct from new.statut_paiement) then
     perform crediter_cagnotte(new.id);
   end if;
   -- La cagnotte utilisée revient seulement si la commande n'a pas eu lieu : refusée, annulée, paiement échoué.
@@ -252,6 +259,40 @@ end;
 $$;
 create trigger remboursements_cagnotte after insert or update of statut on remboursements
   for each row execute function cagnotte_au_remboursement();
+
+-- Retrait différé (relecture de qualite) : un gain qui n'a pas pu être retiré faute de solde (commande remboursée
+-- après que le client a tout dépensé) est retenu dès qu'un montant revient au compte (restitution, gain, ajustement,
+-- parrainage). Sinon, un refus rendrait plus tard une cagnotte qui contient encore ce gain.
+create function rattraper_retraits(p_compte uuid) returns integer
+language plpgsql as $$
+declare
+  c record;
+  n integer := 0;
+begin
+  for c in
+    select distinct m.commande_id from cagnotte_mouvements m
+    where m.compte_id = p_compte and m.type = 'gain'
+      and exists (select 1 from remboursements r where r.commande_id = m.commande_id and r.statut = 'fait')
+  loop
+    if ajuster_gain(c.commande_id) < 0 then
+      n := n + 1;
+    end if;
+  end loop;
+  return n;
+end;
+$$;
+
+create function cagnotte_au_mouvement() returns trigger
+language plpgsql as $$
+begin
+  if new.montant_centimes > 0 then
+    perform rattraper_retraits(new.compte_id);
+  end if;
+  return null;
+end;
+$$;
+create trigger cagnotte_mouvements_dette after insert on cagnotte_mouvements
+  for each row execute function cagnotte_au_mouvement();
 
 -- ---------- Utilisation au paiement ----------
 
@@ -582,13 +623,14 @@ $$;
 revoke execute on function fidelite_active(), fidelite_entier(text, integer), fidelite_taux(), fidelite_seuil(),
   solde_cagnotte(uuid), taux_cagnotte(commandes), remise_plats(commandes), base_cagnotte(commandes),
   crediter_cagnotte(uuid), rendre_cagnotte(uuid), ajuster_gain(uuid), cagnotte_au_statut(), cagnotte_au_remboursement(),
+  rattraper_retraits(uuid), cagnotte_au_mouvement(),
   creer_commande_paiement(jsonb, text, integer), activite_cagnotte(uuid), expirer_cagnottes(), rappels_cagnotte_dus(), noter_rappel_cagnotte(uuid, date),
   cagnotte_compte(uuid), regler_rappel_cagnotte(uuid, boolean), reglages_fidelite(), regler_fidelite(jsonb, uuid),
   cagnotte_client_gestion(text), ajuster_cagnotte(text, integer, text, uuid), du_cagnottes_au(date)
   from public, anon, authenticated;
 grant execute on function fidelite_active(), fidelite_entier(text, integer), fidelite_taux(), fidelite_seuil(),
   solde_cagnotte(uuid), taux_cagnotte(commandes), remise_plats(commandes), base_cagnotte(commandes),
-  crediter_cagnotte(uuid), rendre_cagnotte(uuid), ajuster_gain(uuid),
+  crediter_cagnotte(uuid), rendre_cagnotte(uuid), ajuster_gain(uuid), rattraper_retraits(uuid),
   creer_commande_paiement(jsonb, text, integer), activite_cagnotte(uuid), expirer_cagnottes(), rappels_cagnotte_dus(), noter_rappel_cagnotte(uuid, date),
   cagnotte_compte(uuid), regler_rappel_cagnotte(uuid, boolean), reglages_fidelite(), regler_fidelite(jsonb, uuid),
   cagnotte_client_gestion(text), ajuster_cagnotte(text, integer, text, uuid), du_cagnottes_au(date)

@@ -85,6 +85,23 @@ const LIBELLE_ECART: Record<Ecart["type"], string> = {
 };
 export const libelleEcart = (e: Ecart) => LIBELLE_ECART[e.type];
 
+// Compléments des commandes modifiées (bo-commandes, 20261215130000) pour l'écran de clôture : le total encaissé
+// et ses lignes non nulles. Les espèces et la carte sont déjà dans « Attendu au comptoir », le lien dans « En ligne ».
+export type LigneComplement = { libelle: string; centimes: number };
+export function lignesComplements(
+  c: RapportCloture["encaissements"]["complements"],
+): { encaisse: number; lignes: LigneComplement[]; aEncaisser: number } | null {
+  if (!c) return null;
+  const encaisse = c.en_ligne_centimes + c.especes_centimes + c.carte_centimes;
+  if (encaisse === 0 && c.a_encaisser_centimes === 0) return null;
+  const lignes = [
+    { libelle: "dont par lien (compté dans « En ligne »)", centimes: c.en_ligne_centimes },
+    { libelle: "dont espèces", centimes: c.especes_centimes },
+    { libelle: "dont carte", centimes: c.carte_centimes },
+  ].filter((l) => l.centimes > 0);
+  return { encaisse, lignes, aEncaisser: c.a_encaisser_centimes };
+}
+
 // À l'écran et à l'impression : l'argent à suivre ligne par ligne, les commandes pas terminées en une seule ligne
 // (en plein service, elles sont des dizaines et noieraient le reste). L'export CSV garde le détail.
 export type PasTerminees = { commandes: number; centimes: number; parStatut: [string, number][]; liste: Extract<Ecart, { type: "pas_terminee" }>[] };
