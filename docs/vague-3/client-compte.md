@@ -138,6 +138,7 @@ Parrainage sûr (relecture de qualite, migration `20261216190000_parrainage_sur.
 - la commande qui déclenche le crédit doit atteindre un minimum de plats nets (CHF 30 proposé à Jérémy, réglable au back-office). En dessous, le parrainage attend la commande suivante ;
 - un lien ne vaut que si son titulaire a lui-même une commande remise, payée et au minimum. Un faux compte qui n'a commandé qu'une eau ne recrute personne. La chaîne de faux filleuls est cassée ;
 - une reprise manquée faute de solde est retenue dès qu'un montant revient au compte ;
+- un remboursement partiel qui fait passer la commande qui a déclenché le crédit sous le minimum reprend les deux crédits (relecture #262, migration `20261216200000_parrainage_remboursement.sql`) ;
 - l'ajustement du gérant affiche le solde réel et la part retenue.
 
 L'empreinte du moyen de paiement n'est pas utilisée. Stripe n'en documente pas pour TWINT, elle est notée pour plus tard.
