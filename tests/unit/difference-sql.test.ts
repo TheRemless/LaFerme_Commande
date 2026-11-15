@@ -23,17 +23,18 @@ async function erreur(sql: string, v: unknown[] = []): Promise<string> {
 const ligne = (nom: string, prix: number, qte = 1, station = "pizza") => ({
   slug: nom.toLowerCase(), nom, station, qte, unitaire_centimes: prix, total_centimes: prix * qte, choix: {}, retraits: [], note: "",
 });
-async function commande(opts: { comptoir?: boolean; mode?: "livraison" | "retrait" } = {}) {
+// remise : une réduction du départ (code promo, cagnotte) déduite du total payé ou à payer.
+async function commande(opts: { comptoir?: boolean; mode?: "livraison" | "retrait"; remise?: number } = {}) {
   n += 1;
   const lignes = [ligne("Margherita", 2000), ligne("Tiramisu", 800, 1, "cuisine")];
-  const total = 2800;
+  const total = 2800 - (opts.remise ?? 0);
   const livraison = opts.mode === "livraison";
   const p = {
     jeton_suivi: `jeton-diff-${n}-abcdefgh`, cle_idempotence: `diff-${n}-cle-essai`, mode: opts.mode ?? "retrait",
     statut: opts.comptoir ? "nouvelle" : "paiement_en_attente", statut_paiement: opts.comptoir ? "a_encaisser_retrait" : "en_attente",
     moyen_paiement: opts.comptoir ? "comptoir" : "en_ligne", client_prenom: "Léa", client_nom: "Rossi", client_telephone: "079 555 12 34",
     client_email: "diff@exemple.ch", quand_type: "asap", pizzas_seulement: false, sous_total_centimes: total, frais_centimes: 0,
-    total_centimes: total, tva_centimes: 71, taux_tva_pourcent: 2.6, origine: "http://localhost:3000",
+    total_centimes: total, tva_centimes: 71, taux_tva_pourcent: 2.6, origine: "http://localhost:3000", remise_centimes: opts.remise ?? 0,
     adresse: livraison ? { rue: "Route de Chancy", numero: "1", npa: "1213", localite: "Onex" } : null,
     details_livraison: livraison ? { sonnette: "Rossi", etage: "", code: "", instructions: "" } : null,
     zone_numero: livraison ? 1 : null, lignes,
@@ -165,6 +166,21 @@ describe("modifier les plats d'une commande", () => {
   it("la commande a changé depuis le calcul : refus, rien n'est enregistré", async () => {
     const c = await commande({ comptoir: true });
     expect(await erreur("preparer_modification($1, $2, $3)", [c, demande(`difference-${n}-perime-01`, [ligne("Margherita", 2000, 2)], { valeur_avant: 1234 }), id.gerant])).toContain("deja_change");
+  });
+
+  it("à encaisser avec une remise : le nouveau total garde la remise (relecture de bo-pilotage)", async () => {
+    const c = await commande({ comptoir: true, remise: 500 });
+    await modifier(c, demande(`difference-${n}-remise-01`, [ligne("Margherita", 2000, 2), ligne("Tiramisu", 800, 1, "cuisine")]));
+    const o = (await db.query<{ total_centimes: number; tva_centimes: number }>("select total_centimes, tva_centimes from commandes where id = $1", [c])).rows[0];
+    expect(o.total_centimes).toBe(4800 - 500);
+    expect(o.tva_centimes).toBe(Math.round((4300 * 2.6) / 102.6));
+  });
+
+  it("payée avec une remise, baisse plus grande que le paiement : remboursement plafonné à ce qui a été payé", async () => {
+    const c = await commande({ remise: 1300 });
+    const r = await modifier(c, demande(`difference-${n}-plafond-1`, [ligne("Tiramisu", 800, 1, "cuisine")]));
+    expect(r).toMatchObject({ reglement: "remboursement", applique: true, difference_centimes: -2000 });
+    expect(r.remboursement).toMatchObject({ montant_centimes: 1500 });
   });
 
   it("droits et refus : l'équipe de service non, un règlement absent ou impossible non", async () => {
