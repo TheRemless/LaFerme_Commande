@@ -5,7 +5,7 @@
 // du rapport et journalise (cloture_jour, cloturer_jour : docs/pilotage.md). Rien n'est recalculé ici.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Champ, Chargement, EtatErreur, montant, nombre, useConfirmer, useNotifier, decalerJour } from "@/components/gestion/ui";
-import { libelleEcart, montantCompte, regrouperEcarts, type ClotureJour as Donnees } from "@/lib/cloture";
+import { libelleEcart, lignesComplements, montantCompte, regrouperEcarts, type ClotureJour as Donnees } from "@/lib/cloture";
 import { heureDe, jourGeneveDe } from "@/lib/heures";
 import { jourDeService } from "@/lib/pilotage";
 import { poster } from "@/lib/requete-client";
@@ -22,7 +22,7 @@ const STATUTS: Record<string, string> = {
 };
 const STATUTS_PLURIEL: Record<string, string> = { acceptee: "acceptées", prete: "prêtes", partie: "parties" };
 const statutCompte = (st: string, n: number) => `${n} ${(n > 1 ? STATUTS_PLURIEL[st] : undefined) ?? STATUTS[st] ?? st}`;
-const MOYENS = { stripe: "en ligne", especes: "espèces", deduction: "déduit au comptoir" } as const;
+const MOYENS = { stripe: "en ligne", especes: "espèces", deduction: "déduit au comptoir", terminal: "terminal (carte)" } as const;
 const ETATS = { fait: "fait", en_cours: "pas encore confirmé", echec: "échec" } as const;
 
 export function ClotureJour() {
@@ -106,6 +106,7 @@ export function ClotureJour() {
     en && en.comptoir_especes && en.comptoir_carte && en.comptoir_non_note && en.attendu_especes_centimes !== undefined && en.attendu_carte_centimes !== undefined
       ? { especes: en.comptoir_especes, carte: en.comptoir_carte, nonNote: en.comptoir_non_note, attenduEspeces: en.attendu_especes_centimes, attenduCarte: en.attendu_carte_centimes }
       : null;
+  const complements = lignesComplements(en?.complements);
 
   return (
     <div className="clo">
@@ -190,6 +191,29 @@ export function ClotureJour() {
                       )}
                     </>
                   )}
+                  {complements && (
+                    <>
+                      <tr>
+                        <th scope="row">Compléments encaissés (commandes modifiées)</th>
+                        <td />
+                        <td className="clo-nb">CHF {montant(complements.encaisse)}</td>
+                      </tr>
+                      {complements.lignes.map((l) => (
+                        <tr className="clo-detail" key={l.libelle}>
+                          <th scope="row">{l.libelle}</th>
+                          <td />
+                          <td className="clo-nb">CHF {montant(l.centimes)}</td>
+                        </tr>
+                      ))}
+                      {complements.aEncaisser > 0 && (
+                        <tr>
+                          <th scope="row">Compléments encore à encaisser</th>
+                          <td />
+                          <td className="clo-nb">CHF {montant(complements.aEncaisser)}</td>
+                        </tr>
+                      )}
+                    </>
+                  )}
                   <tr>
                     <th scope="row">Déduit au comptoir (manques)</th>
                     <td />
@@ -200,6 +224,13 @@ export function ClotureJour() {
                     <td />
                     <td className="clo-nb">CHF {montant(-r.encaissements.especes_rendues_centimes)}</td>
                   </tr>
+                  {(r.encaissements.terminal_rendu_centimes ?? 0) > 0 && (
+                    <tr>
+                      <th scope="row">Rendu sur le terminal</th>
+                      <td />
+                      <td className="clo-nb">CHF {montant(-(r.encaissements.terminal_rendu_centimes ?? 0))}</td>
+                    </tr>
+                  )}
                   <tr className="clo-total">
                     <th scope="row">Attendu au comptoir</th>
                     <td />

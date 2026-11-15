@@ -16,7 +16,8 @@ export const CGV: PageLegale = {
       titre: "Commande et acceptation",
       contenu: [
         "La commande est enregistrée quand le paiement en ligne est confirmé, ou à son envoi pour un paiement au comptoir. Vous recevez aussitôt un e-mail de confirmation.",
-        "Le contrat est conclu quand le restaurant accepte la commande. Il vous envoie alors un e-mail avec l'heure de livraison ou de retrait.",
+        "Une commande passée par téléphone est enregistrée par l'équipe pendant l'appel. Si vous donnez votre adresse e-mail, vous recevez le récapitulatif et le lien de suivi.",
+        "Le contrat est conclu quand le restaurant accepte la commande. L'heure de livraison ou de retrait s'affiche alors sur la page de suivi.",
         "Le restaurant peut refuser une commande, par exemple quand la cuisine est complète ou qu'un plat est épuisé. Le montant payé en ligne est alors remboursé en entier sur le moyen de paiement utilisé.",
       ],
     },
@@ -31,7 +32,21 @@ export const CGV: PageLegale = {
       titre: "Paiement",
       contenu: [
         "En ligne, par TWINT ou carte bancaire, au moment de la commande. Le paiement est traité par Stripe. Le restaurant ne voit pas vos données de carte.",
-        "Au comptoir, pour une commande à emporter seulement. Le paiement à la livraison n'est pas proposé.",
+        "Au comptoir, pour une commande à emporter. Pour une commande passée par téléphone, à la livraison ou au retrait, en espèces ou par carte.",
+      ],
+    },
+    {
+      // Cagnotte des clients (validée par Jérémy le 15.11.2026). Taux et seuil se règlent au back-office : la page
+      // du compte affiche les valeurs en vigueur.
+      titre: "Cagnotte",
+      contenu: [
+        "Avec un compte client, chaque commande livrée ou retirée vous rapporte 5 % du prix des plats dans votre cagnotte, ou le taux affiché dans votre compte s'il change. Les frais de livraison ne comptent pas. La part se calcule après code promo et cagnotte utilisée, arrondie au centime inférieur. Certains soirs annoncés par le restaurant, elle est doublée.",
+        "Une commande refusée, annulée ou remboursée ne rapporte rien. Un remboursement partiel retire la part correspondante, au plus ce qui reste dans la cagnotte.",
+        "Dès CHF 10, ou le montant affiché dans votre compte, vous déduisez la cagnotte au paiement en ligne, en tout ou en partie, jusqu'au prix des plats. CHF 0.50 au moins restent à payer en ligne. Elle ne sert ni au comptoir ni pour une commande passée par téléphone.",
+        "La cagnotte utilisée réduit le prix de la commande. Elle revient dans votre cagnotte si la commande est refusée ou annulée, ou si le paiement échoue. Un remboursement rend l'argent payé, pas la cagnotte.",
+        "Elle expire 12 mois après votre dernière commande. Un e-mail vous prévient 30 jours avant, sauf si vous avez décoché ce rappel dans votre compte.",
+        "Parrainage. Votre compte vous donne un lien à envoyer à un proche qui n'a jamais commandé chez nous. Le lien vaut une fois que vous avez vous-même passé une commande livrée ou retirée d'au moins [CHF 30 de plats, montant proposé à confirmer par Jérémy]. Le proche crée son compte depuis ce lien avec une adresse e-mail encore inconnue du restaurant. Après sa première commande payée et livrée ou retirée d'au moins ce montant de plats, vous recevez chacun CHF 10 dans votre cagnotte, ou le montant affiché dans votre compte.",
+        "Rien n'est crédité si le téléphone ou l'adresse de livraison de cette commande sont les vôtres ou ont déjà servi pour une autre commande. Le crédit est repris si cette commande est remboursée en entier. Un proche n'a qu'un seul parrain. Un compte parraine au plus 10 proches par mois.",
       ],
     },
     {

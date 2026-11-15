@@ -224,6 +224,12 @@ export default async function Suivi({ params }: { params: Promise<{ jeton: strin
                   <dd>{prixChf(c.frais_centimes)}</dd>
                 </div>
               )}
+              {c.cagnotte_centimes ? (
+                <div>
+                  <dt>Cagnotte utilisée</dt>
+                  <dd>− {prixChf(c.cagnotte_centimes)}</dd>
+                </div>
+              ) : null}
               <div className="somme-totale">
                 <dt>{paiement}</dt>
                 <dd>{prixChf(c.total_centimes)}</dd>

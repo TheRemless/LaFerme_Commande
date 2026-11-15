@@ -54,6 +54,8 @@ type Apercu =
       ajouts: string[];
       retires: string[];
       paye: boolean;
+      // Payée au comptoir ou à la porte, moins chère : moyen proposé pour rendre l'argent (celui de l'encaissement).
+      rendu?: "especes" | "terminal";
     };
 
 function nouvelleCle(): string {
@@ -93,6 +95,14 @@ export function ChangerPlats({
   const [lignes, setLignes] = useState<LignePanier[]>([]);
   const [apercu, setApercu] = useState<Apercu | null>(null);
   const [reglement, setReglement] = useState("lien");
+  const [rendu, setRendu] = useState<"especes" | "terminal" | null>(null);
+  // Payée en ligne avec un complément encaissé à la porte ou au comptoir : la part rendue sur ce complément l'est par
+  // l'équipe, par le moyen qui l'a encaissé (relecture de bo-pilotage).
+  const complementRendu = difference.complements.filter((k) => k.statut === "encaisse" && k.moyen !== "en_ligne").at(-1);
+  const renduDefaut =
+    apercu?.ok && apercu.reglements[0] === "remboursement"
+      ? (apercu.rendu ?? (complementRendu ? (complementRendu.moyen_encaissement === "carte" ? "terminal" : "especes") : undefined))
+      : undefined;
   const [cle, setCle] = useState(nouvelleCle);
   const [envoi, setEnvoi] = useState(false);
   const [lien, setLien] = useState<string | null>(null);
@@ -227,6 +237,7 @@ export function ChangerPlats({
       lignes,
       adresse,
       reglement: choisi,
+      ...(renduDefaut ? { moyen_remboursement: rendu ?? renduDefaut } : {}),
     });
     setEnvoi(false);
     const res = r.donnees as {
@@ -504,6 +515,26 @@ export function ChangerPlats({
                       ? "Même montant : rien à payer ni à rembourser."
                       : `Nouveau total à encaisser ${mode === "livraison" ? "à la livraison" : "au retrait"} : CHF ${montant(apercu.total)}.`}
                 </p>
+              )}
+              {renduDefaut && (
+                <fieldset className="bo-fiche-form">
+                  <legend>Rendre l&apos;argent</legend>
+                  {(["especes", "terminal"] as const).map((m) => (
+                    <label key={m}>
+                      <input
+                        type="radio"
+                        name={`${ids}-rendu`}
+                        value={m}
+                        checked={(rendu ?? renduDefaut) === m}
+                        onChange={() => setRendu(m)}
+                      />{" "}
+                      {m === "especes"
+                        ? "En espèces"
+                        : "Sur le terminal de carte"}
+                      {renduDefaut === m ? " (comme il a payé)" : ""}
+                    </label>
+                  ))}
+                </fieldset>
               )}
             </>
           )}

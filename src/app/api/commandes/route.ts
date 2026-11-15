@@ -21,6 +21,7 @@ import { zoneServeur, type AdresseRetenue } from "@/lib/zone-serveur";
 import { nomClient } from "@/lib/nom-plat";
 import { chargerOptionsCommande } from "@/lib/options-commande";
 import { codeTape, messageCode } from "@/lib/code-promo";
+import { messageCagnotte, montantCagnotte } from "@/lib/cagnotte";
 
 // Passage de la commande. Le serveur refait tous les contrôles avec la base : contenu et prix, adresse
 // retrouvée dans le registre fédéral, zone, minimum, heure. Il enregistre la commande, puis renvoie
@@ -97,6 +98,10 @@ export async function POST(requete: Request) {
   // Code promo (moteur de bo-carte, éteint par défaut) : vérifié, appliqué et noté par la base dans la même
   // transaction que la commande, sous verrou (creer_commande_code). Éteint, un code envoyé est ignoré.
   const code = codeTape(corps.code);
+  // Cagnotte (vague 3) : demandée par un compte qui paie en ligne. La base recalcule le montant, sous verrou du
+  // compte, dans la transaction de la commande (creer_commande_paiement).
+  const cagnotte = compte && moyen === "en_ligne" ? montantCagnotte(corps.cagnotte) : 0;
+  if (!compte && montantCagnotte(corps.cagnotte) > 0) return refus("Connectez-vous à votre compte pour utiliser votre cagnotte.");
   // Au comptoir, rien n'est payé avant le retrait : au-delà du plafond (réglage en base), en ligne seulement.
   if (moyen === "comptoir" && !comptoirPermis(totaux.total_centimes, config.plafondComptoirCentimes)) {
     return refus(refusPlafond(config.plafondComptoirCentimes));
@@ -178,10 +183,14 @@ export async function POST(requete: Request) {
         pour: options.prenom_par_ligne_actif ? (l.pour ?? "") : "",
       })),
     };
-    creee = code
-      ? await fonctionSql<CommandeCreee & { total_centimes: number }>("creer_commande_code", { p: donnees, p_code: code })
-      : await creerCommande(donnees);
+    creee = cagnotte > 0
+      ? await fonctionSql<CommandeCreee & { total_centimes: number }>("creer_commande_paiement", { p: donnees, p_code: code, p_cagnotte: cagnotte })
+      : code
+        ? await fonctionSql<CommandeCreee & { total_centimes: number }>("creer_commande_code", { p: donnees, p_code: code })
+        : await creerCommande(donnees);
   } catch (e) {
+    const cagnotteRefusee = messageCagnotte(e);
+    if (cagnotteRefusee) return refus(cagnotteRefusee);
     // Code refusé par la base, sous verrou : « code_refuse:<raison>:<minimum> ».
     const refuse = e instanceof Error ? /code_refuse:([a-z_]+):?(\d*)/.exec(e.message) : null;
     if (refuse) {
@@ -208,9 +217,6 @@ export async function POST(requete: Request) {
 
   // Paiement en ligne : une ligne par plat (options comprises dans le libellé), puis la livraison.
   const p = passerelle();
-  // Nouvel essai pour la même commande (retour arrière depuis Stripe) : l'ancienne session est fermée
-  // pour qu'on ne puisse pas payer deux fois.
-  if (existante?.stripe_session_id) await p.expirerSession(existante.stripe_session_id).catch(() => undefined);
   // Nouvel essai avec la même clé : on facture la commande enregistrée, jamais le contenu de cette requête.
   const aFacturer = existante
     ? { lignes: existante.lignes, frais: existante.frais_centimes }
@@ -220,7 +226,7 @@ export async function POST(requete: Request) {
     return { libelle: options.length ? `${l.nom} (${options.join(", ")})` : l.nom, qte: l.qte, unitaire_centimes: l.unitaire_centimes };
   });
   if (aFacturer.frais > 0) factures.push({ libelle: "Livraison", qte: 1, unitaire_centimes: aFacturer.frais });
-  // Remise d'un code : Stripe n'accepte pas de ligne négative. Une seule ligne au montant exact de la
+  // Remise d'un code ou cagnotte : Stripe n'accepte pas de ligne négative. Une seule ligne au montant exact de la
   // commande, que le webhook compare au total enregistré.
   const aEncaisser = existante?.total_centimes ?? creee.total_centimes ?? totaux.total_centimes;
   if (factures.reduce((s, f) => s + f.qte * f.unitaire_centimes, 0) !== aEncaisser) {
@@ -236,7 +242,14 @@ export async function POST(requete: Request) {
       urlAnnulation: `${origine}/commande?annule=1`,
       origine,
     });
+    // Nouvel essai pour la même commande (retour arrière depuis Stripe) : la nouvelle session est liée d'abord,
+    // l'ancienne fermée ensuite. Dans l'autre ordre, l'expiration de l'ancienne pouvait annuler la commande avant
+    // la liaison, et la nouvelle, payée, ne la confirmait jamais. Payée quand même dans un autre onglet, l'ancienne
+    // est prise ou remboursée (confirmerPaiement).
     await lierSessionPaiement(creee.id, session.id);
+    if (existante?.stripe_session_id && existante.stripe_session_id !== session.id) {
+      await p.expirerSession(existante.stripe_session_id).catch(() => undefined);
+    }
     return NextResponse.json({ redirection: session.url });
   } catch (e) {
     console.error(`Session de paiement impossible pour la commande ${creee.numero} : ${e instanceof Error ? e.message : e}`);

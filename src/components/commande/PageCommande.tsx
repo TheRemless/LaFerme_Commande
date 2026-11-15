@@ -7,7 +7,8 @@ import { lireChoix, type Choix } from "@/lib/choix";
 import { platDe, type Catalogue } from "@/lib/panier";
 import { CLE_DESTINATAIRE, lireAllergie, noterAllergie, noterPlaceEnvoyee, useCalculPanier, usePanier, type ReponsePanier } from "@/lib/panier-local";
 import { comptoirPermis } from "@/lib/plafond-comptoir";
-import { lireCode, noterCode, retenirCodeDeLUrl } from "@/lib/code-client";
+import { lireCagnotte, lireCode, noterCagnotte, noterCode, retenirCodeDeLUrl } from "@/lib/code-client";
+import { CagnottePaiement } from "@/components/commande/CagnottePaiement";
 import { prixChf, prixCourt, prixPhrase } from "@/lib/prix";
 import { estPanneRegistre } from "@/lib/registre-panne";
 import { PanneRegistre } from "@/components/PanneRegistre";
@@ -147,6 +148,11 @@ export function PageCommande({
     retenirCodeDeLUrl();
     if (codesActifs) setCode(lireCode());
   }, [codesActifs]);
+  // Cagnotte demandée (vague 3) : gardée dans l'onglet, le panier recalcule le total avec le serveur.
+  function demanderCagnotte(centimes: number) {
+    noterCagnotte(centimes);
+    setRelance((n) => n + 1);
+  }
   function appliquerCode(c: string | null) {
     noterCode(c);
     setCode(c);
@@ -191,6 +197,9 @@ export function PageCommande({
   const plafond = reponse?.plafond_comptoir_centimes ?? null;
   const comptoirFerme = Boolean(reponse && !reponse.erreur) && !comptoirPermis(total, plafond);
   const auComptoir = moyen === "comptoir" && choix?.mode === "retrait" && !comptoirFerme;
+  // Cagnotte demandée (gardée dans l'onglet, case cochée) : envoyée telle quelle, le serveur la borne comme l'aperçu.
+  // Pas la dernière réponse du panier : cochée juste avant « Payer », elle n'est peut-être pas encore recalculée.
+  const cagnotteUtilisee = compte && !auComptoir && reponse?.cagnotte ? lireCagnotte() : 0;
 
   async function commander(e: React.FormEvent) {
     e.preventDefault();
@@ -217,7 +226,7 @@ export function PageCommande({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           // L'allergie, la personne qui reçoit, les couverts et le code font partie du contenu : les changer donne une nouvelle commande.
-          cle: cleCommande(JSON.stringify([lignes, choix, auComptoir, client, allergie.trim(), pour, couvertsActifs && couverts, code])),
+          cle: cleCommande(JSON.stringify([lignes, choix, auComptoir, client, allergie.trim(), pour, couvertsActifs && couverts, code, cagnotteUtilisee])),
           lignes,
           mode: choix.mode,
           adresse: choix.adresse,
@@ -230,6 +239,7 @@ export function PageCommande({
           couverts: couvertsActifs && couverts,
           code: codesActifs && code ? code : undefined,
           moyen: auComptoir ? "comptoir" : "en_ligne",
+          cagnotte: cagnotteUtilisee || undefined,
           creerCompte: !compte && creerCompte,
         }),
       });
@@ -500,6 +510,7 @@ export function PageCommande({
                 )}
               </div>
             )}
+            {compte && reponse?.cagnotte && !auComptoir && <CagnottePaiement cagnotte={reponse.cagnotte} onChange={demanderCagnotte} />}
             <fieldset className="paiements">
               <legend className="sr-only">Moyen de paiement</legend>
               <label className="option paiement">
@@ -518,7 +529,11 @@ export function PageCommande({
                     checked={auComptoir}
                     disabled={comptoirFerme}
                     aria-describedby={comptoirFerme ? `${ids}-plafond` : undefined}
-                    onChange={() => setMoyen("comptoir")}
+                    onChange={() => {
+                      setMoyen("comptoir");
+                      // La cagnotte ne sert qu'en ligne : décochée, le total affiché redevient le bon.
+                      if (reponse?.cagnotte?.utilisee_centimes) demanderCagnotte(0);
+                    }}
                   />
                   <span>
                     <strong>Au comptoir</strong>

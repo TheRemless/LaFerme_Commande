@@ -94,3 +94,52 @@ L'allergie ou l'intolérance signalée à la commande est effacée 30 jours apr�
 Pendant que sa commande est en route, le client voit la position du livreur sur une carte grise de swisstopo, sous les étapes de son suivi (décision de Jérémy du 13.11.2026). La carte ne montre que le livreur, pas l'adresse du client. Elle se met à jour avec le suivi toutes les 20 secondes. Une ligne donne l'heure du relevé (« Position relevée à 19h42. »). Quand la position n'est pas montrable, rien n'est dit : une phrase apprendrait au client qu'un autre arrêt passe avant le sien.
 
 La base de `tablette` décide qui voit quoi (PR #228) : seulement le client de l'arrêt en cours, jamais le client suivant de la même tournée. La position montrée a moins de 2 minutes. Le client suivant ne voit son livreur qu'à 400 m du point de masquage. Ce point est la porte précédente, ou le restaurant si l'arrêt d'avant s'est terminé pendant que sa commande y attendait encore. Il n'y a donc pas de carte pendant les premières minutes du trajet. Aucun texte du suivi ne promet de suivre le livreur dès son départ. L'absence de carte ne se signale pas. À la remise, la carte disparaît. Quand le livreur passe sur son appli de navigation, son téléphone n'envoie plus sa position et la carte disparaît au bout de 2 minutes. La déclaration de confidentialité le dit.
+
+## Cagnotte des clients
+
+Programme validé par Jérémy le 15.11.2026. Construit éteint (interrupteur « Cagnotte des clients » dans Réglages généraux) : la session principale l'allume en vraie base après la fusion. La migration est `20261216090000_cagnotte.sql`.
+
+Ce que le client voit :
+
+- dans son compte, « Vous avez CHF 7.40 dans votre cagnotte », la date limite, le rappel par e-mail (coché par défaut) et l'historique ;
+- au paiement en ligne, « Utiliser ma cagnotte » dès CHF 10, en tout ou en partie ;
+- sur le suivi, le reçu et l'e-mail de confirmation, une ligne « Cagnotte utilisée ».
+
+Les règles sont toutes en base :
+
+- gain de 5 % du prix des plats (hors frais de livraison, après code promo et cagnotte utilisée, au centime inférieur), crédité seulement quand la commande est livrée ou retirée ;
+- rien pour une commande refusée, annulée, remboursée ou close « client absent » ; un remboursement partiel retire la part correspondante, au plus ce qui reste ;
+- utilisation sous verrou du compte, dans la transaction qui crée la commande : deux onglets ne dépensent pas deux fois le même solde. CHF 0.50 restent à payer en ligne (minimum de Stripe). Jamais au comptoir ni au téléphone ;
+- la cagnotte utilisée revient si le paiement échoue, si la commande est refusée ou annulée. Un remboursement après coup (plats retirés au téléphone, geste) ne rend que l'argent payé. Une commande passée « remboursée » ne rend donc pas la cagnotte (revue de sécurité). Le gérant peut la recréditer à la main, avec un motif ;
+- une commande à payer au comptoir ne rapporte qu'une fois encaissée. Un gain qui n'a pas pu être retiré faute de solde, parce que le client avait déjà tout dépensé, est retenu dès qu'un montant revient au compte. Le remboursement d'un complément payé par lien ne réduit pas le gain (relectures de qualite et bo-pilotage) ;
+- tout le solde expire 12 mois après la dernière commande (règle de Jérémy, pas d'expiration par lot), jamais pendant une commande en cours. Le rappel part 30 jours avant, au premier tour de la surveillance de chaque jour de service.
+
+Au back-office, la rubrique Cagnotte sous les Réglages généraux règle le taux (3 à 10 %), le seuil et les soirs doublés (jour de la semaine ou date, commandes promises dès 15h). Elle affiche aussi le montant dû aux clients pour la fiduciaire. La fiche d'un client avec compte a un onglet Cagnotte : solde, historique, ajustement par le gérant (CHF 100 au plus, motif obligatoire, journalisé).
+
+Compta : la cagnotte utilisée est une réduction de prix. Total et TVA de la commande sont déjà nets. La clôture et l'export Crésus n'ont donc pas changé.
+
+## Parrainage
+
+Sous le même interrupteur que la cagnotte (migration `20261216100000_parrainage.sql`). Dans son compte, le client trouve son lien personnel `/parrain/<code>`. Le code compte 8 caractères, l'adresse ne porte aucune donnée du client. Le lien pose un cookie de 30 jours, puis mène à l'accueil. Le compte créé ensuite est rattaché à la connexion par code.
+
+La base refuse un compte de plus de 24 heures, un e-mail qui a déjà commandé, un deuxième parrain, l'auto-parrainage et plus de 10 parrainages par mois (réglable). À la première commande livrée ou retirée du filleul, elle revérifie le téléphone et l'adresse de livraison. S'ils sont ceux du parrain ou ont servi à un autre client, le parrainage est refusé sans crédit. Sinon, chacun reçoit CHF 10 (réglable) dans sa cagnotte. L'export du compte donne le code, le nombre de proches parrainés et l'état du parrainage reçu, jamais le nom de l'autre personne.
+
+Durcissements après la revue de sécurité :
+
+- les téléphones se comparent sur leurs 9 derniers chiffres, celui de la personne qui reçoit compris ;
+- les boîtes Gmail se comparent sans points ni « +étiquette » ;
+- un compte qui a déjà commandé n'est pas rattaché ;
+- le crédit n'a lieu qu'à la première commande remise, payée sans remboursement. Il est repris si cette commande est remboursée en entier ;
+- un lien suivi ne remplace pas un parrain déjà retenu.
+
+Parrainage sûr (relecture de qualite, migration `20261216190000_parrainage_sur.sql`) :
+
+- le parrainage a son propre interrupteur, « Parrainage », éteint : la cagnotte peut s'allumer sans lui ;
+- la commande qui déclenche le crédit doit atteindre un minimum de plats nets (CHF 30 proposé à Jérémy, réglable au back-office). En dessous, le parrainage attend la commande suivante ;
+- un lien ne vaut que si son titulaire a lui-même une commande remise, payée et au minimum. Un faux compte qui n'a commandé qu'une eau ne recrute personne. La chaîne de faux filleuls est cassée ;
+- une reprise manquée faute de solde est retenue dès qu'un montant revient au compte ;
+- l'ajustement du gérant affiche le solde réel et la part retenue.
+
+L'empreinte du moyen de paiement n'est pas utilisée. Stripe n'en documente pas pour TWINT, elle est notée pour plus tard.
+
+Reste ouvert, pour Jérémy : à emporter, le téléphone n'est jamais vérifié. Une personne décidée peut se parrainer elle-même avec une nouvelle boîte e-mail et un autre numéro. Les parades possibles sont une vérification par SMS, un montant minimum pour la commande qui déclenche le crédit, ou le crédit réservé aux livraisons. Le plafond de 10 par mois limite la perte.

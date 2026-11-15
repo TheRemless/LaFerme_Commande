@@ -12,7 +12,7 @@ import { instantGeneve, type ConfigService } from "@/lib/service";
 
 export type RemboursementSuivi = {
   montant_centimes: number;
-  moyen: "stripe" | "especes" | "deduction";
+  moyen: "stripe" | "especes" | "deduction" | "terminal";
   statut: "en_cours" | "fait" | "echec";
   cree_le: string;
   fait_le: string | null;
@@ -40,6 +40,12 @@ export function phraseRemboursement(r: RemboursementSuivi): PhraseRemboursement 
     return r.statut === "fait"
       ? { etat: "fait", texte: `${montant} déduits du montant à payer au comptoir.` }
       : { etat: r.statut, texte: `${montant} à déduire du montant à payer au comptoir.` };
+  }
+  // Payée par carte au comptoir ou à la porte : rendu sur la carte, au terminal (20261216140000).
+  if (r.moyen === "terminal") {
+    return r.statut === "fait"
+      ? { etat: "fait", texte: `${montant} rendus sur votre carte.` }
+      : { etat: r.statut, texte: `${montant} à vous rendre sur votre carte.` };
   }
   if (r.moyen === "especes") {
     return r.statut === "fait"

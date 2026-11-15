@@ -108,7 +108,7 @@ export async function POST(requete: Request) {
 
   if (c.action === "apercu_plats" || c.action === "modifier_plats") {
     if (typeof c.id !== "string" || !UUID.test(c.id)) return refus("Commande inconnue.", 404);
-    const d = { cle: c.cle, de: c.de, lignes: c.lignes, adresse: c.adresse, details: c.details, reglement: c.reglement };
+    const d = { cle: c.cle, de: c.de, lignes: c.lignes, adresse: c.adresse, details: c.details, reglement: c.reglement, moyen_remboursement: c.moyen_remboursement };
     if (c.action === "apercu_plats") return NextResponse.json(await apercuDifference(c.id, d), sansCache);
     const origine = origineSure(requete);
     if (!origine) return refus("Adresse du site inconnue.", 503);

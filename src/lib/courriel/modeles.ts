@@ -126,6 +126,7 @@ export function courrielConfirmation(c: Commande, cat: Catalogue | null, estimat
   const sommes = [
     ["Sous-total", prixChf(c.sous_total_centimes)],
     ...(c.mode === "livraison" ? [["Livraison", prixChf(c.frais_centimes)]] : []),
+    ...(c.cagnotte_centimes ? [["Cagnotte utilisée", `− ${prixChf(c.cagnotte_centimes)}`]] : []),
     ["Total", prixChf(c.total_centimes)],
     [`dont TVA ${String(c.taux_tva_pourcent).replace(".", ",")} %`, prixChf(c.tva_centimes)],
   ];
@@ -194,13 +195,18 @@ export function courrielRefusRemboursementEnCours(c: Commande, motif: string) {
   return { sujet, texte, html, type: "refus" as TypeCourriel };
 }
 
-export function courrielRemboursement(c: Commande, motif: string) {
+// montantCentimes : ce qui repart vraiment maintenant (après une baisse déjà remboursée, moins que le total).
+export function courrielRemboursement(c: Commande, motif: string, montantCentimes = c.total_centimes) {
   const sujet = `Commande ${c.numero} annulée, La Ferme`;
+  const phrase =
+    montantCentimes > 0
+      ? `Nous vous remboursons ${prixChf(montantCentimes)} sur le moyen de paiement utilisé.`
+      : "Le montant payé vous a déjà été remboursé sur le moyen de paiement utilisé.";
   const texte = [
     `Bonjour ${c.client_prenom},`,
     "",
     phraseAnnulation(c, motif).texte,
-    `Nous vous remboursons ${prixChf(c.total_centimes)} sur le moyen de paiement utilisé.`,
+    phrase,
     DELAI_REMBOURSEMENT,
     "",
     `Une question ? ${TELEPHONE}`,
@@ -210,7 +216,7 @@ export function courrielRemboursement(c: Commande, motif: string) {
   const html = enveloppe(`
 <p>Bonjour ${echapper(c.client_prenom)},</p>
 <p>${phraseAnnulation(c, motif).html}</p>
-<p>Nous vous remboursons ${prixChf(c.total_centimes)} sur le moyen de paiement utilisé.</p>
+<p>${phrase}</p>
 <p>${DELAI_REMBOURSEMENT}</p>
 <p>Une question ? ${TELEPHONE}</p>`, c.origine, phraseAnnulation(c, motif).texte);
   return { sujet, texte, html, type: "refus" as TypeCourriel };
@@ -423,6 +429,24 @@ export function courrielRefus(c: Commande, motif: string) {
   return courrielType(c, "refus", `Commande ${c.numero} annulée, La Ferme`, [phraseAnnulation(c, motif).texte, "Rien n'a été débité."], false);
 }
 
+// Paiement réussi qui ne confirme pas sa commande (retour arrière depuis Stripe, commande annulée entre-temps,
+// deuxième paiement) : remboursé en entier (src/lib/commandes.ts, rembourserPaiementOrphelin).
+export function courrielPaiementHorsCommande(c: Commande, montantCentimes: number, cas: "deja_payee" | "ancien_lien" | "montant" | "annulee", rembourse: boolean) {
+  const montant = prixChf(montantCentimes);
+  const recu = {
+    deja_payee: `Nous avons reçu un second paiement de ${montant} pour votre commande n° ${c.numero}, qui était déjà payée. Nous vous remboursons ce second paiement en entier.`,
+    ancien_lien: `Nous avons reçu votre paiement de ${montant} pour la commande n° ${c.numero} par un ancien lien de paiement. Nous vous le remboursons en entier.`,
+    montant: `Nous avons reçu un paiement de ${montant} qui ne correspond pas au montant de votre commande n° ${c.numero}. Nous vous le remboursons en entier.`,
+    annulee: `Nous avons reçu votre paiement de ${montant} pour la commande n° ${c.numero}, après son annulation. Nous vous le remboursons en entier.`,
+  }[cas];
+  return courrielType(c, "remboursement", `Paiement de ${montant} remboursé, commande ${c.numero}, La Ferme`, [
+    recu,
+    rembourse
+      ? `La somme revient sur le moyen de paiement utilisé. ${DELAI_REMBOURSEMENT}`
+      : "Le remboursement n'est pas encore parti. Nous le relançons et vous écrivons dès qu'il est fait.",
+  ], false);
+}
+
 // Remboursement décidé par le gérant après la remise (audit du gérant, G02), en entier ou en partie.
 // Le motif est celui que le gérant a écrit : le formulaire prévient qu'il part chez le client.
 export function courrielRemboursementGeste(c: Commande, montantCentimes: number, motif: string) {
@@ -442,17 +466,49 @@ export function courrielRemboursementGeste(c: Commande, montantCentimes: number,
 // Un plat ou un supplément manque sur une commande acceptée (audit du gérant, G07). Le client apprend ce qui
 // manque, ce qui lui est rendu, et que le reste est préparé. moyen : stripe (remboursé), deduction (au comptoir,
 // pas encore payé), especes (déjà payé au comptoir, rendu sur place).
-export function courrielManque(c: Commande, description: string, montantCentimes: number, moyen: "stripe" | "especes" | "deduction", resteCentimes: number) {
+export function courrielManque(c: Commande, description: string, montantCentimes: number, moyen: "stripe" | "especes" | "deduction" | "terminal", resteCentimes: number) {
   const montant = prixChf(montantCentimes);
   const argent =
     moyen === "stripe"
       ? [`Nous vous remboursons ${montant}.`, "La somme revient sur le moyen de paiement utilisé.", DELAI_REMBOURSEMENT]
       : moyen === "deduction"
         ? [`Vous payez ${prixChf(resteCentimes)} au comptoir au lieu de ${prixChf(c.total_centimes)}.`]
-        : [`Nous vous rendons ${montant} au comptoir.`];
+        : moyen === "terminal"
+          ? [`Nous vous remboursons ${montant} sur votre carte, au comptoir.`]
+          : [`Nous vous rendons ${montant} au comptoir.`];
   return courrielType(c, "manque", `Il manque une partie de votre commande ${c.numero}, La Ferme`, [
     `Nous ne pouvons pas préparer toute votre commande n° ${c.numero}. Il manque ${description}.`,
     ...argent,
     "Le reste de la commande est préparé comme prévu.",
   ]);
+}
+
+// Rappel 30 jours avant l'expiration de la cagnotte (vague 3, client-compte). Envoyé seulement si le client ne l'a pas
+// décoché dans son compte. Texte passé par redaction-fr.
+export function courrielRappelCagnotte(r: { prenom: string; solde_centimes: number; expire_le: string; seuil_centimes: number }, origine: string) {
+  const date = new Intl.DateTimeFormat("fr-CH", { timeZone: "UTC", day: "numeric", month: "long", year: "numeric" }).format(new Date(`${r.expire_le}T12:00:00Z`));
+  const sujet = `Votre cagnotte La Ferme expire le ${date}`;
+  const phrases = [
+    `Vous avez ${prixChf(r.solde_centimes)} dans votre cagnotte La Ferme. Elle expire le ${date}, un an après votre dernière commande.`,
+    `Une commande avant cette date la garde une année de plus. Au paiement en ligne, elle se déduit dès ${prixChf(r.seuil_centimes)}.`,
+  ];
+  const bonjour = r.prenom ? `Bonjour ${r.prenom},` : "Bonjour,";
+  const texte = [
+    bonjour,
+    "",
+    ...phrases,
+    "",
+    `Commander : ${origine}/`,
+    `Pour ne plus recevoir ce rappel, décochez-le dans votre compte : ${origine}/compte`,
+    `Une question ? ${TELEPHONE}`,
+    "",
+    RESTAURANT,
+  ].join("\n");
+  const html = enveloppe(`
+<p>${echapper(bonjour)}</p>
+${phrases.map((p) => `<p>${echapper(p)}</p>`).join("\n")}
+${bouton(`${origine}/`, "Commander")}
+<p style="color:#55524f;font-size:14px">Pour ne plus recevoir ce rappel, décochez-le dans <a href="${echapper(`${origine}/compte`)}" style="color:#1c1b1a">votre compte</a>.</p>
+<p>Une question ? ${TELEPHONE}</p>`, origine, phrases[0]);
+  return { sujet, texte, html, type: "rappel_cagnotte" as TypeCourriel };
 }

@@ -240,7 +240,7 @@ export function resume(e: Entree): string {
   if (e.objet === "plat_archive") return e.apres?.archive ? "Archivé" : "Remis à la carte";
   if (e.objet === "remboursement" && e.apres) {
     const a = e.apres as { montant_centimes?: number; motif?: string; moyen?: string };
-    return `Commande ${e.cle} : CHF ${((a.montant_centimes ?? 0) / 100).toFixed(2)} remboursés${a.moyen === "especes" ? " en espèces" : ""}. ${a.motif ?? ""}`;
+    return `Commande ${e.cle} : CHF ${((a.montant_centimes ?? 0) / 100).toFixed(2)} remboursés${a.moyen === "especes" ? " en espèces" : a.moyen === "terminal" ? " sur le terminal" : ""}. ${a.motif ?? ""}`;
   }
   if (e.objet === "personnel") {
     const av = (e.avant ?? {}) as { nom?: string; role?: string; actif?: boolean };

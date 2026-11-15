@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { MARQUE } from "@/components/gestion/clients/libelles";
+import { CagnotteClient } from "@/components/gestion/clients/CagnotteClient";
 import { useRoleGestion } from "@/components/gestion/droits";
 import { FicheCommande } from "@/components/gestion/commandes/FicheCommande";
 import {
@@ -204,6 +205,8 @@ export function FicheClient({
             titre: "Notes",
             badge: fiche.notes.length || undefined,
           },
+          // Cagnotte (vague 3) : avec un compte seulement.
+          ...(fiche.compte ? [{ cle: "cagnotte", titre: "Cagnotte" }] : []),
           // La marque se pose au gérant seulement (D1).
           ...(gerant ? [{ cle: "marque", titre: "Marque" }] : []),
         ]}
@@ -214,6 +217,7 @@ export function FicheClient({
         )}
         {onglet === "remboursements" && <Remboursements fiche={fiche} />}
         {onglet === "notes" && <Notes fiche={fiche} apres={apres} />}
+        {fiche.compte && onglet === "cagnotte" && <CagnotteClient email={fiche.email} gerant={gerant} />}
         {gerant && onglet === "marque" && (
           <Marque
             key={JSON.stringify(fiche.marque)}

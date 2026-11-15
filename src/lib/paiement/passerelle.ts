@@ -1,6 +1,7 @@
 import "server-only";
 import Stripe from "stripe";
 import { baseDeTest } from "@/lib/environnement";
+import { fonctionSql } from "@/lib/db/serveur";
 
 // Paiement en ligne. Stripe Checkout en vrai (TWINT, cartes, Apple Pay et Google Pay selon ce qui est
 // activé dans le tableau de bord Stripe). Sans clé Stripe, hors production : une doublure qui simule la
@@ -148,7 +149,7 @@ const passerelleDoublure: Passerelle = {
     return { statut: "en_attente", montantCentimes: null, devise: null };
   },
   async rembourser(paymentIntent, options = {}) {
-    return { id: `re_doublure_${options.cle ?? paymentIntent}`, statut: etatDoublure() };
+    return rembourserDoublure(paymentIntent, options);
   },
   async expirerSession() {},
 };
@@ -181,8 +182,27 @@ export function doublureActive(): boolean {
   }
 }
 
-// Remboursement d'un paiement simulé (commande de test déjà payée par la doublure) : aucun argent n'a
-// circulé, rien à demander à Stripe ni à la passerelle du moment.
-export function remboursementSimule(paymentIntent: string, cle?: string): Remboursement | null {
-  return paymentIntent.startsWith("pi_doublure_") ? { id: `re_doublure_${cle ?? paymentIntent}`, statut: etatDoublure() } : null;
+// Paiement simulé (commande de test déjà payée par la doublure) : aucun argent n'a circulé, rien à demander à
+// Stripe ni à la passerelle du moment.
+export const paiementSimule = (paymentIntent: string) => paymentIntent.startsWith("pi_doublure_");
+
+export async function remboursementSimule(paymentIntent: string, options: { montantCentimes?: number; cle?: string } = {}): Promise<Remboursement | null> {
+  return paiementSimule(paymentIntent) ? rembourserDoublure(paymentIntent, options) : null;
+}
+
+// La doublure refuse comme Stripe ce qui dépasse ce qui reste d'un paiement (charge_already_refunded,
+// amount_too_large), pour que les tests voient ces cas (relecture de qualite sur #257). Le compte vit en base
+// (rembourser_doublure) ; une même clé rend le même remboursement.
+async function rembourserDoublure(paymentIntent: string, options: { montantCentimes?: number; cle?: string }): Promise<Remboursement> {
+  const cle = options.cle ?? paymentIntent;
+  const statut = etatDoublure();
+  try {
+    await fonctionSql("rembourser_doublure", { p_payment_intent: paymentIntent, p_montant: options.montantCentimes ?? null, p_cle: cle });
+  } catch (e) {
+    const m = e instanceof Error ? e.message : String(e);
+    const code = ["charge_already_refunded", "amount_too_large"].find((c) => m.includes(c));
+    if (!code) throw e;
+    throw Object.assign(new Error(`Doublure de Stripe : ${code} (${paymentIntent})`), { type: "StripeInvalidRequestError", code });
+  }
+  return { id: `re_doublure_${cle}`, statut };
 }
