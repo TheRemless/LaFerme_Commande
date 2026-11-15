@@ -174,3 +174,7 @@ insert into personnel (email, nom, role) values
 insert into personnel (email, nom, role) values
   ('difference-bureau@laferme.test', 'Différence bureau', 'gerant'),
   ('difference-mobile@laferme.test', 'Différence mobile', 'gerant');
+
+-- Cagnotte des clients (client-compte, 20261216090000) : construite éteinte en vraie base, allumée ici pour les tests.
+-- tests/unit/cagnotte-sql.test.ts vérifie aussi l'interrupteur éteint.
+update reglages set valeur = 'true'::jsonb where cle = 'fidelite_active';
