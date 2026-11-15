@@ -9,6 +9,8 @@ import { depuisHeureGeneve, enMinutes, heureTexte, instantGeneve, jourIso, MESSA
 import { messageZoneFermee, SUITE_ZONE_FERMEE } from "@/lib/zone-fermee";
 import { zoneServeur } from "@/lib/zone-serveur";
 import { appliquerRemise, codeTape, evaluerCode, messageCode } from "@/lib/code-promo";
+import { cagnotteCompte, cagnotteUtilisable, montantCagnotte } from "@/lib/cagnotte";
+import { compteCourant } from "@/lib/comptes/session";
 
 // Prix du panier calculé par le serveur à partir de la base : options, frais de zone, minimum, TVA,
 // et contrôle que le moment demandé reste possible pour ce contenu. Rien n'est enregistré.
@@ -110,9 +112,26 @@ export async function POST(requete: Request) {
     }
   }
 
+  // Cagnotte (vague 3) : pour un compte connecté, le solde et ce qui peut servir sur ce panier. Cochée, le total
+  // affiché la déduit déjà (aperçu : la base recalcule sous verrou au paiement). Au comptoir, elle ne sert pas.
+  let cagnotte: { solde_centimes: number; seuil_centimes: number; utilisable_centimes: number; utilisee_centimes: number } | null = null;
+  const compte = lignes.length > 0 ? await compteCourant().catch(() => null) : null;
+  if (compte) {
+    const k = await cagnotteCompte(compte.id).catch(() => null);
+    if (k?.active && k.solde_centimes > 0) {
+      const remisePlats = Math.min(totaux.total_centimes - aPayer.total_centimes, totaux.sous_total_centimes);
+      const utilisable = cagnotteUtilisable(k.solde_centimes, k.seuil_centimes, totaux.sous_total_centimes - remisePlats, aPayer.total_centimes);
+      const utilisee = corps.moyen === "comptoir" ? 0 : Math.min(montantCagnotte(corps.cagnotte), utilisable);
+      // La remise du code reste celle du code : la cagnotte est donnée à part (utilisee_centimes).
+      if (utilisee > 0) aPayer = Object.assign(appliquerRemise(aPayer, utilisee, catalogue.tauxTvaPourcent), { remise_centimes: totaux.total_centimes - aPayer.total_centimes });
+      cagnotte = { solde_centimes: k.solde_centimes, seuil_centimes: k.seuil_centimes, utilisable_centimes: utilisable, utilisee_centimes: utilisee };
+    }
+  }
+
   return NextResponse.json({
     ...aPayer,
     code: resultatCode,
+    cagnotte,
     valide: totaux.valide && messageQuand === null,
     message_quand: messageQuand,
     creneau_complet: creneauComplet,

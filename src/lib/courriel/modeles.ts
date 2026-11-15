@@ -126,6 +126,7 @@ export function courrielConfirmation(c: Commande, cat: Catalogue | null, estimat
   const sommes = [
     ["Sous-total", prixChf(c.sous_total_centimes)],
     ...(c.mode === "livraison" ? [["Livraison", prixChf(c.frais_centimes)]] : []),
+    ...(c.cagnotte_centimes ? [["Cagnotte utilisée", `− ${prixChf(c.cagnotte_centimes)}`]] : []),
     ["Total", prixChf(c.total_centimes)],
     [`dont TVA ${String(c.taux_tva_pourcent).replace(".", ",")} %`, prixChf(c.tva_centimes)],
   ];

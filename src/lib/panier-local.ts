@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { lireChoix } from "@/lib/choix";
-import { lireCode } from "@/lib/code-client";
+import { lireCagnotte, lireCode } from "@/lib/code-client";
 import type { Mode, Quand } from "@/lib/service";
 import { LIMITES, memeLigne, type LignePanier, type Totaux } from "@/lib/panier";
 
@@ -135,6 +135,8 @@ export type ReponsePanier = Totaux & {
   // Code promo (éteint par défaut) : remise accordée par la base, ou raison du refus.
   code?: { code: string; ok: boolean; remise_centimes?: number; message?: string } | null;
   remise_centimes?: number;
+  // Cagnotte d'un compte connecté (vague 3) : solde, ce qui peut servir sur ce panier et ce qui est déduit.
+  cagnotte?: { solde_centimes: number; seuil_centimes: number; utilisable_centimes: number; utilisee_centimes: number } | null;
 };
 
 // État du calcul pour l'écran : rien n'est laissé gris sans raison (vague 3, client-commande).
@@ -237,6 +239,7 @@ export function useCalculPanier(lignes: LignePanier[], actif: boolean, relance =
           heure: choix.heureSimulee,
           placeTenue: placeEnvoyee(choix.mode, choix.quand),
           code: lireCode() ?? undefined,
+          cagnotte: lireCagnotte() || undefined,
         }),
         signal: ctrl.signal,
       })

@@ -49,6 +49,8 @@ export function donneesRecu(c: Commande & { paye_le?: string | null }, cat: Cata
     sommes: [
       ["Plats", prixChf(c.sous_total_centimes)],
       ...(c.mode === "livraison" ? ([["Livraison", prixChf(c.frais_centimes)]] as [string, string][]) : []),
+      // Cagnotte : réduction de prix, la TVA est calculée sur le total net (vague 3).
+      ...(c.cagnotte_centimes ? ([["Cagnotte utilisée", `− ${prixChf(c.cagnotte_centimes)}`]] as [string, string][]) : []),
       ["Total", prixChf(c.total_centimes)],
       [`dont TVA ${String(c.taux_tva_pourcent).replace(".", ",")} %`, prixChf(c.tva_centimes)],
     ],
