@@ -34,6 +34,7 @@ export type ReglagesFidelite = {
   soirs_doubles: { jours: number[]; dates: string[] };
   du_centimes: number;
   comptes: number;
+  calcule_le: string;
 };
 
 // Montant demandé par le navigateur, en centimes : un entier positif, sinon rien. La base le borne.
@@ -61,6 +62,9 @@ export const reglerRappelCagnotte = (compte: string, rappel: boolean) =>
   fonctionSql<boolean>("regler_rappel_cagnotte", { p_compte: compte, p_rappel: rappel });
 
 export const reglagesFidelite = () => fonctionSql<ReglagesFidelite>("reglages_fidelite", {});
+
+// Montant dû aux clients à la fin d'un jour (bilan de la fiduciaire, par exemple au 31.12).
+export const duCagnottesAu = (jour: string) => fonctionSql<{ au: string; du_centimes: number; comptes: number }>("du_cagnottes_au", { p_jour: jour });
 
 export const reglerFidelite = (p: Pick<ReglagesFidelite, "taux_pourcent" | "seuil_centimes" | "soirs_doubles">, personnel: string) =>
   fonctionSql<ReglagesFidelite>("regler_fidelite", { p, p_personnel: personnel });

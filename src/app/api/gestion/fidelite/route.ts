@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { corpsJson, refus } from "@/lib/comptes/api";
-import { messageReglagesFidelite, reglagesFidelite, reglerFidelite } from "@/lib/cagnotte";
+import { duCagnottesAu, messageReglagesFidelite, reglagesFidelite, reglerFidelite } from "@/lib/cagnotte";
 import { exigerGerant } from "@/lib/personnel/session";
 
 // Réglages de la cagnotte (vague 3, client-compte) : taux, seuil d'utilisation, soirs doublés, et le montant dû aux
@@ -10,6 +10,12 @@ const sansCache = { headers: { "Cache-Control": "no-store" } };
 export async function GET(requete: Request) {
   const g = await exigerGerant(requete, { lecture: true });
   if ("reponse" in g) return g.reponse;
+  // ?au=AAAA-MM-JJ : le montant dû à la fin de ce jour (une date, aucune donnée de client dans l'adresse).
+  const au = new URL(requete.url).searchParams.get("au");
+  if (au !== null) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(au) || Number.isNaN(Date.parse(au))) return refus("Date illisible.", 400);
+    return NextResponse.json(await duCagnottesAu(au), sansCache);
+  }
   return NextResponse.json(await reglagesFidelite(), sansCache);
 }
 

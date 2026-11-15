@@ -308,6 +308,10 @@ describe("back-office", () => {
     await crediter(c, 740);
     expect((await f<{ du_centimes: number; comptes: number }>("reglages_fidelite()"))).toMatchObject({ du_centimes: 740, comptes: 1 });
     expect(await val<number>("select count(*)::integer from journal_gestion where objet = 'fidelite'")).toBe(1);
+    // Bilan : le dû à une date ne compte que les mouvements jusqu'à minuit ce jour-là (heure de Genève).
+    await db.query("update cagnotte_mouvements set cree_le = '2026-12-31 23:30+00' where compte_id = $1", [c]);
+    expect(await f<{ du_centimes: number }>("du_cagnottes_au('2026-12-31')")).toMatchObject({ du_centimes: 0 });
+    expect(await f<{ du_centimes: number; comptes: number }>("du_cagnottes_au('2027-01-01')")).toMatchObject({ du_centimes: 740, comptes: 1 });
   });
 });
 

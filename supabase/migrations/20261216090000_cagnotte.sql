@@ -414,9 +414,23 @@ language sql stable as $$
     'seuil_centimes', fidelite_seuil(),
     'soirs_doubles', coalesce((select valeur from reglages where cle = 'fidelite_soirs_doubles'), '{"jours": [], "dates": []}'::jsonb),
     'du_centimes', (select coalesce(sum(montant_centimes), 0)::integer from cagnotte_mouvements),
+    'calcule_le', now(),
     'comptes', (select count(*) from (select compte_id from cagnotte_mouvements group by compte_id
                                       having sum(montant_centimes) > 0) x)
   );
+$$;
+
+-- Montant dû aux clients à la fin d'un jour (heure de Genève), pour le bilan de la fiduciaire (31.12) : somme des
+-- mouvements jusqu'à minuit. { au, du_centimes, comptes }.
+create function du_cagnottes_au(p_jour date) returns jsonb
+language sql stable as $$
+  with m as (
+    select compte_id, sum(montant_centimes) as solde from cagnotte_mouvements
+    where cree_le < ((p_jour + 1)::timestamp at time zone 'Europe/Zurich')
+    group by compte_id
+  )
+  select jsonb_build_object('au', p_jour, 'du_centimes', coalesce((select sum(solde) from m), 0)::integer,
+    'comptes', (select count(*) from m where solde > 0));
 $$;
 
 -- p : { taux_pourcent (3 à 10), seuil_centimes (0 à 5000), soirs_doubles: { jours: [1..7], dates: ['AAAA-MM-JJ'] } }.
@@ -424,7 +438,7 @@ create function regler_fidelite(p jsonb, p_personnel uuid) returns jsonb
 language plpgsql as $$
 declare
   auteur text := gerant_nom(p_personnel);
-  avant jsonb := reglages_fidelite() - 'du_centimes' - 'comptes' - 'active';
+  avant jsonb := reglages_fidelite() - 'du_centimes' - 'comptes' - 'active' - 'calcule_le';
   t integer := (p ->> 'taux_pourcent')::integer;
   s integer := (p ->> 'seuil_centimes')::integer;
   jours jsonb := coalesce(p #> '{soirs_doubles,jours}', '[]'::jsonb);
@@ -447,7 +461,7 @@ begin
       'jours', (select coalesce(jsonb_agg(distinct (j #>> '{}')::integer), '[]'::jsonb) from jsonb_array_elements(jours) j),
       'dates', (select coalesce(jsonb_agg(distinct d order by d), '[]'::jsonb) from jsonb_array_elements_text(dates) d))
     where cle = 'fidelite_soirs_doubles';
-  perform journaliser(p_personnel, 'fidelite', 'reglages', avant, reglages_fidelite() - 'du_centimes' - 'comptes' - 'active');
+  perform journaliser(p_personnel, 'fidelite', 'reglages', avant, reglages_fidelite() - 'du_centimes' - 'comptes' - 'active' - 'calcule_le');
   return reglages_fidelite();
 end;
 $$;
@@ -559,12 +573,12 @@ revoke execute on function fidelite_active(), fidelite_entier(text, integer), fi
   crediter_cagnotte(uuid), rendre_cagnotte(uuid), ajuster_gain(uuid), cagnotte_au_statut(), cagnotte_au_remboursement(),
   creer_commande_paiement(jsonb, text, integer), activite_cagnotte(uuid), expirer_cagnottes(), rappels_cagnotte_dus(),
   cagnotte_compte(uuid), regler_rappel_cagnotte(uuid, boolean), reglages_fidelite(), regler_fidelite(jsonb, uuid),
-  cagnotte_client_gestion(text), ajuster_cagnotte(text, integer, text, uuid)
+  cagnotte_client_gestion(text), ajuster_cagnotte(text, integer, text, uuid), du_cagnottes_au(date)
   from public, anon, authenticated;
 grant execute on function fidelite_active(), fidelite_entier(text, integer), fidelite_taux(), fidelite_seuil(),
   solde_cagnotte(uuid), taux_cagnotte(commandes), remise_plats(commandes), base_cagnotte(commandes),
   crediter_cagnotte(uuid), rendre_cagnotte(uuid), ajuster_gain(uuid),
   creer_commande_paiement(jsonb, text, integer), activite_cagnotte(uuid), expirer_cagnottes(), rappels_cagnotte_dus(),
   cagnotte_compte(uuid), regler_rappel_cagnotte(uuid, boolean), reglages_fidelite(), regler_fidelite(jsonb, uuid),
-  cagnotte_client_gestion(text), ajuster_cagnotte(text, integer, text, uuid)
+  cagnotte_client_gestion(text), ajuster_cagnotte(text, integer, text, uuid), du_cagnottes_au(date)
   to service_role;

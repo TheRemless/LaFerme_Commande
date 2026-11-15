@@ -16,6 +16,7 @@ type Reglages = {
   soirs_doubles: { jours: number[]; dates: string[] };
   du_centimes: number;
   comptes: number;
+  calcule_le: string;
 };
 
 const JOURS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
@@ -82,9 +83,9 @@ function Formulaire({ r, recharger }: { r: Reglages; recharger: () => Promise<vo
       <fieldset className="bo-reg-groupe">
         <legend>Cagnotte</legend>
         <p className="bo-champ-aide">
-          {r.active ? "Allumée." : "Éteinte : les clients ne gagnent ni n'utilisent rien. L'interrupteur est plus haut, avec les autres."} Montant dû aux
-          clients : <strong>CHF {montant(r.du_centimes)}</strong> sur {r.comptes} compte{r.comptes > 1 ? "s" : ""}.
+          {r.active ? "Allumée." : "Éteinte : les clients ne gagnent ni n'utilisent rien. L'interrupteur est plus haut, avec les autres."}
         </p>
+        <DuAuxClients r={r} />
         <Champ libelle="Taux sur le prix des plats (%)" aide="De 3 à 10 %. Doublé les soirs choisis plus bas." erreur={f.erreurs.taux}>
           {(a) => <input {...a} inputMode="numeric" value={v.taux} onChange={(e) => f.changer("taux", e.target.value)} />}
         </Champ>
@@ -126,5 +127,41 @@ function Formulaire({ r, recharger }: { r: Reglages; recharger: () => Promise<vo
       </fieldset>
       <BarreEnregistrer etat={f.etat} message={f.message} modifie={f.modifie} reinitialiser={f.reinitialiser} libelle="Enregistrer la cagnotte" />
     </form>
+  );
+}
+
+// Montant dû aux clients (solde de toutes les cagnottes) : maintenant, avec l'heure du chiffre, et à la fin d'un jour
+// choisi pour le bilan de la fiduciaire (31.12).
+function DuAuxClients({ r }: { r: Reglages }) {
+  const ids = useId();
+  const [jour, setJour] = useState("");
+  const [resultat, setResultat] = useState<{ au: string; du_centimes: number; comptes: number } | string | null>(null);
+  const heure = new Intl.DateTimeFormat("fr-CH", { timeZone: "Europe/Zurich", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(r.calcule_le));
+  async function calculer() {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(jour)) return;
+    const rep = await fetch(`/api/gestion/fidelite?au=${jour}`, { cache: "no-store" });
+    const d = await rep.json().catch(() => ({}));
+    setResultat(rep.ok ? (d as { au: string; du_centimes: number; comptes: number }) : String(d.erreur ?? "Calcul impossible."));
+  }
+  return (
+    <div className="bo-reg-du">
+      <p>
+        Montant dû aux clients : <strong>CHF {montant(r.du_centimes)}</strong> sur {r.comptes} compte{r.comptes > 1 ? "s" : ""}, le {heure}.
+      </p>
+      <label htmlFor={`${ids}-au`}>Montant dû à la fin du jour</label>
+      <input id={`${ids}-au`} type="date" value={jour} onChange={(e) => setJour(e.target.value)} />
+      <button type="button" className="bo-bouton bo-bouton-petit" onClick={() => void calculer()}>
+        Calculer
+      </button>
+      {typeof resultat === "string" ? (
+        <p className="bo-champ-aide" role="alert">
+          {resultat}
+        </p>
+      ) : resultat ? (
+        <p role="status">
+          À la fin du {new Intl.DateTimeFormat("fr-CH", { timeZone: "UTC", day: "numeric", month: "long", year: "numeric" }).format(new Date(`${resultat.au}T12:00:00Z`))} : <strong>CHF {montant(resultat.du_centimes)}</strong> sur {resultat.comptes} compte{resultat.comptes > 1 ? "s" : ""}.
+        </p>
+      ) : null}
+    </div>
   );
 }
