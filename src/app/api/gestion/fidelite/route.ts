@@ -27,6 +27,8 @@ export async function POST(requete: Request) {
   const p = {
     taux_pourcent: Number(c?.taux_pourcent),
     seuil_centimes: Number(c?.seuil_centimes),
+    parrainage_montant_centimes: c?.parrainage_montant_centimes === undefined ? undefined : Number(c.parrainage_montant_centimes),
+    parrainage_plafond_mois: c?.parrainage_plafond_mois === undefined ? undefined : Number(c.parrainage_plafond_mois),
     soirs_doubles: {
       jours: Array.isArray(soirs?.jours) ? soirs.jours.filter((j): j is number => Number.isInteger(j)) : [],
       dates: Array.isArray(soirs?.dates) ? soirs.dates.filter((d): d is string => typeof d === "string") : [],

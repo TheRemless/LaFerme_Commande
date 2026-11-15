@@ -10,7 +10,8 @@
 --   n'ont jamais été vus (ni chez le parrain, ni dans une autre commande) : sinon le parrainage est refusé, sans
 --   crédit. Même normalisation que la « première commande » des codes promo (telephone_normal, adresse_cle).
 --
--- Objet recréé : cagnotte_au_statut (20261216090000_cagnotte.sql, client-compte) avec l'appel au parrainage.
+-- Objets recréés (20261216090000_cagnotte.sql, client-compte) : cagnotte_au_statut avec l'appel au parrainage,
+-- reglages_fidelite et regler_fidelite avec le montant et le plafond du parrainage.
 -- Ajouts sur des tables partagées : comptes.code_parrainage, deux réglages.
 
 insert into reglages (cle, valeur, proposition) values
@@ -178,6 +179,62 @@ language sql as $$
     'en_attente', (select count(*) from parrainages where parrain_id = p_compte and statut = 'en_attente'),
     'parraine', (select statut from parrainages where filleul_id = p_compte)
   );
+$$;
+
+-- Réglages de la rubrique Cagnotte, avec le parrainage.
+create or replace function reglages_fidelite() returns jsonb
+language sql stable as $$
+  select jsonb_build_object(
+    'active', fidelite_active(),
+    'taux_pourcent', fidelite_taux(),
+    'seuil_centimes', fidelite_seuil(),
+    'soirs_doubles', coalesce((select valeur from reglages where cle = 'fidelite_soirs_doubles'), '{"jours": [], "dates": []}'::jsonb),
+    'du_centimes', (select coalesce(sum(montant_centimes), 0)::integer from cagnotte_mouvements),
+    'calcule_le', now(),
+    'parrainage_montant_centimes', greatest(fidelite_entier('parrainage_montant_centimes', 1000), 0),
+    'parrainage_plafond_mois', greatest(fidelite_entier('parrainage_plafond_mois', 10), 0),
+    'comptes', (select count(*) from (select compte_id from cagnotte_mouvements group by compte_id
+                                      having sum(montant_centimes) > 0) x)
+  );
+$$;
+
+create or replace function regler_fidelite(p jsonb, p_personnel uuid) returns jsonb
+language plpgsql as $$
+declare
+  auteur text := gerant_nom(p_personnel);
+  avant jsonb := reglages_fidelite() - 'du_centimes' - 'comptes' - 'active' - 'calcule_le';
+  t integer := (p ->> 'taux_pourcent')::integer;
+  s integer := (p ->> 'seuil_centimes')::integer;
+  jours jsonb := coalesce(p #> '{soirs_doubles,jours}', '[]'::jsonb);
+  dates jsonb := coalesce(p #> '{soirs_doubles,dates}', '[]'::jsonb);
+  pm integer := coalesce((p ->> 'parrainage_montant_centimes')::integer, fidelite_entier('parrainage_montant_centimes', 1000));
+  pp integer := coalesce((p ->> 'parrainage_plafond_mois')::integer, fidelite_entier('parrainage_plafond_mois', 10));
+begin
+  if t is null or t not between 3 and 10 then
+    raise exception 'fidelite_refusee:taux';
+  end if;
+  if s is null or s not between 0 and 5000 then
+    raise exception 'fidelite_refusee:seuil';
+  end if;
+  if jsonb_typeof(jours) <> 'array' or jsonb_typeof(dates) <> 'array' or jsonb_array_length(dates) > 60
+     or exists (select 1 from jsonb_array_elements(jours) j where jsonb_typeof(j) <> 'number' or (j #>> '{}')::integer not between 1 and 7)
+     or exists (select 1 from jsonb_array_elements_text(dates) d where d !~ '^\d{4}-\d{2}-\d{2}$') then
+    raise exception 'fidelite_refusee:soirs';
+  end if;
+  if pm is null or pm not between 0 and 5000 or pp is null or pp not between 0 and 100 then
+    raise exception 'fidelite_refusee:parrainage';
+  end if;
+  update reglages set valeur = to_jsonb(t) where cle = 'fidelite_taux_pourcent';
+  update reglages set valeur = to_jsonb(pm) where cle = 'parrainage_montant_centimes';
+  update reglages set valeur = to_jsonb(pp) where cle = 'parrainage_plafond_mois';
+  update reglages set valeur = to_jsonb(s) where cle = 'fidelite_seuil_centimes';
+  update reglages set valeur = jsonb_build_object(
+      'jours', (select coalesce(jsonb_agg(distinct (j #>> '{}')::integer), '[]'::jsonb) from jsonb_array_elements(jours) j),
+      'dates', (select coalesce(jsonb_agg(distinct d order by d), '[]'::jsonb) from jsonb_array_elements_text(dates) d))
+    where cle = 'fidelite_soirs_doubles';
+  perform journaliser(p_personnel, 'fidelite', 'reglages', avant, reglages_fidelite() - 'du_centimes' - 'comptes' - 'active' - 'calcule_le');
+  return reglages_fidelite();
+end;
 $$;
 
 revoke execute on function code_parrainage(uuid), lier_parrainage(text, text), crediter_parrainage(uuid), parrainage_compte(uuid)

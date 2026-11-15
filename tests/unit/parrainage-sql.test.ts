@@ -144,4 +144,13 @@ describe("parrainage", () => {
     expect(qui).toContain("service_role");
     expect(qui).not.toContain("anon");
   });
+
+  it("réglages du back-office : montant et plafond bornés", async () => {
+    const gerant = (await db.query<{ id: string }>("select id from personnel where email = 'equipe@laferme.test'")).rows[0].id;
+    const base = { taux_pourcent: 5, seuil_centimes: 1000, soirs_doubles: { jours: [], dates: [] } };
+    await expect(f("regler_fidelite($1, $2)", [{ ...base, parrainage_montant_centimes: 9000, parrainage_plafond_mois: 10 }, gerant])).rejects.toThrow(/parrainage/);
+    const r = await f<{ parrainage_montant_centimes: number; parrainage_plafond_mois: number }>("regler_fidelite($1, $2)", [{ ...base, parrainage_montant_centimes: 1500, parrainage_plafond_mois: 5 }, gerant]);
+    expect(r).toMatchObject({ parrainage_montant_centimes: 1500, parrainage_plafond_mois: 5 });
+    expect((await f<{ montant_centimes: number }>("parrainage_compte($1)", [parrain])).montant_centimes).toBe(1500);
+  });
 });
