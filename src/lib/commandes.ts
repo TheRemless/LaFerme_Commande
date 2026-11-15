@@ -178,6 +178,8 @@ export type LigneRemboursement = {
   erreur: string | null;
   stripe_refund_id?: string | null;
   deja?: boolean;
+  // Remboursement sur le paiement d'un complément (commande modifiée, bo-commandes) plutôt que sur celui de la commande.
+  payment_intent_cible?: string | null;
   change?: boolean;
 };
 
@@ -273,7 +275,7 @@ async function rembourserChezStripe(
     return { refus: { ok: false, message: "Ce remboursement attend la confirmation de Stripe. Rechargez dans quelques minutes.", enCours: true } };
   }
   try {
-    const pi = c.stripe_payment_intent ?? "";
+    const pi = r.payment_intent_cible ?? c.stripe_payment_intent ?? "";
     // Relance : la première demande a pu aboutir chez Stripe sans que sa réponse arrive (délai, réseau). On
     // reprend ce remboursement au lieu d'en créer un second, que Stripe accepterait après 24 heures.
     const repris = !remboursementSimule(pi, cle) && r.deja ? ((await passerelle().retrouverRemboursement?.(pi, r.id)) ?? null) : null;
