@@ -169,4 +169,34 @@ describe("changer les plats d'une commande payée", () => {
     expect(apres.rembourse_le).not.toBeNull();
     expect(apres.stripe_refund_id).toBeTruthy();
   });
+
+  it("baisse plus grande que le paiement de départ après un complément par lien : deux remboursements envoyés, chacun sur son paiement", async () => {
+    const { modifierPlats } = await import("@/lib/difference");
+    delete process.env.STRIPE_SECRET_KEY;
+    try {
+      const c = await commandePayee([MARGHERITA, COCA]);
+      const db = await baseLocale();
+      // Payée 1.00 seulement (une grosse remise au départ) : la baisse dépassera ce paiement.
+      await db.query("update commandes set stripe_payment_intent = $2, total_centimes = 100 where id = $1", [c.id, `pi_doublure_${c.id}`]);
+      // Un complément payé par le lien (paiement de la doublure), posé directement : montant d'essai.
+      await db.query(
+        "insert into complements (commande_id, montant_centimes, tva_centimes, moyen, statut, moyen_encaissement, stripe_payment_intent, encaisse_le) values ($1, 900, 23, 'en_ligne', 'encaisse', 'stripe', $2, now())",
+        [c.id, `pi_doublure_complement_${c.id}`],
+      );
+      const r = await modifierPlats(c.id, { cle: `surplus-${randomUUID()}`, de: "acceptee", lignes: [{ ...COCA, qte: 1 }] }, gerant, "http://localhost:3000");
+      expect(r).toMatchObject({ ok: true });
+      const rows = (await db.query<{ montant_centimes: number; statut: string; payment_intent_cible: string | null; stripe_refund_id: string | null }>(
+        "select montant_centimes, statut, payment_intent_cible, stripe_refund_id from remboursements where commande_id = $1 order by cree_le",
+        [c.id],
+      )).rows;
+      // 1.00 sur le paiement de départ, puis 9.00 sur le paiement du complément ; le reste de la baisse était la remise.
+      expect(rows.map((x) => [x.montant_centimes, x.payment_intent_cible])).toEqual([
+        [100, null],
+        [900, `pi_doublure_complement_${c.id}`],
+      ]);
+      expect(rows.every((x) => x.stripe_refund_id)).toBe(true);
+    } finally {
+      process.env.STRIPE_SECRET_KEY = "sk_test_factice";
+    }
+  });
 });

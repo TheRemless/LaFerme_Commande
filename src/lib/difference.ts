@@ -284,7 +284,11 @@ function remboursementTexte(a: Application): string {
   const chf = (c: number) => `CHF ${(c / 100).toFixed(2)}`;
   const morceaux = ["Commande modifiée."];
   if (a.du_avant_centimes) morceaux.push(`Complément à encaisser : ${chf(a.du_avant_centimes)} → ${chf(a.du_apres_centimes ?? 0)}.`);
-  if (a.remboursement?.montant_centimes) morceaux.push(`${chf(a.remboursement.montant_centimes)} remboursés au client.`);
+  const rendu = a.rembourse_centimes ?? a.remboursement?.montant_centimes ?? 0;
+  const voulu = a.rembourse_voulu_centimes ?? rendu;
+  if (rendu > 0) morceaux.push(`${chf(rendu)} remboursés au client.`);
+  // Plafonné : le reste de la baisse était une remise ou une cagnotte, qui ne se rend pas en argent.
+  if (voulu > rendu) morceaux.push(`Remboursé ${chf(rendu)} sur ${chf(voulu)} : le reste était une remise ou une cagnotte.`);
   return morceaux.join(" ");
 }
 
@@ -302,6 +306,9 @@ type Application = {
   remboursement?: (LigneRemboursement & { cle?: string }) | null;
   du_avant_centimes?: number | null;
   du_apres_centimes?: number | null;
+  remboursements?: (LigneRemboursement & { cle?: string })[];
+  rembourse_voulu_centimes?: number | null;
+  rembourse_centimes?: number | null;
   complement?: { montant_centimes: number; moyen: string } | null;
 };
 
@@ -342,8 +349,10 @@ async function apresApplication(a: Application): Promise<void> {
     ];
     if (changements.length) await imprimerModification(c.id, changements).catch((e) => console.error(`Ticket MODIFIÉE non créé pour la commande ${c.numero} : ${e instanceof Error ? e.message : e}`));
   }
-  if (a.remboursement && a.remboursement.moyen === "stripe" && a.remboursement.statut === "en_cours") {
-    const r = await rembourserLigne(a.remboursement, c, a.remboursement.cle ?? `modification-${a.remboursement.id}`).catch((e) => ({ ok: false, message: String(e) }));
+  // Paiement de départ, puis compléments payés par le lien : chacun sur son payment intent, avec sa clé.
+  for (const rb of a.remboursements ?? (a.remboursement ? [a.remboursement] : [])) {
+    if (rb.moyen !== "stripe" || rb.statut !== "en_cours") continue;
+    const r = await rembourserLigne(rb, c, rb.cle ?? `modification-${rb.id}`).catch((e) => ({ ok: false, message: String(e) }));
     if (!r.ok) console.error(`Remboursement de la modification non abouti pour la commande ${c.numero} : ${r.message}`);
   }
   if (c.client_email) {
@@ -355,7 +364,7 @@ async function apresApplication(a: Application): Promise<void> {
         retires: retires.map((l) => texteLigne(cat, l)),
         difference: a.difference_centimes ?? 0,
         reglement: a.reglement ?? "aucun",
-        rembourse: a.remboursement?.montant_centimes ?? null,
+        rembourse: a.rembourse_centimes ?? a.remboursement?.montant_centimes ?? null,
         du: a.du_avant_centimes ? { avant: a.du_avant_centimes, apres: a.du_apres_centimes ?? 0 } : null,
       }),
     }).catch((e) => console.error(`E-mail de modification non envoyé pour la commande ${c.numero} : ${e instanceof Error ? e.message : e}`));

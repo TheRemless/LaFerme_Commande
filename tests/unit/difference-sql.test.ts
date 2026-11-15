@@ -203,6 +203,27 @@ describe("modifier les plats d'une commande", () => {
     const r = await modifier(c, demande(`difference-${n}-plafond-1`, [ligne("Tiramisu", 800, 1, "cuisine")]));
     expect(r).toMatchObject({ reglement: "remboursement", applique: true, difference_centimes: -2000 });
     expect(r.remboursement).toMatchObject({ montant_centimes: 1500 });
+    // Plafond dit et journalisé : voulu 20.00, rendu 15.00 (le reste était la remise).
+    expect(r).toMatchObject({ rembourse_voulu_centimes: 2000, rembourse_centimes: 1500 });
+    const j = (await db.query<{ apres: Record<string, number> }>("select apres from journal_gestion where objet = 'commande_modifiee' and cle = $1 order by id desc limit 1", [c])).rows[0];
+    expect(j.apres).toMatchObject({ rembourse_voulu_centimes: 2000, rembourse_centimes: 1500 });
+  });
+
+  it("payée (avec remise), complément payé par le lien, puis baisse plus grande que le paiement de départ : le surplus part sur le paiement du complément", async () => {
+    const c = await commande({ remise: 800 });
+    const plus = [ligne("Margherita", 2000), ligne("Tiramisu", 800, 1, "cuisine"), ligne("Calzone", 1500)];
+    const r1 = await modifier(c, demande(`difference-${n}-surplus-1`, plus, { reglement: "lien" }));
+    await db.query("select lier_session_modification($1, 'cs_test_surplus')", [r1.id]);
+    expect(await f<{ applique: boolean }>("confirmer_complement($1, 'cs_test_surplus', 'evt-surplus-1', 'pi_complement_surplus', 1500, 'chf')", [r1.id])).toMatchObject({ applique: true });
+    const r2 = await modifier(c, demande(`difference-${n}-surplus-2`, [ligne("Tiramisu", 800, 1, "cuisine")]));
+    expect(r2).toMatchObject({ reglement: "remboursement", difference_centimes: -3500, rembourse_voulu_centimes: 3500, rembourse_centimes: 3500 });
+    const rows = (await db.query<{ montant_centimes: number; payment_intent_cible: string | null }>("select montant_centimes, payment_intent_cible from remboursements where commande_id = $1 order by montant_centimes desc", [c])).rows;
+    expect(rows).toEqual([
+      { montant_centimes: 2000, payment_intent_cible: null },
+      { montant_centimes: 1500, payment_intent_cible: "pi_complement_surplus" },
+    ]);
+    // Déjà rendu : plus rien à rembourser sur ce complément au refus de la commande.
+    expect(await f<unknown[]>("complements_a_rembourser($1)", [c])).toEqual([]);
   });
 
   it("droits et refus : l'équipe de service non, un règlement absent ou impossible non", async () => {
