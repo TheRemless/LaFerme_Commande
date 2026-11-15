@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { baseLocale } from "@/lib/db/locale";
-import { csvCloture, montantCompte, regrouperEcarts, type ClotureJour } from "@/lib/cloture";
+import { csvCloture, lignesComplements, montantCompte, regrouperEcarts, type ClotureJour } from "@/lib/cloture";
 import { celluleCsv } from "@/lib/gestion";
 import { jourDeService } from "@/lib/pilotage";
 
@@ -110,5 +110,20 @@ describe("à vérifier : les commandes pas terminées en une ligne", () => {
     expect(r.pasTerminees).toMatchObject({ commandes: 3, centimes: 20190, parStatut: [["prete", 2], ["en_preparation", 1]] });
     expect(r.pasTerminees.liste.map((x) => x.numero)).toEqual([2, 3, 4]);
     expect(regrouperEcarts([]).pasTerminees.commandes).toBe(0);
+  });
+});
+
+describe("compléments à la clôture", () => {
+  it("total encaissé et lignes non nulles ; rien sans compléments ni avant eux", () => {
+    expect(lignesComplements(undefined)).toBeNull();
+    expect(lignesComplements({ en_ligne_centimes: 0, especes_centimes: 0, carte_centimes: 0, a_encaisser_centimes: 0 })).toBeNull();
+    expect(lignesComplements({ en_ligne_centimes: 1000, especes_centimes: 0, carte_centimes: 450, a_encaisser_centimes: 300 })).toEqual({
+      encaisse: 1450,
+      lignes: [
+        { libelle: "dont par lien (compté dans « En ligne »)", centimes: 1000 },
+        { libelle: "dont carte", centimes: 450 },
+      ],
+      aEncaisser: 300,
+    });
   });
 });
