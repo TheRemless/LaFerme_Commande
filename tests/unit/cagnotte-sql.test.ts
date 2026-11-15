@@ -239,6 +239,47 @@ describe("utilisation au paiement", () => {
   });
 });
 
+describe("relecture de qualite", () => {
+  const payer = (o: Options, montant: number) => f<{ id: string; total_centimes: number; cagnotte_centimes: number }>("creer_commande_paiement($1, null, $2)", [donnees(o), montant]);
+
+  it("fuite 1 : un gain non retiré faute de solde est retenu plus tard (dette), jamais gardé", async () => {
+    const c = await compte();
+    await crediter(c, 1000);
+    const a = await commande({ compteId: c, sousTotal: 4350 });
+    await terminer(a);
+    expect(await solde(c)).toBe(1217);
+    const b = await payer({ compteId: c, sousTotal: 4000 }, 1217);
+    expect(await solde(c)).toBe(0);
+    // A est remboursée en entier : rien à retirer, le solde est déjà dépensé.
+    await rembourser(a, 4850);
+    expect(await solde(c)).toBe(0);
+    // B est refusée : 12.17 reviennent, et le gain de A est alors retiré.
+    await db.query("update commandes set statut = 'refusee' where id = $1", [b.id]);
+    expect(await solde(c)).toBe(1000);
+  });
+
+  it("fuite 2 : au comptoir, rien avant l'encaissement ; le gain arrive à l'encaissement", async () => {
+    const c = await compte();
+    const id = await commande({ compteId: c, mode: "retrait", moyen: "comptoir", sousTotal: 2000 });
+    await terminer(id);
+    expect(await solde(c)).toBe(0);
+    await db.query("update commandes set statut_paiement = 'encaisse' where id = $1", [id]);
+    expect(await solde(c)).toBe(100);
+  });
+
+  it("le remboursement d'un complément payé par lien ne réduit pas le gain (bo-pilotage)", async () => {
+    const c = await compte();
+    const id = await commande({ compteId: c, sousTotal: 4000 });
+    await terminer(id);
+    n += 1;
+    await db.query(
+      "insert into remboursements (commande_id, cle, montant_centimes, motif, moyen, statut, personnel_nom, fait_le, payment_intent_cible) values ($1, $2, 1000, 'Complément rendu', 'stripe', 'fait', 'Test', now(), 'pi_complement')",
+      [id, `remb-complement-${n}`],
+    );
+    expect(await solde(c)).toBe(200);
+  });
+});
+
 describe("expiration", () => {
   async function vieillir(c: string, mois: number) {
     await db.query(`update commandes set cree_le = now() - make_interval(months => $2) where compte_id = $1`, [c, mois]);
