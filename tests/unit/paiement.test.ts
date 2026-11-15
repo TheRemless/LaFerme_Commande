@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import Stripe from "stripe";
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { baseLocale } from "@/lib/db/locale";
 import { commandeParId, creerCommande, lierSessionPaiement } from "@/lib/db/serveur";
 
@@ -8,6 +8,21 @@ import { commandeParId, creerCommande, lierSessionPaiement } from "@/lib/db/serv
 process.env.STRIPE_SECRET_KEY = "sk_test_factice";
 process.env.STRIPE_WEBHOOK_SECRET = "whsec_factice";
 const stripe = new Stripe("sk_test_factice");
+
+// Sessions fermées par le serveur (deux onglets) : notées ici, sans appel à Stripe.
+const expirees: string[] = [];
+vi.mock("@/lib/paiement/passerelle", async (original) => {
+  const vrai = await original<typeof import("@/lib/paiement/passerelle")>();
+  return {
+    ...vrai,
+    passerelle: () => ({
+      ...vrai.passerelle(),
+      async expirerSession(id: string) {
+        expirees.push(id);
+      },
+    }),
+  };
+});
 
 let POST: (r: Request) => Promise<Response>;
 beforeAll(async () => {
@@ -182,5 +197,41 @@ describe("retour arrière depuis Stripe", () => {
     await db.query("update commandes set statut = 'refusee', statut_paiement = 'rembourse' where id = $1", [c.id]);
     await envoyer(evenement(`evt_p3_${c.id}`, "checkout.session.async_payment_succeeded", c.id, true, c.session));
     expect(await orphelins(c.id)).toEqual([]);
+  });
+
+  it("deux onglets : l'ancienne session payée au bon montant confirme la commande, la courante est fermée", async () => {
+    const c = await nouvelleCommande();
+    const courante = `${c.session}_onglet2`;
+    await lierSessionPaiement(c.id, courante);
+    // Le client paie dans le premier onglet, celui de la session qui n'est plus la courante.
+    await envoyer(evenement(`evt_onglet1_${c.id}`, "checkout.session.completed", c.id, true, c.session));
+    const apres = await commandeParId(c.id);
+    expect(apres).toMatchObject({ statut: "nouvelle", statut_paiement: "paye", stripe_session_id: c.session, stripe_payment_intent: `pi_doublure_${c.session}_1000_chf` });
+    expect(expirees).toContain(courante);
+    expect(await orphelins(c.id)).toEqual([]);
+    expect(await alertes(c.numero)).toEqual([]);
+    const db = await baseLocale();
+    expect((await db.query<{ sujet: string }>("select sujet from courriels where commande_id = $1", [c.id])).rows).toHaveLength(1);
+    // Il paie quand même le second onglet : ce second paiement est remboursé, la commande reste confirmée.
+    await envoyer(evenement(`evt_onglet2_${c.id}`, "checkout.session.completed", c.id, true, courante));
+    expect(await commandeParId(c.id)).toMatchObject({ statut_paiement: "paye", stripe_session_id: c.session });
+    expect(await orphelins(c.id)).toEqual([{ payment_intent: `pi_doublure_${courante}_1000_chf`, rembourse: true }]);
+    const client = (await db.query<{ texte: string }>("select texte from courriels where commande_id = $1 order by envoye_le", [c.id])).rows;
+    expect(client.at(-1)?.texte).toContain("second paiement");
+  });
+
+  it("deux onglets : une session qui n'a pas été créée pour cette commande ne la confirme jamais", async () => {
+    const c = await nouvelleCommande();
+    await envoyer(evenement(`evt_inconnue_${c.id}`, "checkout.session.completed", c.id, true, "cs_test_jamais_creee"));
+    expect((await commandeParId(c.id))?.statut_paiement).toBe("en_attente");
+    expect(await orphelins(c.id)).toHaveLength(1);
+  });
+
+  it("deux onglets : au mauvais montant, l'ancienne session est remboursée, pas prise", async () => {
+    const c = await nouvelleCommande();
+    await lierSessionPaiement(c.id, `${c.session}_onglet2`);
+    await envoyer(evenement(`evt_onglet1m_${c.id}`, "checkout.session.completed", c.id, true, c.session, 900));
+    expect((await commandeParId(c.id))?.statut_paiement).toBe("en_attente");
+    expect(await orphelins(c.id)).toHaveLength(1);
   });
 });

@@ -69,25 +69,42 @@ async function noterAvertissements(c: Commande): Promise<void> {
 
 export type PreuvePaiement = { sessionId: string; montantCentimes: number | null; devise: string | null; paymentIntent?: string };
 
-// Un paiement ne confirme la commande que s'il vient de sa session en cours, en francs, pour son montant exact.
-// Tout autre paiement réussi (ancienne session payée dans un onglet resté ouvert, commande annulée ou refusée,
-// déjà payée, montant différent) ne la confirme pas : il est remboursé, avec une alerte au gérant et un e-mail
-// au client, jamais gardé en silence.
+// Un paiement confirme la commande s'il est en francs, au montant exact, et vient de sa session en cours. Deux
+// onglets (le client paie l'ancienne session, encore ouverte, alors que la commande attend toujours) : la session
+// payée confirme la commande si elle a été créée pour elle, devient la session de référence, et la courante est
+// fermée. Tout autre paiement réussi (commande annulée, refusée ou déjà payée, montant différent, session
+// inconnue) ne la confirme pas : il est remboursé, avec une alerte au gérant et un e-mail au client, jamais gardé
+// en silence.
 export async function confirmerPaiement(commandeId: string, evenement: string, preuve: PreuvePaiement): Promise<boolean> {
   const c = await commandeParId(commandeId);
   if (!c) return false;
   const montantJuste = preuve.devise?.toLowerCase() === "chf" && preuve.montantCentimes === c.total_centimes;
+  let applique = false;
   if (c.stripe_session_id === preuve.sessionId && montantJuste) {
-    const applique = await appliquerPaiement(evenement, commandeId, "paye", preuve.paymentIntent, preuve.montantCentimes ?? undefined);
-    if (applique) {
-      const apres = await commandeParId(commandeId);
-      if (apres) {
-        // Un avertissement raté ne défait pas le paiement : la commande arrive quand même sur la tablette.
-        await noterAvertissements(apres).catch((e) => console.error(`Avertissement non noté pour la commande ${apres.numero} : ${e instanceof Error ? e.message : e}`));
-        await envoyerConfirmation(apres);
-      }
-      return true;
+    applique = await appliquerPaiement(evenement, commandeId, "paye", preuve.paymentIntent, preuve.montantCentimes ?? undefined);
+  } else if (montantJuste && c.statut_paiement === "en_attente") {
+    const r = await fonctionSql<{ applique: boolean; ancienne_session?: string | null }>("confirmer_autre_session", {
+      p_evenement: evenement,
+      p_commande: commandeId,
+      p_session: preuve.sessionId,
+      p_payment_intent: preuve.paymentIntent ?? null,
+      p_montant: preuve.montantCentimes,
+    }).catch((e) => {
+      console.error(`Paiement d'une autre session non appliqué (${c.numero}) : ${e instanceof Error ? e.message : e}`);
+      return { applique: false, ancienne_session: null };
+    });
+    applique = r.applique;
+    // La session devenue inutile est fermée : le client ne peut plus la payer. Payée quand même, elle sera remboursée.
+    if (applique && r.ancienne_session) await passerelle().expirerSession(r.ancienne_session).catch(() => undefined);
+  }
+  if (applique) {
+    const apres = await commandeParId(commandeId);
+    if (apres) {
+      // Un avertissement raté ne défait pas le paiement : la commande arrive quand même sur la tablette.
+      await noterAvertissements(apres).catch((e) => console.error(`Avertissement non noté pour la commande ${apres.numero} : ${e instanceof Error ? e.message : e}`));
+      await envoyerConfirmation(apres);
     }
+    return true;
   }
   // Pas appliqué. Ce paiement a déjà confirmé la commande (événement rejoué, réconciliation puis webhook) : rien
   // à faire. Une session ne se paie qu'une fois : même session, même paiement.
