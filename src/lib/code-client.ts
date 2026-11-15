@@ -34,3 +34,26 @@ export function retenirCodeDeLUrl(): void {
     // Adresse illisible : rien à retenir.
   }
 }
+
+// Cagnotte demandée au paiement (vague 3) : gardée dans l'onglet comme le code. TOUT : tout ce qui peut servir.
+// Le serveur seul décide du montant (aperçu au panier, puis la base au paiement, sous verrou).
+const CLE_CAGNOTTE = "laferme.cagnotte";
+export const CAGNOTTE_TOUT = 1_000_000;
+
+export function lireCagnotte(): number {
+  try {
+    const n = Number(window.sessionStorage.getItem(CLE_CAGNOTTE));
+    return Number.isInteger(n) && n > 0 ? Math.min(n, CAGNOTTE_TOUT) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+export function noterCagnotte(centimes: number): void {
+  try {
+    if (centimes > 0) window.sessionStorage.setItem(CLE_CAGNOTTE, String(Math.min(Math.round(centimes), CAGNOTTE_TOUT)));
+    else window.sessionStorage.removeItem(CLE_CAGNOTTE);
+  } catch {
+    // Stockage bloqué : la case reste cochée le temps de la page.
+  }
+}

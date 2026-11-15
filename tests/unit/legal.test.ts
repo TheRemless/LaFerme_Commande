@@ -67,4 +67,20 @@ describe("ébauches légales", () => {
     expect(commande).not.toContain("Il vous envoie alors un e-mail avec l'heure");
     expect(commande).toContain("L'heure de livraison ou de retrait s'affiche alors sur la page de suivi.");
   });
+
+  it("CGV, cagnotte : les règles validées par Jérémy le 15.11.2026", () => {
+    const texte = JSON.stringify(CGV.sections.find((s) => s.titre === "Cagnotte")?.contenu);
+    for (const regle of [
+      "chaque commande livrée ou retirée vous rapporte 5 % du prix des plats",
+      "Les frais de livraison ne comptent pas.",
+      "arrondie au centime inférieur",
+      "Une commande refusée, annulée ou remboursée ne rapporte rien.",
+      "Un remboursement partiel retire la part correspondante",
+      "Dès CHF 10",
+      "Elle ne sert ni au comptoir ni pour une commande passée par téléphone.",
+      "Elle expire 12 mois après votre dernière commande. Un e-mail vous prévient 30 jours avant",
+    ]) {
+      expect(texte).toContain(regle);
+    }
+  });
 });

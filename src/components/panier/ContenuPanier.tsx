@@ -154,6 +154,12 @@ export function ContenuPanier({
             <dd>− {prixChf(reponse.remise_centimes ?? 0)}</dd>
           </div>
         )}
+        {(reponse?.cagnotte?.utilisee_centimes ?? 0) > 0 && (
+          <div>
+            <dt>Cagnotte utilisée</dt>
+            <dd>− {prixChf(reponse?.cagnotte?.utilisee_centimes ?? 0)}</dd>
+          </div>
+        )}
         <div className="somme-totale">
           <dt>Total</dt>
           <dd>{prixChf(t.total_centimes)}</dd>

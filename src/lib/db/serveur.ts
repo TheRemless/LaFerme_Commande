@@ -175,6 +175,8 @@ export type Commande = {
   annulee_par_client_le?: string | null;
   // Allergie ou intolérance pour toute la commande (client-commande, #71). Absente avant sa migration.
   allergie?: string;
+  // Cagnotte utilisée au paiement (client-compte, 20261216090000), en centimes. Absente avant la migration.
+  cagnotte_centimes?: number;
   origine: string;
   cree_le: string;
   lignes: LigneCommande[];

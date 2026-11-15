@@ -3856,3 +3856,41 @@ body.fiche-ouverte {
   margin-top: 8px;
   font-size: 16px;
 }
+
+/* Cagnotte (vague 3, client-compte) : le solde en gros, l'historique replié, les montants alignés à droite. */
+.cagnotte-solde {
+  margin: 0 0 6px;
+  font-size: 20px;
+  font-weight: 700;
+}
+.cagnotte-historique summary {
+  cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+}
+.cagnotte-historique ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.cagnotte-historique li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--filet);
+}
+.cagnotte-montant {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.cagnotte-paiement {
+  margin: 12px 0;
+}
+.cagnotte-montant-saisie {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}

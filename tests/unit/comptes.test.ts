@@ -241,7 +241,8 @@ describe("compte et commandes", () => {
     const compte = await connecter("depart@exemple.test");
     await db.query("select * from creer_commande($1)", [commande("e", "depart@exemple.test", compte)]);
     const exp = await f<Record<string, unknown>>("export_compte($1, 'ip')", [compte]);
-    expect(Object.keys(exp).sort()).toEqual(["adresses", "commandes", "compte", "export_le", "journal", "sessions"]);
+    // Cagnotte (vague 3) : elle part à l'export avec le reste.
+    expect(Object.keys(exp).sort()).toEqual(["adresses", "cagnotte", "commandes", "compte", "export_le", "journal", "sessions"]);
     expect(JSON.stringify(exp)).not.toMatch(/[0-9a-f]{64}/);
     expect(await f<boolean>("supprimer_compte($1, $2)", [compte, h()])).toBe(true);
     const reste = (await db.query<{ n: number }>(

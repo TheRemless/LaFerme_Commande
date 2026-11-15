@@ -7,6 +7,7 @@ import { compteCourant, jetonSession } from "@/lib/comptes/session";
 import { empreinte } from "@/lib/comptes/securite";
 import { fonctionSql } from "@/lib/db/serveur";
 import { PRIVE } from "@/lib/site";
+import { cagnotteCompte } from "@/lib/cagnotte";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Votre compte, La Ferme", robots: PRIVE };
@@ -24,11 +25,13 @@ export default async function Compte() {
     compte && jeton
       ? await fonctionSql<Appareil[]>("appareils_compte", { p_compte: compte.id, p_session_hache: empreinte("session", jeton) }).catch(() => null)
       : null;
+  // Cagnotte (migration 20261216090000) ; sans elle, pas de rubrique.
+  const cagnotte = compte ? await cagnotteCompte(compte.id).catch(() => null) : null;
   return (
     <>
       <EnTete />
       <main id="contenu" className="page-compte">
-        {donnees ? <EspaceCompte donnees={donnees} historique={historique ? { suite: historique.suite, total: historique.total } : null} appareils={appareils} preversion={process.env.CONTEXTE_DEPLOIEMENT !== "production"} /> : <Connexion />}
+        {donnees ? <EspaceCompte donnees={donnees} historique={historique ? { suite: historique.suite, total: historique.total } : null} appareils={appareils} cagnotte={cagnotte} preversion={process.env.CONTEXTE_DEPLOIEMENT !== "production"} /> : <Connexion />}
       </main>
       <PiedDePage />
     </>

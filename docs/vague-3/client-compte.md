@@ -94,3 +94,26 @@ L'allergie ou l'intolérance signalée à la commande est effacée 30 jours apr�
 Pendant que sa commande est en route, le client voit la position du livreur sur une carte grise de swisstopo, sous les étapes de son suivi (décision de Jérémy du 13.11.2026). La carte ne montre que le livreur, pas l'adresse du client. Elle se met à jour avec le suivi toutes les 20 secondes. Une ligne donne l'heure du relevé (« Position relevée à 19h42. »). Quand la position n'est pas montrable, rien n'est dit : une phrase apprendrait au client qu'un autre arrêt passe avant le sien.
 
 La base de `tablette` décide qui voit quoi (PR #228) : seulement le client de l'arrêt en cours, jamais le client suivant de la même tournée. La position montrée a moins de 2 minutes. Le client suivant ne voit son livreur qu'à 400 m du point de masquage. Ce point est la porte précédente, ou le restaurant si l'arrêt d'avant s'est terminé pendant que sa commande y attendait encore. Il n'y a donc pas de carte pendant les premières minutes du trajet. Aucun texte du suivi ne promet de suivre le livreur dès son départ. L'absence de carte ne se signale pas. À la remise, la carte disparaît. Quand le livreur passe sur son appli de navigation, son téléphone n'envoie plus sa position et la carte disparaît au bout de 2 minutes. La déclaration de confidentialité le dit.
+
+## Cagnotte des clients
+
+Programme validé par Jérémy le 15.11.2026. Construit éteint (interrupteur « Cagnotte des clients » dans Réglages généraux) : la session principale l'allume en vraie base après la fusion. La migration est `20261216090000_cagnotte.sql`.
+
+Ce que le client voit :
+
+- dans son compte, « Vous avez CHF 7.40 dans votre cagnotte », la date limite, le rappel par e-mail (coché par défaut) et l'historique ;
+- au paiement en ligne, « Utiliser ma cagnotte » dès CHF 10, en tout ou en partie ;
+- sur le suivi, le reçu et l'e-mail de confirmation, une ligne « Cagnotte utilisée ».
+
+Les règles sont toutes en base :
+
+- gain de 5 % du prix des plats (hors frais de livraison, après code promo et cagnotte utilisée, au centime inférieur), crédité seulement quand la commande est livrée ou retirée ;
+- rien pour une commande refusée, annulée, remboursée ou close « client absent » ; un remboursement partiel retire la part correspondante, au plus ce qui reste ;
+- utilisation sous verrou du compte, dans la transaction qui crée la commande : deux onglets ne dépensent pas deux fois le même solde. CHF 0.50 restent à payer en ligne (minimum de Stripe). Jamais au comptoir ni au téléphone ;
+- la cagnotte utilisée revient si le paiement échoue, si la commande est refusée ou annulée. Un remboursement après coup (plats retirés au téléphone, geste) ne rend que l'argent payé. Une commande passée « remboursée » ne rend donc pas la cagnotte (revue de sécurité). Le gérant peut la recréditer à la main, avec un motif ;
+- une commande à payer au comptoir ne rapporte qu'une fois encaissée. Un gain qui n'a pas pu être retiré faute de solde, parce que le client avait déjà tout dépensé, est retenu dès qu'un montant revient au compte. Le remboursement d'un complément payé par lien ne réduit pas le gain (relectures de qualite et bo-pilotage) ;
+- tout le solde expire 12 mois après la dernière commande (règle de Jérémy, pas d'expiration par lot), jamais pendant une commande en cours. Le rappel part 30 jours avant, au premier tour de la surveillance de chaque jour de service.
+
+Au back-office, la rubrique Cagnotte sous les Réglages généraux règle le taux (3 à 10 %), le seuil et les soirs doublés (jour de la semaine ou date, commandes promises dès 15h). Elle affiche aussi le montant dû aux clients pour la fiduciaire. La fiche d'un client avec compte a un onglet Cagnotte : solde, historique, ajustement par le gérant (CHF 100 au plus, motif obligatoire, journalisé).
+
+Compta : la cagnotte utilisée est une réduction de prix. Total et TVA de la commande sont déjà nets. La clôture et l'export Crésus n'ont donc pas changé.

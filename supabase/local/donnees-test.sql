@@ -174,3 +174,11 @@ insert into personnel (email, nom, role) values
 insert into personnel (email, nom, role) values
   ('difference-bureau@laferme.test', 'Différence bureau', 'gerant'),
   ('difference-mobile@laferme.test', 'Différence mobile', 'gerant');
+
+-- Cagnotte des clients (client-compte, 20261216090000) : construite éteinte en vraie base, allumée ici pour les tests.
+-- tests/unit/cagnotte-sql.test.ts vérifie aussi l'interrupteur éteint.
+update reglages set valeur = 'true'::jsonb where cle = 'fidelite_active';
+-- Gérants des tests de bout en bout de la cagnotte (tests/e2e/cagnotte.spec.ts), un par projet Playwright.
+insert into personnel (email, nom, role) values
+  ('cagnotte-bureau@laferme.test', 'Cagnotte bureau', 'gerant'),
+  ('cagnotte-mobile@laferme.test', 'Cagnotte mobile', 'gerant');
