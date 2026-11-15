@@ -149,7 +149,7 @@ function Formulaire({ r, recharger }: { r: Reglages; recharger: () => Promise<vo
           </Champ>
         </fieldset>
       </fieldset>
-      <BarreEnregistrer etat={f.etat} message={f.message} modifie={f.modifie} reinitialiser={f.reinitialiser} libelle="Enregistrer la cagnotte" />
+      <BarreEnregistrer etat={f.etat} message={f.message} modifie={f.modifie} reinitialiser={f.reinitialiser} libelle="Mettre à jour la cagnotte" />
     </form>
   );
 }
