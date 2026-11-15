@@ -43,7 +43,7 @@ export const CGV: PageLegale = {
         "Avec un compte client, chaque commande livrée ou retirée vous rapporte 5 % du prix des plats dans votre cagnotte, ou le taux affiché dans votre compte s'il change. Les frais de livraison ne comptent pas. La part se calcule après code promo et cagnotte utilisée, arrondie au centime inférieur. Certains soirs annoncés par le restaurant, elle est doublée.",
         "Une commande refusée, annulée ou remboursée ne rapporte rien. Un remboursement partiel retire la part correspondante, au plus ce qui reste dans la cagnotte.",
         "Dès CHF 10, ou le montant affiché dans votre compte, vous déduisez la cagnotte au paiement en ligne, en tout ou en partie, jusqu'au prix des plats. CHF 0.50 au moins restent à payer en ligne. Elle ne sert ni au comptoir ni pour une commande passée par téléphone.",
-        "La cagnotte utilisée réduit le prix de la commande. Elle revient dans votre cagnotte si la commande est refusée, annulée ou remboursée en entier.",
+        "La cagnotte utilisée réduit le prix de la commande. Elle revient dans votre cagnotte si la commande est refusée ou annulée, ou si le paiement échoue. Un remboursement rend l'argent payé, pas la cagnotte.",
         "Elle expire 12 mois après votre dernière commande. Un e-mail vous prévient 30 jours avant, sauf si vous avez décoché ce rappel dans votre compte.",
       ],
     },

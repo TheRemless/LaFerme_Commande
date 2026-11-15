@@ -214,7 +214,7 @@ describe("utilisation au paiement", () => {
     await expect(payer({ compteId: c }, 1500)).rejects.toThrow(/cagnotte_refusee:seuil/);
   });
 
-  it("rendue si le paiement échoue, si la commande est refusée ou remboursée en entier, une seule fois", async () => {
+  it("rendue si le paiement échoue ou si la commande est refusée, une seule fois ; un remboursement ne rend que de l'argent", async () => {
     const c = await compte();
     await crediter(c, 3000);
     const echec = await payer({ compteId: c }, 1000);
@@ -227,13 +227,15 @@ describe("utilisation au paiement", () => {
     expect(await solde(c)).toBe(3000);
     expect(await val<number>("select count(*)::integer from cagnotte_mouvements where commande_id = $1 and type = 'rendu'", [refusee.id])).toBe(1);
 
-    // Livrée puis remboursée en entier : la cagnotte revient, le gain repart.
+    // Livrée puis remboursée de tout l'argent payé (revue de sécurité : plats retirés au téléphone, ou geste) :
+    // seul l'argent revient, le gain repart, la cagnotte utilisée ne revient pas. Le gérant peut la recréditer.
     const livree = await payer({ compteId: c, sousTotal: 4000 }, 1000);
     await terminer(livree.id);
     expect(await solde(c)).toBe(3000 - 1000 + 150);
     await rembourser(livree.id, livree.total_centimes);
     await db.query("update commandes set statut_paiement = 'rembourse' where id = $1", [livree.id]);
-    expect(await solde(c)).toBe(3000);
+    expect(await solde(c)).toBe(2000);
+    expect(await val<number>("select count(*)::integer from cagnotte_mouvements where commande_id = $1 and type = 'rendu'", [livree.id])).toBe(0);
   });
 });
 

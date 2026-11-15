@@ -10,8 +10,8 @@
 -- - utilisation : dès le seuil (CHF 10), au paiement en ligne d'un compte, tout ou partie, sans dépasser le montant
 --   des plats. Jamais au téléphone ni au comptoir au lancement. Le paiement en ligne garde au moins CHF 0.50 (minimum
 --   de Stripe) ;
--- - la part payée en cagnotte revient en cagnotte si la commande est refusée, annulée, son paiement échoue ou si elle
---   est remboursée en entier. Un remboursement partiel ne rend que de l'argent (au plus le total payé) ;
+-- - la part payée en cagnotte revient en cagnotte si la commande est refusée, annulée ou si son paiement échoue. Un
+--   remboursement après coup ne rend que de l'argent, au plus le total payé (le gérant peut recréditer à la main) ;
 -- - expiration : tout le solde, 12 mois après la dernière commande (règle de Jérémy : « 12 mois sans commande »),
 --   jamais pendant une commande en cours. Un e-mail part 30 jours avant si le client ne l'a pas refusé dans son
 --   compte ;
@@ -172,7 +172,7 @@ begin
 end;
 $$;
 
--- La cagnotte utilisée revient au compte (refus, annulation, paiement échoué, remboursement total). Une seule fois.
+-- La cagnotte utilisée revient au compte (refus, annulation, paiement échoué). Une seule fois.
 create function rendre_cagnotte(p_commande uuid) returns integer
 language plpgsql as $$
 declare
@@ -224,9 +224,15 @@ begin
   if new.statut = 'terminee' and old.statut is distinct from 'terminee' then
     perform crediter_cagnotte(new.id);
   end if;
+  -- La cagnotte utilisée revient seulement si la commande n'a pas eu lieu : refusée, annulée, paiement échoué.
+  -- Un remboursement après coup (plats retirés, geste) ne rend que de l'argent, au plus ce qui a été payé : passer
+  -- « remboursée » quand l'argent payé est rendu ne rend pas la cagnotte (revue de sécurité). Le gain, lui, est
+  -- recalculé à chaque remboursement fait (cagnotte_au_remboursement).
   if (new.statut in ('refusee', 'annulee') and old.statut is distinct from new.statut)
-     or (new.statut_paiement in ('rembourse', 'echec') and old.statut_paiement is distinct from new.statut_paiement) then
+     or (new.statut_paiement = 'echec' and old.statut_paiement is distinct from 'echec') then
     perform rendre_cagnotte(new.id);
+    perform ajuster_gain(new.id);
+  elsif new.statut_paiement = 'rembourse' and old.statut_paiement is distinct from 'rembourse' then
     perform ajuster_gain(new.id);
   end if;
   return null;
