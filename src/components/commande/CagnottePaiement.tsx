@@ -44,7 +44,7 @@ export function CagnottePaiement({ cagnotte, onChange }: { cagnotte: NonNullable
         </p>
       )}
       {edition !== null && (
-        <div className="cagnotte-montant">
+        <div className="cagnotte-montant-saisie">
           <label htmlFor={`${ids}-montant`}>Montant à utiliser, en francs</label>
           <input id={`${ids}-montant`} inputMode="decimal" value={edition} onChange={(e) => setEdition(e.target.value)} aria-describedby={`${ids}-max`} />
           <p className="aide" id={`${ids}-max`}>

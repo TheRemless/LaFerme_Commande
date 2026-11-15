@@ -3889,8 +3889,7 @@ body.fiche-ouverte {
 .cagnotte-paiement {
   margin: 12px 0;
 }
-.cagnotte-montant-saisie,
-.cagnotte-paiement .cagnotte-montant {
+.cagnotte-montant-saisie {
   display: grid;
   gap: 6px;
   margin-top: 8px;
