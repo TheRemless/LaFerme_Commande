@@ -194,13 +194,18 @@ export function courrielRefusRemboursementEnCours(c: Commande, motif: string) {
   return { sujet, texte, html, type: "refus" as TypeCourriel };
 }
 
-export function courrielRemboursement(c: Commande, motif: string) {
+// montantCentimes : ce qui repart vraiment maintenant (après une baisse déjà remboursée, moins que le total).
+export function courrielRemboursement(c: Commande, motif: string, montantCentimes = c.total_centimes) {
   const sujet = `Commande ${c.numero} annulée, La Ferme`;
+  const phrase =
+    montantCentimes > 0
+      ? `Nous vous remboursons ${prixChf(montantCentimes)} sur le moyen de paiement utilisé.`
+      : "Le montant payé vous a déjà été remboursé sur le moyen de paiement utilisé.";
   const texte = [
     `Bonjour ${c.client_prenom},`,
     "",
     phraseAnnulation(c, motif).texte,
-    `Nous vous remboursons ${prixChf(c.total_centimes)} sur le moyen de paiement utilisé.`,
+    phrase,
     DELAI_REMBOURSEMENT,
     "",
     `Une question ? ${TELEPHONE}`,
@@ -210,7 +215,7 @@ export function courrielRemboursement(c: Commande, motif: string) {
   const html = enveloppe(`
 <p>Bonjour ${echapper(c.client_prenom)},</p>
 <p>${phraseAnnulation(c, motif).html}</p>
-<p>Nous vous remboursons ${prixChf(c.total_centimes)} sur le moyen de paiement utilisé.</p>
+<p>${phrase}</p>
 <p>${DELAI_REMBOURSEMENT}</p>
 <p>Une question ? ${TELEPHONE}</p>`, c.origine, phraseAnnulation(c, motif).texte);
   return { sujet, texte, html, type: "refus" as TypeCourriel };
@@ -460,14 +465,16 @@ export function courrielRemboursementGeste(c: Commande, montantCentimes: number,
 // Un plat ou un supplément manque sur une commande acceptée (audit du gérant, G07). Le client apprend ce qui
 // manque, ce qui lui est rendu, et que le reste est préparé. moyen : stripe (remboursé), deduction (au comptoir,
 // pas encore payé), especes (déjà payé au comptoir, rendu sur place).
-export function courrielManque(c: Commande, description: string, montantCentimes: number, moyen: "stripe" | "especes" | "deduction", resteCentimes: number) {
+export function courrielManque(c: Commande, description: string, montantCentimes: number, moyen: "stripe" | "especes" | "deduction" | "terminal", resteCentimes: number) {
   const montant = prixChf(montantCentimes);
   const argent =
     moyen === "stripe"
       ? [`Nous vous remboursons ${montant}.`, "La somme revient sur le moyen de paiement utilisé.", DELAI_REMBOURSEMENT]
       : moyen === "deduction"
         ? [`Vous payez ${prixChf(resteCentimes)} au comptoir au lieu de ${prixChf(c.total_centimes)}.`]
-        : [`Nous vous rendons ${montant} au comptoir.`];
+        : moyen === "terminal"
+          ? [`Nous vous remboursons ${montant} sur votre carte, au comptoir.`]
+          : [`Nous vous rendons ${montant} au comptoir.`];
   return courrielType(c, "manque", `Il manque une partie de votre commande ${c.numero}, La Ferme`, [
     `Nous ne pouvons pas préparer toute votre commande n° ${c.numero}. Il manque ${description}.`,
     ...argent,

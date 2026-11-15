@@ -105,6 +105,9 @@ describe("export_cresus", () => {
     await commande("2026-12-05", { total: 2052, tva: 52, moyen: "comptoir", comptoir: "especes", paiement: "encaisse" });
     await remboursement(a, 1026, "stripe", "2026-12-05T23:30:00+01:00");
     await remboursement(a, 2000, "stripe", "2026-12-06T10:00:00+01:00", "en_cours");
+    // Payée par carte au comptoir, baisse rendue sur le terminal (bo-commandes, 20261216140000).
+    const carte = await commande("2026-12-05", { total: 3078, tva: 78, moyen: "comptoir", comptoir: "carte", paiement: "encaisse" });
+    await remboursement(carte, 1026, "terminal", "2026-12-05T20:00:00+01:00");
     // Commande modifiée (bo-commandes) : un complément payé par le lien et un encaissé à la porte, dont des frais.
     // Montants d'essai, comme les commandes ci-dessus.
     await db.query(
@@ -119,11 +122,13 @@ describe("export_cresus", () => {
     if (!r.ok) throw new Error(r.erreur);
     const somme = (pred: (e: { debit: string; credit: string }) => boolean) => r.ecritures.filter(pred).reduce((s, e) => s + e.centimes, 0);
     const ventesTtc = recap.reduce((s, l) => s + l.ttc_centimes, 0);
-    const rembourse = recap.reduce((s, l) => s + l.rembourse_en_ligne_centimes + l.rembourse_especes_centimes + l.deduit_centimes, 0);
+    const rembourse = recap.reduce((s, l) => s + l.rembourse_en_ligne_centimes + l.rembourse_especes_centimes + (l.rembourse_terminal_centimes ?? 0) + l.deduit_centimes, 0);
     const tvaNette = recap.reduce((s, l) => s + l.net_tva_centimes, 0);
     const moyens = [COMPTES.caisse, COMPTES.stripe, COMPTES.terminal];
     expect(somme((e) => moyens.includes(e.debit))).toBe(ventesTtc);
     expect(somme((e) => moyens.includes(e.credit))).toBe(rembourse);
+    expect(recap.reduce((s, l) => s + (l.rembourse_terminal_centimes ?? 0), 0)).toBe(1026);
+    expect(somme((e) => e.credit === COMPTES.terminal)).toBe(1026);
     expect(somme((e) => e.credit === COMPTES.tva) - somme((e) => e.debit === COMPTES.tva)).toBe(tvaNette);
   });
 });

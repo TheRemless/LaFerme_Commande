@@ -23,6 +23,8 @@ export type RapportCloture = {
     comptoir: { commandes: number; centimes: number };
     deductions_centimes: number;
     especes_rendues_centimes: number;
+    // Rendu sur le terminal de carte (20261216140000), absent d'un rapport enregistré avant.
+    terminal_rendu_centimes?: number;
     attendu_comptoir_centimes: number;
     // Moyen noté par la tablette (absents d'un rapport enregistré avant cette séparation).
     comptoir_especes?: { commandes: number; centimes: number };
@@ -37,7 +39,7 @@ export type RapportCloture = {
   remboursements: {
     numero: number;
     montant_centimes: number;
-    moyen: "stripe" | "especes" | "deduction";
+    moyen: "stripe" | "especes" | "deduction" | "terminal";
     statut: "fait" | "en_cours" | "echec";
     motif: string;
     par: string;
@@ -85,6 +87,23 @@ const LIBELLE_ECART: Record<Ecart["type"], string> = {
 };
 export const libelleEcart = (e: Ecart) => LIBELLE_ECART[e.type];
 
+// Compléments des commandes modifiées (bo-commandes, 20261215130000) pour l'écran de clôture : le total encaissé
+// et ses lignes non nulles. Les espèces et la carte sont déjà dans « Attendu au comptoir », le lien dans « En ligne ».
+export type LigneComplement = { libelle: string; centimes: number };
+export function lignesComplements(
+  c: RapportCloture["encaissements"]["complements"],
+): { encaisse: number; lignes: LigneComplement[]; aEncaisser: number } | null {
+  if (!c) return null;
+  const encaisse = c.en_ligne_centimes + c.especes_centimes + c.carte_centimes;
+  if (encaisse === 0 && c.a_encaisser_centimes === 0) return null;
+  const lignes = [
+    { libelle: "dont par lien (compté dans « En ligne »)", centimes: c.en_ligne_centimes },
+    { libelle: "dont espèces", centimes: c.especes_centimes },
+    { libelle: "dont carte", centimes: c.carte_centimes },
+  ].filter((l) => l.centimes > 0);
+  return { encaisse, lignes, aEncaisser: c.a_encaisser_centimes };
+}
+
 // À l'écran et à l'impression : l'argent à suivre ligne par ligne, les commandes pas terminées en une seule ligne
 // (en plein service, elles sont des dizaines et noieraient le reste). L'export CSV garde le détail.
 export type PasTerminees = { commandes: number; centimes: number; parStatut: [string, number][]; liste: Extract<Ecart, { type: "pas_terminee" }>[] };
@@ -98,7 +117,7 @@ export function regrouperEcarts(ecarts: Ecart[]): { aSuivre: Ecart[]; pasTermine
   };
 }
 
-const LIBELLE_MOYEN = { stripe: "en ligne", especes: "espèces", deduction: "déduit au comptoir" } as const;
+const LIBELLE_MOYEN = { stripe: "en ligne", especes: "espèces", deduction: "déduit au comptoir", terminal: "terminal (carte)" } as const;
 const LIBELLE_STATUT = { fait: "fait", en_cours: "en cours", echec: "échec" } as const;
 
 const chf = (c: number | null) => (c === null ? "" : (c / 100).toFixed(2));
@@ -144,6 +163,7 @@ export function csvCloture(j: ClotureJour): string {
       : []),
     ligne("Déduit au comptoir (manques)", "", chf(e.deductions_centimes)),
     ligne("Espèces rendues", "", chf(e.especes_rendues_centimes)),
+    ...(e.terminal_rendu_centimes !== undefined ? [ligne("Rendu sur le terminal", "", chf(e.terminal_rendu_centimes))] : []),
     ligne("Attendu au comptoir", "", chf(e.attendu_comptoir_centimes)),
     ...(e.attendu_especes_centimes !== undefined && e.attendu_carte_centimes !== undefined
       ? [ligne("Attendu en espèces", "", chf(e.attendu_especes_centimes)), ligne("Attendu en carte", "", chf(e.attendu_carte_centimes))]

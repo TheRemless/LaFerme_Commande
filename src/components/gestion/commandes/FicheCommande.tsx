@@ -775,7 +775,7 @@ function Gestes({
             {fiche.remboursements.map((r) => (
               <li key={r.id}>
                 CHF {montant(r.montant_centimes)}{" "}
-                {r.moyen === "especes" ? "en espèces" : "par Stripe"},{" "}
+                {r.moyen === "especes" ? "en espèces" : r.moyen === "terminal" ? "sur le terminal" : "par Stripe"},{" "}
                 {r.statut === "fait"
                   ? "fait"
                   : r.statut === "echec"

@@ -261,6 +261,13 @@ function Remboursements({ s }: { s: Synthese }) {
             <td />
             <td className="rap-nb">CHF {montant(r.faits_especes_centimes)}</td>
           </tr>
+          {(r.faits_terminal_centimes ?? 0) > 0 && (
+            <tr>
+              <th scope="row">dont rendus sur le terminal</th>
+              <td />
+              <td className="rap-nb">CHF {montant(r.faits_terminal_centimes ?? 0)}</td>
+            </tr>
+          )}
           <tr>
             <th scope="row">Pas encore confirmés par Stripe</th>
             <td className="rap-nb">{nombre(r.en_cours)}</td>
