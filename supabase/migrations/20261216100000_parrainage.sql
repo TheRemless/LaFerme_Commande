@@ -143,6 +143,10 @@ begin
   -- Téléphones de la commande : le client et la personne qui reçoit (revue de sécurité).
   tels := array_remove(array[tel_cle(o.client_telephone), tel_cle(o.destinataire ->> 'telephone')], '');
   adr := case when o.mode = 'livraison' then adresse_cle(o.adresse) end;
+  -- Pas encore encaissée (comptoir) : on attend l'encaissement, qui rappelle cette fonction. Remboursée : refus.
+  if o.statut_paiement in ('a_encaisser_retrait', 'en_attente') then
+    return null;
+  end if;
   if o.statut_paiement not in ('paye', 'encaisse')
      or exists (select 1 from remboursements r where r.commande_id = o.id and r.statut in ('en_cours', 'fait')) then
     v_raison := 'paiement';
@@ -200,7 +204,9 @@ $$;
 create or replace function cagnotte_au_statut() returns trigger
 language plpgsql as $$
 begin
-  if new.statut = 'terminee' and old.statut is distinct from 'terminee' then
+  -- À la remise, ou à l'encaissement d'une commande déjà remise (relecture de qualite) : gain et parrainage.
+  if (new.statut = 'terminee' and old.statut is distinct from 'terminee')
+     or (new.statut = 'terminee' and new.statut_paiement in ('paye', 'encaisse') and old.statut_paiement is distinct from new.statut_paiement) then
     perform crediter_cagnotte(new.id);
     perform crediter_parrainage(new.id);
   end if;

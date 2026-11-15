@@ -195,4 +195,16 @@ describe("parrainage", () => {
     await db.query("update commandes set statut_paiement = 'rembourse' where id = $1", [id2]);
     expect([await parrainages(parrain), await parrainages(f2)]).toEqual([0, 0]);
   });
+
+  it("au comptoir : le crédit attend l'encaissement de la première commande", async () => {
+    const f1 = await compte("comptoir@exemple.ch");
+    await f("lier_parrainage('comptoir@exemple.ch', $1)", [code]);
+    const id = await commande(f1, "comptoir@exemple.ch", "079 999 99 91", "95", "prete");
+    await db.query("update commandes set statut_paiement = 'a_encaisser_retrait', moyen_paiement = 'comptoir' where id = $1", [id]);
+    await db.query("update commandes set statut = 'terminee' where id = $1", [id]);
+    expect(await parrainages(f1)).toBe(0);
+    expect(await val<string>("select statut from parrainages where filleul_id = $1", [f1])).toBe("en_attente");
+    await db.query("update commandes set statut_paiement = 'encaisse' where id = $1", [id]);
+    expect([await parrainages(parrain), await parrainages(f1)]).toEqual([1000, 1000]);
+  });
 });
