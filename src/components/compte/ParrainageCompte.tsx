@@ -10,6 +10,7 @@ export function ParrainageCompte({ parrainage, lien }: { parrainage: Donnees; li
   const ids = useId();
   const [copie, setCopie] = useState(false);
   const montant = prixChf(parrainage.montant_centimes);
+  const minimum = prixChf(parrainage.minimum_centimes ?? 0);
 
   async function copier() {
     try {
@@ -24,19 +25,27 @@ export function ParrainageCompte({ parrainage, lien }: { parrainage: Donnees; li
     <div className="parrainage-compte">
       <h3 id={`${ids}-titre`}>Parrainez un proche</h3>
       {parrainage.parraine === "en_attente" && (
-        <p className="aide">Un proche vous a parrainé. {montant} vous attendent après votre première commande livrée ou retirée.</p>
+        <p className="aide">Un proche vous a parrainé. {montant} vous attendent après votre première commande d&apos;au moins {minimum} de plats, livrée ou retirée.</p>
       )}
-      <p className="aide">
-        Envoyez ce lien à un proche qui n&apos;a jamais commandé chez nous. Après sa première commande livrée ou retirée, vous recevez chacun {montant} dans
-        votre cagnotte.
-      </p>
-      <div className="champ">
-        <label htmlFor={`${ids}-lien`}>Votre lien</label>
-        <input id={`${ids}-lien`} readOnly value={lien} onFocus={(e) => e.target.select()} />
-      </div>
-      <button type="button" className="bouton-second" onClick={() => void copier()}>
-        {copie ? "Lien copié" : "Copier le lien"}
-      </button>
+      {parrainage.qualifie === false ? (
+        <p className="aide">
+          Votre lien sera valable après votre première commande d&apos;au moins {minimum} de plats, livrée ou retirée.
+        </p>
+      ) : (
+        <>
+          <p className="aide">
+            Envoyez ce lien à un proche qui n&apos;a jamais commandé chez nous. Après sa première commande d&apos;au moins {minimum} de plats, livrée ou
+            retirée, vous recevez chacun {montant} dans votre cagnotte.
+          </p>
+          <div className="champ">
+            <label htmlFor={`${ids}-lien`}>Votre lien</label>
+            <input id={`${ids}-lien`} readOnly value={lien} onFocus={(e) => e.target.select()} />
+          </div>
+          <button type="button" className="bouton-second" onClick={() => void copier()}>
+            {copie ? "Lien copié" : "Copier le lien"}
+          </button>
+        </>
+      )}
       {(parrainage.credites > 0 || parrainage.en_attente > 0) && (
         <p className="aide" role="status">
           {parrainage.credites > 0 && `${parrainage.credites} proche${parrainage.credites > 1 ? "s" : ""} parrainé${parrainage.credites > 1 ? "s" : ""}. `}

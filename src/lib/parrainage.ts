@@ -10,6 +10,9 @@ export const DUREE_PARRAIN_S = 30 * 24 * 3600;
 export type ParrainageCompte = {
   actif: boolean;
   code: string | null;
+  // Parrain qualifié : une commande remise, payée et au minimum (20261216190000). Absents avant cette migration.
+  qualifie?: boolean;
+  minimum_centimes?: number;
   montant_centimes: number;
   credites: number;
   en_attente: number;

@@ -178,6 +178,8 @@ insert into personnel (email, nom, role) values
 -- Cagnotte des clients (client-compte, 20261216090000) : construite éteinte en vraie base, allumée ici pour les tests.
 -- tests/unit/cagnotte-sql.test.ts vérifie aussi l'interrupteur éteint.
 update reglages set valeur = 'true'::jsonb where cle = 'fidelite_active';
+-- Parrainage (20261216190000) : son propre interrupteur, allumé ici aussi.
+update reglages set valeur = 'true'::jsonb where cle = 'parrainage_actif';
 -- Gérants des tests de bout en bout de la cagnotte (tests/e2e/cagnotte.spec.ts), un par projet Playwright.
 insert into personnel (email, nom, role) values
   ('cagnotte-bureau@laferme.test', 'Cagnotte bureau', 'gerant'),

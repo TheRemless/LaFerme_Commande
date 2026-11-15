@@ -20,7 +20,7 @@ async function compte(email: string, telephone = ""): Promise<string> {
 }
 const adresse = (numero: string) => ({ rue: "Route de Chancy", numero, npa: "1213", localite: "Onex" });
 
-async function commande(compteId: string | null, email: string, telephone: string, numero: string, statut = "terminee"): Promise<string> {
+async function commande(compteId: string | null, email: string, telephone: string, numero: string, statut = "terminee", plats = 4000): Promise<string> {
   n += 1;
   const id = (
     await db.query<{ id: string }>("select id from creer_commande($1)", [
@@ -39,14 +39,14 @@ async function commande(compteId: string | null, email: string, telephone: strin
         zone_numero: 1,
         quand_type: "asap",
         pizzas_seulement: true,
-        sous_total_centimes: 2000,
+        sous_total_centimes: plats,
         frais_centimes: 500,
-        total_centimes: 2500,
+        total_centimes: plats + 500,
         tva_centimes: 63,
         taux_tva_pourcent: 2.6,
         origine: "http://localhost:3000",
         compte_id: compteId,
-        lignes: [{ slug: "pizza-margherita", nom: "Pizza Margherita", station: "pizza", qte: 1, unitaire_centimes: 2000, total_centimes: 2000, choix: {}, retraits: [], note: "" }],
+        lignes: [{ slug: "pizza-margherita", nom: "Pizza Margherita", station: "pizza", qte: 1, unitaire_centimes: plats, total_centimes: plats, choix: {}, retraits: [], note: "" }],
       },
     ])
   ).rows[0].id;
@@ -152,6 +152,10 @@ describe("parrainage", () => {
     const r = await f<{ parrainage_montant_centimes: number; parrainage_plafond_mois: number }>("regler_fidelite($1, $2)", [{ ...base, parrainage_montant_centimes: 1500, parrainage_plafond_mois: 5 }, gerant]);
     expect(r).toMatchObject({ parrainage_montant_centimes: 1500, parrainage_plafond_mois: 5 });
     expect((await f<{ montant_centimes: number }>("parrainage_compte($1)", [parrain])).montant_centimes).toBe(1500);
+    // Le minimum proposé reste une proposition tant qu'il n'est pas changé.
+    expect(await val<boolean>("select proposition from reglages where cle = 'parrainage_minimum_centimes'")).toBe(true);
+    await f("regler_fidelite($1, $2)", [{ ...base, parrainage_minimum_centimes: 2500 }, gerant]);
+    expect(await val<boolean>("select proposition from reglages where cle = 'parrainage_minimum_centimes'")).toBe(false);
   });
 
   it("revue de sécurité : variantes de numéro, téléphone du destinataire, Gmail à points, compte qui a déjà commandé", async () => {
@@ -206,5 +210,59 @@ describe("parrainage", () => {
     expect(await val<string>("select statut from parrainages where filleul_id = $1", [f1])).toBe("en_attente");
     await db.query("update commandes set statut_paiement = 'encaisse' where id = $1", [id]);
     expect([await parrainages(parrain), await parrainages(f1)]).toEqual([1000, 1000]);
+  });
+
+  it("relecture #260 : la chaîne de faux filleuls à CHF 3 est cassée (minimum et parrain qualifié)", async () => {
+    const faux1 = await compte("faux1@domaine-perso.ch");
+    expect(await f<string>("lier_parrainage('faux1@domaine-perso.ch', $1)", [code])).toBe("ok");
+    // Une eau à CHF 3, payée, remise : sous le minimum, rien n'est crédité, le parrainage attend.
+    await commande(faux1, "faux1@domaine-perso.ch", "079 900 00 01", "201", "terminee", 300);
+    expect([await parrainages(parrain), await parrainages(faux1)]).toEqual([0, 0]);
+    expect(await val<string>("select statut from parrainages where filleul_id = $1", [faux1])).toBe("en_attente");
+    // faux1 n'a pas de vraie commande : son lien ne vaut rien.
+    const code1 = await f<string>("code_parrainage($1)", [faux1]);
+    await compte("faux2@domaine-perso.ch");
+    expect(await f<string>("lier_parrainage('faux2@domaine-perso.ch', $1)", [code1])).toBe("parrain_non_qualifie");
+  });
+
+  it("minimum de plats nets : en dessous, le parrainage attend la commande suivante", async () => {
+    const filleul = await compte("minimum@exemple.ch");
+    await f("lier_parrainage('minimum@exemple.ch', $1)", [code]);
+    await commande(filleul, "minimum@exemple.ch", "079 901 00 01", "210", "terminee", 2500);
+    expect(await parrainages(filleul)).toBe(0);
+    await commande(filleul, "minimum@exemple.ch", "079 901 00 01", "210", "terminee", 3500);
+    expect([await parrainages(parrain), await parrainages(filleul)]).toEqual([1000, 1000]);
+  });
+
+  it("parrain sans commande remise et payée au minimum : lien refusé", async () => {
+    const nouveau = await compte("sans-commande@exemple.ch");
+    const c = await f<string>("code_parrainage($1)", [nouveau]);
+    await compte("ami@exemple.ch");
+    expect(await f<string>("lier_parrainage('ami@exemple.ch', $1)", [c])).toBe("parrain_non_qualifie");
+    expect((await f<{ qualifie: boolean }>("parrainage_compte($1)", [nouveau])).qualifie).toBe(false);
+    expect((await f<{ qualifie: boolean }>("parrainage_compte($1)", [parrain])).qualifie).toBe(true);
+  });
+
+  it("interrupteur à part : le parrainage éteint, la cagnotte continue", async () => {
+    await db.query("update reglages set valeur = 'false' where cle = 'parrainage_actif'");
+    await compte("eteint-seul@exemple.ch");
+    expect(await f<string>("lier_parrainage('eteint-seul@exemple.ch', $1)", [code])).toBe("desactive");
+    expect((await f<{ actif: boolean }>("parrainage_compte($1)", [parrain])).actif).toBe(false);
+    const autre = await compte("gain-seul@exemple.ch");
+    await commande(autre, "gain-seul@exemple.ch", "079 902 00 01", "220");
+    expect(await val<number>("select solde_cagnotte($1)", [autre])).toBe(200);
+  });
+
+  it("reprise manquée faute de solde : retenue dès qu'un montant revient", async () => {
+    const filleul = await compte("depense@exemple.ch");
+    await f("lier_parrainage('depense@exemple.ch', $1)", [code]);
+    const id = await commande(filleul, "depense@exemple.ch", "079 903 00 01", "230");
+    // 10.00 de parrainage + 2.00 de gain, tout dépensé.
+    await db.query("insert into cagnotte_mouvements (compte_id, type, montant_centimes) values ($1, 'expire', -1200)", [filleul]);
+    await db.query("update commandes set statut_paiement = 'rembourse' where id = $1", [id]);
+    expect(await val<number>("select solde_cagnotte($1)", [filleul])).toBe(0);
+    const gerant = (await db.query<{ id: string }>("select id from personnel where email = 'equipe@laferme.test'")).rows[0].id;
+    // Le gérant ajoute 15.00 : 10.00 de parrainage repris ; le solde renvoyé est le vrai solde.
+    expect(await f<number>("ajuster_cagnotte('depense@exemple.ch', 1500, 'Geste', $1)", [gerant])).toBe(500);
   });
 });
