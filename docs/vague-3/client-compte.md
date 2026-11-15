@@ -117,3 +117,19 @@ Les règles sont toutes en base :
 Au back-office, la rubrique Cagnotte sous les Réglages généraux règle le taux (3 à 10 %), le seuil et les soirs doublés (jour de la semaine ou date, commandes promises dès 15h). Elle affiche aussi le montant dû aux clients pour la fiduciaire. La fiche d'un client avec compte a un onglet Cagnotte : solde, historique, ajustement par le gérant (CHF 100 au plus, motif obligatoire, journalisé).
 
 Compta : la cagnotte utilisée est une réduction de prix. Total et TVA de la commande sont déjà nets. La clôture et l'export Crésus n'ont donc pas changé.
+
+## Parrainage
+
+Sous le même interrupteur que la cagnotte (migration `20261216100000_parrainage.sql`). Dans son compte, le client trouve son lien personnel `/parrain/<code>`. Le code compte 8 caractères, l'adresse ne porte aucune donnée du client. Le lien pose un cookie de 30 jours, puis mène à l'accueil. Le compte créé ensuite est rattaché à la connexion par code.
+
+La base refuse un compte de plus de 24 heures, un e-mail qui a déjà commandé, un deuxième parrain, l'auto-parrainage et plus de 10 parrainages par mois (réglable). À la première commande livrée ou retirée du filleul, elle revérifie le téléphone et l'adresse de livraison. S'ils sont ceux du parrain ou ont servi à un autre client, le parrainage est refusé sans crédit. Sinon, chacun reçoit CHF 10 (réglable) dans sa cagnotte. L'export du compte donne le code, le nombre de proches parrainés et l'état du parrainage reçu, jamais le nom de l'autre personne.
+
+Durcissements après la revue de sécurité :
+
+- les téléphones se comparent sur leurs 9 derniers chiffres, celui de la personne qui reçoit compris ;
+- les boîtes Gmail se comparent sans points ni « +étiquette » ;
+- un compte qui a déjà commandé n'est pas rattaché ;
+- le crédit n'a lieu qu'à la première commande remise, payée sans remboursement. Il est repris si cette commande est remboursée en entier ;
+- un lien suivi ne remplace pas un parrain déjà retenu.
+
+Reste ouvert, pour Jérémy : à emporter, le téléphone n'est jamais vérifié. Une personne décidée peut se parrainer elle-même avec une nouvelle boîte e-mail et un autre numéro. Les parades possibles sont une vérification par SMS, un montant minimum pour la commande qui déclenche le crédit, ou le crédit réservé aux livraisons. Le plafond de 10 par mois limite la perte.

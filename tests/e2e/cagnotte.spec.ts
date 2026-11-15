@@ -21,15 +21,16 @@ async function codeClient(page: Page): Promise<string> {
   return note.innerText();
 }
 
-async function connecterClient(browser: Browser): Promise<Page> {
+async function connecterClient(browser: Browser, adresse = email, avant?: (page: Page) => Promise<void>): Promise<Page> {
   const page = await (await browser.newContext({ baseURL: SITE, viewport: { width: 390, height: 844 } })).newPage();
   await page.setExtraHTTPHeaders({ "x-forwarded-for": `10.9.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}` });
   await page.addInitScript(() => {
     localStorage.setItem("laferme.choix.v1", JSON.stringify({ mode: "retrait", quand: { type: "asap" }, heureSimulee: "2026-11-10T19:05", enregistreLe: Date.now() }));
     localStorage.setItem("laferme.panier.v1", JSON.stringify({ le: Date.now(), lignes: [{ slug: "pizza-margherita", qte: 2, choix: {}, retraits: [], note: "" }] }));
   });
+  if (avant) await avant(page);
   await page.goto("/compte");
-  await page.getByLabel("E-mail", { exact: true }).fill(email);
+  await page.getByLabel("E-mail", { exact: true }).fill(adresse);
   await page.getByRole("button", { name: "Recevoir un code" }).click();
   await page.getByLabel("Code à 6 chiffres").fill(await codeClient(page));
   await page.getByRole("button", { name: "Me connecter" }).click();
@@ -38,24 +39,25 @@ async function connecterClient(browser: Browser): Promise<Page> {
 }
 
 // Commande en ligne passée avec la session du client, payée, puis acceptée, prête et retirée à la tablette.
-async function commandeRemise(): Promise<string> {
-  const rep = await client.request.post("/api/commandes", {
+async function commandeRemise(page = client, qui = { prenom: "", email: "", telephone: "079 000 00 00" }): Promise<string> {
+  const p = qui.prenom || prenom;
+  const rep = await page.request.post("/api/commandes", {
     headers: ORIGINE,
     data: {
-      cle: `cagnotte-${prenom}-${Date.now()}`,
+      cle: `cagnotte-${p}-${Date.now()}`,
       mode: "retrait",
       moyen: "en_ligne",
       quand: { type: "asap" },
       heure: "2026-11-10T19:05",
-      client: { prenom, nom: "Test", telephone: "079 000 00 00", email },
+      client: { prenom: p, nom: "Test", telephone: qui.telephone, email: qui.email || email },
       lignes: [{ slug: "pizza-margherita", qte: 2, choix: {}, retraits: [], note: "" }],
     },
   });
   expect(rep.ok(), await rep.text()).toBe(true);
   const id = ((await rep.json()) as { redirection: string }).redirection.match(/paiement-test\/([0-9a-f-]+)/)![1];
-  expect((await client.request.post("/api/paiement-test", { data: { commande: id, issue: "paye" } })).ok()).toBe(true);
+  expect((await page.request.post("/api/paiement-test", { data: { commande: id, issue: "paye" } })).ok()).toBe(true);
   const file = (await (await gestion.request.get("/api/tablette/file")).json()) as { commandes: { id: string; client_prenom: string; heure_proposee: string }[] };
-  const c = file.commandes.find((x) => x.client_prenom === prenom)!;
+  const c = file.commandes.find((x) => x.client_prenom === p)!;
   for (const corps of [
     { action: "accepter", heure: c.heure_proposee, de: "nouvelle" },
     { action: "statut", vers: "prete", de: "acceptee" },
@@ -180,4 +182,33 @@ test("deux paiements en même temps ne dépensent pas deux fois le même solde",
   expect(reponses.filter((x) => x.redirection).length).toBe(1);
   expect(reponses.find((x) => x.erreur)?.erreur).toMatch(/cagnotte n'atteint plus le montant minimum/);
   expect(await soldeAffiche()).toBeGreaterThanOrEqual(0);
+});
+
+test("parrainer : CHF 10 au parrain et au filleul après la première commande retirée du filleul", async ({ browser }) => {
+  await client.goto("/compte");
+  const bloc = client.locator(".parrainage-compte");
+  await expect(bloc).toContainText("Envoyez ce lien à un proche qui n'a jamais commandé chez nous.");
+  const lien = await bloc.getByLabel("Votre lien").inputValue();
+  expect(lien).toMatch(/\/parrain\/[A-HJ-NP-Z2-9]{8}$/);
+  // Rien du client dans le lien : le code seul.
+  expect(lien).not.toContain(email.split("@")[0]);
+  await client.screenshot({ path: capture("parrainage-compte-390.png"), fullPage: true });
+  const avantParrain = await soldeAffiche();
+
+  // Le proche ouvre le lien, puis crée son compte avec une adresse jamais vue.
+  const filleulEmail = `filleul-${passage()}-${Math.random().toString(36).slice(2, 7)}@laferme.test`;
+  const filleul = await connecterClient(browser, filleulEmail, async (page) => {
+    await page.goto(new URL(lien).pathname);
+    await expect(page).toHaveURL(/\/$/);
+  });
+  await expect(filleul.locator(".parrainage-compte")).toContainText("Un proche vous a parrainé.");
+  const telephone = `079 ${String(Math.floor(Math.random() * 1e7)).padStart(7, "0").replace(/(\d{3})(\d{2})(\d{2})/, "$1 $2 $3")}`;
+  await commandeRemise(filleul, { prenom: `Filleul${passage()}`, email: filleulEmail, telephone });
+
+  await filleul.goto("/compte");
+  await filleul.locator(".cagnotte-compte").getByText("Historique").click();
+  await expect(filleul.locator(".cagnotte-compte")).toContainText("Parrainage");
+  expect(await soldeAffiche()).toBe(avantParrain + 1000);
+  await expect(client.locator(".parrainage-compte")).toContainText("1 proche parrainé.");
+  await filleul.context().close();
 });

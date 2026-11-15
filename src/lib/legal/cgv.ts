@@ -45,6 +45,8 @@ export const CGV: PageLegale = {
         "Dès CHF 10, ou le montant affiché dans votre compte, vous déduisez la cagnotte au paiement en ligne, en tout ou en partie, jusqu'au prix des plats. CHF 0.50 au moins restent à payer en ligne. Elle ne sert ni au comptoir ni pour une commande passée par téléphone.",
         "La cagnotte utilisée réduit le prix de la commande. Elle revient dans votre cagnotte si la commande est refusée ou annulée, ou si le paiement échoue. Un remboursement rend l'argent payé, pas la cagnotte.",
         "Elle expire 12 mois après votre dernière commande. Un e-mail vous prévient 30 jours avant, sauf si vous avez décoché ce rappel dans votre compte.",
+        "Parrainage. Votre compte vous donne un lien à envoyer à un proche qui n'a jamais commandé chez nous. Le proche crée son compte depuis ce lien avec une adresse e-mail encore inconnue du restaurant. Après sa première commande livrée ou retirée, vous recevez chacun CHF 10 dans votre cagnotte, ou le montant affiché dans votre compte.",
+        "Rien n'est crédité si le téléphone ou l'adresse de livraison de cette commande sont les vôtres ou ont déjà servi pour une autre commande. Le crédit est repris si cette commande est remboursée en entier. Un proche n'a qu'un seul parrain. Un compte parraine au plus 10 proches par mois.",
       ],
     },
     {

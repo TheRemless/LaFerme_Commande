@@ -13,8 +13,14 @@ function fonctionAbsente(e: unknown): boolean {
 
 // Export : tout ce que le compte garde, plus ce que le restaurant note sur le client (notes internes, marque).
 export async function exporterCompte(compte: { id: string; email: string }, ipCourte: string): Promise<unknown> {
-  const donnees = await fonctionSql<Record<string, unknown> | null>("export_compte", { p_compte: compte.id, p_ip_court: ipCourte });
+  let donnees = await fonctionSql<Record<string, unknown> | null>("export_compte", { p_compte: compte.id, p_ip_court: ipCourte });
   if (!donnees) return donnees;
+  // Parrainage (vague 3) : son code, combien de proches parrainés, et s'il a été parrainé. Jamais qui.
+  try {
+    donnees = { ...donnees, parrainage: await fonctionSql<unknown>("parrainage_compte", { p_compte: compte.id }) };
+  } catch (e) {
+    if (!fonctionAbsente(e)) throw e;
+  }
   try {
     return { ...donnees, restaurant: await fonctionSql<unknown>("donnees_gestion_client", { p_email: compte.email }) };
   } catch (e) {

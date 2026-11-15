@@ -6,6 +6,8 @@ import { codeValide, emailNormalise, empreinte, ipDe } from "@/lib/comptes/secur
 import { libelleAppareil } from "@/lib/comptes/appareil";
 import { fonctionSql } from "@/lib/db/serveur";
 import { jetonSession, nomCookie, optionsCookie } from "@/lib/comptes/session";
+import { COOKIE_PARRAIN, codeParrainValide, lierParrainage } from "@/lib/parrainage";
+import { cookies } from "next/headers";
 
 // Vérification du code. Bon : nouvelle session dans un cookie neuf, l'ancienne est fermée.
 // Avec le jeton d'une commande, l'e-mail est celui de la commande, qui est rattachée au compte.
@@ -25,7 +27,17 @@ export async function POST(requete: Request) {
   await fonctionSql("noter_appareil", { p_session_hache: empreinte("session", r.jeton), p_appareil: libelleAppareil(requete.headers.get("user-agent")) }).catch(
     (e) => console.error(`Appareil non noté : ${e instanceof Error ? e.message : e}`),
   );
+  // Parrainage (vague 3) : arrivé par le lien d'un client, le compte qui vient d'être créé lui est rattaché. La base
+  // refuse un compte ancien, un e-mail qui a déjà commandé, un deuxième parrain. Le cookie part dans tous les cas.
+  const parrain = codeParrainValide((await cookies()).get(COOKIE_PARRAIN)?.value);
+  if (parrain) {
+    await lierParrainage(email, parrain).catch((e) => {
+      const m = e instanceof Error ? e.message : String(e);
+      if (!/does not exist|Could not find the function/i.test(m)) console.error(`Parrainage non rattaché : ${m}`);
+    });
+  }
   const rep = NextResponse.json({ connecte: true }, { headers: { "Cache-Control": "no-store" } });
   rep.cookies.set(nomCookie(), r.jeton, optionsCookie());
+  if (parrain) rep.cookies.delete(COOKIE_PARRAIN);
   return rep;
 }

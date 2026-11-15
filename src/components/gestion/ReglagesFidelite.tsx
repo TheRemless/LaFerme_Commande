@@ -17,6 +17,8 @@ type Reglages = {
   du_centimes: number;
   comptes: number;
   calcule_le: string;
+  parrainage_montant_centimes?: number;
+  parrainage_plafond_mois?: number;
 };
 
 const JOURS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
@@ -49,7 +51,14 @@ function Formulaire({ r, recharger }: { r: Reglages; recharger: () => Promise<vo
   const notifier = useNotifier();
   const [date, setDate] = useState("");
   const f = useFormulaire(
-    { taux: String(r.taux_pourcent), seuil: (r.seuil_centimes / 100).toFixed(2), jours: r.soirs_doubles.jours, dates: r.soirs_doubles.dates },
+    {
+      taux: String(r.taux_pourcent),
+      seuil: (r.seuil_centimes / 100).toFixed(2),
+      jours: r.soirs_doubles.jours,
+      dates: r.soirs_doubles.dates,
+      parrainage: ((r.parrainage_montant_centimes ?? 1000) / 100).toFixed(2),
+      plafond: String(r.parrainage_plafond_mois ?? 10),
+    },
     {
       valider: (v) => {
         const e: Record<string, string> = {};
@@ -57,6 +66,10 @@ function Formulaire({ r, recharger }: { r: Reglages; recharger: () => Promise<vo
         const s = Number(v.seuil.replace(",", "."));
         if (!Number.isInteger(t) || t < 3 || t > 10) e.taux = "Un taux de 3 à 10 %.";
         if (!Number.isFinite(s) || s < 0 || s > 50) e.seuil = "De CHF 0 à CHF 50.";
+        const pm = Number(v.parrainage.replace(",", "."));
+        const pp = Number(v.plafond);
+        if (!Number.isFinite(pm) || pm < 0 || pm > 50) e.parrainage = "De CHF 0 à CHF 50.";
+        if (!Number.isInteger(pp) || pp < 0 || pp > 100) e.plafond = "De 0 à 100.";
         return e;
       },
       enregistrer: (v) =>
@@ -64,6 +77,8 @@ function Formulaire({ r, recharger }: { r: Reglages; recharger: () => Promise<vo
           taux_pourcent: Number(v.taux),
           seuil_centimes: Math.round(Number(v.seuil.replace(",", ".")) * 100),
           soirs_doubles: { jours: v.jours, dates: v.dates },
+          parrainage_montant_centimes: Math.round(Number(v.parrainage.replace(",", ".")) * 100),
+          parrainage_plafond_mois: Number(v.plafond),
         }),
       apres: async () => {
         notifier({ texte: "Cagnotte enregistrée.", ton: "succes" });
@@ -123,6 +138,15 @@ function Formulaire({ r, recharger }: { r: Reglages; recharger: () => Promise<vo
           <button type="button" className="bo-bouton bo-bouton-petit" onClick={ajouterDate}>
             Ajouter
           </button>
+        </fieldset>
+        <fieldset className="bo-reg-groupe">
+          <legend>Parrainage</legend>
+          <Champ libelle="Montant pour le parrain et pour le filleul (CHF)" aide="Crédité à chacun après la première commande livrée ou retirée du filleul." erreur={f.erreurs.parrainage}>
+            {(a) => <input {...a} inputMode="decimal" value={v.parrainage} onChange={(e) => f.changer("parrainage", e.target.value)} />}
+          </Champ>
+          <Champ libelle="Parrainages par client et par mois, au plus" erreur={f.erreurs.plafond}>
+            {(a) => <input {...a} inputMode="numeric" value={v.plafond} onChange={(e) => f.changer("plafond", e.target.value)} />}
+          </Champ>
         </fieldset>
       </fieldset>
       <BarreEnregistrer etat={f.etat} message={f.message} modifie={f.modifie} reinitialiser={f.reinitialiser} libelle="Mettre à jour la cagnotte" />

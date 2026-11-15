@@ -35,6 +35,9 @@ export type ReglagesFidelite = {
   du_centimes: number;
   comptes: number;
   calcule_le: string;
+  // Parrainage (20261216100000) : absents avant cette migration.
+  parrainage_montant_centimes?: number;
+  parrainage_plafond_mois?: number;
 };
 
 // Montant demandé par le navigateur, en centimes : un entier positif, sinon rien. La base le borne.
@@ -66,7 +69,10 @@ export const reglagesFidelite = () => fonctionSql<ReglagesFidelite>("reglages_fi
 // Montant dû aux clients à la fin d'un jour (bilan de la fiduciaire, par exemple au 31.12).
 export const duCagnottesAu = (jour: string) => fonctionSql<{ au: string; du_centimes: number; comptes: number }>("du_cagnottes_au", { p_jour: jour });
 
-export const reglerFidelite = (p: Pick<ReglagesFidelite, "taux_pourcent" | "seuil_centimes" | "soirs_doubles">, personnel: string) =>
+export const reglerFidelite = (
+  p: Pick<ReglagesFidelite, "taux_pourcent" | "seuil_centimes" | "soirs_doubles" | "parrainage_montant_centimes" | "parrainage_plafond_mois">,
+  personnel: string,
+) =>
   fonctionSql<ReglagesFidelite>("regler_fidelite", { p, p_personnel: personnel });
 
 export const cagnotteClient = (email: string) =>
@@ -92,7 +98,7 @@ export function messageAjustement(e: unknown): string | null {
 export function messageReglagesFidelite(e: unknown): string | null {
   const m = e instanceof Error ? /fidelite_refusee:([a-z]+)/.exec(e.message) : null;
   if (!m) return null;
-  return ({ taux: "Taux de 3 à 10 %.", seuil: "Seuil de CHF 0 à CHF 50.", soirs: "Soirs doublés : jours de la semaine et dates (60 au plus)." } as Record<string, string>)[m[1]];
+  return ({ taux: "Taux de 3 à 10 %.", seuil: "Seuil de CHF 0 à CHF 50.", soirs: "Soirs doublés : jours de la semaine et dates (60 au plus).", parrainage: "Parrainage : de CHF 0 à CHF 50, et de 0 à 100 par mois." } as Record<string, string>)[m[1]];
 }
 
 // Aperçu au panier (affichage seulement, la base recalcule au paiement) : ce qu'un compte peut utiliser sur cette
