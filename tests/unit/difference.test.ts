@@ -199,4 +199,54 @@ describe("changer les plats d'une commande payée", () => {
       process.env.STRIPE_SECRET_KEY = "sk_test_factice";
     }
   });
+
+  it("annulée après une baisse qui a vidé le paiement de départ : rien redemandé sur ce paiement, le reste du complément part", async () => {
+    const { modifierPlats, apercuDifference } = await import("@/lib/difference");
+    const { rembourserCommande } = await import("@/lib/commandes");
+    delete process.env.STRIPE_SECRET_KEY;
+    try {
+      const c = await commandePayee([MARGHERITA, COCA]);
+      const db = await baseLocale();
+      const pi = `pi_doublure_${c.id}`;
+      const piComplement = `pi_doublure_complement_${c.id}`;
+      const a = await apercuDifference(c.id, { lignes: [COCA] });
+      if (!a.ok) throw new Error(a.message);
+      const baisse = -a.difference;
+      // Montants d'essai : payé 1.00 au départ, puis la valeur de la baisse par le lien. La baisse vide le départ et
+      // prend le reste sur le complément ; il reste 1.00 sur le complément.
+      await db.query("update commandes set stripe_payment_intent = $2, total_centimes = 100 where id = $1", [c.id, pi]);
+      const k = (await db.query<{ id: string }>(
+        "insert into complements (commande_id, montant_centimes, tva_centimes, moyen, statut, moyen_encaissement, stripe_payment_intent, encaisse_le) values ($1, $2, 0, 'en_ligne', 'encaisse', 'stripe', $3, now()) returning id",
+        [c.id, baisse, piComplement],
+      )).rows[0].id;
+      const r = await modifierPlats(c.id, { cle: `vide-${randomUUID()}`, de: "acceptee", lignes: [COCA] }, gerant, "http://localhost:3000");
+      expect(r).toMatchObject({ ok: true });
+      const rendu = async (p: string) =>
+        (await db.query<{ s: number }>("select coalesce(sum(montant_centimes), 0)::int as s from remboursements_doublure where payment_intent = $1", [p])).rows[0].s;
+      expect(await rendu(pi)).toBe(100);
+      expect(await rendu(piComplement)).toBe(baisse - 100);
+
+      // La doublure refuse comme Stripe : plus rien sur le départ, pas plus que le reste du complément.
+      const { remboursementSimule } = await import("@/lib/paiement/passerelle");
+      await expect(remboursementSimule(pi, { cle: `essai-${c.id}` })).rejects.toMatchObject({ code: "charge_already_refunded" });
+      await expect(remboursementSimule(piComplement, { montantCentimes: 101, cle: `essai-${c.id}` })).rejects.toMatchObject({ code: "amount_too_large" });
+
+      // Annulée : le départ n'est pas redemandé, le 1.00 restant du complément part, le client en est prévenu.
+      expect(await rembourserCommande(c.id, "Fermé plus tôt")).toMatchObject({ rembourse: true });
+      expect(await rendu(pi)).toBe(100);
+      expect(await rendu(piComplement)).toBe(baisse);
+      const apres = (await db.query<{ rembourse_le: string | null; statut_paiement: string }>(
+        "select k.rembourse_le, c.statut_paiement from complements k join commandes c on c.id = k.commande_id where k.id = $1", [k])).rows[0];
+      expect(apres.rembourse_le).not.toBeNull();
+      expect(apres.statut_paiement).toBe("rembourse");
+      expect((await db.query("select 1 from remboursements where cle = $1", [`refus-${c.id}`])).rows).toHaveLength(0);
+      const m = (await db.query<{ texte: string }>("select texte from courriels where commande_id = $1 and sujet like '%annulée%' order by envoye_le desc limit 1", [c.id])).rows[0];
+      expect(m.texte).toContain("Nous vous remboursons CHF 1.00");
+      // Une deuxième annulation ne rend rien de plus.
+      expect(await rembourserCommande(c.id, "Fermé plus tôt")).toMatchObject({ rembourse: false });
+      expect(await rendu(piComplement)).toBe(baisse);
+    } finally {
+      process.env.STRIPE_SECRET_KEY = "sk_test_factice";
+    }
+  });
 });

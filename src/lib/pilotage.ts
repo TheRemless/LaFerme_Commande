@@ -40,6 +40,8 @@ export type Synthese = {
     faits_centimes: number;
     faits_en_ligne_centimes: number;
     faits_especes_centimes: number;
+    // Rendu sur le terminal de carte (20261216140000), absent avant.
+    faits_terminal_centimes?: number;
     en_cours: number;
     en_cours_centimes: number;
     echecs: number;

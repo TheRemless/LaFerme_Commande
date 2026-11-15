@@ -146,6 +146,7 @@ describe("synthèse des ventes d'une période", () => {
       faits_centimes: 1500,
       faits_en_ligne_centimes: 1000,
       faits_especes_centimes: 500,
+      faits_terminal_centimes: 0,
       en_cours: 1,
       en_cours_centimes: 300,
       echecs: 1,

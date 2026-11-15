@@ -1,14 +1,14 @@
 import "server-only";
 import { chargerCatalogue } from "@/lib/catalogue";
 import { estimationAsap } from "@/lib/estimation";
-import { courrielConfirmation, courrielManque, courrielRemboursement, courrielRemboursementGeste } from "@/lib/courriel/modeles";
+import { courrielConfirmation, courrielManque, courrielPaiementHorsCommande, courrielRemboursement, courrielRemboursementGeste } from "@/lib/courriel/modeles";
 import { prixChf } from "@/lib/prix";
 import { envoyerCourriel } from "@/lib/courriel/envoi";
 import { chargerConfigService } from "@/lib/config-service";
 import { appliquerPaiement, commandeParId, fonctionSql, type Commande } from "@/lib/db/serveur";
 import type { Catalogue } from "@/lib/panier";
 import { pauseEnCours, quandPossible, type ConfigService } from "@/lib/service";
-import { type EtatRemboursement, paiementDisponible, passerelle, remboursementSimule } from "@/lib/paiement/passerelle";
+import { type EtatRemboursement, paiementDisponible, paiementSimule, passerelle, remboursementSimule } from "@/lib/paiement/passerelle";
 import { alerter } from "@/lib/surveillance";
 import { signalerTablette } from "@/lib/tablette";
 
@@ -69,16 +69,34 @@ async function noterAvertissements(c: Commande): Promise<void> {
 
 export type PreuvePaiement = { sessionId: string; montantCentimes: number | null; devise: string | null; paymentIntent?: string };
 
-// Un paiement ne confirme la commande que s'il vient de sa session en cours, en francs, pour son montant exact.
-// Sinon (ancienne session, lien de paiement étranger, montant différent) : rien n'est confirmé et on le signale.
+// Un paiement confirme la commande s'il est en francs, au montant exact, et vient de sa session en cours. Deux
+// onglets (le client paie l'ancienne session, encore ouverte, alors que la commande attend toujours) : la session
+// payée confirme la commande si elle a été créée pour elle, devient la session de référence, et la courante est
+// fermée. Tout autre paiement réussi (commande annulée, refusée ou déjà payée, montant différent, session
+// inconnue) ne la confirme pas : il est remboursé, avec une alerte au gérant et un e-mail au client, jamais gardé
+// en silence.
 export async function confirmerPaiement(commandeId: string, evenement: string, preuve: PreuvePaiement): Promise<boolean> {
   const c = await commandeParId(commandeId);
   if (!c) return false;
-  if (c.stripe_session_id !== preuve.sessionId || preuve.devise?.toLowerCase() !== "chf" || preuve.montantCentimes !== c.total_centimes) {
-    console.error(`Paiement non rapproché pour la commande ${c.numero} : session ou montant différents, à vérifier dans Stripe.`);
-    return false;
+  const montantJuste = preuve.devise?.toLowerCase() === "chf" && preuve.montantCentimes === c.total_centimes;
+  let applique = false;
+  if (c.stripe_session_id === preuve.sessionId && montantJuste) {
+    applique = await appliquerPaiement(evenement, commandeId, "paye", preuve.paymentIntent, preuve.montantCentimes ?? undefined);
+  } else if (montantJuste && c.statut_paiement === "en_attente") {
+    const r = await fonctionSql<{ applique: boolean; ancienne_session?: string | null }>("confirmer_autre_session", {
+      p_evenement: evenement,
+      p_commande: commandeId,
+      p_session: preuve.sessionId,
+      p_payment_intent: preuve.paymentIntent ?? null,
+      p_montant: preuve.montantCentimes,
+    }).catch((e) => {
+      console.error(`Paiement d'une autre session non appliqué (${c.numero}) : ${e instanceof Error ? e.message : e}`);
+      return { applique: false, ancienne_session: null };
+    });
+    applique = r.applique;
+    // La session devenue inutile est fermée : le client ne peut plus la payer. Payée quand même, elle sera remboursée.
+    if (applique && r.ancienne_session) await passerelle().expirerSession(r.ancienne_session).catch(() => undefined);
   }
-  const applique = await appliquerPaiement(evenement, commandeId, "paye", preuve.paymentIntent, preuve.montantCentimes);
   if (applique) {
     const apres = await commandeParId(commandeId);
     if (apres) {
@@ -86,12 +104,100 @@ export async function confirmerPaiement(commandeId: string, evenement: string, p
       await noterAvertissements(apres).catch((e) => console.error(`Avertissement non noté pour la commande ${apres.numero} : ${e instanceof Error ? e.message : e}`));
       await envoyerConfirmation(apres);
     }
+    return true;
   }
-  return applique;
+  // Pas appliqué. Ce paiement a déjà confirmé la commande (événement rejoué, réconciliation puis webhook) : rien
+  // à faire. Une session ne se paie qu'une fois : même session, même paiement.
+  const apres = (await commandeParId(commandeId)) ?? c;
+  const dejaPris = apres.statut_paiement !== "en_attente" && apres.statut_paiement !== "echec" &&
+    (apres.stripe_session_id === preuve.sessionId || (preuve.paymentIntent !== undefined && apres.stripe_payment_intent === preuve.paymentIntent));
+  if (dejaPris) return false;
+  await rembourserPaiementOrphelin(apres, preuve);
+  return false;
+}
+
+// Paiement réussi qui ne confirme pas sa commande : noté une fois (paiements_orphelins), remboursé en entier par son
+// propre paiement Stripe (clé d'idempotence remboursement-<payment_intent> : jamais deux fois). Alerte et e-mail au
+// premier passage seulement ; un webhook rejoué retente le remboursement s'il n'est pas noté fait.
+async function rembourserPaiementOrphelin(c: Commande, preuve: PreuvePaiement): Promise<void> {
+  const pi = preuve.paymentIntent;
+  if (!pi) {
+    console.error(`Paiement sans identifiant pour la commande ${c.numero} : à vérifier dans Stripe (session ${preuve.sessionId}).`);
+    return;
+  }
+  const note = await fonctionSql<{ nouveau: boolean; a_rembourser: boolean }>("noter_paiement_orphelin", {
+    p_payment_intent: pi,
+    p_commande: c.id,
+    p_session: preuve.sessionId,
+    p_montant: preuve.montantCentimes,
+  }).catch((e) => {
+    console.error(`Paiement hors commande non noté (${c.numero}) : ${e instanceof Error ? e.message : e}`);
+    return { nouveau: true, a_rembourser: true };
+  });
+  if (!note.a_rembourser) return;
+  let rembourse = false;
+  let remboursement: string | null = null;
+  try {
+    const r = (await remboursementSimule(pi)) ?? (await passerelle().rembourser(pi));
+    rembourse = r.statut !== "failed" && r.statut !== "canceled";
+    remboursement = r.id;
+  } catch (e) {
+    // Déjà remboursé en entier (essai précédent coupé avant d'être noté, geste fait dans Stripe) : c'est fait, pas
+    // une erreur à relancer. Stripe et sa doublure le disent par charge_already_refunded.
+    if (dejaRembourse(e)) {
+      rembourse = true;
+      remboursement = "deja_rembourse";
+    } else {
+      console.error(`Remboursement du paiement hors commande ${c.numero} impossible : ${e instanceof Error ? e.message : e}`);
+    }
+  }
+  if (rembourse && remboursement) {
+    await fonctionSql("marquer_orphelin_rembourse", { p_payment_intent: pi, p_remboursement: remboursement }).catch((e) =>
+      console.error(`Remboursement du paiement hors commande ${c.numero} fait, mais pas noté : ${e instanceof Error ? e.message : e}`),
+    );
+  }
+  if (!note.nouveau) return;
+  const montant = preuve.montantCentimes ?? c.total_centimes;
+  const cas =
+    c.statut_paiement === "paye" || c.statut_paiement === "encaisse"
+      ? "deja_payee"
+      : c.statut_paiement !== "en_attente"
+        ? "annulee"
+        : c.stripe_session_id === preuve.sessionId
+          ? "montant"
+          : "ancien_lien";
+  const pourquoi = {
+    deja_payee: "déjà payée par un autre paiement",
+    ancien_lien: "par une session de paiement qui n'est plus la sienne (ancien onglet)",
+    montant: "d'un montant ou d'une devise qui ne sont pas les siens",
+    annulee: `qui ne l'attendait plus (${c.statut})`,
+  }[cas];
+  await alerter(`Commande ${c.numero} : paiement en trop ${rembourse ? "remboursé" : "à rembourser"}`, [
+    `Un paiement de ${prixChf(montant)} est arrivé pour la commande ${c.numero}, ${pourquoi}.`,
+    rembourse
+      ? "Il est remboursé en entier et le client est prévenu par e-mail. Rien à faire."
+      : `Le remboursement n'est pas passé. Remboursez-le depuis Stripe (paiement ${pi}). Le client est prévenu par e-mail.`,
+  ], "alerte", "remboursement").catch((e) => console.error(`Alerte non envoyée : ${e instanceof Error ? e.message : e}`));
+  await envoyerCourriel({ commandeId: c.id, destinataire: c.client_email, ...courrielPaiementHorsCommande(c, montant, cas, rembourse) }).catch((e) =>
+    console.error(`Courriel du paiement remboursé non envoyé pour la commande ${c.numero} : ${e instanceof Error ? e.message : e}`),
+  );
+}
+
+function dejaRembourse(e: unknown): boolean {
+  const code = e && typeof e === "object" && "code" in e ? (e as { code?: unknown }).code : undefined;
+  return code === "charge_already_refunded" || (e instanceof Error && e.message.includes("charge_already_refunded"));
 }
 
 // Seule la session en cours de la commande peut l'annuler : l'expiration d'un ancien essai ne compte pas.
+// Vérifié en base sous le verrou de la commande (annuler_paiement_session) : une nouvelle session liée entre la
+// lecture et l'annulation l'emporte. Avant la migration 20261216150000 : contrôle ici seulement.
 export async function annulerPaiement(commandeId: string, evenement: string, sessionId: string): Promise<boolean> {
+  try {
+    return await fonctionSql<boolean>("annuler_paiement_session", { p_evenement: evenement, p_commande: commandeId, p_session: sessionId });
+  } catch (e) {
+    const m = e instanceof Error ? e.message : String(e);
+    if (!/does not exist|Could not find the function/i.test(m)) throw e;
+  }
   const c = await commandeParId(commandeId);
   if (!c || c.stripe_session_id !== sessionId) return false;
   return appliquerPaiement(evenement, commandeId, "echec");
@@ -128,22 +234,35 @@ export async function reconcilier(c: Commande): Promise<Commande> {
 export async function rembourserCommande(commandeId: string, motif: string): Promise<{ rembourse: boolean }> {
   const c = await commandeParId(commandeId);
   if (!c || c.moyen_paiement !== "en_ligne" || c.statut_paiement !== "paye" || !c.stripe_payment_intent) return { rembourse: false };
-  const r = remboursementSimule(c.stripe_payment_intent) ?? (await passerelle().rembourser(c.stripe_payment_intent));
-  // Stripe a refusé tout de suite : rien n'est rendu (la tablette propose de recommencer).
-  if (r.statut === "failed" || r.statut === "canceled") {
-    console.error(`Remboursement de la commande ${c.numero} refusé par Stripe (${r.statut}).`);
-    return { rembourse: false };
+  // Seulement ce qui reste du paiement de départ (relecture de qualite sur #257) : après une baisse qui l'a vidé, un
+  // remboursement complet serait refusé par Stripe (charge_already_refunded) et le complément jamais rendu.
+  const reste = await fonctionSql<number>("reste_paiement_depart", { p_commande: c.id });
+  let idDepart = `solde-${c.id}`;
+  if (reste > 0) {
+    const pi = c.stripe_payment_intent;
+    const r = (await remboursementSimule(pi, { montantCentimes: reste })) ?? (await passerelle().rembourser(pi, { montantCentimes: reste }));
+    // Stripe a refusé tout de suite : rien n'est rendu (la tablette propose de recommencer).
+    if (r.statut === "failed" || r.statut === "canceled") {
+      console.error(`Remboursement de la commande ${c.numero} refusé par Stripe (${r.statut}).`);
+      return { rembourse: false };
+    }
+    idDepart = r.id;
+    // Accepté par Stripe : une ligne suit le remboursement jusqu'à sa confirmation (charge.refund.updated) ; un échec
+    // plus tard alerte le restaurant (audit de sécurité 2, S2-03).
+    await fonctionSql("noter_remboursement_refus", { p_commande: c.id, p_refund_id: r.id, p_fait: r.statut === "succeeded", p_motif: motif }).catch((e) =>
+      console.error(`Suivi du remboursement de la commande ${c.numero} non noté : ${e instanceof Error ? e.message : e}`),
+    );
   }
-  // Accepté par Stripe : le client lit « remboursé », comme avant. Une ligne suit le remboursement jusqu'à sa
-  // confirmation (charge.refund.updated) ; un échec plus tard alerte le restaurant (audit de sécurité 2, S2-03).
-  const applique = await appliquerPaiement(`remboursement:${r.id}`, c.id, "rembourse");
-  await fonctionSql("noter_remboursement_refus", { p_commande: c.id, p_refund_id: r.id, p_fait: r.statut === "succeeded", p_motif: motif }).catch((e) =>
-    console.error(`Suivi du remboursement de la commande ${c.numero} non noté : ${e instanceof Error ? e.message : e}`),
-  );
-  // Compléments payés par le lien après une modification (vague 3, bo-commandes) : rendus aussi, chacun sur son paiement.
-  await rembourserComplements(c).catch((e) => console.error(`Compléments de la commande ${c.numero} non remboursés : ${e instanceof Error ? e.message : e}`));
+  // Toujours ensuite : les compléments payés par le lien après une modification (vague 3, bo-commandes), chacun sur
+  // son paiement, pour ce qui en reste.
+  const complements = await rembourserComplements(c).catch((e) => {
+    console.error(`Compléments de la commande ${c.numero} non remboursés : ${e instanceof Error ? e.message : e}`);
+    return 0;
+  });
+  // Le client lit « remboursé », comme avant.
+  const applique = await appliquerPaiement(`remboursement:${idDepart}`, c.id, "rembourse");
   if (applique) {
-    const m = courrielRemboursement(c, motif);
+    const m = courrielRemboursement(c, motif, reste + complements);
     await envoyerCourriel({ commandeId: c.id, destinataire: c.client_email, ...m }).catch((e) =>
       console.error(`Courriel de remboursement non envoyé pour la commande ${c.numero} : ${e instanceof Error ? e.message : e}`),
     );
@@ -151,11 +270,15 @@ export async function rembourserCommande(commandeId: string, motif: string): Pro
   return { rembourse: applique };
 }
 
-async function rembourserComplements(c: Commande): Promise<void> {
+// Rend ce qui reste de chaque complément payé par le lien ; renvoie le montant accepté par Stripe.
+async function rembourserComplements(c: Commande): Promise<number> {
+  let rendu = 0;
   const liste = await fonctionSql<{ id: string; montant_centimes: number; stripe_payment_intent: string }[]>("complements_a_rembourser", { p_commande: c.id });
   for (const k of liste) {
     const cle = `complement-${k.id}`;
-    const r = remboursementSimule(k.stripe_payment_intent, cle) ?? (await passerelle().rembourser(k.stripe_payment_intent, { montantCentimes: k.montant_centimes, cle }));
+    const r =
+      (await remboursementSimule(k.stripe_payment_intent, { montantCentimes: k.montant_centimes, cle })) ??
+      (await passerelle().rembourser(k.stripe_payment_intent, { montantCentimes: k.montant_centimes, cle }));
     if (r.statut === "failed" || r.statut === "canceled") {
       await alerter(`Commande ${c.numero} : complément à rembourser`, [
         `La commande ${c.numero} est refusée ou annulée. Son complément de ${(k.montant_centimes / 100).toFixed(2)} CHF, payé par le lien, n'a pas pu être remboursé.`,
@@ -164,7 +287,9 @@ async function rembourserComplements(c: Commande): Promise<void> {
       continue;
     }
     await fonctionSql("noter_complement_rembourse", { p_complement: k.id, p_refund: r.id });
+    rendu += k.montant_centimes;
   }
+  return rendu;
 }
 
 // ---------- Remboursement après coup (audit du gérant, G02) ----------
@@ -173,7 +298,7 @@ export type LigneRemboursement = {
   id: string;
   commande_id: string;
   montant_centimes: number;
-  moyen: "stripe" | "especes" | "deduction";
+  moyen: "stripe" | "especes" | "deduction" | "terminal";
   statut: "en_cours" | "fait" | "echec";
   erreur: string | null;
   stripe_refund_id?: string | null;
@@ -249,6 +374,7 @@ export async function rembourserApresCoup(
   if (r.statut === "echec") return { ok: false, message: "Ce remboursement a déjà échoué. Rechargez la fiche pour en refaire un." };
   const montant = (montantCentimes / 100).toFixed(2);
   if (r.moyen === "especes") return { ok: true, message: `CHF ${montant} notés comme rendus en espèces.` };
+  if (r.moyen === "terminal") return { ok: true, message: `CHF ${montant} à rendre sur le terminal de carte (payée par carte).` };
   if (r.statut === "en_cours") return { ok: true, message: `Remboursement de CHF ${montant} demandé à Stripe, en attente de sa confirmation. Le client reçoit un e-mail.` };
   return { ok: true, message: r.deja && !envoyer ? `Remboursement de CHF ${montant} déjà fait.` : `CHF ${montant} remboursés. Le client reçoit un e-mail.` };
 }
@@ -278,8 +404,8 @@ async function rembourserChezStripe(
     const pi = r.payment_intent_cible ?? c.stripe_payment_intent ?? "";
     // Relance : la première demande a pu aboutir chez Stripe sans que sa réponse arrive (délai, réseau). On
     // reprend ce remboursement au lieu d'en créer un second, que Stripe accepterait après 24 heures.
-    const repris = !remboursementSimule(pi, cle) && r.deja ? ((await passerelle().retrouverRemboursement?.(pi, r.id)) ?? null) : null;
-    const s = remboursementSimule(pi, cle) ?? repris ?? (await passerelle().rembourser(pi, { montantCentimes, cle, remboursementId: r.id }));
+    const repris = !paiementSimule(pi) && r.deja ? ((await passerelle().retrouverRemboursement?.(pi, r.id)) ?? null) : null;
+    const s = (await remboursementSimule(pi, { montantCentimes, cle })) ?? repris ?? (await passerelle().rembourser(pi, { montantCentimes, cle, remboursementId: r.id }));
     if (s.statut === "failed" || s.statut === "canceled") {
       await fonctionSql("terminer_remboursement", { p_id: r.id, p_ok: false, p_refund_id: s.id, p_erreur: `Stripe : ${s.statut}` });
       return { refus: { ok: false, message: "Stripe a refusé le remboursement. Rien n'a été rendu. Réessayez plus tard ou vérifiez dans Stripe." } };
@@ -342,6 +468,7 @@ export async function appliquerEtatRemboursement(
 export type ElementManque = { ligne: number; qte: number } | { ligne: number; groupe: string; nom: string };
 
 const ERREURS_MANQUE: Record<string, string> = {
+  moyen_invalide: "Choisissez espèces ou terminal.",
   deja_signale: "C'est déjà signalé pour cette commande.",
   ligne_inconnue: "Choix invalide. Rechargez la page.",
   option_absente: "Choix invalide. Rechargez la page.",
@@ -364,10 +491,13 @@ export async function signalerManque(
   cle: string,
   personnelId: string,
   confirmer: boolean,
-): Promise<{ ok: boolean; message: string; montant_centimes?: number; description?: string }> {
-  let r: LigneRemboursement & { description: string; montant_centimes: number };
+  // Commande encaissée au comptoir ou à la porte : terminal si payée par carte, espèces sinon (proposé par la base,
+  // changeable par l'équipe). Ignoré pour une commande payée en ligne ou pas encore encaissée.
+  moyenRendu?: "especes" | "terminal",
+): Promise<{ ok: boolean; message: string; montant_centimes?: number; description?: string; moyen?: string; moyen_propose?: string }> {
+  let r: LigneRemboursement & { description: string; montant_centimes: number; moyen_propose?: string };
   try {
-    r = await fonctionSql("signaler_manque", { p_commande: commandeId, p_elements: elements, p_cle: cle, p_personnel: personnelId, p_confirmer: confirmer });
+    r = await fonctionSql("signaler_manque", { p_commande: commandeId, p_elements: elements, p_cle: cle, p_personnel: personnelId, p_confirmer: confirmer, p_moyen: moyenRendu ?? null });
   } catch (e) {
     const m = e instanceof Error ? e.message : String(e);
     const k = Object.keys(ERREURS_MANQUE).find((x) => m.includes(x));
@@ -376,7 +506,14 @@ export async function signalerManque(
   }
   const montant = prixChf(r.montant_centimes);
   if (!confirmer) {
-    return { ok: true, montant_centimes: r.montant_centimes, description: r.description, message: `À rembourser : ${montant} (${r.description}).` };
+    return {
+      ok: true,
+      montant_centimes: r.montant_centimes,
+      description: r.description,
+      moyen: r.moyen,
+      moyen_propose: r.moyen_propose,
+      message: `À rembourser : ${montant} (${r.description}).`,
+    };
   }
   const c = await commandeParId(commandeId);
   if (!c) return { ok: false, message: "Commande introuvable." };
@@ -397,5 +534,6 @@ export async function signalerManque(
   const base = { ok: true, montant_centimes: r.montant_centimes, description: r.description };
   if (r.moyen === "deduction") return { ...base, message: `${montant} déduits. À encaisser : ${prixChf(c.total_centimes - deduit)}. Le client est prévenu par e-mail.` };
   if (r.moyen === "especes") return { ...base, message: `Rendez ${montant} au client en espèces. Le client est prévenu par e-mail.` };
+  if (r.moyen === "terminal") return { ...base, message: `Rendez ${montant} sur le terminal de paiement, sur la carte du client. Le client est prévenu par e-mail.` };
   return { ...base, message: `${montant} remboursés. Le client est prévenu par e-mail.` };
 }

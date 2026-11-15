@@ -217,9 +217,6 @@ export async function POST(requete: Request) {
 
   // Paiement en ligne : une ligne par plat (options comprises dans le libellé), puis la livraison.
   const p = passerelle();
-  // Nouvel essai pour la même commande (retour arrière depuis Stripe) : l'ancienne session est fermée
-  // pour qu'on ne puisse pas payer deux fois.
-  if (existante?.stripe_session_id) await p.expirerSession(existante.stripe_session_id).catch(() => undefined);
   // Nouvel essai avec la même clé : on facture la commande enregistrée, jamais le contenu de cette requête.
   const aFacturer = existante
     ? { lignes: existante.lignes, frais: existante.frais_centimes }
@@ -245,7 +242,14 @@ export async function POST(requete: Request) {
       urlAnnulation: `${origine}/commande?annule=1`,
       origine,
     });
+    // Nouvel essai pour la même commande (retour arrière depuis Stripe) : la nouvelle session est liée d'abord,
+    // l'ancienne fermée ensuite. Dans l'autre ordre, l'expiration de l'ancienne pouvait annuler la commande avant
+    // la liaison, et la nouvelle, payée, ne la confirmait jamais. Payée quand même dans un autre onglet, l'ancienne
+    // est prise ou remboursée (confirmerPaiement).
     await lierSessionPaiement(creee.id, session.id);
+    if (existante?.stripe_session_id && existante.stripe_session_id !== session.id) {
+      await p.expirerSession(existante.stripe_session_id).catch(() => undefined);
+    }
     return NextResponse.json({ redirection: session.url });
   } catch (e) {
     console.error(`Session de paiement impossible pour la commande ${creee.numero} : ${e instanceof Error ? e.message : e}`);
