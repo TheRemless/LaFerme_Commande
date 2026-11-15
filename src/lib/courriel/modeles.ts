@@ -423,6 +423,24 @@ export function courrielRefus(c: Commande, motif: string) {
   return courrielType(c, "refus", `Commande ${c.numero} annulée, La Ferme`, [phraseAnnulation(c, motif).texte, "Rien n'a été débité."], false);
 }
 
+// Paiement réussi qui ne confirme pas sa commande (retour arrière depuis Stripe, commande annulée entre-temps,
+// deuxième paiement) : remboursé en entier (src/lib/commandes.ts, rembourserPaiementOrphelin).
+export function courrielPaiementHorsCommande(c: Commande, montantCentimes: number, cas: "deja_payee" | "ancien_lien" | "montant" | "annulee", rembourse: boolean) {
+  const montant = prixChf(montantCentimes);
+  const recu = {
+    deja_payee: `Nous avons reçu un second paiement de ${montant} pour votre commande n° ${c.numero}, qui était déjà payée. Nous vous remboursons ce second paiement en entier.`,
+    ancien_lien: `Nous avons reçu votre paiement de ${montant} pour la commande n° ${c.numero} par un ancien lien de paiement. Nous vous le remboursons en entier.`,
+    montant: `Nous avons reçu un paiement de ${montant} qui ne correspond pas au montant de votre commande n° ${c.numero}. Nous vous le remboursons en entier.`,
+    annulee: `Nous avons reçu votre paiement de ${montant} pour la commande n° ${c.numero}, après son annulation. Nous vous le remboursons en entier.`,
+  }[cas];
+  return courrielType(c, "remboursement", `Paiement de ${montant} remboursé, commande ${c.numero}, La Ferme`, [
+    recu,
+    rembourse
+      ? `La somme revient sur le moyen de paiement utilisé. ${DELAI_REMBOURSEMENT}`
+      : "Le remboursement n'est pas encore parti. Nous le relançons et vous écrivons dès qu'il est fait.",
+  ], false);
+}
+
 // Remboursement décidé par le gérant après la remise (audit du gérant, G02), en entier ou en partie.
 // Le motif est celui que le gérant a écrit : le formulaire prévient qu'il part chez le client.
 export function courrielRemboursementGeste(c: Commande, montantCentimes: number, motif: string) {
