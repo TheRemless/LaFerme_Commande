@@ -356,3 +356,14 @@ Migration `20261215090000_livreur_choisit.sql`.
 - **E-mail** : seulement s'il est donné (le récapitulatif, « À payer à la livraison, en espèces ou par carte »). Sans e-mail, aucun envoi ensuite (`envoyerCourriel` ignore un destinataire vide), et la commande ne fait pas de fiche client au back-office.
 - Tests : `tests/unit/commande-telephone-sql.test.ts`, `tests/unit/commande-telephone.test.ts`, `tests/e2e/tablette-telephone.spec.ts` (comptes `telephone-{bureau,mobile}@laferme.test`).
 
+
+## Manque : rendre par le moyen qui a encaissé (décision du chef du 15.11.2026)
+
+Comme « Changer les plats » au back-office (#257, moyen « terminal » des remboursements), « Il manque… » rend l'argent par le moyen qui a encaissé. Migration `20261216170000_manque_terminal.sql` : `signaler_manque` reçoit un paramètre facultatif `p_moyen` ; la fonction est supprimée puis recréée et réservée à la clé de service.
+
+- Payée en ligne : Stripe, comme avant. Pas encore encaissée : déduit de ce qu'il reste à encaisser, comme avant.
+- Encaissée au comptoir ou à la porte : par carte (`moyen_comptoir = 'carte'`), rendu proposé sur le terminal ; en espèces ou moyen pas noté, en espèces.
+- À l'estimation, la tablette affiche « Payée par carte : rendu proposé sur le terminal. » avec « Sur le terminal » et « En espèces » (le client peut préférer des espèces). Après confirmation : « Rendez CHF 18.00 sur le terminal de paiement, sur la carte du client. »
+- Journal de la commande : « 18.00 CHF, 1 × Lasagne de bœuf, rendu sur le terminal », et « (proposé : terminal) » quand l'équipe a changé le moyen. La clôture du jour compte le rendu sur le terminal à part (#257).
+- E-mail au client : « Nous vous remboursons CHF 18.00 sur votre carte, au comptoir. »
+- Tests : `tests/unit/manque-terminal-sql.test.ts`.
