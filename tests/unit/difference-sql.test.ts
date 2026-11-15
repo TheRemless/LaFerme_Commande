@@ -176,6 +176,28 @@ describe("modifier les plats d'une commande", () => {
     expect(o.tva_centimes).toBe(Math.round((4300 * 2.6) / 102.6));
   });
 
+  it("à encaisser avec une remise, modifiée puis encaissée : récapitulatif, Crésus et clôture bougent du même montant", async () => {
+    const c = await commande({ comptoir: true, remise: 500 });
+    const jour = (await db.query<{ j: string }>("select jour::text as j from commandes where id = $1", [c])).rows[0].j;
+    const chiffres = async () => {
+      const recap = await f<{ ttc_centimes: number }[]>("export_recap_jours($1, $1)", [jour]);
+      const cresus = await f<{ sorte: string; ttc_centimes: number }[]>("export_cresus($1, $1)", [jour]);
+      const cl = await f<{ encaissements: { en_ligne: { centimes: number }; comptoir: { centimes: number }; complements: { especes_centimes: number; carte_centimes: number } } }>("cloture_rapport($1)", [jour]);
+      return {
+        recap: recap.reduce((t, l) => t + Number(l.ttc_centimes), 0),
+        cresus: cresus.filter((l) => l.sorte === "vente").reduce((t, l) => t + Number(l.ttc_centimes), 0),
+        cloture: Number(cl.encaissements.en_ligne.centimes) + Number(cl.encaissements.comptoir.centimes) + Number(cl.encaissements.complements.especes_centimes) + Number(cl.encaissements.complements.carte_centimes),
+      };
+    };
+    const avant = await chiffres();
+    await modifier(c, demande(`difference-${n}-croise-01`, [ligne("Margherita", 2000, 2), ligne("Tiramisu", 800, 1, "cuisine")]));
+    await f("marquer_encaisse($1, 'tablette:Test', 'especes')", [c]);
+    const apres = await chiffres();
+    expect(apres.recap - avant.recap).toBe(4300);
+    expect(apres.cresus - avant.cresus).toBe(4300);
+    expect(apres.cloture - avant.cloture).toBe(4300);
+  });
+
   it("payée avec une remise, baisse plus grande que le paiement : remboursement plafonné à ce qui a été payé", async () => {
     const c = await commande({ remise: 1300 });
     const r = await modifier(c, demande(`difference-${n}-plafond-1`, [ligne("Tiramisu", 800, 1, "cuisine")]));

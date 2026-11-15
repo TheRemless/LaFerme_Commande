@@ -7,6 +7,8 @@
 --
 -- Objet recréé : appliquer_modification, depuis sa seule définition dans main (20261215130000_difference.sql).
 -- Même signature, droits gardés (create or replace).
+-- Numéro donné par le chef (après la plage de la cagnotte de client-compte, 20261216090000 à 120000, qui ne
+-- recrée pas cette fonction : la réduction du départ couvre la cagnotte déduite de total_centimes).
 
 create or replace function appliquer_modification(p_modification uuid, p_evenement text default null, p_payment_intent text default null, p_montant integer default null)
 returns jsonb
