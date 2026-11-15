@@ -23,17 +23,18 @@ async function erreur(sql: string, v: unknown[] = []): Promise<string> {
 const ligne = (nom: string, prix: number, qte = 1, station = "pizza") => ({
   slug: nom.toLowerCase(), nom, station, qte, unitaire_centimes: prix, total_centimes: prix * qte, choix: {}, retraits: [], note: "",
 });
-async function commande(opts: { comptoir?: boolean; mode?: "livraison" | "retrait" } = {}) {
+// remise : une réduction du départ (code promo, cagnotte) déduite du total payé ou à payer.
+async function commande(opts: { comptoir?: boolean; mode?: "livraison" | "retrait"; remise?: number } = {}) {
   n += 1;
   const lignes = [ligne("Margherita", 2000), ligne("Tiramisu", 800, 1, "cuisine")];
-  const total = 2800;
+  const total = 2800 - (opts.remise ?? 0);
   const livraison = opts.mode === "livraison";
   const p = {
     jeton_suivi: `jeton-diff-${n}-abcdefgh`, cle_idempotence: `diff-${n}-cle-essai`, mode: opts.mode ?? "retrait",
     statut: opts.comptoir ? "nouvelle" : "paiement_en_attente", statut_paiement: opts.comptoir ? "a_encaisser_retrait" : "en_attente",
     moyen_paiement: opts.comptoir ? "comptoir" : "en_ligne", client_prenom: "Léa", client_nom: "Rossi", client_telephone: "079 555 12 34",
     client_email: "diff@exemple.ch", quand_type: "asap", pizzas_seulement: false, sous_total_centimes: total, frais_centimes: 0,
-    total_centimes: total, tva_centimes: 71, taux_tva_pourcent: 2.6, origine: "http://localhost:3000",
+    total_centimes: total, tva_centimes: 71, taux_tva_pourcent: 2.6, origine: "http://localhost:3000", remise_centimes: opts.remise ?? 0,
     adresse: livraison ? { rue: "Route de Chancy", numero: "1", npa: "1213", localite: "Onex" } : null,
     details_livraison: livraison ? { sonnette: "Rossi", etage: "", code: "", instructions: "" } : null,
     zone_numero: livraison ? 1 : null, lignes,
@@ -165,6 +166,64 @@ describe("modifier les plats d'une commande", () => {
   it("la commande a changé depuis le calcul : refus, rien n'est enregistré", async () => {
     const c = await commande({ comptoir: true });
     expect(await erreur("preparer_modification($1, $2, $3)", [c, demande(`difference-${n}-perime-01`, [ligne("Margherita", 2000, 2)], { valeur_avant: 1234 }), id.gerant])).toContain("deja_change");
+  });
+
+  it("à encaisser avec une remise : le nouveau total garde la remise (relecture de bo-pilotage)", async () => {
+    const c = await commande({ comptoir: true, remise: 500 });
+    await modifier(c, demande(`difference-${n}-remise-01`, [ligne("Margherita", 2000, 2), ligne("Tiramisu", 800, 1, "cuisine")]));
+    const o = (await db.query<{ total_centimes: number; tva_centimes: number }>("select total_centimes, tva_centimes from commandes where id = $1", [c])).rows[0];
+    expect(o.total_centimes).toBe(4800 - 500);
+    expect(o.tva_centimes).toBe(Math.round((4300 * 2.6) / 102.6));
+  });
+
+  it("à encaisser avec une remise, modifiée puis encaissée : récapitulatif, Crésus et clôture bougent du même montant", async () => {
+    const c = await commande({ comptoir: true, remise: 500 });
+    const jour = (await db.query<{ j: string }>("select jour::text as j from commandes where id = $1", [c])).rows[0].j;
+    const chiffres = async () => {
+      const recap = await f<{ ttc_centimes: number }[]>("export_recap_jours($1, $1)", [jour]);
+      const cresus = await f<{ sorte: string; ttc_centimes: number }[]>("export_cresus($1, $1)", [jour]);
+      const cl = await f<{ encaissements: { en_ligne: { centimes: number }; comptoir: { centimes: number }; complements: { especes_centimes: number; carte_centimes: number } } }>("cloture_rapport($1)", [jour]);
+      return {
+        recap: recap.reduce((t, l) => t + Number(l.ttc_centimes), 0),
+        cresus: cresus.filter((l) => l.sorte === "vente").reduce((t, l) => t + Number(l.ttc_centimes), 0),
+        cloture: Number(cl.encaissements.en_ligne.centimes) + Number(cl.encaissements.comptoir.centimes) + Number(cl.encaissements.complements.especes_centimes) + Number(cl.encaissements.complements.carte_centimes),
+      };
+    };
+    const avant = await chiffres();
+    await modifier(c, demande(`difference-${n}-croise-01`, [ligne("Margherita", 2000, 2), ligne("Tiramisu", 800, 1, "cuisine")]));
+    await f("marquer_encaisse($1, 'tablette:Test', 'especes')", [c]);
+    const apres = await chiffres();
+    expect(apres.recap - avant.recap).toBe(4300);
+    expect(apres.cresus - avant.cresus).toBe(4300);
+    expect(apres.cloture - avant.cloture).toBe(4300);
+  });
+
+  it("payée avec une remise, baisse plus grande que le paiement : remboursement plafonné à ce qui a été payé", async () => {
+    const c = await commande({ remise: 1300 });
+    const r = await modifier(c, demande(`difference-${n}-plafond-1`, [ligne("Tiramisu", 800, 1, "cuisine")]));
+    expect(r).toMatchObject({ reglement: "remboursement", applique: true, difference_centimes: -2000 });
+    expect(r.remboursement).toMatchObject({ montant_centimes: 1500 });
+    // Plafond dit et journalisé : voulu 20.00, rendu 15.00 (le reste était la remise).
+    expect(r).toMatchObject({ rembourse_voulu_centimes: 2000, rembourse_centimes: 1500 });
+    const j = (await db.query<{ apres: Record<string, number> }>("select apres from journal_gestion where objet = 'commande_modifiee' and cle = $1 order by id desc limit 1", [c])).rows[0];
+    expect(j.apres).toMatchObject({ rembourse_voulu_centimes: 2000, rembourse_centimes: 1500 });
+  });
+
+  it("payée (avec remise), complément payé par le lien, puis baisse plus grande que le paiement de départ : le surplus part sur le paiement du complément", async () => {
+    const c = await commande({ remise: 800 });
+    const plus = [ligne("Margherita", 2000), ligne("Tiramisu", 800, 1, "cuisine"), ligne("Calzone", 1500)];
+    const r1 = await modifier(c, demande(`difference-${n}-surplus-1`, plus, { reglement: "lien" }));
+    await db.query("select lier_session_modification($1, 'cs_test_surplus')", [r1.id]);
+    expect(await f<{ applique: boolean }>("confirmer_complement($1, 'cs_test_surplus', 'evt-surplus-1', 'pi_complement_surplus', 1500, 'chf')", [r1.id])).toMatchObject({ applique: true });
+    const r2 = await modifier(c, demande(`difference-${n}-surplus-2`, [ligne("Tiramisu", 800, 1, "cuisine")]));
+    expect(r2).toMatchObject({ reglement: "remboursement", difference_centimes: -3500, rembourse_voulu_centimes: 3500, rembourse_centimes: 3500 });
+    const rows = (await db.query<{ montant_centimes: number; payment_intent_cible: string | null }>("select montant_centimes, payment_intent_cible from remboursements where commande_id = $1 order by montant_centimes desc", [c])).rows;
+    expect(rows).toEqual([
+      { montant_centimes: 2000, payment_intent_cible: null },
+      { montant_centimes: 1500, payment_intent_cible: "pi_complement_surplus" },
+    ]);
+    // Déjà rendu : plus rien à rembourser sur ce complément au refus de la commande.
+    expect(await f<unknown[]>("complements_a_rembourser($1)", [c])).toEqual([]);
   });
 
   it("droits et refus : l'équipe de service non, un règlement absent ou impossible non", async () => {
