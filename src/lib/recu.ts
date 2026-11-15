@@ -57,6 +57,6 @@ export function donneesRecu(c: Commande & { paye_le?: string | null }, cat: Cata
     paiement: c.moyen_paiement === "comptoir" ? "Payé au comptoir" : "Payé en ligne",
     remboursements: remboursements
       .filter((r) => r.statut === "fait" && r.moyen !== "deduction")
-      .map((r) => `${prixChf(r.montant_centimes)} ${r.moyen === "especes" ? "rendus au comptoir" : "remboursés"} le ${date(r.fait_le ?? r.cree_le)}.`),
+      .map((r) => `${prixChf(r.montant_centimes)} ${r.moyen === "especes" ? "rendus au comptoir" : r.moyen === "terminal" ? "rendus sur la carte" : "remboursés"} le ${date(r.fait_le ?? r.cree_le)}.`),
   };
 }
