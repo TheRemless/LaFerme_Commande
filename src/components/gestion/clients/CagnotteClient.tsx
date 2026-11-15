@@ -21,6 +21,11 @@ const TYPES: Record<string, string> = {
   parrainage: "Parrainage",
 };
 
+// Expiration un an plus tard : avec l'année.
+function dateAvecAnnee(jour: string): string {
+  return new Intl.DateTimeFormat("fr-CH", { timeZone: "UTC", day: "numeric", month: "long", year: "numeric" }).format(new Date(`${jour}T12:00:00Z`));
+}
+
 export function CagnotteClient({ email, gerant }: { email: string; gerant: boolean }) {
   const [donnees, setDonnees] = useState<Donnees | null | undefined>(undefined);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -46,7 +51,7 @@ export function CagnotteClient({ email, gerant }: { email: string; gerant: boole
         <h3 id="fcl-cagnotte">Solde</h3>
         <p>
           <strong>CHF {montant(donnees.solde_centimes)}</strong>
-          {donnees.expire_le ? <span className="bo-champ-aide">, expire le {jourCourt(donnees.expire_le)} sans nouvelle commande</span> : null}
+          {donnees.expire_le ? <span className="bo-champ-aide">, expire le {dateAvecAnnee(donnees.expire_le)} sans nouvelle commande</span> : null}
         </p>
       </section>
       {gerant && <Ajustement email={email} solde={donnees.solde_centimes} apres={charger} />}

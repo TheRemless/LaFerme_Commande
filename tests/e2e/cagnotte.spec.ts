@@ -22,7 +22,7 @@ async function codeClient(page: Page): Promise<string> {
 }
 
 async function connecterClient(browser: Browser): Promise<Page> {
-  const page = await browser.newPage({ baseURL: SITE, viewport: { width: 390, height: 844 } });
+  const page = await (await browser.newContext({ baseURL: SITE, viewport: { width: 390, height: 844 } })).newPage();
   await page.setExtraHTTPHeaders({ "x-forwarded-for": `10.9.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}` });
   await page.addInitScript(() => {
     localStorage.setItem("laferme.choix.v1", JSON.stringify({ mode: "retrait", quand: { type: "asap" }, heureSimulee: "2026-11-10T19:05", enregistreLe: Date.now() }));
@@ -76,7 +76,7 @@ test.beforeAll(async ({ browser }, info) => {
   test.skip(info.project.name !== "bureau", "Un client et un gérant simulés dans ce fichier, à leurs largeurs.");
   prenom = `Cagnotte${passage()}`;
   email = `cagnotte-${passage()}-${Math.random().toString(36).slice(2, 7)}@laferme.test`;
-  gestion = await browser.newPage({ baseURL: SITE, viewport: { width: 1440, height: 900 } });
+  gestion = await (await browser.newContext({ baseURL: SITE, viewport: { width: 1440, height: 900 } })).newPage();
   await adresseDuCompte(gestion, "cagnotte-bureau@laferme.test");
   await gestion.goto("/gestion/clients");
   await gestion.getByLabel("E-mail", { exact: true }).fill("cagnotte-bureau@laferme.test");
@@ -93,7 +93,8 @@ test.afterAll(async () => {
 
 test("gagner : 5 % des plats à la remise, visible dans le compte", async () => {
   await client.goto("/compte");
-  await expect(client.getByRole("heading", { name: "Votre cagnotte" })).toHaveCount(0);
+  // Avant la première commande, la rubrique explique comment gagner.
+  await expect(client.locator(".cagnotte-solde")).toHaveText("Vous avez CHF 0.00 dans votre cagnotte.");
   await commandeRemise();
   const solde = await soldeAffiche();
   expect(solde).toBeGreaterThan(0);
@@ -118,7 +119,7 @@ test("ajuster au back-office : le gérant ajoute CHF 20 avec un motif", async ()
   await expect(gestion.getByText("Cagnotte ajustée.")).toBeVisible();
   await expect(fiche).toContainText("Geste après réclamation");
   await expect(fiche).toContainText("(Cagnotte bureau)");
-  const r = await new AxeBuilder({ page: gestion }).include('[role="dialog"]').withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
+  const r = await new AxeBuilder({ page: gestion }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
   expect(r.violations.map((v) => v.id)).toEqual([]);
   await gestion.screenshot({ path: capture("cagnotte-fiche-client-bureau.png") });
 });
@@ -135,16 +136,20 @@ test("utiliser au paiement en ligne : déduite, TVA sur le net, ligne au suivi",
   await expect(client.locator(".cagnotte-paiement")).toContainText(/− CHF \d+\.\d{2} sur cette commande\./);
   const r = await new AxeBuilder({ page: client }).include(".cagnotte-paiement").withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
   expect(r.violations.map((v) => v.id)).toEqual([]);
+  await expect(client.locator(".sommes")).toContainText("Cagnotte utilisée");
   await client.screenshot({ path: capture("cagnotte-paiement-390.png"), fullPage: true });
+  // En partie : CHF 5 seulement, le solde baisse d'autant au paiement.
+  await client.getByRole("button", { name: "Changer le montant" }).click();
+  await client.getByLabel("Montant à utiliser, en francs").fill("5");
+  await client.locator(".cagnotte-paiement").getByRole("button", { name: "Appliquer" }).click();
+  await expect(client.locator(".cagnotte-paiement")).toContainText("− CHF 5.00 sur cette commande.");
   await client.getByRole("button", { name: /^Payer CHF/ }).click();
   await expect(client).toHaveURL(/paiement-test/);
   await client.getByRole("button", { name: "Simuler un paiement réussi" }).click();
   await expect(client).toHaveURL(/\/suivi\//);
   await expect(client.locator(".sommes")).toContainText("Cagnotte utilisée");
   // Rien ne reste de la cagnotte sous le prix des plats (2 pizzas), et jamais de solde négatif.
-  const apres = await soldeAffiche();
-  expect(apres).toBeGreaterThanOrEqual(0);
-  expect(apres).toBeLessThan(avant);
+  expect(await soldeAffiche()).toBe(avant - 500);
   await client.locator(".cagnotte-compte").getByText("Historique").click();
   await expect(client.locator(".cagnotte-compte")).toContainText("Utilisé, commande");
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { CAGNOTTE_TOUT } from "@/lib/code-client";
 import { prixChf } from "@/lib/prix";
 import type { ReponsePanier } from "@/lib/panier-local";
@@ -11,6 +11,9 @@ export function CagnottePaiement({ cagnotte, onChange }: { cagnotte: NonNullable
   const ids = useId();
   const [edition, setEdition] = useState<string | null>(null);
   const { solde_centimes: solde, seuil_centimes: seuil, utilisable_centimes: utilisable, utilisee_centimes: utilisee } = cagnotte;
+  // La case répond tout de suite ; le montant déduit arrive avec le calcul du serveur, qui la confirme.
+  const [coche, setCoche] = useState(utilisee > 0);
+  useEffect(() => setCoche(utilisee > 0), [utilisee]);
 
   if (solde < seuil) {
     return (
@@ -28,9 +31,16 @@ export function CagnottePaiement({ cagnotte, onChange }: { cagnotte: NonNullable
   }
 
   return (
-    <div className="champ cagnotte-paiement">
+    <div className="cagnotte-paiement">
       <label className="option case-compte">
-        <input type="checkbox" checked={utilisee > 0} onChange={(e) => onChange(e.target.checked ? CAGNOTTE_TOUT : 0)} />
+        <input
+          type="checkbox"
+          checked={coche}
+          onChange={(e) => {
+            setCoche(e.target.checked);
+            onChange(e.target.checked ? CAGNOTTE_TOUT : 0);
+          }}
+        />
         <span>
           Utiliser ma cagnotte, {prixChf(solde)} disponibles
         </span>
@@ -44,7 +54,7 @@ export function CagnottePaiement({ cagnotte, onChange }: { cagnotte: NonNullable
         </p>
       )}
       {edition !== null && (
-        <div className="cagnotte-montant-saisie">
+        <div className="champ cagnotte-montant-saisie">
           <label htmlFor={`${ids}-montant`}>Montant à utiliser, en francs</label>
           <input id={`${ids}-montant`} inputMode="decimal" value={edition} onChange={(e) => setEdition(e.target.value)} aria-describedby={`${ids}-max`} />
           <p className="aide" id={`${ids}-max`}>
