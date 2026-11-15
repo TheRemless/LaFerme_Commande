@@ -3894,3 +3894,19 @@ body.fiche-ouverte {
   gap: 6px;
   margin-top: 8px;
 }
+
+/* Parrainage (vague 3, client-compte) : dans la rubrique de la cagnotte, séparé par un filet. */
+.parrainage-compte {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--filet);
+}
+.parrainage-compte h3 {
+  margin: 0;
+  font-size: 18px;
+}
+.parrainage-compte input {
+  width: 100%;
+}

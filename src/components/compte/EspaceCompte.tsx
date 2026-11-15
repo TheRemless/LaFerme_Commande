@@ -9,6 +9,7 @@ import { lireChoix } from "@/lib/choix";
 import { AdresseEnregistree } from "@/components/compte/AdresseEnregistree";
 import { CagnotteCompte } from "@/components/compte/CagnotteCompte";
 import type { CagnotteCompte as DonneesCagnotte } from "@/lib/cagnotte";
+import type { ParrainageCompte as DonneesParrainage } from "@/lib/parrainage";
 import type { Recommande } from "@/lib/comptes/recommander";
 import { annoncerPlatsRemis, panierVide, remplacerPanier } from "@/lib/panier-local";
 import { nomClient } from "@/lib/nom-plat";
@@ -127,6 +128,8 @@ export function EspaceCompte({
   historique,
   appareils = null,
   cagnotte = null,
+  parrainage = null,
+  lienParrainage = "",
   preversion,
 }: {
   donnees: DonneesEspace;
@@ -134,6 +137,8 @@ export function EspaceCompte({
   appareils?: Appareil[] | null;
   // Cagnotte (vague 3) : absente avant la migration 20261216090000 ou interrupteur éteint.
   cagnotte?: DonneesCagnotte | null;
+  parrainage?: DonneesParrainage | null;
+  lienParrainage?: string;
   preversion: boolean;
 }) {
   const router = useRouter();
@@ -285,7 +290,7 @@ export function EspaceCompte({
         </section>
 
         <div className="espace-cote">
-          {cagnotte?.active && <CagnotteCompte cagnotte={cagnotte} />}
+          {cagnotte?.active && <CagnotteCompte cagnotte={cagnotte} parrainage={parrainage} lienParrainage={lienParrainage} />}
           <section className="espace-bloc" aria-labelledby={`${ids}-adresses`}>
             <h2 id={`${ids}-adresses`}>Vos adresses</h2>
             {donnees.adresses.length === 0 ? (

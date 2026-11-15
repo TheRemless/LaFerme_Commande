@@ -4,6 +4,8 @@ import { useId, useState } from "react";
 import { poster } from "@/lib/requete-client";
 import { prixChf } from "@/lib/prix";
 import type { CagnotteCompte as Donnees, MouvementCagnotte } from "@/lib/cagnotte";
+import type { ParrainageCompte as DonneesParrainage } from "@/lib/parrainage";
+import { ParrainageCompte } from "@/components/compte/ParrainageCompte";
 
 // Cagnotte du compte (vague 3) : le solde en francs, ce qui la fait monter et descendre, la date d'expiration et le
 // rappel par e-mail. Textes passés par redaction-fr.
@@ -22,7 +24,7 @@ function dateCourte(iso: string): string {
   return new Intl.DateTimeFormat("fr-CH", { timeZone: "Europe/Zurich", day: "numeric", month: "long", year: "numeric" }).format(new Date(iso));
 }
 
-export function CagnotteCompte({ cagnotte }: { cagnotte: Donnees }) {
+export function CagnotteCompte({ cagnotte, parrainage = null, lienParrainage = "" }: { cagnotte: Donnees; parrainage?: DonneesParrainage | null; lienParrainage?: string }) {
   const ids = useId();
   const [rappel, setRappel] = useState(cagnotte.rappel);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -58,6 +60,7 @@ export function CagnotteCompte({ cagnotte }: { cagnotte: Donnees }) {
           {erreur}
         </p>
       )}
+      {parrainage?.actif && parrainage.code && <ParrainageCompte parrainage={parrainage} lien={lienParrainage} />}
       {cagnotte.mouvements.length > 0 && (
         <details className="cagnotte-historique">
           <summary>Historique</summary>
