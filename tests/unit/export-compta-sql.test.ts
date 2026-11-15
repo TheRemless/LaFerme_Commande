@@ -90,8 +90,8 @@ describe("récapitulatif par jour et par taux", () => {
     const csv = csvRecapJours(await f<RecapJour[]>("export_recap_jours('2026-12-04', '2026-12-05')"));
     const lignes = csv.replace("﻿", "").trim().split("\r\n");
     expect(lignes[0]).toMatch(/^Jour;Taux TVA %;Ventes;En ligne CHF/);
-    expect(lignes[1]).toBe("2026-12-04;2.6;1;51.30;0.00;0.00;51.30;1.30;-5.13;0.00;0.00;-0.13;46.17;1.17;45.00");
-    expect(lignes.at(-1)).toBe("Total;2.6;2;71.82;0.00;0.00;71.82;1.82;-5.13;0.00;0.00;-0.13;66.69;1.69;65.00");
+    expect(lignes[1]).toBe("2026-12-04;2.6;1;51.30;0.00;0.00;51.30;1.30;-5.13;0.00;0.00;0.00;-0.13;46.17;1.17;45.00");
+    expect(lignes.at(-1)).toBe("Total;2.6;2;71.82;0.00;0.00;71.82;1.82;-5.13;0.00;0.00;0.00;-0.13;66.69;1.69;65.00");
     expect(csv).not.toMatch(/Prénom|079|client@/);
   });
 });
