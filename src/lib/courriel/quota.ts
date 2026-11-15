@@ -20,7 +20,8 @@ export type TypeCourriel =
   | "prete"
   | "en_route"
   | "alerte"
-  | "alerte_quota";
+  | "alerte_quota"
+  | "rappel_cagnotte";
 
 // Les codes passent sous les confirmations : une demande de code se fabrique sans compte, une commande
 // payée non (revue de sécurité du quota). Un attaquant qui épuise les codes laisse partir les confirmations.
@@ -40,6 +41,8 @@ export const PRIORITE_COURRIEL: Record<TypeCourriel, 1 | 2 | 3 | 4> = {
   prete: 3,
   en_route: 3,
   alerte: 4,
+  // Rappel avant l'expiration de la cagnotte (vague 3) : s'arrête le premier, il repart le lendemain.
+  rappel_cagnotte: 4,
 };
 
 export const PLAFOND_PAR_DEFAUT = 500;

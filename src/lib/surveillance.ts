@@ -10,6 +10,7 @@ import { imprimerCommandesDues } from "@/lib/impression/service";
 import { destinataireAlertes } from "@/lib/reglages-generaux";
 import { etatService, type ConfigService } from "@/lib/service";
 import { rafraichirCaches } from "@/lib/tablette";
+import { tourCagnotte } from "@/lib/cagnotte";
 
 // Surveillance du service, une fois par minute au plus, déclenchée par les passages des imprimantes,
 // les relectures de la tablette et, en production, une fonction planifiée Netlify.
@@ -127,6 +128,14 @@ export async function executerSurveillance(maintenant = new Date()): Promise<{ f
     return null;
   });
   if (remise) rafraichirCaches("config-service");
+  // Cagnotte (vague 3, client-compte) : une fois par jour de service, expiration à 12 mois et rappels de 30 jours.
+  // Avant la migration 20261216090000, les fonctions n'existent pas : rien à faire, rien à signaler.
+  if (remise) {
+    await tourCagnotte().catch((e) => {
+      const m = e instanceof Error ? e.message : String(e);
+      if (!/does not exist|Could not find the function/i.test(m)) console.error(`Cagnotte du jour : ${m}`);
+    });
+  }
 
   // Coup de feu dont l'heure de fin est passée : retard, capacité et livraison reviennent (vague 3).
   // Avant la migration 20261130090000, la fonction n'existe pas : rien à finir, rien à signaler.

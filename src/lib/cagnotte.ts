@@ -1,5 +1,8 @@
 import "server-only";
 import { fonctionSql } from "@/lib/db/serveur";
+import { courrielConfigure, envoyerParSmtp } from "@/lib/courriel/envoi";
+import { courrielRappelCagnotte } from "@/lib/courriel/modeles";
+import { ADRESSE_SITE } from "@/lib/site";
 
 // Cagnotte des clients (validée par Jérémy le 15.11.2026). Toutes les règles sont en base
 // (supabase/migrations/20261216090000_cagnotte.sql) : gain à la remise, utilisation sous verrou du compte,
@@ -93,4 +96,24 @@ export function messageReglagesFidelite(e: unknown): string | null {
 export function cagnotteUtilisable(solde: number, seuil: number, platsApresRemise: number, totalAPayer: number): number {
   if (solde < seuil) return 0;
   return Math.max(0, Math.min(solde, platsApresRemise, totalAPayer - 50));
+}
+
+// Tour quotidien (surveillance, premier tour du jour de service) : la cagnotte expirée part, puis les rappels de
+// 30 jours partent un par un. Sans serveur d'envoi (local, préversion), le rappel est seulement noté au journal.
+export async function tourCagnotte(): Promise<{ expirees: number; rappels: number }> {
+  const expirees = await fonctionSql<number>("expirer_cagnottes", {});
+  const dus = await fonctionSql<{ email: string; prenom: string; solde_centimes: number; expire_le: string }[]>("rappels_cagnotte_dus", {});
+  const seuil = (await reglagesFidelite()).seuil_centimes;
+  let rappels = 0;
+  for (const r of dus) {
+    const m = courrielRappelCagnotte({ ...r, seuil_centimes: seuil }, ADRESSE_SITE);
+    if (!courrielConfigure()) {
+      console.info(`Rappel de cagnotte (aucun courriel configuré) : ${m.sujet}`);
+      continue;
+    }
+    await envoyerParSmtp(r.email, m.sujet, m.texte, m.html, { type: m.type })
+      .then(() => rappels++)
+      .catch((e) => console.error(`Rappel de cagnotte non envoyé : ${e instanceof Error ? e.message : e}`));
+  }
+  return { expirees, rappels };
 }

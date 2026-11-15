@@ -457,3 +457,33 @@ export function courrielManque(c: Commande, description: string, montantCentimes
     "Le reste de la commande est préparé comme prévu.",
   ]);
 }
+
+// Rappel 30 jours avant l'expiration de la cagnotte (vague 3, client-compte). Envoyé seulement si le client ne l'a pas
+// décoché dans son compte. Texte passé par redaction-fr.
+export function courrielRappelCagnotte(r: { prenom: string; solde_centimes: number; expire_le: string; seuil_centimes: number }, origine: string) {
+  const date = new Intl.DateTimeFormat("fr-CH", { timeZone: "UTC", day: "numeric", month: "long", year: "numeric" }).format(new Date(`${r.expire_le}T12:00:00Z`));
+  const sujet = `Votre cagnotte La Ferme expire le ${date}`;
+  const phrases = [
+    `Vous avez ${prixChf(r.solde_centimes)} dans votre cagnotte La Ferme. Elle expire le ${date}, un an après votre dernière commande.`,
+    `Une commande avant cette date la garde une année de plus. Au paiement en ligne, elle se déduit dès ${prixChf(r.seuil_centimes)}.`,
+  ];
+  const bonjour = r.prenom ? `Bonjour ${r.prenom},` : "Bonjour,";
+  const texte = [
+    bonjour,
+    "",
+    ...phrases,
+    "",
+    `Commander : ${origine}/`,
+    `Pour ne plus recevoir ce rappel, décochez-le dans votre compte : ${origine}/compte`,
+    `Une question ? ${TELEPHONE}`,
+    "",
+    RESTAURANT,
+  ].join("\n");
+  const html = enveloppe(`
+<p>${echapper(bonjour)}</p>
+${phrases.map((p) => `<p>${echapper(p)}</p>`).join("\n")}
+${bouton(`${origine}/`, "Commander")}
+<p style="color:#55524f;font-size:14px">Pour ne plus recevoir ce rappel, décochez-le dans <a href="${echapper(`${origine}/compte`)}" style="color:#1c1b1a">votre compte</a>.</p>
+<p>Une question ? ${TELEPHONE}</p>`, origine, phrases[0]);
+  return { sujet, texte, html, type: "rappel_cagnotte" as TypeCourriel };
+}
