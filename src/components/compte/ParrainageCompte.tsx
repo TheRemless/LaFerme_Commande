@@ -30,8 +30,10 @@ export function ParrainageCompte({ parrainage, lien }: { parrainage: Donnees; li
         Envoyez ce lien à un proche qui n&apos;a jamais commandé chez nous. Après sa première commande livrée ou retirée, vous recevez chacun {montant} dans
         votre cagnotte.
       </p>
-      <label htmlFor={`${ids}-lien`}>Votre lien</label>
-      <input id={`${ids}-lien`} readOnly value={lien} onFocus={(e) => e.target.select()} />
+      <div className="champ">
+        <label htmlFor={`${ids}-lien`}>Votre lien</label>
+        <input id={`${ids}-lien`} readOnly value={lien} onFocus={(e) => e.target.select()} />
+      </div>
       <button type="button" className="bouton-second" onClick={() => void copier()}>
         {copie ? "Lien copié" : "Copier le lien"}
       </button>
