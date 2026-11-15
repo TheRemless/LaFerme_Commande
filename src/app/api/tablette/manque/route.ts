@@ -5,7 +5,7 @@ import { exigerPersonnel } from "@/lib/personnel/session";
 
 // Un plat ou un supplément manque sur une commande acceptée (audit du gérant, G07). La tablette envoie les
 // lignes concernées ; la base calcule le montant. confirmer = false : estimation seulement, rien n'est écrit.
-// { commande, elements: [{ ligne, qte } | { ligne, groupe, nom }], cle, confirmer }
+// { commande, elements: [{ ligne, qte } | { ligne, groupe, nom }], cle, confirmer, moyen?: "especes" | "terminal" }
 function elementsValides(v: unknown): ElementManque[] | null {
   if (!Array.isArray(v) || v.length < 1 || v.length > 30) return null;
   const sortie: ElementManque[] = [];
@@ -32,6 +32,8 @@ export async function POST(requete: Request) {
   const elements = elementsValides(c.elements);
   if (!elements) return refus("Choisissez ce qui manque.");
   if (typeof c.cle !== "string" || !/^[A-Za-z0-9-]{8,80}$/.test(c.cle)) return refus("Rechargez la page puis recommencez.");
-  const r = await signalerManque(c.commande, elements, c.cle, g.personnel.id, c.confirmer === true);
+  // Moyen du rendu (commande déjà encaissée) : proposé par la base, l'équipe peut le changer (décision du 15.11).
+  if (c.moyen !== undefined && c.moyen !== "especes" && c.moyen !== "terminal") return refus("Choisissez espèces ou terminal.");
+  const r = await signalerManque(c.commande, elements, c.cle, g.personnel.id, c.confirmer === true, c.moyen as "especes" | "terminal" | undefined);
   return NextResponse.json(r, { status: r.ok ? 200 : 409, headers: { "Cache-Control": "no-store" } });
 }

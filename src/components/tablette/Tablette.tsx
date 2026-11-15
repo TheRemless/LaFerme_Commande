@@ -1321,6 +1321,10 @@ function PanneauManque({ c, fermer }: { c: CommandeTablette; fermer: () => Promi
   const [estimation, setEstimation] = useState<string | null>(null);
   const [resultat, setResultat] = useState<{ ok: boolean; texte: string } | null>(null);
   const [envoi, setEnvoi] = useState(false);
+  // Commande déjà encaissée : rendre par le moyen qui a encaissé (terminal si carte, espèces sinon), proposé par la
+  // base à l'estimation, changeable ici (décision du chef du 15.11.2026).
+  const [propose, setPropose] = useState<"especes" | "terminal" | null>(null);
+  const [moyen, setMoyen] = useState<"especes" | "terminal" | null>(null);
   // Même clé jusqu'à ce que le geste aboutisse : un double appui ne rembourse pas deux fois.
   const [cle, setCle] = useState(nouvelleCle);
 
@@ -1336,9 +1340,13 @@ function PanneauManque({ c, fermer }: { c: CommandeTablette; fermer: () => Promi
 
   async function envoyer(confirmer: boolean) {
     setEnvoi(true);
-    const r = await poster("/api/tablette/manque", { commande: c.id, elements, cle, confirmer });
+    const r = await poster("/api/tablette/manque", { commande: c.id, elements, cle, confirmer, ...(moyen ? { moyen } : {}) });
     const texte = String(r.donnees.message ?? r.donnees.erreur ?? "Pas passé. Réessayez.");
-    if (!confirmer) setEstimation(r.ok ? texte : null);
+    if (!confirmer) {
+      setEstimation(r.ok ? texte : null);
+      const p = r.donnees.moyen_propose;
+      setPropose(p === "especes" || p === "terminal" ? p : null);
+    }
     if (confirmer || !r.ok) setResultat({ ok: r.ok, texte });
     if (confirmer && (r.ok || r.statut === 409)) setCle(nouvelleCle());
     setEnvoi(false);
@@ -1415,6 +1423,17 @@ function PanneauManque({ c, fermer }: { c: CommandeTablette; fermer: () => Promi
         )}
       </div>
       {estimation && <p className="aide-forte">{estimation}</p>}
+      {estimation && propose && (
+        <div className="boutons-ligne" role="group" aria-label="Rendre l'argent">
+          <span>{propose === "terminal" ? "Payée par carte : rendu proposé sur le terminal." : "Payée en espèces : rendu proposé en espèces."}</span>
+          <button type="button" className="bouton-second" aria-pressed={(moyen ?? propose) === "terminal"} onClick={() => setMoyen("terminal")}>
+            Sur le terminal
+          </button>
+          <button type="button" className="bouton-second" aria-pressed={(moyen ?? propose) === "especes"} onClick={() => setMoyen("especes")}>
+            En espèces
+          </button>
+        </div>
+      )}
       {resultat && !resultat.ok && (
         <p className="panier-alerte" role="alert">
           {resultat.texte}
