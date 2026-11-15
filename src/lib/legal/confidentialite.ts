@@ -19,6 +19,7 @@ export const CONFIDENTIALITE: PageLegale = {
           "Si vous la signalez, une allergie ou une intolérance pour toute la commande. C'est une donnée de santé. Elle sert à la cuisine et n'est jamais recopiée dans votre compte ni dans un e-mail.",
           "Pour un compte client, si vous en créez un : e-mail, coordonnées, adresses de livraison enregistrées et historique des commandes.",
           "Avec un compte, votre cagnotte : ce qu'elle a gagné et ce que vous avez utilisé, commande par commande. Le compte garde aussi votre choix pour le rappel avant expiration.",
+          "Avec un compte, votre lien de parrainage, le nombre de proches parrainés et, si un proche vous a parrainé, où en est le crédit. Jamais le nom de l'autre personne.",
           "Pendant une livraison : la position du livreur, arrondie à une dizaine de mètres. Seul le client de la livraison en cours la voit sur sa page de suivi, jamais les autres clients de la même tournée.",
           "Pour la sécurité de la connexion : la date des connexions et un court extrait chiffré de l'adresse IP, sans votre adresse IP complète.",
           "Le paiement est traité par Stripe. Le site ne reçoit ni ne garde vos données de carte.",
