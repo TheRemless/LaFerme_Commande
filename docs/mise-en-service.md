@@ -77,7 +77,7 @@ Back-office, rubrique « Équipe », cadre « Ajouter quelqu'un » en bas de pag
 | Livreur | Chaque livreur | `/livreur`, rien d'autre |
 
 - La tablette du comptoir tourne avec un compte « Comptoir » commun, à l'accès « Tablette » (décision de Jérémy du 14.11.2026). Son adresse e-mail reste à créer par Jérémy. Le code de connexion y arrive : elle doit être lisible sur place.
-- Une personne a un seul accès. Un compte gérant n'ouvre pas `/livreur` (le site répond « Votre compte donne accès à la tablette »). Voir M4.
+- Une personne a un seul accès. Un gérant ouvre aussi `/livreur` avec son compte, pour livrer lui-même.
 - La tablette du comptoir reste connectée 60 jours. Chaque geste est signé « Comptoir », pas du prénom de la personne.
 - Un livreur reste connecté 12 heures. Il se reconnecte à chaque service.
 
@@ -161,6 +161,16 @@ Sans e-mail lisible sur son téléphone, le gérant ou un responsable touche « 
 5. Il touche « Livrée ». La commande passe dans « Terminées ».
 6. Back-office, « Commandes », ouvrir la commande, onglet « Gestes », « Rembourser », « Tout ce qui reste ». Vérifier que le remboursement arrive.
 
+<a id="essai-telephone"></a>
+
+### Essai d'une commande au téléphone (5 min)
+
+1. Tablette, « Commande téléphone ». Saisir une livraison à une vraie adresse, au-dessus du minimum de la zone.
+2. « Enregistrer la commande ». L'écran donne le numéro et l'heure annoncée.
+3. Le ticket porte « TÉLÉPHONE » et, en bas, « SAC : COCHER CHAQUE ARTICLE » ainsi que « Paiement : À ENCAISSER À LA LIVRAISON ».
+4. Le livreur la prend sous « À prendre », touche « Je pars » puis « Livrée ».
+5. Tablette, onglet « Terminées ». Toucher « Espèces » ou « Carte », puis annuler l'essai depuis le back-office.
+
 <a id="essai-refus"></a>
 
 ### 10. Essai de refus (5 min)
@@ -203,6 +213,5 @@ La liste classée, avec le propriétaire de chaque point, est dans le fichier d'
 | N° | Manque | Ce qu'on fait le jour J en attendant |
 |---|---|---|
 | M1 | Aucune imprimante réelle n'a été branchée. L'accès à sa page de réglages n'est pas vérifié | Brancher la première imprimante plusieurs jours avant |
-| M4 | Un gérant n'ouvre pas encore `/livreur`. Décidé le 14.11.2026 : il pourra livrer sans second compte, en construction | Le patron qui livre fait noter « Partie » puis « Livrée » sur la tablette |
 | M5 | Son, vibration et notification du livreur : construits (#238), pas vérifiés sur un vrai téléphone | Le comptoir prévient aussi le livreur de vive voix |
 | M6 | Débit du four posé à 15 dans la vraie base le 13.11.2026. Cuisine et livreurs à zéro | Vérifier les valeurs dans « Réglages généraux » |

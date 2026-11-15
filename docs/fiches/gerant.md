@@ -44,6 +44,21 @@ En cas de problème, appeler le restaurant : 022 792 16 89
 | Le remboursement a échoué | Alerte sur l'accueil. Rappeler le client, puis rembourser depuis Stripe ou en espèces. |
 | Client absent à la livraison | La commande est close sans remboursement. Je décide au cas par cas. |
 
+## Le client veut changer sa commande
+
+Back-office, « Commandes », ouvrir la commande, onglet « Gestes », « Changer les plats ».
+
+1. « − » et « + » changent les quantités. Les boutons « + » suivis d'un nom de plat en ajoutent un.
+2. « Nouvelle adresse » ne se remplit que si elle change.
+3. L'écran calcule « Avant », « Après » ainsi que la différence.
+4. « Enregistrer la modification », puis confirmer. Les ajouts partent en cuisine tout de suite.
+
+| Différence | Ce que je choisis |
+|---|---|
+| Même montant | Rien à payer ni à rembourser. |
+| Plus cher, commande déjà payée | « Par un lien de paiement », ou « À la livraison, en espèces ou par carte ». |
+| Complément à la livraison | Le livreur lit « Complément à encaisser » avec le montant, puis note « espèces » ou « carte ». |
+
 ## Fermeture
 
 1. Tablette, onglet « En cours ». Il ne reste rien à faire. Le comptoir suit sa consigne de fin de service.
@@ -62,7 +77,7 @@ Si une commande du jour change après la clôture, un bandeau le dit. Toucher «
 | Un nouveau | « Équipe », « Ajouter quelqu'un ». Prénom, e-mail, accès. |
 | Quelqu'un part | « Retirer ». Son accès est coupé tout de suite. |
 | Un téléphone ou la tablette est perdu | « Déconnecter partout ». |
-| Je livre moi-même ce soir | À venir : mon compte gérant ouvrira la page du livreur, sans second compte. En attendant, faire noter « Partie » puis « Livrée » sur la tablette. |
+| Je livre moi-même ce soir | Ouvrir `/livreur` sur mon téléphone avec mon compte. Toucher « Je prends » sous « À prendre ». Le comptoir peut aussi me donner une commande avec « Donner à… ». |
 | Quelqu'un ne reçoit pas son code | Attendre 30 secondes, « Renvoyer un code », regarder les indésirables. |
 
 ## Chaque semaine

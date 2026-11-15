@@ -19,6 +19,9 @@ En cas de problème, prévenir le comptoir.
 | « pour Léa » sous un plat | Le plat est pour cette personne. L'écrire sur la boîte. |
 | « Aussi aux pizzas », avec un nombre d'articles | Le four prépare le reste de la même commande. |
 | « Paiement », en bas | Payée en ligne ou à encaisser au comptoir. |
+| « TÉLÉPHONE », sous le numéro | La commande a été prise au téléphone par le comptoir. Elle se prépare comme les autres. |
+| « SAC : COCHER CHAQUE ARTICLE », en bas | La liste de tout le sac, une case par article. Elle sort sur le ticket du poste qui fait le sac. |
+| « Paiement : À ENCAISSER À LA LIVRAISON » | Le livreur encaisse à la porte. |
 | « RÉIMPRESSION » | Quelqu'un a redemandé ce ticket. Ne pas refaire la commande. |
 | « RENVOI : CE TICKET EST PEUT-ÊTRE DÉJÀ SORTI » | Vérifier avant de refaire. |
 | « ANNULÉE », « NE PAS PRÉPARER » | La commande est annulée. Arrêter. |
@@ -31,7 +34,7 @@ Le ticket ne porte pas de prix.
 | Je me demande | Réponse |
 |---|---|
 | Le plat du jour sort où ? | Au poste choisi par le gérant quand il le publie. |
-| Qui met les boissons et les desserts dans le sac ? | Le comptoir. Si une boisson sort sur votre ticket, la laisser au comptoir. |
+| Qui met les boissons dans le sac ? | Le comptoir. Une boisson ne sort plus sur votre ticket, sauf dans la liste du sac. |
 | Une commande a un plat et des pizzas. | Chaque poste a son ticket. Le vôtre dit combien d'articles sortent au four. Se parler pour sortir ensemble. |
 | Un plat est fini. | Le dire au comptoir tout de suite. Il le met « Épuisé » sur la tablette jusqu'à demain. |
 | Je ne peux pas faire un plat déjà commandé. | Le dire au comptoir. Il touche « Il manque… » et le client est prévenu. |
