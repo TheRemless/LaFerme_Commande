@@ -116,8 +116,18 @@ function Ajustement({ email, solde, apres }: { email: string; solde: number; apr
           motif: v.motif.trim(),
         });
       },
-      apres: async () => {
-        notifier({ texte: "Cagnotte ajustée.", ton: "succes" });
+      apres: async (r, v) => {
+        // Solde réel renvoyé par la base : une retenue pour une commande remboursée a pu jouer en même temps.
+        const c = Math.round(Number(v.chf.replace(",", ".")) * 100) * (v.sens === "retirer" ? -1 : 1);
+        const reel = Number(r.donnees.solde_centimes);
+        const retenu = solde + c - reel;
+        notifier({
+          texte:
+            Number.isFinite(reel) && retenu > 0
+              ? `Cagnotte ajustée. Nouveau solde CHF ${montant(reel)}, dont CHF ${montant(retenu)} retenus pour une commande remboursée.`
+              : "Cagnotte ajustée.",
+          ton: "succes",
+        });
         f.reinitialiser();
         await apres();
       },

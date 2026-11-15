@@ -19,6 +19,7 @@ type Reglages = {
   calcule_le: string;
   parrainage_montant_centimes?: number;
   parrainage_plafond_mois?: number;
+  parrainage_minimum_centimes?: number;
 };
 
 const JOURS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
@@ -58,6 +59,7 @@ function Formulaire({ r, recharger }: { r: Reglages; recharger: () => Promise<vo
       dates: r.soirs_doubles.dates,
       parrainage: ((r.parrainage_montant_centimes ?? 1000) / 100).toFixed(2),
       plafond: String(r.parrainage_plafond_mois ?? 10),
+      minimum: ((r.parrainage_minimum_centimes ?? 3000) / 100).toFixed(2),
     },
     {
       valider: (v) => {
@@ -70,6 +72,8 @@ function Formulaire({ r, recharger }: { r: Reglages; recharger: () => Promise<vo
         const pp = Number(v.plafond);
         if (!Number.isFinite(pm) || pm < 0 || pm > 50) e.parrainage = "De CHF 0 à CHF 50.";
         if (!Number.isInteger(pp) || pp < 0 || pp > 100) e.plafond = "De 0 à 100.";
+        const pmin = Number(v.minimum.replace(",", "."));
+        if (!Number.isFinite(pmin) || pmin < 0 || pmin > 200) e.minimum = "De CHF 0 à CHF 200.";
         return e;
       },
       enregistrer: (v) =>
@@ -79,6 +83,7 @@ function Formulaire({ r, recharger }: { r: Reglages; recharger: () => Promise<vo
           soirs_doubles: { jours: v.jours, dates: v.dates },
           parrainage_montant_centimes: Math.round(Number(v.parrainage.replace(",", ".")) * 100),
           parrainage_plafond_mois: Number(v.plafond),
+          parrainage_minimum_centimes: Math.round(Number(v.minimum.replace(",", ".")) * 100),
         }),
       apres: async () => {
         notifier({ texte: "Cagnotte enregistrée.", ton: "succes" });
@@ -143,6 +148,13 @@ function Formulaire({ r, recharger }: { r: Reglages; recharger: () => Promise<vo
           <legend>Parrainage</legend>
           <Champ libelle="Montant pour le parrain et pour le filleul (CHF)" aide="Crédité à chacun après la première commande livrée ou retirée du filleul." erreur={f.erreurs.parrainage}>
             {(a) => <input {...a} inputMode="decimal" value={v.parrainage} onChange={(e) => f.changer("parrainage", e.target.value)} />}
+          </Champ>
+          <Champ
+            libelle="Commande minimum du filleul (CHF de plats)"
+            aide="Le crédit attend une commande au moins de ce montant, après code promo et cagnotte. Le parrain doit lui-même en avoir passé une."
+            erreur={f.erreurs.minimum}
+          >
+            {(a) => <input {...a} inputMode="decimal" value={v.minimum} onChange={(e) => f.changer("minimum", e.target.value)} />}
           </Champ>
           <Champ libelle="Parrainages par client et par mois, au plus" erreur={f.erreurs.plafond}>
             {(a) => <input {...a} inputMode="numeric" value={v.plafond} onChange={(e) => f.changer("plafond", e.target.value)} />}
