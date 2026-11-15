@@ -152,6 +152,10 @@ describe("parrainage", () => {
     const r = await f<{ parrainage_montant_centimes: number; parrainage_plafond_mois: number }>("regler_fidelite($1, $2)", [{ ...base, parrainage_montant_centimes: 1500, parrainage_plafond_mois: 5 }, gerant]);
     expect(r).toMatchObject({ parrainage_montant_centimes: 1500, parrainage_plafond_mois: 5 });
     expect((await f<{ montant_centimes: number }>("parrainage_compte($1)", [parrain])).montant_centimes).toBe(1500);
+    // Le minimum proposé reste une proposition tant qu'il n'est pas changé.
+    expect(await val<boolean>("select proposition from reglages where cle = 'parrainage_minimum_centimes'")).toBe(true);
+    await f("regler_fidelite($1, $2)", [{ ...base, parrainage_minimum_centimes: 2500 }, gerant]);
+    expect(await val<boolean>("select proposition from reglages where cle = 'parrainage_minimum_centimes'")).toBe(false);
   });
 
   it("revue de sécurité : variantes de numéro, téléphone du destinataire, Gmail à points, compte qui a déjà commandé", async () => {

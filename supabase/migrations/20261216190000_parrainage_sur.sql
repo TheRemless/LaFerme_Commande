@@ -273,7 +273,8 @@ begin
   update reglages set valeur = to_jsonb(t) where cle = 'fidelite_taux_pourcent';
   update reglages set valeur = to_jsonb(pm) where cle = 'parrainage_montant_centimes';
   update reglages set valeur = to_jsonb(pp) where cle = 'parrainage_plafond_mois';
-  update reglages set valeur = to_jsonb(pmin), proposition = false where cle = 'parrainage_minimum_centimes';
+  -- La marque « proposition » (montant pas encore validé par Jérémy) ne tombe que si le gérant change le minimum.
+  update reglages set proposition = proposition and valeur = to_jsonb(pmin), valeur = to_jsonb(pmin) where cle = 'parrainage_minimum_centimes';
   update reglages set valeur = to_jsonb(s) where cle = 'fidelite_seuil_centimes';
   update reglages set valeur = jsonb_build_object(
       'jours', (select coalesce(jsonb_agg(distinct (j #>> '{}')::integer), '[]'::jsonb) from jsonb_array_elements(jours) j),
