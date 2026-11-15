@@ -59,8 +59,24 @@ begin
 end;
 $$;
 
+-- Clés de comparaison anti-fraude (revue de sécurité) :
+-- - téléphone : les 9 derniers chiffres, « (0) » retiré (+41 (0)79…, 0041 79…, 079… donnent la même clé) ;
+-- - e-mail : sans « +étiquette », et sans points pour Gmail (une même boîte).
+create function tel_cle(p text) returns text
+language sql immutable as $$
+  select case when length(d) >= 9 then right(d, 9) else '' end
+  from (select regexp_replace(replace(coalesce(p, ''), '(0)', ''), '\D', '', 'g') as d) x;
+$$;
+
+create function email_cle(p text) returns text
+language sql immutable as $$
+  select case when dom in ('gmail.com', 'googlemail.com') then replace(loc, '.', '') || '@gmail.com' else loc || '@' || dom end
+  from (select split_part(split_part(e, '@', 1), '+', 1) as loc, split_part(e, '@', 2) as dom
+        from (select lower(btrim(coalesce(p, ''))) as e) y) x;
+$$;
+
 -- Rattache un compte qui vient d'être créé à son parrain. Rend 'ok' ou la raison du refus : desactive, code,
--- soi_meme, deja, ancien (compte de plus de 24 heures ou e-mail qui a déjà commandé), plafond.
+-- soi_meme, deja, ancien (compte de plus de 24 heures, qui a déjà commandé, ou boîte e-mail déjà vue), plafond.
 create function lier_parrainage(p_email text, p_code text) returns text
 language plpgsql as $$
 declare
@@ -75,7 +91,7 @@ begin
   if parrain is null then
     return 'code';
   end if;
-  select * into f from comptes where email = email_normal(p_email) for update;
+  select * into f from comptes where email = lower(btrim(coalesce(p_email, ''))) for update;
   if not found then
     return 'code';
   end if;
@@ -85,8 +101,12 @@ begin
   if exists (select 1 from parrainages where filleul_id = f.id) then
     return 'deja';
   end if;
+  -- Client nouveau : compte de moins de 24 heures, aucune commande avec ce compte ni avec cet e-mail (Gmail sans
+  -- points, sans « +étiquette »), aucun autre compte sur la même boîte.
   if f.cree_le < now() - interval '24 hours'
-     or exists (select 1 from commandes where email_normal(client_email) = f.email) then
+     or exists (select 1 from commandes where compte_id = f.id)
+     or exists (select 1 from commandes where email_cle(client_email) = email_cle(f.email))
+     or exists (select 1 from comptes k where k.id <> f.id and email_cle(k.email) = email_cle(f.email)) then
     return 'ancien';
   end if;
   perform 1 from comptes where id = parrain for update;
@@ -106,7 +126,7 @@ language plpgsql as $$
 declare
   o commandes%rowtype;
   p parrainages%rowtype;
-  tel text;
+  tels text[];
   adr text;
   montant integer := greatest(fidelite_entier('parrainage_montant_centimes', 1000), 0);
   v_raison text;
@@ -120,12 +140,19 @@ begin
   if not found then
     return null;
   end if;
-  tel := telephone_normal(o.client_telephone);
+  -- Téléphones de la commande : le client et la personne qui reçoit (revue de sécurité).
+  tels := array_remove(array[tel_cle(o.client_telephone), tel_cle(o.destinataire ->> 'telephone')], '');
   adr := case when o.mode = 'livraison' then adresse_cle(o.adresse) end;
-  if tel <> '' and (
-       exists (select 1 from commandes x where x.compte_id is distinct from o.compte_id and telephone_normal(x.client_telephone) = tel
-               and x.statut not in ('paiement_en_attente', 'annulee'))
-       or exists (select 1 from comptes k where k.id = p.parrain_id and telephone_normal(k.telephone) = tel)) then
+  if o.statut_paiement not in ('paye', 'encaisse')
+     or exists (select 1 from remboursements r where r.commande_id = o.id and r.statut in ('en_cours', 'fait')) then
+    v_raison := 'paiement';
+  elsif exists (select 1 from commandes x where x.compte_id = o.compte_id and x.id <> o.id and x.statut = 'terminee') then
+    v_raison := 'pas_premiere';
+  elsif cardinality(tels) > 0 and (
+       exists (select 1 from commandes x where x.compte_id is distinct from o.compte_id
+               and x.statut not in ('paiement_en_attente', 'annulee')
+               and (tel_cle(x.client_telephone) = any(tels) or tel_cle(x.destinataire ->> 'telephone') = any(tels)))
+       or exists (select 1 from comptes k where k.id = p.parrain_id and tel_cle(k.telephone) = any(tels))) then
     v_raison := 'telephone';
   elsif adr is not null and exists (select 1 from commandes x where x.compte_id is distinct from o.compte_id and x.mode = 'livraison'
                and adresse_cle(x.adresse) = adr and x.statut not in ('paiement_en_attente', 'annulee')) then
@@ -142,6 +169,31 @@ begin
              (o.compte_id, o.id, 'parrainage', montant, 'Bienvenue par parrainage');
   end if;
   return 'credite';
+end;
+$$;
+
+-- Commande du filleul remboursée en entier après le crédit : les deux crédits sont repris, au plus le solde de
+-- chaque compte (jamais négatif). Le parrainage passe « refuse ».
+create function reprendre_parrainage(p_commande uuid) returns integer
+language plpgsql as $$
+declare
+  m record;
+  n integer := 0;
+  r integer;
+begin
+  for m in select compte_id, sum(montant_centimes)::integer as total from cagnotte_mouvements
+           where commande_id = p_commande and type = 'parrainage' group by compte_id having sum(montant_centimes) > 0
+  loop
+    perform 1 from comptes where id = m.compte_id for update;
+    r := least(m.total, greatest(solde_cagnotte(m.compte_id), 0));
+    if r > 0 then
+      insert into cagnotte_mouvements (compte_id, commande_id, type, montant_centimes, motif)
+        values (m.compte_id, p_commande, 'parrainage', -r, 'Parrainage repris, commande remboursée');
+      n := n + 1;
+    end if;
+  end loop;
+  update parrainages set statut = 'refuse', raison = 'rembourse', termine_le = now() where commande_id = p_commande and statut = 'credite';
+  return n;
 end;
 $$;
 
@@ -162,6 +214,7 @@ begin
     perform ajuster_gain(new.id);
   elsif new.statut_paiement = 'rembourse' and old.statut_paiement is distinct from 'rembourse' then
     perform ajuster_gain(new.id);
+    perform reprendre_parrainage(new.id);
   end if;
   return null;
 end;
@@ -237,7 +290,9 @@ begin
 end;
 $$;
 
-revoke execute on function code_parrainage(uuid), lier_parrainage(text, text), crediter_parrainage(uuid), parrainage_compte(uuid)
+revoke execute on function code_parrainage(uuid), lier_parrainage(text, text), crediter_parrainage(uuid), parrainage_compte(uuid),
+  tel_cle(text), email_cle(text), reprendre_parrainage(uuid)
   from public, anon, authenticated;
-grant execute on function code_parrainage(uuid), lier_parrainage(text, text), crediter_parrainage(uuid), parrainage_compte(uuid)
+grant execute on function code_parrainage(uuid), lier_parrainage(text, text), crediter_parrainage(uuid), parrainage_compte(uuid),
+  tel_cle(text), email_cle(text), reprendre_parrainage(uuid)
   to service_role;

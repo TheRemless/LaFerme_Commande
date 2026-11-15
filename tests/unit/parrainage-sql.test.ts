@@ -153,4 +153,46 @@ describe("parrainage", () => {
     expect(r).toMatchObject({ parrainage_montant_centimes: 1500, parrainage_plafond_mois: 5 });
     expect((await f<{ montant_centimes: number }>("parrainage_compte($1)", [parrain])).montant_centimes).toBe(1500);
   });
+
+  it("revue de sécurité : variantes de numéro, téléphone du destinataire, Gmail à points, compte qui a déjà commandé", async () => {
+    // « +41 (0)79 111 11 11 » est le numéro du parrain écrit autrement.
+    const variante = await compte("variante@exemple.ch");
+    await f("lier_parrainage('variante@exemple.ch', $1)", [code]);
+    await commande(variante, "variante@exemple.ch", "+41 (0)79 111 11 11", "60");
+    expect(await val<string>("select raison from parrainages where filleul_id = $1", [variante])).toBe("telephone");
+
+    // Vrai numéro mis dans « la personne qui reçoit ».
+    const dest = await compte("dest@exemple.ch");
+    await f("lier_parrainage('dest@exemple.ch', $1)", [code]);
+    const id = await commande(dest, "dest@exemple.ch", "079 666 66 66", "70", "acceptee");
+    await db.query(`update commandes set destinataire = '{"nom": "Moi", "telephone": "079 111 11 11"}' where id = $1`, [id]);
+    await db.query("update commandes set statut = 'terminee' where id = $1", [id]);
+    expect(await val<string>("select raison from parrainages where filleul_id = $1", [dest])).toBe("telephone");
+
+    // Gmail ignore les points et ce qui suit « + » : même boîte que le parrain.
+    await db.query("update comptes set email = 'jeremie.test@gmail.com' where id = $1", [parrain]);
+    await compte("j.eremie.test+bis@gmail.com");
+    expect(await f<string>("lier_parrainage('j.eremie.test+bis@gmail.com', $1)", [code])).toBe("ancien");
+
+    // Compte de moins de 24 heures qui a déjà commandé avec un autre e-mail de contact.
+    const presse = await compte("presse@exemple.ch");
+    await commande(presse, "autre-contact@exemple.ch", "079 777 77 77", "80");
+    expect(await f<string>("lier_parrainage('presse@exemple.ch', $1)", [code])).toBe("ancien");
+  });
+
+  it("revue de sécurité : rien sur une commande non payée ou remboursée ; crédits repris au remboursement total", async () => {
+    const f1 = await compte("rembourse-avant@exemple.ch");
+    await f("lier_parrainage('rembourse-avant@exemple.ch', $1)", [code]);
+    const id1 = await commande(f1, "rembourse-avant@exemple.ch", "079 888 88 81", "90", "prete");
+    await db.query("update commandes set statut_paiement = 'rembourse' where id = $1", [id1]);
+    await db.query("update commandes set statut = 'terminee' where id = $1", [id1]);
+    expect(await parrainages(f1)).toBe(0);
+
+    const f2 = await compte("rembourse-apres@exemple.ch");
+    await f("lier_parrainage('rembourse-apres@exemple.ch', $1)", [code]);
+    const id2 = await commande(f2, "rembourse-apres@exemple.ch", "079 888 88 82", "91");
+    expect(await parrainages(f2)).toBe(1000);
+    await db.query("update commandes set statut_paiement = 'rembourse' where id = $1", [id2]);
+    expect([await parrainages(parrain), await parrainages(f2)]).toEqual([0, 0]);
+  });
 });
