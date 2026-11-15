@@ -226,6 +226,43 @@ describe("modifier les plats d'une commande", () => {
     expect(await f<unknown[]>("complements_a_rembourser($1)", [c])).toEqual([]);
   });
 
+  it("payée par carte au comptoir, moins chère : rendue sur le terminal par défaut, en espèces si l'équipe le choisit ; clôture et exports", async () => {
+    const carte = await commande({ comptoir: true });
+    await f("marquer_encaisse($1, 'tablette:Test', 'carte')", [carte]);
+    const jour = (await db.query<{ j: string }>("select jour::text as j from commandes where id = $1", [carte])).rows[0].j;
+    // La clôture compte un remboursement dans la journée de service où il est fait (de 5 h à 5 h, heure de Genève).
+    const jourRendu = (await db.query<{ j: string }>("select ((now() at time zone 'Europe/Zurich') - interval '5 hours')::date::text as j")).rows[0].j;
+    const avant = await f<{ encaissements: { terminal_rendu_centimes: number; attendu_carte_centimes: number } }>("cloture_rapport($1)", [jourRendu]);
+    const r = await modifier(carte, demande(`difference-${n}-terminal-1`, [ligne("Margherita", 2000)]));
+    expect(r.remboursement).toMatchObject({ montant_centimes: 800, moyen: "terminal", statut: "fait" });
+    const j = (await db.query<{ apres: Record<string, unknown> }>("select apres from journal_gestion where objet = 'commande_modifiee' and cle = $1 order by id desc limit 1", [carte])).rows[0];
+    expect(j.apres).toMatchObject({ moyen_remboursement: "terminal" });
+    const apres = await f<{ encaissements: { terminal_rendu_centimes: number; attendu_carte_centimes: number } }>("cloture_rapport($1)", [jourRendu]);
+    expect(apres.encaissements.terminal_rendu_centimes - avant.encaissements.terminal_rendu_centimes).toBe(800);
+    expect(avant.encaissements.attendu_carte_centimes - apres.encaissements.attendu_carte_centimes).toBe(800);
+    const recap = await f<{ rembourse_terminal_centimes: number }[]>("export_recap_jours($1, $2)", [jour < jourRendu ? jour : jourRendu, jour > jourRendu ? jour : jourRendu]);
+    expect(recap.reduce((t, l) => t + Number(l.rembourse_terminal_centimes), 0)).toBeGreaterThanOrEqual(800);
+    const cresus = await f<{ sorte: string; moyen: string; ttc_centimes: number }[]>("export_cresus($1, $2)", [jour < jourRendu ? jour : jourRendu, jour > jourRendu ? jour : jourRendu]);
+    expect(cresus.some((l) => l.sorte === "remboursement" && l.moyen === "terminal")).toBe(true);
+
+    // Le client préfère des espèces : l'équipe le choisit.
+    const especes = await commande({ comptoir: true });
+    await f("marquer_encaisse($1, 'tablette:Test', 'carte')", [especes]);
+    const r2 = await modifier(especes, demande(`difference-${n}-terminal-2`, [ligne("Margherita", 2000)], { moyen_remboursement: "especes" }));
+    expect(r2.remboursement).toMatchObject({ moyen: "especes" });
+    const cheque = await commande({ comptoir: true });
+    await f("marquer_encaisse($1, 'tablette:Test', 'carte')", [cheque]);
+    expect(await erreur("preparer_modification($1, $2, $3)", [cheque, demande(`difference-${n}-terminal-3`, [ligne("Margherita", 2000)], { moyen_remboursement: "cheque" }), id.gerant])).toContain("moyen_invalide");
+  });
+
+  it("remboursement après coup d'une commande payée par carte au comptoir : sur le terminal", async () => {
+    const c = await commande({ comptoir: true });
+    await f("marquer_encaisse($1, 'tablette:Test', 'carte')", [c]);
+    await f("changer_statut($1, 'prete', 'tablette:Test')", [c]);
+    const r = await f<{ moyen: string; statut: string }>("demander_remboursement($1, 500, 'Pizza froide', $2, $3)", [c, `cle-terminal-${n}`, id.gerant]);
+    expect(r).toMatchObject({ moyen: "terminal", statut: "fait" });
+  });
+
   it("droits et refus : l'équipe de service non, un règlement absent ou impossible non", async () => {
     const c = await commande({ mode: "livraison" });
     const plus = [ligne("Margherita", 2000, 3), ligne("Tiramisu", 800, 1, "cuisine")];

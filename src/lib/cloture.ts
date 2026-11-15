@@ -23,6 +23,8 @@ export type RapportCloture = {
     comptoir: { commandes: number; centimes: number };
     deductions_centimes: number;
     especes_rendues_centimes: number;
+    // Rendu sur le terminal de carte (20261216140000), absent d'un rapport enregistré avant.
+    terminal_rendu_centimes?: number;
     attendu_comptoir_centimes: number;
     // Moyen noté par la tablette (absents d'un rapport enregistré avant cette séparation).
     comptoir_especes?: { commandes: number; centimes: number };
@@ -37,7 +39,7 @@ export type RapportCloture = {
   remboursements: {
     numero: number;
     montant_centimes: number;
-    moyen: "stripe" | "especes" | "deduction";
+    moyen: "stripe" | "especes" | "deduction" | "terminal";
     statut: "fait" | "en_cours" | "echec";
     motif: string;
     par: string;
@@ -98,7 +100,7 @@ export function regrouperEcarts(ecarts: Ecart[]): { aSuivre: Ecart[]; pasTermine
   };
 }
 
-const LIBELLE_MOYEN = { stripe: "en ligne", especes: "espèces", deduction: "déduit au comptoir" } as const;
+const LIBELLE_MOYEN = { stripe: "en ligne", especes: "espèces", deduction: "déduit au comptoir", terminal: "terminal (carte)" } as const;
 const LIBELLE_STATUT = { fait: "fait", en_cours: "en cours", echec: "échec" } as const;
 
 const chf = (c: number | null) => (c === null ? "" : (c / 100).toFixed(2));
@@ -144,6 +146,7 @@ export function csvCloture(j: ClotureJour): string {
       : []),
     ligne("Déduit au comptoir (manques)", "", chf(e.deductions_centimes)),
     ligne("Espèces rendues", "", chf(e.especes_rendues_centimes)),
+    ...(e.terminal_rendu_centimes !== undefined ? [ligne("Rendu sur le terminal", "", chf(e.terminal_rendu_centimes))] : []),
     ligne("Attendu au comptoir", "", chf(e.attendu_comptoir_centimes)),
     ...(e.attendu_especes_centimes !== undefined && e.attendu_carte_centimes !== undefined
       ? [ligne("Attendu en espèces", "", chf(e.attendu_especes_centimes)), ligne("Attendu en carte", "", chf(e.attendu_carte_centimes))]

@@ -54,6 +54,8 @@ type Apercu =
       ajouts: string[];
       retires: string[];
       paye: boolean;
+      // Payée au comptoir ou à la porte, moins chère : moyen proposé pour rendre l'argent (celui de l'encaissement).
+      rendu?: "especes" | "terminal";
     };
 
 function nouvelleCle(): string {
@@ -93,6 +95,7 @@ export function ChangerPlats({
   const [lignes, setLignes] = useState<LignePanier[]>([]);
   const [apercu, setApercu] = useState<Apercu | null>(null);
   const [reglement, setReglement] = useState("lien");
+  const [rendu, setRendu] = useState<"especes" | "terminal" | null>(null);
   const [cle, setCle] = useState(nouvelleCle);
   const [envoi, setEnvoi] = useState(false);
   const [lien, setLien] = useState<string | null>(null);
@@ -227,6 +230,7 @@ export function ChangerPlats({
       lignes,
       adresse,
       reglement: choisi,
+      ...(apercu.rendu ? { moyen_remboursement: rendu ?? apercu.rendu } : {}),
     });
     setEnvoi(false);
     const res = r.donnees as {
@@ -504,6 +508,26 @@ export function ChangerPlats({
                       ? "Même montant : rien à payer ni à rembourser."
                       : `Nouveau total à encaisser ${mode === "livraison" ? "à la livraison" : "au retrait"} : CHF ${montant(apercu.total)}.`}
                 </p>
+              )}
+              {apercu.rendu && (
+                <fieldset className="bo-fiche-form">
+                  <legend>Rendre l&apos;argent</legend>
+                  {(["especes", "terminal"] as const).map((m) => (
+                    <label key={m}>
+                      <input
+                        type="radio"
+                        name={`${ids}-rendu`}
+                        value={m}
+                        checked={(rendu ?? apercu.rendu) === m}
+                        onChange={() => setRendu(m)}
+                      />{" "}
+                      {m === "especes"
+                        ? "En espèces"
+                        : "Sur le terminal de carte"}
+                      {apercu.rendu === m ? " (comme il a payé)" : ""}
+                    </label>
+                  ))}
+                </fieldset>
               )}
             </>
           )}

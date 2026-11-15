@@ -15,6 +15,8 @@ export type RecapJour = {
   tva_centimes: number;
   rembourse_en_ligne_centimes: number;
   rembourse_especes_centimes: number;
+  // Rendu sur le terminal de carte (20261216140000), absent avant.
+  rembourse_terminal_centimes?: number;
   deduit_centimes: number;
   tva_remboursee_centimes: number;
   net_ttc_centimes: number;
@@ -29,7 +31,7 @@ export type RemboursementASuivre = {
   jour: string;
   statut: "echec" | "en_cours";
   montant_centimes: number;
-  moyen: "stripe" | "especes" | "deduction";
+  moyen: "stripe" | "especes" | "deduction" | "terminal";
   motif: string;
   erreur: string | null;
   par: string;
@@ -43,12 +45,12 @@ const chf = (c: number) => (c / 100).toFixed(2);
 export function csvRecapJours(lignes: RecapJour[]): string {
   const entete = [
     "Jour", "Taux TVA %", "Ventes", "En ligne CHF", "Comptoir CHF", "Dont livraison CHF", "Ventes TTC CHF", "TVA ventes CHF",
-    "Remboursé en ligne CHF", "Rendu en espèces CHF", "Déduit au comptoir CHF", "TVA remboursée CHF", "Net TTC CHF", "TVA nette CHF", "Net HT CHF",
+    "Remboursé en ligne CHF", "Rendu en espèces CHF", "Rendu sur le terminal CHF", "Déduit au comptoir CHF", "TVA remboursée CHF", "Net TTC CHF", "TVA nette CHF", "Net HT CHF",
   ];
   const ligne = (l: RecapJour, jour: string) => [
     jour, String(l.taux_tva_pourcent), String(l.ventes), chf(l.en_ligne_centimes), chf(l.comptoir_centimes), chf(l.frais_centimes),
     chf(l.ttc_centimes), chf(l.tva_centimes), chf(-l.rembourse_en_ligne_centimes), chf(-l.rembourse_especes_centimes),
-    chf(-l.deduit_centimes), chf(-l.tva_remboursee_centimes), chf(l.net_ttc_centimes), chf(l.net_tva_centimes), chf(l.net_ht_centimes),
+    chf(-(l.rembourse_terminal_centimes ?? 0)), chf(-l.deduit_centimes), chf(-l.tva_remboursee_centimes), chf(l.net_ttc_centimes), chf(l.net_tva_centimes), chf(l.net_ht_centimes),
   ];
   const rangs: string[][] = [entete, ...lignes.map((l) => ligne(l, String(l.jour).slice(0, 10)))];
   const totaux = new Map<number, RecapJour>();

@@ -173,7 +173,7 @@ export type LigneRemboursement = {
   id: string;
   commande_id: string;
   montant_centimes: number;
-  moyen: "stripe" | "especes" | "deduction";
+  moyen: "stripe" | "especes" | "deduction" | "terminal";
   statut: "en_cours" | "fait" | "echec";
   erreur: string | null;
   stripe_refund_id?: string | null;
@@ -249,6 +249,7 @@ export async function rembourserApresCoup(
   if (r.statut === "echec") return { ok: false, message: "Ce remboursement a déjà échoué. Rechargez la fiche pour en refaire un." };
   const montant = (montantCentimes / 100).toFixed(2);
   if (r.moyen === "especes") return { ok: true, message: `CHF ${montant} notés comme rendus en espèces.` };
+  if (r.moyen === "terminal") return { ok: true, message: `CHF ${montant} à rendre sur le terminal de carte (payée par carte).` };
   if (r.statut === "en_cours") return { ok: true, message: `Remboursement de CHF ${montant} demandé à Stripe, en attente de sa confirmation. Le client reçoit un e-mail.` };
   return { ok: true, message: r.deja && !envoyer ? `Remboursement de CHF ${montant} déjà fait.` : `CHF ${montant} remboursés. Le client reçoit un e-mail.` };
 }
