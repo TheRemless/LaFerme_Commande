@@ -305,11 +305,12 @@ function remboursementTexte(a: Application): string {
   if (a.du_avant_centimes) morceaux.push(`Complément à encaisser : ${chf(a.du_avant_centimes)} → ${chf(a.du_apres_centimes ?? 0)}.`);
   const rendu = a.rembourse_centimes ?? a.remboursement?.montant_centimes ?? 0;
   const voulu = a.rembourse_voulu_centimes ?? rendu;
-  const moyen = a.remboursement?.moyen;
-  if (rendu > 0)
-    morceaux.push(
-      moyen === "especes" ? `${chf(rendu)} à rendre en espèces.` : moyen === "terminal" ? `${chf(rendu)} à rendre sur le terminal de carte.` : `${chf(rendu)} remboursés au client.`,
-    );
+  // Un montant par moyen : la baisse peut se rendre sur Stripe, puis en espèces ou sur le terminal (complément à la porte).
+  const liste = a.remboursements?.length ? a.remboursements : a.remboursement ? [a.remboursement] : [];
+  const par = (m: string) => liste.filter((x) => x.moyen === m).reduce((t, x) => t + x.montant_centimes, 0);
+  if (par("stripe") > 0) morceaux.push(`${chf(par("stripe"))} remboursés au client.`);
+  if (par("especes") > 0) morceaux.push(`${chf(par("especes"))} à rendre en espèces.`);
+  if (par("terminal") > 0) morceaux.push(`${chf(par("terminal"))} à rendre sur le terminal de carte.`);
   // Plafonné : le reste de la baisse était une remise ou une cagnotte, qui ne se rend pas en argent.
   if (voulu > rendu) morceaux.push(`Remboursé ${chf(rendu)} sur ${chf(voulu)} : le reste était une remise ou une cagnotte.`);
   return morceaux.join(" ");
