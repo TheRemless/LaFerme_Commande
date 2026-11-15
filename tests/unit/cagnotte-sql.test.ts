@@ -263,6 +263,16 @@ describe("expiration", () => {
     expect((await mouvements(c)).at(-1)).toEqual({ type: "expire", montant_centimes: -1200 });
   });
 
+  it("une commande refusée ne repousse pas l'expiration", async () => {
+    const c = await compte();
+    const id = await commande({ compteId: c, sousTotal: 4000 });
+    await terminer(id);
+    await vieillir(c, 13);
+    const refusee = await commande({ compteId: c });
+    await db.query("update commandes set statut = 'refusee' where id = $1", [refusee]);
+    expect(await f<number>("expirer_cagnottes()")).toBe(1);
+  });
+
   it("rappel 30 jours avant, une seule fois, sauf si le client l'a refusé", async () => {
     const c = await compte("rappel@exemple.ch");
     const refus = await compte("pas-de-rappel@exemple.ch");
@@ -277,6 +287,10 @@ describe("expiration", () => {
     const dus = await f<{ email: string; solde_centimes: number }[]>("rappels_cagnotte_dus()");
     expect(dus.map((d) => d.email)).toEqual(["rappel@exemple.ch"]);
     expect(dus[0].solde_centimes).toBe(200);
+    // Pas encore noté (envoi en panne) : toujours dû. Noté après l'envoi : plus rien.
+    expect(await f<unknown[]>("rappels_cagnotte_dus()")).toHaveLength(1);
+    const d = dus[0] as unknown as { compte_id: string; activite_le: string };
+    await f("noter_rappel_cagnotte($1, $2)", [d.compte_id, d.activite_le]);
     expect(await f<unknown[]>("rappels_cagnotte_dus()")).toEqual([]);
   });
 });

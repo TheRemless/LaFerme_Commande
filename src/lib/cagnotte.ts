@@ -106,7 +106,7 @@ export function cagnotteUtilisable(solde: number, seuil: number, platsApresRemis
 // 30 jours partent un par un. Sans serveur d'envoi (local, préversion), le rappel est seulement noté au journal.
 export async function tourCagnotte(): Promise<{ expirees: number; rappels: number }> {
   const expirees = await fonctionSql<number>("expirer_cagnottes", {});
-  const dus = await fonctionSql<{ email: string; prenom: string; solde_centimes: number; expire_le: string }[]>("rappels_cagnotte_dus", {});
+  const dus = await fonctionSql<{ compte_id: string; activite_le: string; email: string; prenom: string; solde_centimes: number; expire_le: string }[]>("rappels_cagnotte_dus", {});
   const seuil = (await reglagesFidelite()).seuil_centimes;
   let rappels = 0;
   for (const r of dus) {
@@ -115,8 +115,12 @@ export async function tourCagnotte(): Promise<{ expirees: number; rappels: numbe
       console.info(`Rappel de cagnotte (aucun courriel configuré) : ${m.sujet}`);
       continue;
     }
+    // Noté seulement une fois parti : un envoi en panne ou un quota atteint repart au tour suivant.
     await envoyerParSmtp(r.email, m.sujet, m.texte, m.html, { type: m.type })
-      .then(() => rappels++)
+      .then(async () => {
+        await fonctionSql("noter_rappel_cagnotte", { p_compte: r.compte_id, p_activite: r.activite_le });
+        rappels++;
+      })
       .catch((e) => console.error(`Rappel de cagnotte non envoyé : ${e instanceof Error ? e.message : e}`));
   }
   return { expirees, rappels };

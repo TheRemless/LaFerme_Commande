@@ -7,7 +7,7 @@ import { lireChoix, type Choix } from "@/lib/choix";
 import { platDe, type Catalogue } from "@/lib/panier";
 import { CLE_DESTINATAIRE, lireAllergie, noterAllergie, noterPlaceEnvoyee, useCalculPanier, usePanier, type ReponsePanier } from "@/lib/panier-local";
 import { comptoirPermis } from "@/lib/plafond-comptoir";
-import { lireCode, noterCagnotte, noterCode, retenirCodeDeLUrl } from "@/lib/code-client";
+import { lireCagnotte, lireCode, noterCagnotte, noterCode, retenirCodeDeLUrl } from "@/lib/code-client";
 import { CagnottePaiement } from "@/components/commande/CagnottePaiement";
 import { prixChf, prixCourt, prixPhrase } from "@/lib/prix";
 import { estPanneRegistre } from "@/lib/registre-panne";
@@ -197,8 +197,9 @@ export function PageCommande({
   const plafond = reponse?.plafond_comptoir_centimes ?? null;
   const comptoirFerme = Boolean(reponse && !reponse.erreur) && !comptoirPermis(total, plafond);
   const auComptoir = moyen === "comptoir" && choix?.mode === "retrait" && !comptoirFerme;
-  // Cagnotte déduite par le serveur : jamais au comptoir.
-  const cagnotteUtilisee = auComptoir ? 0 : (reponse?.cagnotte?.utilisee_centimes ?? 0);
+  // Cagnotte demandée (gardée dans l'onglet, case cochée) : envoyée telle quelle, le serveur la borne comme l'aperçu.
+  // Pas la dernière réponse du panier : cochée juste avant « Payer », elle n'est peut-être pas encore recalculée.
+  const cagnotteUtilisee = compte && !auComptoir && reponse?.cagnotte ? lireCagnotte() : 0;
 
   async function commander(e: React.FormEvent) {
     e.preventDefault();

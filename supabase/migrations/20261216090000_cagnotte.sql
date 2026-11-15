@@ -311,11 +311,11 @@ $$;
 
 -- ---------- Expiration et rappel ----------
 
--- Dernière activité : la dernière commande (hors paiement abandonné), sinon le dernier mouvement.
+-- Dernière activité : la dernière commande (hors paiement abandonné, annulée ou refusée), sinon le dernier mouvement.
 create function activite_cagnotte(p_compte uuid) returns timestamptz
 language sql stable as $$
   select coalesce(
-    (select max(cree_le) from commandes where compte_id = p_compte and statut not in ('paiement_en_attente', 'annulee')),
+    (select max(cree_le) from commandes where compte_id = p_compte and statut not in ('paiement_en_attente', 'annulee', 'refusee')),
     (select max(cree_le) from cagnotte_mouvements where compte_id = p_compte)
   );
 $$;
@@ -346,11 +346,12 @@ begin
 end;
 $$;
 
--- Rappels à envoyer : solde positif, expiration dans les 30 jours, rappel accepté. Chaque compte n'est rendu qu'une
--- fois par date de dernière activité (noté ici, avant l'envoi).
--- [{ email, prenom, solde_centimes, expire_le }]
+-- Rappels à envoyer : solde positif, expiration dans les 30 jours, rappel accepté, pas encore envoyé pour cette
+-- date de dernière activité. Le serveur note chaque rappel après l'envoi réussi (noter_rappel_cagnotte) : un envoi
+-- en panne ou un quota atteint le laisse pour le tour suivant.
+-- [{ compte_id, activite_le, email, prenom, solde_centimes, expire_le }]
 create function rappels_cagnotte_dus() returns jsonb
-language plpgsql as $$
+language plpgsql stable as $$
 declare
   c record;
   a timestamptz;
@@ -367,14 +368,18 @@ begin
   loop
     a := activite_cagnotte(c.id);
     continue when a + interval '12 months' > now() + interval '30 days' or a + interval '12 months' <= now();
-    insert into rappels_cagnotte (compte_id, activite_le) values (c.id, (a at time zone 'Europe/Zurich')::date)
-      on conflict do nothing;
-    continue when not found;
-    liste := liste || jsonb_build_object('email', c.email, 'prenom', c.prenom, 'solde_centimes', c.solde,
+    continue when exists (select 1 from rappels_cagnotte r where r.compte_id = c.id and r.activite_le = (a at time zone 'Europe/Zurich')::date);
+    liste := liste || jsonb_build_object('compte_id', c.id, 'activite_le', (a at time zone 'Europe/Zurich')::date,
+      'email', c.email, 'prenom', c.prenom, 'solde_centimes', c.solde,
       'expire_le', to_char((a + interval '12 months') at time zone 'Europe/Zurich', 'YYYY-MM-DD'));
   end loop;
   return liste;
 end;
+$$;
+
+create function noter_rappel_cagnotte(p_compte uuid, p_activite date) returns void
+language sql as $$
+  insert into rappels_cagnotte (compte_id, activite_le) values (p_compte, p_activite) on conflict do nothing;
 $$;
 
 -- ---------- Compte du client ----------
@@ -577,14 +582,14 @@ $$;
 revoke execute on function fidelite_active(), fidelite_entier(text, integer), fidelite_taux(), fidelite_seuil(),
   solde_cagnotte(uuid), taux_cagnotte(commandes), remise_plats(commandes), base_cagnotte(commandes),
   crediter_cagnotte(uuid), rendre_cagnotte(uuid), ajuster_gain(uuid), cagnotte_au_statut(), cagnotte_au_remboursement(),
-  creer_commande_paiement(jsonb, text, integer), activite_cagnotte(uuid), expirer_cagnottes(), rappels_cagnotte_dus(),
+  creer_commande_paiement(jsonb, text, integer), activite_cagnotte(uuid), expirer_cagnottes(), rappels_cagnotte_dus(), noter_rappel_cagnotte(uuid, date),
   cagnotte_compte(uuid), regler_rappel_cagnotte(uuid, boolean), reglages_fidelite(), regler_fidelite(jsonb, uuid),
   cagnotte_client_gestion(text), ajuster_cagnotte(text, integer, text, uuid), du_cagnottes_au(date)
   from public, anon, authenticated;
 grant execute on function fidelite_active(), fidelite_entier(text, integer), fidelite_taux(), fidelite_seuil(),
   solde_cagnotte(uuid), taux_cagnotte(commandes), remise_plats(commandes), base_cagnotte(commandes),
   crediter_cagnotte(uuid), rendre_cagnotte(uuid), ajuster_gain(uuid),
-  creer_commande_paiement(jsonb, text, integer), activite_cagnotte(uuid), expirer_cagnottes(), rappels_cagnotte_dus(),
+  creer_commande_paiement(jsonb, text, integer), activite_cagnotte(uuid), expirer_cagnottes(), rappels_cagnotte_dus(), noter_rappel_cagnotte(uuid, date),
   cagnotte_compte(uuid), regler_rappel_cagnotte(uuid, boolean), reglages_fidelite(), regler_fidelite(jsonb, uuid),
   cagnotte_client_gestion(text), ajuster_cagnotte(text, integer, text, uuid), du_cagnottes_au(date)
   to service_role;
