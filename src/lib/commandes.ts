@@ -343,6 +343,7 @@ export async function appliquerEtatRemboursement(
 export type ElementManque = { ligne: number; qte: number } | { ligne: number; groupe: string; nom: string };
 
 const ERREURS_MANQUE: Record<string, string> = {
+  moyen_invalide: "Choisissez espèces ou terminal.",
   deja_signale: "C'est déjà signalé pour cette commande.",
   ligne_inconnue: "Choix invalide. Rechargez la page.",
   option_absente: "Choix invalide. Rechargez la page.",
@@ -365,10 +366,13 @@ export async function signalerManque(
   cle: string,
   personnelId: string,
   confirmer: boolean,
-): Promise<{ ok: boolean; message: string; montant_centimes?: number; description?: string }> {
-  let r: LigneRemboursement & { description: string; montant_centimes: number };
+  // Commande encaissée au comptoir ou à la porte : terminal si payée par carte, espèces sinon (proposé par la base,
+  // changeable par l'équipe). Ignoré pour une commande payée en ligne ou pas encore encaissée.
+  moyenRendu?: "especes" | "terminal",
+): Promise<{ ok: boolean; message: string; montant_centimes?: number; description?: string; moyen?: string; moyen_propose?: string }> {
+  let r: LigneRemboursement & { description: string; montant_centimes: number; moyen_propose?: string };
   try {
-    r = await fonctionSql("signaler_manque", { p_commande: commandeId, p_elements: elements, p_cle: cle, p_personnel: personnelId, p_confirmer: confirmer });
+    r = await fonctionSql("signaler_manque", { p_commande: commandeId, p_elements: elements, p_cle: cle, p_personnel: personnelId, p_confirmer: confirmer, p_moyen: moyenRendu ?? null });
   } catch (e) {
     const m = e instanceof Error ? e.message : String(e);
     const k = Object.keys(ERREURS_MANQUE).find((x) => m.includes(x));
@@ -377,7 +381,14 @@ export async function signalerManque(
   }
   const montant = prixChf(r.montant_centimes);
   if (!confirmer) {
-    return { ok: true, montant_centimes: r.montant_centimes, description: r.description, message: `À rembourser : ${montant} (${r.description}).` };
+    return {
+      ok: true,
+      montant_centimes: r.montant_centimes,
+      description: r.description,
+      moyen: r.moyen,
+      moyen_propose: r.moyen_propose,
+      message: `À rembourser : ${montant} (${r.description}).`,
+    };
   }
   const c = await commandeParId(commandeId);
   if (!c) return { ok: false, message: "Commande introuvable." };
@@ -398,5 +409,6 @@ export async function signalerManque(
   const base = { ok: true, montant_centimes: r.montant_centimes, description: r.description };
   if (r.moyen === "deduction") return { ...base, message: `${montant} déduits. À encaisser : ${prixChf(c.total_centimes - deduit)}. Le client est prévenu par e-mail.` };
   if (r.moyen === "especes") return { ...base, message: `Rendez ${montant} au client en espèces. Le client est prévenu par e-mail.` };
+  if (r.moyen === "terminal") return { ...base, message: `Rendez ${montant} sur le terminal de paiement, sur la carte du client. Le client est prévenu par e-mail.` };
   return { ...base, message: `${montant} remboursés. Le client est prévenu par e-mail.` };
 }

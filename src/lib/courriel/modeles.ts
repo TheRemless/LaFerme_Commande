@@ -449,7 +449,9 @@ export function courrielManque(c: Commande, description: string, montantCentimes
       ? [`Nous vous remboursons ${montant}.`, "La somme revient sur le moyen de paiement utilisé.", DELAI_REMBOURSEMENT]
       : moyen === "deduction"
         ? [`Vous payez ${prixChf(resteCentimes)} au comptoir au lieu de ${prixChf(c.total_centimes)}.`]
-        : [`Nous vous rendons ${montant} au comptoir.`];
+        : moyen === "terminal"
+          ? [`Nous vous remboursons ${montant} sur votre carte, au comptoir.`]
+          : [`Nous vous rendons ${montant} au comptoir.`];
   return courrielType(c, "manque", `Il manque une partie de votre commande ${c.numero}, La Ferme`, [
     `Nous ne pouvons pas préparer toute votre commande n° ${c.numero}. Il manque ${description}.`,
     ...argent,
