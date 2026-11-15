@@ -22,7 +22,7 @@ const STATUTS: Record<string, string> = {
 };
 const STATUTS_PLURIEL: Record<string, string> = { acceptee: "acceptées", prete: "prêtes", partie: "parties" };
 const statutCompte = (st: string, n: number) => `${n} ${(n > 1 ? STATUTS_PLURIEL[st] : undefined) ?? STATUTS[st] ?? st}`;
-const MOYENS = { stripe: "en ligne", especes: "espèces", deduction: "déduit au comptoir" } as const;
+const MOYENS = { stripe: "en ligne", especes: "espèces", deduction: "déduit au comptoir", terminal: "terminal (carte)" } as const;
 const ETATS = { fait: "fait", en_cours: "pas encore confirmé", echec: "échec" } as const;
 
 export function ClotureJour() {
@@ -224,6 +224,13 @@ export function ClotureJour() {
                     <td />
                     <td className="clo-nb">CHF {montant(-r.encaissements.especes_rendues_centimes)}</td>
                   </tr>
+                  {(r.encaissements.terminal_rendu_centimes ?? 0) > 0 && (
+                    <tr>
+                      <th scope="row">Rendu sur le terminal</th>
+                      <td />
+                      <td className="clo-nb">CHF {montant(-(r.encaissements.terminal_rendu_centimes ?? 0))}</td>
+                    </tr>
+                  )}
                   <tr className="clo-total">
                     <th scope="row">Attendu au comptoir</th>
                     <td />

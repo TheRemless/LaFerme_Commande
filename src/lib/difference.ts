@@ -157,7 +157,18 @@ async function calculer(commandeId: string, d: Record<string, unknown>): Promise
 
 export type Apercu =
   | { ok: false; message: string }
-  | { ok: true; valeur: number; total: number; difference: number; reglements: Reglement[]; ajouts: string[]; retires: string[]; paye: boolean };
+  | {
+      ok: true;
+      valeur: number;
+      total: number;
+      difference: number;
+      reglements: Reglement[];
+      ajouts: string[];
+      retires: string[];
+      paye: boolean;
+      // Baisse d'une commande payée au comptoir ou à la porte : rendue par le moyen de l'encaissement par défaut.
+      rendu?: "especes" | "terminal";
+    };
 
 export async function apercuDifference(commandeId: string, d: Record<string, unknown>): Promise<Apercu> {
   const r = await calculer(commandeId, d);
@@ -171,10 +182,12 @@ export async function apercuDifference(commandeId: string, d: Record<string, unk
     ajouts: r.ajouts.map((l) => texteLigne(r.catalogue, l)),
     retires: r.retires.map((l) => texteLigne(r.catalogue, l)),
     paye: r.c.statut_paiement !== "a_encaisser_retrait",
+    ...(r.reglements[0] === "remboursement" && r.c.moyen_paiement === "comptoir" ? { rendu: moyenParDefaut(r.c) } : {}),
   };
 }
 
 const ERREURS: Record<string, string> = {
+  moyen_invalide: "Choisissez espèces ou terminal pour rendre l'argent.",
   droit_refuse: "Réservé au gérant ou au responsable de service.",
   deja_change: "La commande a changé entre-temps. Rechargez la fiche.",
   statut_non_modifiable: "Une commande partie, terminée ou annulée ne change plus.",
@@ -213,6 +226,7 @@ export async function modifierPlats(commandeId: string, d: Record<string, unknow
         details_livraison: r.details,
         zone_numero: r.zoneNumero,
         valeur_avant: r.valeur,
+        moyen_remboursement: d.moyen_remboursement === "especes" || d.moyen_remboursement === "terminal" ? d.moyen_remboursement : null,
       },
       p_personnel: p.id,
     });
@@ -279,6 +293,11 @@ export async function modifierPlats(commandeId: string, d: Record<string, unknow
   return { ok: true, message: texte[m.reglement] };
 }
 
+// Moyen proposé pour rendre l'argent d'une commande payée au comptoir ou à la porte : celui qui a encaissé.
+function moyenParDefaut(c: Commande): "especes" | "terminal" {
+  return (c as Commande & { moyen_comptoir?: string | null }).moyen_comptoir === "carte" ? "terminal" : "especes";
+}
+
 // Message à l'équipe pour une baisse : seulement ce qui repart vraiment, et le complément dû qui baisse.
 function remboursementTexte(a: Application): string {
   const chf = (c: number) => `CHF ${(c / 100).toFixed(2)}`;
@@ -286,7 +305,12 @@ function remboursementTexte(a: Application): string {
   if (a.du_avant_centimes) morceaux.push(`Complément à encaisser : ${chf(a.du_avant_centimes)} → ${chf(a.du_apres_centimes ?? 0)}.`);
   const rendu = a.rembourse_centimes ?? a.remboursement?.montant_centimes ?? 0;
   const voulu = a.rembourse_voulu_centimes ?? rendu;
-  if (rendu > 0) morceaux.push(`${chf(rendu)} remboursés au client.`);
+  // Un montant par moyen : la baisse peut se rendre sur Stripe, puis en espèces ou sur le terminal (complément à la porte).
+  const liste = a.remboursements?.length ? a.remboursements : a.remboursement ? [a.remboursement] : [];
+  const par = (m: string) => liste.filter((x) => x.moyen === m).reduce((t, x) => t + x.montant_centimes, 0);
+  if (par("stripe") > 0) morceaux.push(`${chf(par("stripe"))} remboursés au client.`);
+  if (par("especes") > 0) morceaux.push(`${chf(par("especes"))} à rendre en espèces.`);
+  if (par("terminal") > 0) morceaux.push(`${chf(par("terminal"))} à rendre sur le terminal de carte.`);
   // Plafonné : le reste de la baisse était une remise ou une cagnotte, qui ne se rend pas en argent.
   if (voulu > rendu) morceaux.push(`Remboursé ${chf(rendu)} sur ${chf(voulu)} : le reste était une remise ou une cagnotte.`);
   return morceaux.join(" ");

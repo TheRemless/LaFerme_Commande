@@ -442,7 +442,7 @@ export function courrielRemboursementGeste(c: Commande, montantCentimes: number,
 // Un plat ou un supplément manque sur une commande acceptée (audit du gérant, G07). Le client apprend ce qui
 // manque, ce qui lui est rendu, et que le reste est préparé. moyen : stripe (remboursé), deduction (au comptoir,
 // pas encore payé), especes (déjà payé au comptoir, rendu sur place).
-export function courrielManque(c: Commande, description: string, montantCentimes: number, moyen: "stripe" | "especes" | "deduction", resteCentimes: number) {
+export function courrielManque(c: Commande, description: string, montantCentimes: number, moyen: "stripe" | "especes" | "deduction" | "terminal", resteCentimes: number) {
   const montant = prixChf(montantCentimes);
   const argent =
     moyen === "stripe"
