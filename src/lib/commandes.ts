@@ -136,12 +136,25 @@ async function rembourserPaiementOrphelin(c: Commande, preuve: PreuvePaiement): 
   });
   if (!note.a_rembourser) return;
   let rembourse = false;
+  let remboursement: string | null = null;
   try {
-    const r = remboursementSimule(pi) ?? (await passerelle().rembourser(pi));
+    const r = (await remboursementSimule(pi)) ?? (await passerelle().rembourser(pi));
     rembourse = r.statut !== "failed" && r.statut !== "canceled";
-    if (rembourse) await fonctionSql("marquer_orphelin_rembourse", { p_payment_intent: pi, p_remboursement: r.id });
+    remboursement = r.id;
   } catch (e) {
-    console.error(`Remboursement du paiement hors commande ${c.numero} impossible : ${e instanceof Error ? e.message : e}`);
+    // Déjà remboursé en entier (essai précédent coupé avant d'être noté, geste fait dans Stripe) : c'est fait, pas
+    // une erreur à relancer. Stripe et sa doublure le disent par charge_already_refunded.
+    if (dejaRembourse(e)) {
+      rembourse = true;
+      remboursement = "deja_rembourse";
+    } else {
+      console.error(`Remboursement du paiement hors commande ${c.numero} impossible : ${e instanceof Error ? e.message : e}`);
+    }
+  }
+  if (rembourse && remboursement) {
+    await fonctionSql("marquer_orphelin_rembourse", { p_payment_intent: pi, p_remboursement: remboursement }).catch((e) =>
+      console.error(`Remboursement du paiement hors commande ${c.numero} fait, mais pas noté : ${e instanceof Error ? e.message : e}`),
+    );
   }
   if (!note.nouveau) return;
   const montant = preuve.montantCentimes ?? c.total_centimes;
@@ -168,6 +181,11 @@ async function rembourserPaiementOrphelin(c: Commande, preuve: PreuvePaiement): 
   await envoyerCourriel({ commandeId: c.id, destinataire: c.client_email, ...courrielPaiementHorsCommande(c, montant, cas, rembourse) }).catch((e) =>
     console.error(`Courriel du paiement remboursé non envoyé pour la commande ${c.numero} : ${e instanceof Error ? e.message : e}`),
   );
+}
+
+function dejaRembourse(e: unknown): boolean {
+  const code = e && typeof e === "object" && "code" in e ? (e as { code?: unknown }).code : undefined;
+  return code === "charge_already_refunded" || (e instanceof Error && e.message.includes("charge_already_refunded"));
 }
 
 // Seule la session en cours de la commande peut l'annuler : l'expiration d'un ancien essai ne compte pas.

@@ -20,6 +20,11 @@ vi.mock("@/lib/paiement/passerelle", async (original) => {
       async expirerSession(id: string) {
         expirees.push(id);
       },
+      // Paiement déjà remboursé en entier chez Stripe : refusé comme Stripe le refuse.
+      async rembourser(pi: string) {
+        if (pi.startsWith("pi_deja_")) throw Object.assign(new Error("Charge already refunded"), { type: "StripeInvalidRequestError", code: "charge_already_refunded" });
+        throw new Error(`non prévu : ${pi}`);
+      },
     }),
   };
 });
@@ -233,5 +238,21 @@ describe("retour arrière depuis Stripe", () => {
     await envoyer(evenement(`evt_onglet1m_${c.id}`, "checkout.session.completed", c.id, true, c.session, 900));
     expect((await commandeParId(c.id))?.statut_paiement).toBe("en_attente");
     expect(await orphelins(c.id)).toHaveLength(1);
+  });
+
+  it("filet : un paiement déjà remboursé chez Stripe est noté fait, pas une erreur à relancer", async () => {
+    const c = await nouvelleCommande();
+    await envoyer(evenement(`evt_exp_deja_${c.id}`, "checkout.session.expired", c.id, false, c.session));
+    const corps = JSON.stringify({
+      id: `evt_deja_${c.id}`,
+      object: "event",
+      type: "checkout.session.completed",
+      data: { object: { object: "checkout.session", id: c.session, metadata: { commande_id: c.id }, payment_status: "paid", payment_intent: `pi_deja_${c.id}`, amount_total: 1000, currency: "chf" } },
+    });
+    await envoyer(corps);
+    expect(await orphelins(c.id)).toEqual([{ payment_intent: `pi_deja_${c.id}`, rembourse: true }]);
+    const alerte = await alertes(c.numero);
+    expect(alerte).toHaveLength(1);
+    expect(alerte[0].sujet).toContain("remboursé");
   });
 });
