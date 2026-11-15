@@ -265,4 +265,29 @@ describe("parrainage", () => {
     // Le gérant ajoute 15.00 : 10.00 de parrainage repris ; le solde renvoyé est le vrai solde.
     expect(await f<number>("ajuster_cagnotte('depense@exemple.ch', 1500, 'Geste', $1)", [gerant])).toBe(500);
   });
+
+  it("relecture #262 : un remboursement partiel qui passe la commande sous le minimum reprend les deux crédits", async () => {
+    const filleul = await compte("manque@exemple.ch");
+    await f("lier_parrainage('manque@exemple.ch', $1)", [code]);
+    const id = await commande(filleul, "manque@exemple.ch", "079 904 00 01", "240", "terminee", 3000);
+    expect([await parrainages(parrain), await parrainages(filleul)]).toEqual([1000, 1000]);
+    // 29.00 rendus par un « manque » ou un geste : il reste 1.00 de plats nets, sous le minimum.
+    await db.query(
+      "insert into remboursements (commande_id, cle, montant_centimes, motif, moyen, statut, personnel_nom, fait_le) values ($1, 'remb-manque-262', 2900, 'Plat manquant', 'stripe', 'fait', 'Test', now())",
+      [id],
+    );
+    expect([await parrainages(parrain), await parrainages(filleul)]).toEqual([0, 0]);
+    expect(await val<string>("select raison from parrainages where filleul_id = $1", [filleul])).toBe("rembourse");
+  });
+
+  it("un petit remboursement qui laisse la commande au minimum garde les crédits", async () => {
+    const filleul = await compte("petit-geste@exemple.ch");
+    await f("lier_parrainage('petit-geste@exemple.ch', $1)", [code]);
+    const id = await commande(filleul, "petit-geste@exemple.ch", "079 905 00 01", "250", "terminee", 4000);
+    await db.query(
+      "insert into remboursements (commande_id, cle, montant_centimes, motif, moyen, statut, personnel_nom, fait_le) values ($1, 'remb-petit-262', 500, 'Geste', 'stripe', 'fait', 'Test', now())",
+      [id],
+    );
+    expect([await parrainages(parrain), await parrainages(filleul)]).toEqual([1000, 1000]);
+  });
 });
