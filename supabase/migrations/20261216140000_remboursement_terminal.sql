@@ -5,6 +5,8 @@
 -- Tables partagées, ajouts seuls : moyen « terminal » admis dans remboursements (contrainte), colonne
 -- modifications_commande.moyen_remboursement. Objets recréés, chacun depuis sa dernière définition :
 --   preparer_modification (20261215130000) et appliquer_modification (20261216130000) : le moyen choisi ou par défaut ;
+--     une baisse se rend aussi sur un complément encaissé à la porte ou au comptoir (relecture de bo-pilotage) ;
+--   maj_rembourse (20261114090000) : remboursée seulement quand le départ et les compléments encaissés sont rendus ;
 --   demander_remboursement (20261213200000) : par défaut le moyen de l'encaissement au comptoir ;
 --   cloture_rapport (20261215130000) : « terminal_rendu_centimes », déduit de l'attendu au comptoir et en carte ;
 --   export_cresus (20261215130000) : un remboursement sur le terminal sort du compte du terminal ;
@@ -213,7 +215,7 @@ begin
     -- le lien. Une remise ou une cagnotte n'est jamais rendue en argent.
     voulu := reste;
     select coalesce(sum(montant_centimes), 0) into engage from remboursements
-      where commande_id = c.id and statut in ('fait', 'en_cours') and payment_intent_cible is null;
+      where commande_id = c.id and statut in ('fait', 'en_cours') and payment_intent_cible is null and complement_id is null;
     remboursable := greatest(c.total_centimes - engage, 0);
     part := least(reste, remboursable);
     reste := reste - part;
@@ -225,9 +227,6 @@ begin
       case when c.moyen_paiement = 'en_ligne' then 'en_cours' else 'fait' end,
       m.personnel_id, m.personnel_nom, case when c.moyen_paiement = 'en_ligne' then null else now() end)
     returning * into rb;
-    if rb.statut = 'fait' then
-      perform maj_rembourse(c.id);
-    end if;
     rembourse := rembourse + part;
     rembs := rembs || jsonb_build_array(to_jsonb(rb));
     end if;
@@ -249,6 +248,28 @@ begin
       rembourse := rembourse + part;
       reste := reste - part;
     end loop;
+    -- Puis chaque complément encaissé à la porte ou au comptoir (relecture de bo-pilotage) : rendu tout de suite par
+    -- l'équipe, par le moyen choisi, sinon celui qui a encaissé le complément.
+    for y in select kc.id, kc.moyen_encaissement, kc.montant_centimes - coalesce((select sum(rr.montant_centimes) from remboursements rr
+        where rr.complement_id = kc.id and rr.statut in ('fait', 'en_cours')), 0) as dispo
+      from complements kc
+      where kc.commande_id = c.id and kc.moyen in ('porte', 'comptoir') and kc.statut = 'encaisse' and kc.rembourse_le is null
+      order by kc.cree_le loop
+      exit when reste <= 0;
+      part := least(reste, y.dispo);
+      continue when part <= 0;
+      insert into remboursements (commande_id, cle, montant_centimes, motif, moyen, statut, personnel_id, personnel_nom, complement_id, fait_le)
+      values (c.id, 'modification-' || m.id || '-c' || left(y.id::text, 8), part, 'Commande modifiée à la demande du client',
+        coalesce(m.moyen_remboursement, case when y.moyen_encaissement = 'carte' then 'terminal' else 'especes' end), 'fait',
+        m.personnel_id, m.personnel_nom, y.id, now())
+      returning * into r2;
+      rembs := rembs || jsonb_build_array(to_jsonb(r2));
+      rembourse := rembourse + part;
+      reste := reste - part;
+    end loop;
+    if exists (select 1 from jsonb_array_elements(rembs) e where e ->> 'statut' = 'fait') then
+      perform maj_rembourse(c.id);
+    end if;
   end if;
 
   update modifications_commande set statut = 'appliquee', stripe_payment_intent = coalesce(p_payment_intent, stripe_payment_intent), fini_le = now()
@@ -260,7 +281,9 @@ begin
     values (m.personnel_id, m.personnel_nom, 'commande_modifiee', c.id::text, jsonb_build_object('valeur_centimes', m.ancienne_valeur_centimes),
       jsonb_build_object('numero', c.numero, 'valeur_centimes', m.total_centimes, 'reglement', m.reglement,
         'rembourse_voulu_centimes', voulu, 'rembourse_centimes', rembourse,
-        'moyen_remboursement', case when rb.id is not null then rb.moyen end));
+        'moyen_remboursement', case when rb.id is not null then rb.moyen end,
+        'remboursements', (select coalesce(jsonb_agg(jsonb_build_object('moyen', e ->> 'moyen', 'centimes', (e ->> 'montant_centimes')::integer)), '[]'::jsonb)
+          from jsonb_array_elements(rembs) e)));
   return jsonb_build_object('applique', true, 'commande_id', c.id, 'numero', c.numero, 'reglement', m.reglement,
     'difference_centimes', m.difference_centimes, 'ajouts', m.ajouts, 'retires', m.retires,
     'remboursement', case when rb.id is not null then to_jsonb(rb) end, 'complement', case when k.id is not null then to_jsonb(k) end,
@@ -694,4 +717,15 @@ language sql stable as $$
         + (select coalesce(sum(montant_centimes) filter (where moyen = 'en_ligne'), 0) from compl)::bigint as en_ligne_ttc
     from prises
   ) p;
+$$;
+
+-- Commande remboursée seulement quand tout ce qui a été payé est rendu : le paiement de départ et les compléments
+-- encaissés (un remboursement sur un complément ne marque plus la commande remboursée alors que des plats restent payés).
+-- Recréée depuis 20261114090000.
+create or replace function maj_rembourse(p_commande uuid) returns void
+language sql as $$
+  update commandes c set statut_paiement = 'rembourse', rembourse_le = now()
+  where c.id = p_commande and c.statut_paiement in ('paye', 'encaisse')
+    and (select coalesce(sum(r.montant_centimes), 0) from remboursements r where r.commande_id = c.id and r.statut = 'fait')
+      >= c.total_centimes + (select coalesce(sum(k.montant_centimes), 0) from complements k where k.commande_id = c.id and k.statut = 'encaisse');
 $$;

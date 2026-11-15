@@ -255,6 +255,33 @@ describe("modifier les plats d'une commande", () => {
     expect(await erreur("preparer_modification($1, $2, $3)", [cheque, demande(`difference-${n}-terminal-3`, [ligne("Margherita", 2000)], { moyen_remboursement: "cheque" }), id.gerant])).toContain("moyen_invalide");
   });
 
+  it("payée en ligne, complément encaissé à la porte, puis moins chère : Stripe d'abord, puis le complément rendu par l'équipe ; pas « remboursée » tant que des plats restent payés", async () => {
+    const c = await commande({ mode: "livraison" });
+    await modifier(c, demande(`difference-${n}-porte-rendu-1`, [ligne("Margherita", 2000, 2), ligne("Tiramisu", 800, 1, "cuisine")], { reglement: "porte" }));
+    const k = (await db.query<{ id: string }>("select id from complements where commande_id = $1", [c])).rows[0].id;
+    expect(await f<boolean>("encaisser_complement($1, 'carte', $2)", [k, id.gerant])).toBe(true);
+    // Payé 2800 en ligne et 2000 par carte à la porte ; il ne garde que le tiramisu (800) : 4000 à rendre.
+    const r = await modifier(c, demande(`difference-${n}-porte-rendu-2`, [ligne("Tiramisu", 800, 1, "cuisine")]));
+    expect(r).toMatchObject({ rembourse_voulu_centimes: 4000, rembourse_centimes: 4000 });
+    const rows = (await db.query<{ montant_centimes: number; moyen: string; statut: string; complement_id: string | null }>(
+      "select montant_centimes, moyen, statut, complement_id::text from remboursements where commande_id = $1 order by montant_centimes desc", [c])).rows;
+    expect(rows).toEqual([
+      { montant_centimes: 2800, moyen: "stripe", statut: "en_cours", complement_id: null },
+      { montant_centimes: 1200, moyen: "terminal", statut: "fait", complement_id: k },
+    ]);
+    expect((await db.query<{ s: string }>("select statut_paiement as s from commandes where id = $1", [c])).rows[0].s).toBe("paye");
+    const j = (await db.query<{ apres: { remboursements: { moyen: string; centimes: number }[] } }>(
+      "select apres from journal_gestion where objet = 'commande_modifiee' and cle = $1 order by id desc limit 1", [c])).rows[0].apres;
+    expect(j.remboursements).toEqual([{ moyen: "stripe", centimes: 2800 }, { moyen: "terminal", centimes: 1200 }]);
+    // Nouvelle baisse de 400 : le départ est déjà tout rendu, la suite sort du reste du complément (800), pas au-delà.
+    const r2 = await modifier(c, demande(`difference-${n}-porte-rendu-3`, [ligne("Coca", 400, 1, "cuisine")]));
+    expect(r2).toMatchObject({ rembourse_voulu_centimes: 400, rembourse_centimes: 400 });
+    expect((await db.query<{ s: number }>("select sum(montant_centimes)::int as s from remboursements where commande_id = $1 and complement_id = $2", [c, k])).rows[0].s).toBe(1600);
+    const r3 = await modifier(c, demande(`difference-${n}-porte-rendu-4`, [ligne("Eau", 100, 1, "cuisine")]));
+    expect(r3).toMatchObject({ rembourse_voulu_centimes: 300, rembourse_centimes: 300 });
+    expect((await db.query<{ s: number }>("select sum(montant_centimes)::int as s from remboursements where commande_id = $1 and complement_id = $2", [c, k])).rows[0].s).toBe(1900);
+  });
+
   it("remboursement après coup d'une commande payée par carte au comptoir : sur le terminal", async () => {
     const c = await commande({ comptoir: true });
     await f("marquer_encaisse($1, 'tablette:Test', 'carte')", [c]);
