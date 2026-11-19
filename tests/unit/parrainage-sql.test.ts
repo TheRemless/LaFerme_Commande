@@ -53,7 +53,7 @@ async function commande(compteId: string | null, email: string, telephone: strin
   await db.query("update commandes set statut = $2 where id = $1", [id, statut]);
   return id;
 }
-const parrainages = (c: string) => val<number>("select coalesce(sum(montant_centimes), 0)::integer from cagnotte_mouvements where compte_id = $1 and type = 'parrainage'", [c]);
+const parrainages = (c: string) => val<number>("select coalesce(sum(montant_centimes), 0)::integer from cagnotte_mouvements where compte_id = $1 and type in ('parrainage_parrain', 'parrainage_filleul')", [c]);
 
 let parrain: string;
 let code: string;

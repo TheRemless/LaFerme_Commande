@@ -130,7 +130,7 @@ describe("suspension d'un parrain", () => {
     await expect(f("suspendre_parrain($1, '', $2)", [parrain, gerant])).rejects.toThrow(/motif/);
     await f("suspendre_parrain($1, 'Filleuls à la même adresse', $2)", [parrain, gerant]);
     // Les anciens crédits restent.
-    expect(await val<number>("select coalesce(sum(montant_centimes), 0)::integer from cagnotte_mouvements where compte_id = $1 and type = 'parrainage'", [ancien])).toBe(1000);
+    expect(await val<number>("select coalesce(sum(montant_centimes), 0)::integer from cagnotte_mouvements where compte_id = $1 and type = 'parrainage_filleul'", [ancien])).toBe(1000);
     // Le filleul en attente n'est pas crédité ; un nouveau lien est refusé.
     await commande(enAttente, "en-attente@exemple.ch", "079 600 00 01", "400");
     expect(await val<string>("select raison from parrainages where filleul_id = $1", [enAttente])).toBe("parrain_suspendu");

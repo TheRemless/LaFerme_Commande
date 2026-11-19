@@ -161,3 +161,7 @@ L'adresse IP est celle déjà notée à la connexion au compte (`journal_connexi
 La rubrique « Parrainages » du back-office est réservée au gérant. Elle montre pour chaque parrain ses filleuls (date, statut, montant crédité) et ses signaux, que le gérant peut classer. « Suspendre ce parrain » demande un motif de 3 à 200 caractères et passe au journal. La suspension bloque les nouveaux liens et les crédits en attente. Les crédits déjà versés restent. « Réactiver ce parrain » rouvre les nouveaux liens.
 
 Captures dans `docs/rendus/vague-3/client-compte/` (`parrainages-bureau.png` et `parrainages-390.png`).
+
+### Deux types de crédit
+
+Migration `20261217100000_parrainage_types.sql` (plan de conformité compta, R28 et R29). Le crédit du parrain porte le type `parrainage_parrain`, celui du filleul `parrainage_filleul`. Une reprise au remboursement garde le type du crédit repris. Les deux mouvements portent la commande du filleul qui a déclenché le crédit. Le lien entre les deux comptes reste dans `parrainages`. La fiduciaire peut ainsi traiter le crédit du parrain à part (question F13). Le client voit « Parrainage » dans les deux cas. Le back-office distingue le crédit du parrain et la bienvenue du filleul.

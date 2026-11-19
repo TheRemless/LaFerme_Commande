@@ -17,7 +17,8 @@ const LIBELLES: Record<MouvementCagnotte["type"], string> = {
   retrait: "Retiré, commande remboursée",
   expire: "Expiré",
   ajustement: "Ajusté par le restaurant",
-  parrainage: "Parrainage",
+  parrainage_parrain: "Parrainage",
+  parrainage_filleul: "Parrainage",
 };
 
 function dateCourte(iso: string): string {
