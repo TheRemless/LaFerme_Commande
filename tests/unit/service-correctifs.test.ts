@@ -84,7 +84,8 @@ describe("SS-03 : annulation après acceptation", () => {
     const r = await agir(c.id, { action: "refuser", motif: "Client injoignable." }, personnel);
     expect(r.ok).toBe(true);
     const taches = (await db.query<{ station: string; etat: string; contenu: { texte?: string; gauche?: string }[] }>(
-      "select station, etat, contenu from taches_impression where commande_id = $1 order by cree_le", [c.id])).rows;
+      // Le justificatif du client (#269) part aussi de la file : il est annulé avec le ticket de son poste.
+      "select station, etat, contenu from taches_impression where commande_id = $1 and coalesce(contenu -> 0 ->> 'texte', '') <> 'JUSTIFICATIF CLIENT' order by cree_le", [c.id])).rows;
     expect(taches.filter((t) => t.station === "cuisine").map((t) => t.etat)).toEqual(["annulee"]);
     const annonce = taches.filter((t) => t.station === "pizza" && t.etat === "en_attente");
     expect(annonce).toHaveLength(1);

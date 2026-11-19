@@ -82,7 +82,8 @@ describe("commande prise au téléphone, côté serveur", () => {
     const { imprimerCommande } = await import("@/lib/impression/service");
     await imprimerCommande(r.id);
     const db = await baseLocale();
-    const taches = (await db.query<{ station: string; contenu: unknown }>("select station, contenu from taches_impression where commande_id = $1", [r.id])).rows;
+    // Ticket de préparation seulement : le justificatif du client (#269) sort en plus, au poste du sac.
+    const taches = (await db.query<{ station: string; contenu: unknown }>("select station, contenu from taches_impression where commande_id = $1 and coalesce(contenu -> 0 ->> 'texte', '') <> 'JUSTIFICATIF CLIENT'", [r.id])).rows;
     expect(taches.map((t) => t.station)).toEqual(["pizza"]);
     const texte = texteTicket(taches[0].contenu as Parameters<typeof texteTicket>[0]);
     expect(texte).toMatch(/\[ \] 2 x Coca-Cola/);

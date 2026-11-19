@@ -86,7 +86,7 @@ test("les écritures pour Crésus se téléchargent, le plan de comptes refuse u
   await gestion.goto("/gestion/export");
   await expect(gestion.getByText("Comptes proposés, à confirmer")).toBeVisible();
   await gestion.getByLabel("Du", { exact: true }).fill("2026-01-01");
-  await gestion.getByRole("radio", { name: /Écritures pour Crésus/ }).check();
+  await gestion.getByRole("radio", { name: /^Écritures pour Crésus Fichier/ }).check();
   const telechargement = gestion.waitForEvent("download");
   await gestion.getByRole("button", { name: "Télécharger pour Crésus" }).click();
   const fichier = await telechargement;
@@ -98,6 +98,12 @@ test("les écritures pour Crésus se téléchargent, le plan de comptes refuse u
   for (const ligne of texte.split("\r\n").filter(Boolean)) {
     expect(ligne).toMatch(/^\d{2}\.\d{2}\.\d{4}\t\d+\t\d+\t\t[^\t]+\t\d+\.\d{2}$/);
   }
+
+  // Format étendu (avec la TVA) : refusé tant que le code TVA du dossier Crésus n'est pas saisi.
+  await gestion.getByRole("radio", { name: /^Écritures pour Crésus, avec la TVA/ }).check();
+  await gestion.getByRole("button", { name: "Télécharger pour Crésus" }).click();
+  // Selon les ventes déjà dans la base de test : code manquant, ou rien sur la période. Jamais un fichier.
+  await expect(gestion.getByRole("alert").filter({ hasText: /Code TVA du taux 2,6 % manquant|rien à importer/ })).toBeVisible();
 
   await gestion.getByLabel("TVA due").fill("22a");
   await gestion.getByRole("button", { name: "Confirmer ces comptes" }).click();
@@ -261,7 +267,7 @@ test("le back-office est fermé au personnel de service, aux clients et aux autr
   expect(pirateRemb.status()).toBe(403);
   const piratePlan = await request.post("/api/gestion/export/plan", {
     headers: { Origin: "https://pirate.example", Cookie: `laferme-personnel=${gerant.value}` },
-    data: { comptes: { caisse: "1", stripe: "2", terminal: "3", tva: "4", ventes: "5", livraison: "6", remboursements: "7" } },
+    data: { comptes: { caisse: "1", stripe: "2", terminal: "3", tva: "4", ventes: "5", livraison: "6", remboursements: "7", rabais: "8", cagnotte: "9" }, codes_tva: {} },
   });
   expect(piratePlan.status()).toBe(403);
 });

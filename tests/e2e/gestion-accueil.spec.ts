@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { CATEGORIES_ALERTE } from "@/lib/alertes-accueil";
 import { adresseDuCompte, codeDuPersonnel, SITE } from "./site";
 
 // Accueil du back-office (vague 3, bo-socle) : ce qui attend, les commandes du moment, le service contre
@@ -103,7 +104,11 @@ test("les alertes se voient sur toutes les pages ; une commande citée ouvre sa 
   await page.goto("/gestion");
   await page.getByRole("button", { name: "Régler les alertes" }).click();
   const panneau = page.getByRole("dialog", { name: "Alertes sur cet appareil" });
-  await expect(panneau.getByRole("group", { name: "Me prévenir pour" }).getByRole("checkbox")).toHaveCount(9);
+  // Une case par catégorie d'alerte, dans l'ordre de la liste (src/lib/alertes-accueil.ts) : une catégorie ajoutée
+  // (« Parrainage à surveiller », client-compte) a sa case sans que ce test fixe un nombre.
+  const groupe = panneau.getByRole("group", { name: "Me prévenir pour" });
+  await expect(groupe.getByRole("checkbox")).toHaveCount(CATEGORIES_ALERTE.length);
+  await expect(groupe.locator("label")).toHaveText(CATEGORIES_ALERTE.map((t) => t.libelle));
   const r = await new AxeBuilder({ page }).include(".bo-panneau").withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
   expect(r.violations.map((v) => v.id)).toEqual([]);
   await page.keyboard.press("Escape");
