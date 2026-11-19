@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { corpsJson, refus } from "@/lib/comptes/api";
 import { rembourserApresCoup } from "@/lib/commandes";
-import { fonctionSql } from "@/lib/db/serveur";
+import { commandeParId, fonctionSql } from "@/lib/db/serveur";
+import { imprimerModification } from "@/lib/impression/modification";
 import { centimes, dateValide } from "@/lib/gestion";
 import { filtresListe, texteNote, UUID } from "@/lib/gestion-commandes";
 import { actionGestion, type ActionGestion } from "@/lib/actions-gestion";
@@ -126,9 +127,19 @@ export async function POST(requete: Request) {
     if (typeof c.id !== "string" || !UUID.test(c.id) || typeof c.geste !== "string" || !UUID.test(c.geste)) return refus("Geste inconnu.", 404);
     try {
       const ok = await fonctionSql<boolean>("appliquer_geste", { p_geste: c.geste, p_commande: c.id, p_personnel: g.personnel.id });
-      return ok ? NextResponse.json({ ok: true }, sansCache) : refus("Ce plat offert est déjà donné, ou il est pour un autre client.", 409);
+      if (!ok) return refus("Ce plat offert est déjà donné, ou il est pour un autre client.", 409);
+      // Tickets déjà sortis : le poste qui fait le sac apprend le plat offert ajouté (R16, ligne à 0 CHF).
+      const offert = (await commandeParId(c.id))?.lignes.filter((l) => l.offert).at(-1);
+      if (offert) {
+        await imprimerModification(c.id, [{ champ: "Offert", avant: "rien", apres: `${offert.qte} × ${offert.nom}` }]).catch((e) =>
+          console.error(`Ticket du plat offert non créé : ${e instanceof Error ? e.message : e}`),
+        );
+      }
+      return NextResponse.json({ ok: true }, sansCache);
     } catch (e) {
       if (e instanceof Error && e.message.includes("gestes_desactives")) return refus("Offrir un plat à la prochaine commande n'est pas encore activé.", 409);
+      if (e instanceof Error && e.message.includes("statut_non_modifiable"))
+        return refus("Cette commande est partie, terminée ou annulée : le plat offert attend la prochaine.", 409);
       throw e;
     }
   }

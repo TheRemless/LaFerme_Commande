@@ -19,6 +19,9 @@
 --      rend l'opposé de la ventilation de la modification, ramené à son montant.
 --   5. ventilation_complement(k) [{ taux, ttc, tva }] pour les exports de bo-pilotage : complements.ventilation, sinon
 --      repli sur le taux de la commande et k.tva_centimes.
+-- Plat offert (relecture argent de client-compte sur #271) : « Reprendre cette commande » (lignes_commande_compte,
+-- 20261108090000 ; derniere_commande_compte, 20261201110000) ne reprend pas la ligne offerte, qui serait refacturée au
+-- prix du jour ; appliquer_geste (20261217170000) accepte aussi une commande prête, comme changer les plats.
 -- Objets recréés depuis leur dernière définition : ventilation_commande, ventilation_remboursement,
 -- tva_commande_avant et tva_commande_lignes (20261217150000, bo-carte : le taux de la commande suit la ventilation
 -- figée), appliquer_modification (20261217170000).
@@ -590,3 +593,69 @@ revoke execute on function repartir_signe(integer, integer[]), ventilation_ramen
   ventilation_difference(jsonb, jsonb), ventilation_complement(complements), figer_ventilation() from public, anon, authenticated;
 grant execute on function repartir_signe(integer, integer[]), ventilation_ramenee(jsonb, integer), ventilation_brute(uuid, integer),
   ventilation_difference(jsonb, jsonb), ventilation_complement(complements) to service_role;
+
+-- Plat offert : jamais repris au prix du jour.
+create or replace function lignes_commande_compte(p_compte uuid, p_commande uuid) returns jsonb
+language sql stable as $$
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'slug', l.plat_slug, 'nom', l.nom, 'qte', l.qte, 'choix', l.choix, 'retraits', l.retraits, 'note', l.note,
+    'unitaire_centimes', l.unitaire_centimes
+  ) order by l.position), '[]'::jsonb)
+  from commandes o join commande_lignes l on l.commande_id = o.id
+  where o.id = p_commande and o.compte_id = p_compte and not l.offert
+  having count(*) > 0;
+$$;
+
+create or replace function derniere_commande_compte(p_compte uuid) returns jsonb
+language sql stable as $$
+  select jsonb_build_object(
+    'id', o.id,
+    'cree_le', o.cree_le,
+    'mode', o.mode,
+    'lignes', coalesce((
+      select jsonb_agg(jsonb_build_object('nom', l.nom, 'qte', l.qte) order by l.position)
+      from commande_lignes l where l.commande_id = o.id and not l.offert
+    ), '[]'::jsonb)
+  )
+  from commandes o
+  where o.compte_id = p_compte and o.statut not in ('paiement_en_attente', 'annulee', 'refusee')
+  order by o.cree_le desc
+  limit 1;
+$$;
+
+create or replace function appliquer_geste(p_geste uuid, p_commande uuid, p_personnel uuid) returns boolean
+language plpgsql as $$
+declare
+  nom text := equipe_nom(p_personnel);
+  g gestes_client%rowtype;
+  c commandes%rowtype;
+  pl plats%rowtype;
+  ligne uuid;
+begin
+  if not gestes_actifs() then
+    raise exception 'gestes_desactives';
+  end if;
+  select * into c from commandes where id = p_commande for update;
+  select * into g from gestes_client where id = p_geste for update;
+  if c.id is null or g.id is null or g.offert_le is not null or lower(c.client_email) is distinct from g.email then
+    return false;
+  end if;
+  -- Comme changer les plats : jusqu'à « prête », la commande est encore au restaurant.
+  if c.statut not in ('nouvelle', 'acceptee', 'en_preparation', 'prete') then
+    raise exception 'statut_non_modifiable';
+  end if;
+  if g.plat_slug is not null then
+    select * into pl from plats where slug = g.plat_slug;
+    insert into commande_lignes (commande_id, position, plat_slug, nom, station, qte, unitaire_centimes, total_centimes, note, offert)
+    values (c.id, coalesce((select max(position) from commande_lignes where commande_id = c.id), 0) + 1, g.plat_slug, g.plat_nom,
+      coalesce(pl.station, 'cuisine'), 1, 0, 0, 'Offert', true)
+    returning id into ligne;
+  end if;
+  update gestes_client set offert_commande_id = c.id, offert_par = nom, offert_le = now(), offert_ligne_id = ligne,
+    offert_valeur_centimes = coalesce(pl.prix_centimes, g.valeur_centimes)
+    where id = g.id;
+  insert into evenements_commande (commande_id, de, vers, par, detail)
+    values (c.id, c.statut, c.statut, 'tablette:' || nom, 'geste offert ' || g.detail);
+  return true;
+end;
+$$;

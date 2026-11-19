@@ -145,6 +145,11 @@ describe("suivre, geste, clore", () => {
     const mod = await f<{ lignes: { slug: string }[]; offerts: { nom: string }[] }>("modifications_commande_gestion($1)", [suivante.id]);
     expect(mod.offerts).toEqual([{ nom: plat.nom, qte: 1 }]);
     expect(mod.lignes.map((l) => l.slug)).toEqual(["x"]);
+    // « Reprendre cette commande » ne reprend pas la ligne offerte (elle serait refacturée au prix du jour).
+    const compte = (await db.query<{ id: string }>("insert into comptes (email) values ('fidele-compte@exemple.ch') returning id")).rows[0].id;
+    await db.query("update commandes set compte_id = $2 where id = $1", [suivante.id, compte]);
+    expect((await f<{ slug: string }[]>("lignes_commande_compte($1, $2)", [compte, suivante.id])).map((l) => l.slug)).toEqual(["x"]);
+    expect((await f<{ lignes: { nom: string }[] }>("derniere_commande_compte($1)", [compte])).lignes.map((l) => l.nom)).toEqual(["Tiramisu"]);
     // Commande partie : plus de geste posé dessus.
     const partie = await commande("fidele@exemple.ch");
     await db.query("update commandes set statut = 'partie' where id = $1", [partie.id]);
@@ -152,6 +157,10 @@ describe("suivre, geste, clore", () => {
     await f("noter_geste_reclamation($1, $2, $3)", [r2.id, { geste: "plat_offert", plat_slug: plat.slug }, gerant]);
     const g2 = (await f<{ id: string }[]>("gestes_en_attente('fidele@exemple.ch')"))[0];
     expect(await erreur("appliquer_geste($1, $2, $3)", [g2.id, partie.id, service])).toContain("statut_non_modifiable");
+    // Prête : encore au restaurant, comme pour changer les plats.
+    const prete = await commande("fidele@exemple.ch");
+    await db.query("update commandes set statut = 'prete' where id = $1", [prete.id]);
+    expect(await f("appliquer_geste($1, $2, $3)", [g2.id, prete.id, service])).toBe(true);
     // Réglage éteint ensuite : plus rien en attente n'est montré.
     await db.query("update reglages set valeur = 'false' where cle = 'gestes_commerciaux_actifs'");
     expect(await erreur("appliquer_geste($1, $2, $3)", [attente[0].id, suivante.id, service])).toContain("gestes_desactives");
