@@ -41,7 +41,7 @@ Migration `supabase/migrations/20261210190000_cloture_jour.sql`, module `src/lib
 
 - Jour de service (date, « Aujourd'hui », « Hier »), jamais un jour à venir.
 - Encaissé (en ligne, comptoir, compléments de commandes modifiées, déduit, espèces rendues, attendu au comptoir), puis « Compter la caisse » : espèces comptées, ticket du terminal de carte, note. Un montant illisible est refusé sous son champ. « Clôturer le jour » demande confirmation en donnant l'attendu, le compté et l'écart. Un jour clôturé montre l'écart, garde ses montants dans les champs et propose « Reclôturer ». Si une commande du jour a changé depuis, un bandeau le dit.
-- Compléments (commande modifiée au téléphone, bo-commandes, `encaissements.complements`) : une ligne avec le total encaissé, puis le détail non nul (par lien, déjà compté dans « En ligne » ; espèces et carte, déjà dans l'attendu au comptoir), et à part ce qui reste à encaisser. Rien sans complément ni sur une clôture enregistrée avant eux. Calcul : `lignesComplements` dans `src/lib/cloture.ts`.
+- Compléments (commande modifiée au téléphone, bo-commandes, `encaissements.complements`) : une ligne avec le total encaissé, puis le détail non nul (par lien, déjà compté dans « En ligne » ; espèces et carte, déjà dans l'attendu au comptoir) puis à part ce qui reste à encaisser. Rien sans complément ni sur une clôture enregistrée avant eux. Calcul : `lignesComplements` dans `src/lib/cloture.ts`.
 - Comptoir pas encore encaissé, à vérifier, remboursements du jour, ventes et TVA.
 - « Imprimer » : une page A4 sans menu ni formulaire. « Télécharger (CSV) » : le même rapport en fichier.
 
@@ -115,6 +115,22 @@ Rangé dans `reglages_prives` (`plan_comptes_cresus`), lu par le serveur seuleme
 | Ventes 2,6 % | 3200 |
 | Frais de livraison | 3400 |
 | Remboursements aux clients | 3800 |
+| Rabais des codes promo | 3801 |
+| Cagnotte utilisée | 3802 |
+
+Codes TVA par taux (2,6 % et 8,1 %) : vides au départ, recopiés par le gérant de la table TVA de son dossier Crésus (R32 de `docs/compta/tva-et-cagnotte.md`). Chaque code changé va aussi au journal.
+
+### Format étendu, avec la TVA (comptes justes au droit suisse, 19.11.2026)
+
+Plan et règles : `docs/compta/plan-conformite.md`, référence `docs/compta/tva-et-cagnotte.md`. Migration `20261217130000_compta_ventilation.sql`, `ecrituresEtendues` et `fichierCresusEtendu` dans `src/lib/export-cresus.ts`, choix « Écritures pour Crésus, avec la TVA » à l'écran. Le format simple reste disponible.
+
+- Une écriture multiple de trois lignes par groupe, sur le modèle de l'exemple d'Epsitec : hors taxe et TVA d'un côté avec la contrepartie « … », TTC de l'autre sur le compte du moyen. Mêmes champs 9 et 12, champ 10 = 1, champ 11 = 1, champ 13 = code TVA.
+- Ventes au brut (R14) : par jour, moyen et taux, les ventes (payé sans frais, plus rabais et cagnotte), les frais de livraison, puis le rabais des codes promo et la cagnotte utilisée, chacun au débit de son compte, au même code TVA. Le compte du moyen reçoit le payé net.
+- Avoirs (R11, R12) : un par remboursement fait, numéroté dans l'ordre où les remboursements deviennent faits (`remboursements.numero_avoir`), à sa date, avec la commande et la référence Stripe dans le libellé.
+- Seize champs. Les champs 1 à 16 sont les mêmes sur la page web (20 champs) et dans le PDF (19) du manuel : l'écart entre les deux ne joue pas. Windows-1252, montant en monnaie étrangère et cours à zéro.
+- Refusé avec un message tant que le code TVA d'un taux présent n'est pas saisi.
+- Ventilation par taux : `ventilation_commande` et `ventilation_remboursement`, un seul taux aujourd'hui, recréées par bo-carte quand les lignes porteront leur taux.
+- À confirmer par le test d'acceptation R34 : encodage, sens exact de « … », valeur du champ 8, numéros de pièce. Le restaurant saisit une journée type à la main dans Crésus, l'exporte en texte étendu. On compare ensuite champ par champ.
 
 Avant le premier vrai import : exporter une semaine, l'importer dans une copie de la comptabilité et comparer avec la clôture du jour.
 
