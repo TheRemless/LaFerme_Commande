@@ -446,7 +446,8 @@ begin
     adresse = coalesce(m.adresse, adresse),
     details_livraison = coalesce(m.details_livraison, details_livraison),
     zone_numero = coalesce(m.zone_numero, zone_numero),
-    pizzas_seulement = m.pizzas_seulement
+    -- Une ligne offerte hors pizza (gardée par la modification) compte aussi.
+    pizzas_seulement = m.pizzas_seulement and not exists (select 1 from commande_lignes lo where lo.commande_id = c.id and lo.offert and lo.station <> 'pizza')
   where id = c.id;
   -- Pas encore payée : le client paie le nouveau total au retrait ou à la livraison.
   if c.statut_paiement = 'a_encaisser_retrait' then
@@ -650,6 +651,10 @@ begin
     values (c.id, coalesce((select max(position) from commande_lignes where commande_id = c.id), 0) + 1, g.plat_slug, g.plat_nom,
       coalesce(pl.station, 'cuisine'), 1, 0, 0, 'Offert', true)
     returning id into ligne;
+    -- Un plat offert hors pizza : la commande n'est plus « pizzas seulement » (délai, tickets).
+    if coalesce(pl.station::text, 'cuisine') <> 'pizza' then
+      update commandes set pizzas_seulement = false where id = c.id and pizzas_seulement;
+    end if;
   end if;
   update gestes_client set offert_commande_id = c.id, offert_par = nom, offert_le = now(), offert_ligne_id = ligne,
     offert_valeur_centimes = coalesce(pl.prix_centimes, g.valeur_centimes)

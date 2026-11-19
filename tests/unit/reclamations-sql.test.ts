@@ -137,6 +137,8 @@ describe("suivre, geste, clore", () => {
     const lignes = (await db.query<{ plat_slug: string; total_centimes: number; offert: boolean }>(
       "select plat_slug, total_centimes, offert from commande_lignes where commande_id = $1 order by position", [suivante.id])).rows;
     expect(lignes.at(-1)).toEqual({ plat_slug: plat.slug, total_centimes: 0, offert: true });
+    const station = (await db.query<{ s: string }>("select station::text as s from plats where slug = $1", [plat.slug])).rows[0].s;
+    if (station !== "pizza") expect((await db.query<{ p: boolean }>("select pizzas_seulement as p from commandes where id = $1", [suivante.id])).rows[0].p).toBe(false);
     expect((await db.query<{ t: number }>("select total_centimes as t from commandes where id = $1", [suivante.id])).rows[0].t).toBe(4000);
     const g = (await db.query<{ offert_valeur_centimes: number; offert_ligne_id: string | null }>("select offert_valeur_centimes, offert_ligne_id from gestes_client where id = $1", [attente[0].id])).rows[0];
     expect(g.offert_valeur_centimes).toBe(plat.prix_centimes);
