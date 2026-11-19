@@ -79,6 +79,21 @@ describe("livraison, minimum et TVA", () => {
     const p = pizza();
     const t = calculerPanier(cat, [ligne(p.slug, { qte: 3 })], null);
     expect(t.tva_centimes).toBe(Math.round((t.total_centimes * cat.tauxTvaPourcent) / (100 + cat.tauxTvaPourcent)));
+    expect(t.taux_tva).toEqual([cat.tauxTvaPourcent]);
+  });
+
+  it("chaque plat a le taux de sa teneur en alcool ; un panier mixte compte la TVA par taux (20261217150000)", () => {
+    // Aucune boisson alcoolisée à la carte : tous les plats sont au réduit, lu dans la table taux_tva.
+    expect(Object.values(cat.plats).every((p) => p.taux_tva_pourcent === cat.tauxTvaPourcent)).toBe(true);
+    const p = pizza();
+    const boisson = Object.values(cat.plats).find((x) => x.categorie_slug === "boissons")!;
+    // Taux plus haut fictif pour la boisson : seul le calcul est vérifié ici.
+    const haut = cat.tauxTvaPourcent * 3;
+    const mixte: Catalogue = { ...cat, plats: { ...cat.plats, [boisson.slug]: { ...boisson, taux_tva_pourcent: haut } } };
+    const t = calculerPanier(mixte, [ligne(p.slug), ligne(boisson.slug)], null);
+    const tva = (x: number, taux: number) => Math.round((x * taux) / (100 + taux));
+    expect(t.taux_tva).toEqual([cat.tauxTvaPourcent, haut]);
+    expect(t.tva_centimes).toBe(tva(p.prix_centimes, cat.tauxTvaPourcent) + tva(boisson.prix_centimes, haut));
   });
 
   it("signale les prix encore à valider", () => {

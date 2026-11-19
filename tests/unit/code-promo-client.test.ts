@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { baseLocale } from "@/lib/db/locale";
 import { appliquerRemise, codesActifs, codeTape, evaluerCode, messageCode } from "@/lib/code-promo";
+import { REGLES_TVA_PRUDENTES } from "@/lib/tva";
 
 // Vague 3, client-commande : branchement des codes promo de bo-carte, éteints par défaut.
 // Code et taux d'essai, créés ici : aucune offre réelle (décision C2 de Jérémy).
@@ -155,7 +156,9 @@ describe("codes promo côté client", () => {
   });
 
   it("la remise baisse le total et la TVA comprise suit", () => {
-    expect(appliquerRemise({ total_centimes: 5000, tva_centimes: 127 }, 500, 2.6)).toEqual({ total_centimes: 4500, tva_centimes: 114, remise_centimes: 500 });
-    expect(appliquerRemise({ total_centimes: 300, tva_centimes: 8 }, 500, 2.6).total_centimes).toBe(0);
+    // Un seul taux (lu ici dans la base d'essai du test, pas en dur dans le code).
+    const base = (ttc: number) => ({ lignes: [{ taux: 2.6, ttc }], frais: 0, remisePlats: 0, remiseFrais: 0, cagnotte: 0, regles: REGLES_TVA_PRUDENTES });
+    expect(appliquerRemise({ total_centimes: 5000, tva_centimes: 127, tva_base: base(5000) }, 500, "plats")).toMatchObject({ total_centimes: 4500, tva_centimes: 114, remise_centimes: 500 });
+    expect(appliquerRemise({ total_centimes: 300, tva_centimes: 8, tva_base: base(300) }, 500, "plats").total_centimes).toBe(0);
   });
 });

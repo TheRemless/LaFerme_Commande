@@ -6,6 +6,7 @@ import { enregistrer } from "@/components/gestion/enregistrer";
 import { useNotifier } from "@/components/gestion/ui";
 import { poster } from "@/lib/requete-client";
 import { jourTexte } from "@/lib/service";
+import { SEUIL_ALCOOL_POURCENT } from "@/lib/tva";
 
 // Parties de la fiche d'un plat ajoutées à la vague 3 : disponibilités, rupture jusqu'à une date, copie.
 
@@ -148,6 +149,49 @@ export function Etiquettes({ plat, recharger }: { plat: PlatGestion; recharger: 
       <button type="button" className="bo-bouton bo-bouton-second" disabled={envoi} onClick={sauver}>
         Enregistrer les étiquettes
       </button>
+    </section>
+  );
+}
+
+const virgule = (n: number | string) => String(Number(n)).replace(".", ",");
+
+// Boissons : la teneur en alcool se saisit, le taux de TVA en découle en base (20261217150000). Plus de 0,5 % vol. :
+// taux normal, même livrée ou à l'emporter (art. 25 LTVA).
+export function TeneurAlcool({ plat, recharger }: { plat: PlatGestion; recharger: () => Promise<void> }) {
+  const notifier = useNotifier();
+  const [valeur, setValeur] = useState(plat.teneur_alcool === null || plat.teneur_alcool === undefined ? "" : virgule(plat.teneur_alcool));
+  const [envoi, setEnvoi] = useState(false);
+  const id = `teneur-${plat.slug}`;
+  async function sauver(e: React.FormEvent) {
+    e.preventDefault();
+    const texte = valeur.trim().replace(",", ".");
+    const teneur = texte === "" ? null : Number(texte);
+    if (teneur !== null && (!Number.isFinite(teneur) || teneur < 0 || teneur > 100)) {
+      return notifier({ texte: "Teneur en alcool : un nombre de 0 à 100, ou vide.", ton: "erreur" });
+    }
+    setEnvoi(true);
+    const r = await poster("/api/gestion/carte", { type: "teneur_alcool", slug: plat.slug, teneur_alcool: teneur === null ? null : Math.round(teneur * 10) / 10 });
+    setEnvoi(false);
+    if (!r.ok) return notifier({ texte: String(r.donnees.erreur ?? "Pas enregistré. Réessayez."), ton: "erreur" });
+    notifier({ texte: `Teneur enregistrée. TVA ${virgule(String(r.donnees.taux_tva_pourcent))} %.`, ton: "succes" });
+    await recharger();
+  }
+  return (
+    <section className="bo-fiche-partie" aria-labelledby={`${id}-titre`}>
+      <h3 id={`${id}-titre`}>Teneur en alcool</h3>
+      <p className="bo-champ-aide" id={`${id}-aide`}>
+        Seule la teneur se saisit. Au-dessus de {virgule(SEUIL_ALCOOL_POURCENT)} % vol., la boisson passe au taux normal de TVA, même livrée ou à l&apos;emporter. Laissez vide pour une boisson sans alcool.
+      </p>
+      <form onSubmit={sauver} className="bo-ligne-champs">
+        <div className="bo-champ">
+          <label htmlFor={id}>Teneur en alcool (% vol.)</label>
+          <input id={id} inputMode="decimal" value={valeur} maxLength={5} aria-describedby={`${id}-aide`} onChange={(e) => setValeur(e.target.value)} />
+        </div>
+        <button type="submit" className="bo-bouton bo-bouton-second" disabled={envoi}>
+          Enregistrer la teneur
+        </button>
+      </form>
+      {plat.taux_tva_pourcent !== undefined && <p className="bo-champ-aide">Taux de TVA aujourd&apos;hui {virgule(plat.taux_tva_pourcent)} %.</p>}
     </section>
   );
 }
