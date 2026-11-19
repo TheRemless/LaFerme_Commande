@@ -131,6 +131,15 @@ describe("ventilation figée", () => {
     expect(parts(figee)).toEqual([{ taux: normal, ttc: biere.prix, tva: tva(biere.prix, normal) }]);
   });
 
+  it("une ligne offerte (0 CHF) à 8,1 % ne donne pas son taux à une commande à encaisser", async () => {
+    const c = await commande([ligne(pizza)], true);
+    await db.query(
+      "insert into commande_lignes (commande_id, position, plat_slug, nom, station, qte, unitaire_centimes, total_centimes, note, offert) values ($1, 2, $2, $3, 'cuisine', 1, 0, 0, 'Offert', true)",
+      [c, biere.slug, biere.nom],
+    );
+    expect(Number((await db.query<{ t: string }>("select taux_tva_pourcent::text as t from commandes where id = $1", [c])).rows[0].t)).toBe(reduit);
+  });
+
   it("répartition signée : somme exacte, signes gardés, au prorata", async () => {
     expect(await f<number[]>("repartir_signe(500, array[-2000, 2500])")).toEqual([-2000, 2500]);
     const r = await f<number[]>("repartir_signe(301, array[-2000, 2500])");

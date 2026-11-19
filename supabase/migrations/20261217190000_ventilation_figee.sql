@@ -304,7 +304,8 @@ begin
     new.tva_centimes := (select coalesce(sum((x ->> 'tva')::integer), 0) from jsonb_array_elements(v) x);
     new.taux_tva_pourcent := case when new.ventilation_figee is not null
       then (select max((x ->> 'taux')::numeric) from jsonb_array_elements(new.ventilation_figee) x)
-      else (select max(taux_tva_pourcent) from commande_lignes where commande_id = new.id) end;
+      -- Une ligne offerte (0 CHF) ne donne pas son taux à la commande.
+      else coalesce((select max(taux_tva_pourcent) from commande_lignes where commande_id = new.id and not offert), new.taux_tva_pourcent) end;
   end if;
   return new;
 end;
@@ -322,7 +323,7 @@ begin
     tv := (select coalesce(sum((x ->> 'tva')::integer), 0) from jsonb_array_elements(ventilation_commande(o)) x);
     tx := case when o.ventilation_figee is not null
       then (select max((x ->> 'taux')::numeric) from jsonb_array_elements(o.ventilation_figee) x)
-      else (select max(taux_tva_pourcent) from commande_lignes where commande_id = o.id) end;
+      else coalesce((select max(taux_tva_pourcent) from commande_lignes where commande_id = o.id and not offert), o.taux_tva_pourcent) end;
     -- Seulement si quelque chose change : une commande juste ne voit pas son modifie_le avancer.
     if (o.tva_centimes, o.taux_tva_pourcent) is distinct from (tv, tx) then
       update commandes set tva_centimes = tv, taux_tva_pourcent = tx where id = o.id;
