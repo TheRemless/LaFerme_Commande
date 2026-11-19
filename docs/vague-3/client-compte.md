@@ -19,7 +19,15 @@ Rien d'autre n'est recopié dans son compte : ni téléphone, ni adresse, ni cod
 
 ## Reçu avec TVA
 
-Le lien « Reçu avec TVA » est en bas de la page de suivi d'une commande payée. Il est aussi dans le compte du client (« Reçu »). Le reçu donne le restaurant, le numéro de TVA, la date, les plats, les frais, le total, le taux et le montant de la TVA. Le client l'imprime ou l'enregistre en PDF depuis son navigateur. Il ne porte ni le nom de famille ni l'adresse du client.
+Le lien « Reçu avec TVA » est en bas de la page de suivi d'une commande payée. Il est aussi dans le compte du client (« Reçu »). Le reçu donne le restaurant, le numéro de TVA, la date, les plats, les frais, le total, le taux et le montant de la TVA. Le client l'imprime ou l'enregistre en PDF depuis son navigateur.
+
+Mention qui fonde la TVA à 2,6 % (plan de conformité compta R6 et R7, décision du chef du 19.11.2026), avec les mêmes mots que le ticket du sac :
+
+- à emporter, « À l'emporter » ;
+- en livraison, « Livraison sans préparation ni service à » suivi du nom (celui de la personne qui reçoit pour un cadeau) puis de la localité. Le lien de suivi se transfère : le reçu ouvert par ce lien ne donne ni la rue ni le numéro. Le titulaire du compte connecté voit l'adresse complète ;
+- chaque ligne porte le code de taux « A », expliqué sous le total (« A = TVA 2,6 % comprise »).
+
+L'e-mail de commande porte la même mention avec le nom et l'adresse complète, puisqu'il arrive dans la boîte du client. Il porte aussi le code de taux et sa légende. Jamais de téléphone ni de code d'entrée.
 
 ## Annuler sa commande depuis le suivi
 

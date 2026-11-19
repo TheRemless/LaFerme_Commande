@@ -38,6 +38,24 @@ describe("e-mail de confirmation, seul e-mail de la commande", () => {
     expect(m.html).toContain('href="https://commande.exemple.test/suivi/abcdefghijklmnopqrstuvwxyz/recu"');
   });
 
+  it("justificatif de la TVA à 2,6 % : la mention avec le nom et l'adresse complète, le code de taux par ligne et sa légende", () => {
+    const livraison = {
+      ...base,
+      mode: "livraison",
+      client_nom: "Essai",
+      adresse: { rue: "Route de Chancy", numero: "1", npa: "1213", localite: "Onex" },
+      frais_centimes: 500,
+      lignes: [{ position: 1, slug: "pizza-margherita", nom: "Pizza Margherita", station: "pizza", qte: 1, unitaire_centimes: 1800, total_centimes: 1800, choix: {}, retraits: [], note: "" }],
+    } as unknown as Commande;
+    const m = courrielConfirmation(livraison, null);
+    expect(m.texte).toContain("Livraison sans préparation ni service à Léa Essai, Route de Chancy 1, 1213 Onex.");
+    expect(m.texte).toContain("1 × Margherita  18.– A");
+    expect(m.texte).toContain("Livraison  CHF 5.00 A");
+    expect(m.texte).toContain("A = TVA 2,6 % comprise.");
+    expect(m.html).toContain("Livraison sans préparation ni service à Léa Essai, Route de Chancy 1, 1213 Onex.");
+    expect(courrielConfirmation(base, null).texte).toContain("\nÀ l'emporter.\n");
+  });
+
   it("à payer au comptoir : pas encore de reçu", () => {
     const m = courrielConfirmation({ ...base, moyen_paiement: "comptoir", statut_paiement: "a_encaisser_retrait" } as Commande, null);
     expect(m.texte).not.toContain("Reçu avec TVA");

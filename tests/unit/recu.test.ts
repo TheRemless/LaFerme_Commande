@@ -67,10 +67,12 @@ describe("reçu avec TVA", () => {
     });
     expect(r.numero).toBe(42);
     expect(r.date).toBe("13 novembre 2026");
-    expect(r.lignes).toEqual([{ titre: "2 × Margherita", details: [], montant: "40.00" }]);
+    // Taux par ligne (R7) : le code « A » et sa légende, comme le ticket du sac.
+    expect(r.lignes).toEqual([{ titre: "2 × Margherita", details: [], montant: "40.00 A" }]);
+    expect(r.legende).toBe("A = TVA 2,6 % comprise");
     expect(r.sommes).toEqual([
       ["Plats", "CHF 40.00"],
-      ["Livraison", "CHF 5.00"],
+      ["Livraison", "CHF 5.00 A"],
       ["Total", "CHF 45.00"],
       ["dont TVA 2,6 %", "CHF 1.14"],
     ]);
@@ -78,9 +80,20 @@ describe("reçu avec TVA", () => {
     expect(r.remboursements).toEqual([]);
   });
 
-  it("ni nom de famille, ni téléphone, ni adresse de livraison, ni code d'entrée", () => {
-    const texte = JSON.stringify(donneesRecu(commande(), null, []));
-    for (const x of ["Essai", "079 000 00 00", "Route de Chancy\",\"numero", "1234", "lea@exemple.test"]) expect(texte).not.toContain(x);
+  it("par le lien : la mention avec le nom et la localité seule ; ni rue, ni téléphone, ni code d'entrée, ni e-mail", () => {
+    const r = donneesRecu(commande(), null, []);
+    // Mention qui fonde la TVA à 2,6 % (R6, décision du chef du 19.11.2026 : le lien de suivi se transfère).
+    expect(r.mention).toEqual(["Livraison sans préparation ni service à", "Léa Essai", "Onex"]);
+    const texte = JSON.stringify(r);
+    for (const x of ["Route de Chancy", "1213", "079 000 00 00", "1234", "lea@exemple.test"]) expect(texte).not.toContain(x);
+  });
+
+  it("titulaire du compte connecté : l'adresse complète ; à la personne qui reçoit un cadeau, son nom ; à emporter", () => {
+    expect(donneesRecu(commande(), null, [], { complet: true }).mention).toEqual(["Livraison sans préparation ni service à", "Léa Essai", "Route de Chancy 1", "1213 Onex"]);
+    const cadeau = { ...commande(), destinataire: { nom: "Noé Martin", telephone: "079 111 11 11" } };
+    expect(donneesRecu(cadeau, null, []).mention).toEqual(["Livraison sans préparation ni service à", "Noé Martin", "Onex"]);
+    expect(JSON.stringify(donneesRecu(cadeau, null, []))).not.toContain("079 111 11 11");
+    expect(donneesRecu(commande({ mode: "retrait", frais_centimes: 0 }), null, []).mention).toEqual(["À l'emporter"]);
   });
 
   it("à emporter : pas de ligne de livraison ; un remboursement fait est rappelé", () => {
