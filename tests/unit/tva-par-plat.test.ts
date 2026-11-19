@@ -133,7 +133,24 @@ describe("taux datés (R5)", () => {
 });
 
 describe("taux d'un plat, calculé d'après la teneur en alcool (R1, R3)", () => {
+  it("garde-fou : une boisson alcoolisée ne se met pas en vente tant que la compta à deux taux n'est pas prête", async () => {
+    // Coca-Cola est en vente : 0,6 % vol. est refusé, rien n'est écrit.
+    await expect(f("regler_teneur_alcool('coca-cola', 0.6, $1)", [gerant])).rejects.toThrow(/alcool_compta_pas_prete/);
+    expect(await q<string | null>("select teneur_alcool as r from plats where slug = 'coca-cola'")).toBeNull();
+    // Hors vente, la teneur se pose ; la remettre en vente est refusé, et la fiche dit pourquoi.
+    const b = await biere(5);
+    await expect(db.query("update plats set commandable = true where slug = $1", [b])).rejects.toThrow(/alcool_compta_pas_prete/);
+    expect(await q<string[]>("select motifs_plat(id) as r from plats where slug = $1", [b])).toContain("boisson alcoolisée : la compta à deux taux n'est pas prête");
+    // bo-pilotage passe le réglage à vrai quand ses lecteurs suivent la ventilation.
+    await db.query("update reglages set valeur = 'true' where cle = 'compta_multi_taux_pret'");
+    await db.query("update plats set commandable = true where slug = $1", [b]);
+    expect(await q<string[]>("select motifs_plat(id) as r from plats where slug = $1", [b])).not.toContain("boisson alcoolisée : la compta à deux taux n'est pas prête");
+    await db.query("update plats set commandable = false where slug = $1", [b]);
+    await db.query("update reglages set valeur = 'false' where cle = 'compta_multi_taux_pret'");
+  });
+
   it("0,5 % vol. donne le réduit, 0,6 % le normal ; le back-office le montre et le journal le garde", async () => {
+    await db.query("update reglages set valeur = 'true' where cle = 'compta_multi_taux_pret'");
     expect(Number((await f<{ taux_tva_pourcent: number }>("regler_teneur_alcool('coca-cola', 0.5, $1)", [gerant])).taux_tva_pourcent)).toBe(reduit);
     expect(Number((await f<{ taux_tva_pourcent: number }>("regler_teneur_alcool('coca-cola', 0.6, $1)", [gerant])).taux_tva_pourcent)).toBe(normal);
     const fiche = (await f<{ categories: { slug: string; plats: { slug: string; teneur_alcool: number; taux_tva_pourcent: number }[] }[] }>("gestion_carte()")).categories
@@ -144,6 +161,7 @@ describe("taux d'un plat, calculé d'après la teneur en alcool (R1, R3)", () =>
     expect(Number(j.apres.teneur_alcool)).toBe(0.6);
     await f("regler_teneur_alcool('coca-cola', null, $1)", [gerant]);
     expect(Number(await q<string>("select taux_tva_pourcent as r from tva_plats_publics where slug = 'coca-cola'"))).toBe(reduit);
+    await db.query("update reglages set valeur = 'false' where cle = 'compta_multi_taux_pret'");
   });
 
   it("une teneur impossible est refusée ; seuls le gérant et le serveur la règlent", async () => {
@@ -256,6 +274,14 @@ describe("commande mixte : pizza et bière à 5 % vol. (R1, R9, R15)", () => {
     await regler("rabais_tva_mixte", "prorata");
     const p = await rembourser(800, null);
     expect(p.map((x) => [x.taux, x.ttc])).toEqual([[reduit, 600], [normal, 200]]);
+  });
+});
+
+describe("ventilation_lignes et ventilation_commande", () => {
+  it("ventilation_commande rend ventilation_lignes tant que bo-commandes ne la fige pas au paiement", async () => {
+    const id = await commande([{ slug: "pizza-margherita", total: 1500 }, { slug: await biere(5), total: 500 }], { frais: 300 });
+    const deux = await q<{ a: unknown; b: unknown }>("select jsonb_build_object('a', ventilation_lignes(c), 'b', ventilation_commande(c)) as r from commandes c where c.id = $1", [id]);
+    expect(deux.a).toEqual(deux.b);
   });
 });
 
