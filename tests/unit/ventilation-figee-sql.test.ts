@@ -93,6 +93,11 @@ describe("ventilation figée", () => {
     // Pizza retirée, deux bières : complément d'une bière, parts { réduit : −pizza, normal : +2 bières }.
     await modifier(c, demande(`figee-${n}-comptoir-0`, [ligne(biere, 2)], { reglement: "comptoir" }));
     expect(await ventilation(c)).toEqual(avant);
+    // Invariant de bo-pilotage : commande payée, somme des ttc = total payé au départ, somme des tva = tva_centimes.
+    const o = (await db.query<{ total_centimes: number; tva_centimes: number }>("select total_centimes, tva_centimes from commandes where id = $1", [c])).rows[0];
+    const v = await ventilation(c);
+    expect(v.reduce((t, x) => t + x.ttc, 0)).toBe(o.total_centimes);
+    expect(v.reduce((t, x) => t + x.tva, 0)).toBe(o.tva_centimes);
     const k = (await db.query<{ id: string; montant_centimes: number; tva_centimes: number; ventilation: Part[] }>(
       "select id, montant_centimes, tva_centimes, ventilation from complements where commande_id = $1", [c])).rows[0];
     const attendu = [

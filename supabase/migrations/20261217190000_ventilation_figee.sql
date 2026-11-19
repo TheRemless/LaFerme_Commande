@@ -22,9 +22,10 @@
 -- Plat offert (relecture argent de client-compte sur #271) : « Reprendre cette commande » (lignes_commande_compte,
 -- 20261108090000 ; derniere_commande_compte, 20261201110000) ne reprend pas la ligne offerte, qui serait refacturée au
 -- prix du jour ; appliquer_geste (20261217170000) accepte aussi une commande prête, comme changer les plats.
--- Objets recréés depuis leur dernière définition : ventilation_commande, ventilation_remboursement,
--- tva_commande_avant et tva_commande_lignes (20261217150000, bo-carte : le taux de la commande suit la ventilation
--- figée), appliquer_modification (20261217170000).
+-- Objets recréés depuis leur dernière définition : ventilation_commande (20261217150000, bo-carte : désormais
+-- coalesce(ventilation_figee, ventilation_lignes(o))), ventilation_remboursement, tva_commande_avant et
+-- tva_commande_lignes (20261217150000 ; le taux de la commande suit la ventilation figée, une ligne offerte n'en donne
+-- pas ; tva_centimes = TVA de la vente figée, car le total d'une commande payée reste le payé au départ), appliquer_modification (20261217170000).
 
 alter table commandes add column ventilation_figee jsonb;
 alter table modifications_commande add column ventilation jsonb;
@@ -102,7 +103,7 @@ begin
   o.frais_centimes := p_frais;
   o.total_centimes := (select coalesce(sum(total_centimes), 0) from commande_lignes where commande_id = p_commande)::integer + p_frais;
   return (select coalesce(jsonb_agg(jsonb_build_object('taux', (x ->> 'taux')::numeric, 'ttc', (x ->> 'ttc')::integer)), '[]'::jsonb)
-    from jsonb_array_elements(ventilation_commande(o)) x);
+    from jsonb_array_elements(ventilation_lignes(o)) x);
 end;
 $$;
 
@@ -124,98 +125,9 @@ language sql immutable as $$
 $$;
 
 create or replace function ventilation_commande(o commandes) returns jsonb
-language plpgsql stable as $$
-declare
-  taux numeric[];
-  lignes integer[];
-  n integer;
-  frais integer[];
-  rem_frais integer[];
-  rem_plats integer[];
-  cag integer[];
-  ttc integer[];
-  restant integer[];
-  remise_plats_m integer;
-  remise_frais_m integer;
-  ecart integer;
-  r jsonb := '[]'::jsonb;
-  i integer;
-  t numeric;
-begin
-  -- Figée au paiement (ventilation figée) : la vente d'origine ne bouge plus ; une modification a sa propre ventilation.
-  if o.ventilation_figee is not null then
-    return o.ventilation_figee;
-  end if;
-  select coalesce(array_agg(x.taux order by x.taux), '{}'), coalesce(array_agg(x.ttc order by x.taux), '{}')
-    into taux, lignes
-    from (select l.taux_tva_pourcent as taux, sum(l.total_centimes)::integer as ttc
-          from commande_lignes l where l.commande_id = o.id group by l.taux_tva_pourcent) x;
-  n := coalesce(array_length(taux, 1), 0);
-  if n = 0 then
-    -- Sans lignes (commande en cours d'écriture) : le taux de la commande, tout en un.
-    t := o.taux_tva_pourcent;
-    return jsonb_build_array(jsonb_build_object('taux', t, 'ttc', o.total_centimes,
-      'tva', round(o.total_centimes * t / (100 + t))::integer, 'frais_ttc', o.frais_centimes,
-      'frais_tva', round(o.frais_centimes * t / (100 + t))::integer, 'rabais_ttc', o.remise_centimes,
-      'rabais_tva', round(o.remise_centimes * t / (100 + t))::integer, 'cagnotte_ttc', o.cagnotte_centimes,
-      'cagnotte_tva', round(o.cagnotte_centimes * t / (100 + t))::integer));
-  end if;
-
-  -- Frais (R8, R9) : au taux des lignes s'il n'y en a qu'un ; commande mixte selon frais_tva_mixte.
-  if n = 1 then
-    frais := array[o.frais_centimes];
-  elsif regle_tva('frais_tva_mixte') = 'prorata' then
-    frais := repartir_centimes(o.frais_centimes, lignes);
-  else
-    frais := imputer_dans_lordre(0, lignes);
-    frais[n] := o.frais_centimes;
-  end if;
-
-  -- Remise du code : sur les plats (remise_plats, cagnotte.sql), le reste (code « livraison ») sur les frais.
-  remise_plats_m := remise_plats(o);
-  remise_frais_m := greatest(o.remise_centimes - remise_plats_m, 0);
-  rem_frais := repartir_centimes(remise_frais_m, frais);
-  if regle_tva('rabais_tva_mixte') = 'prorata' then
-    rem_plats := repartir_centimes(remise_plats_m, lignes);
-  else
-    rem_plats := imputer_dans_lordre(remise_plats_m, lignes);
-  end if;
-  restant := lignes;
-  for i in 1 .. n loop
-    restant[i] := lignes[i] - rem_plats[i];
-  end loop;
-  if regle_tva('rabais_tva_mixte') = 'prorata' then
-    cag := repartir_centimes(o.cagnotte_centimes, restant);
-  else
-    cag := imputer_dans_lordre(o.cagnotte_centimes, restant);
-  end if;
-
-  ttc := lignes;
-  for i in 1 .. n loop
-    ttc[i] := lignes[i] - rem_plats[i] - cag[i] + frais[i] - rem_frais[i];
-  end loop;
-  -- Le total de la commande fait foi : un écart (montant arrondi ailleurs) va au taux le plus haut.
-  ecart := o.total_centimes;
-  for i in 1 .. n loop
-    ecart := ecart - ttc[i];
-  end loop;
-  ttc[n] := ttc[n] + ecart;
-
-  for i in 1 .. n loop
-    t := taux[i];
-    if ttc[i] <> 0 or frais[i] <> 0 or lignes[i] <> 0 then
-      r := r || jsonb_build_object('taux', t, 'ttc', ttc[i], 'tva', round(ttc[i] * t / (100 + t))::integer,
-        'frais_ttc', frais[i], 'frais_tva', round(frais[i] * t / (100 + t))::integer,
-        'rabais_ttc', rem_plats[i] + rem_frais[i], 'rabais_tva', round((rem_plats[i] + rem_frais[i]) * t / (100 + t))::integer,
-        'cagnotte_ttc', cag[i], 'cagnotte_tva', round(cag[i] * t / (100 + t))::integer);
-    end if;
-  end loop;
-  if r = '[]'::jsonb then
-    t := taux[n];
-    r := jsonb_build_array(jsonb_build_object('taux', t, 'ttc', 0, 'tva', 0, 'frais_ttc', 0, 'frais_tva', 0, 'rabais_ttc', 0, 'rabais_tva', 0, 'cagnotte_ttc', 0, 'cagnotte_tva', 0));
-  end if;
-  return r;
-end;
+language sql stable as $$
+  -- Figée au paiement : la vente d'origine ne bouge plus ; sinon les lignes et montants actuels (bo-carte).
+  select coalesce(o.ventilation_figee, ventilation_lignes(o));
 $$;
 
 -- Figée au paiement : la vente d'origine est celle du moment où l'argent est reçu (ou l'encaissement au comptoir).
@@ -302,9 +214,10 @@ declare
 begin
   if exists (select 1 from commande_lignes where commande_id = new.id) then
     new.tva_centimes := (select coalesce(sum((x ->> 'tva')::integer), 0) from jsonb_array_elements(v) x);
+    -- Taux : celui de la vente figée s'il y en a une, sinon le plus haut des lignes ; une ligne offerte (0 CHF) ne
+    -- donne pas son taux (bo-commandes).
     new.taux_tva_pourcent := case when new.ventilation_figee is not null
       then (select max((x ->> 'taux')::numeric) from jsonb_array_elements(new.ventilation_figee) x)
-      -- Une ligne offerte (0 CHF) ne donne pas son taux à la commande.
       else coalesce((select max(taux_tva_pourcent) from commande_lignes where commande_id = new.id and not offert), new.taux_tva_pourcent) end;
   end if;
   return new;
