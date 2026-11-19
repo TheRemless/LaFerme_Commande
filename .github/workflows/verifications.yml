@@ -83,11 +83,25 @@ jobs:
       - name: Chromium
         if: steps.cache-navigateurs.outputs.cache-hit != 'true'
         run: npx playwright install chromium
-      # Dépendances système par apt, à chaque passage. Les miroirs d'Ubuntu tombent parfois (503 le 19.11.2026 : toutes
-      # les PR bloquées avant le premier test) : jusqu'à 3 essais, avec 30 s puis 90 s d'attente. Seule cette
-      # installation est reprise, jamais les tests.
+      # Dépendances système. Les miroirs apt d'Ubuntu tombent parfois (503 le 19.11.2026 : toutes les PR bloquées avant
+      # le premier test). L'image ubuntu-24.04 de GitHub a déjà Google Chrome, donc presque toutes les bibliothèques :
+      # ldd sur les navigateurs du cache, et apt seulement s'il en manque une (la liste est écrite au journal), avec
+      # jusqu'à 3 essais (30 s puis 90 s d'attente). Une bibliothèque vraiment manquante et apt en panne : échec net.
+      # Seule cette installation est reprise, jamais les tests.
       - name: Dépendances système de Chromium
         run: |
+          binaires=$(find ~/.cache/ms-playwright -type f \( -name chrome -o -name chrome-headless-shell -o -name headless_shell \) -perm -u+x 2>/dev/null || true)
+          if [ -n "$binaires" ]; then
+            manque=$(echo "$binaires" | xargs ldd 2>/dev/null | grep "not found" | sort -u || true)
+            if [ -z "$manque" ]; then
+              echo "Aucune bibliothèque ne manque à $(echo "$binaires" | wc -l) navigateur(s) : apt n'est pas appelé."
+              exit 0
+            fi
+            echo "::notice::Bibliothèques manquantes, installées par apt :"
+            echo "$manque"
+          else
+            echo "::notice::Aucun navigateur trouvé dans le cache : dépendances installées par apt."
+          fi
           for attente in 30 90 0; do
             npx playwright install-deps chromium && exit 0
             if [ "$attente" -eq 0 ]; then break; fi
