@@ -28,6 +28,9 @@ export type Synthese = {
   a_encaisser: number;
   a_encaisser_centimes: number;
   frais_centimes: number;
+  // Rabais des codes promo et cagnotte utilisée, déjà déduits du TTC (20261217200000), absents avant.
+  rabais_centimes?: number;
+  cagnotte_centimes?: number;
   livraison: Part;
   retrait: Part;
   en_ligne: Part;

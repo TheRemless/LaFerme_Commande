@@ -141,6 +141,8 @@ export function csvCloture(j: ClotureJour): string {
     ligne("dont livraison", v.livraison.commandes, chf(v.livraison.ttc_centimes)),
     ligne("dont à emporter", v.retrait.commandes, chf(v.retrait.ttc_centimes)),
     ligne("Frais de livraison", "", chf(v.frais_centimes)),
+    ...(v.rabais_centimes !== undefined ? [ligne("Rabais des codes promo, déduits", "", chf(v.rabais_centimes))] : []),
+    ...(v.cagnotte_centimes !== undefined ? [ligne("Cagnotte utilisée, déduite", "", chf(v.cagnotte_centimes))] : []),
     ligne("Refusées", v.refusees.commandes, chf(v.refusees.ttc_centimes)),
     "",
     ligne("Encaissements", "Commandes", "CHF"),

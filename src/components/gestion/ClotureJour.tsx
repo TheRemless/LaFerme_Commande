@@ -413,6 +413,21 @@ export function ClotureJour() {
                     <td />
                     <td className="clo-nb">CHF {montant(r.ventes.frais_centimes)}</td>
                   </tr>
+                  {/* Déjà déduits du montant des commandes prises (R20, docs/compta/plan-conformite.md). */}
+                  {(r.ventes.rabais_centimes ?? 0) > 0 && (
+                    <tr>
+                      <th scope="row">Rabais des codes promo, déduits</th>
+                      <td />
+                      <td className="clo-nb">CHF {montant(r.ventes.rabais_centimes ?? 0)}</td>
+                    </tr>
+                  )}
+                  {(r.ventes.cagnotte_centimes ?? 0) > 0 && (
+                    <tr>
+                      <th scope="row">Cagnotte utilisée, déduite</th>
+                      <td />
+                      <td className="clo-nb">CHF {montant(r.ventes.cagnotte_centimes ?? 0)}</td>
+                    </tr>
+                  )}
                   <tr>
                     <th scope="row">Refusées</th>
                     <td className="clo-nb">{nombre(r.ventes.refusees.commandes)}</td>
