@@ -45,8 +45,9 @@ async function lireDonneesCarte(): Promise<DonneesCarte> {
     lirePublic<LigneOption>("options_publiques"),
     lirePublic<LigneRetrait>("retraits_publics"),
     lirePublic<LigneReglage>("reglages"),
-    lirePublic<{ categorie: string; pourcent: number | string }>("taux_tva_en_vigueur"),
-    lirePublic<{ slug: string; taux_tva_pourcent: number | string | null }>("tva_plats_publics"),
+    // Base pas encore migrée (code publié avant 20261217150000) : repli sur le réglage tva_emporter_pourcent.
+    lirePublic<{ categorie: string; pourcent: number | string }>("taux_tva_en_vigueur").catch(() => []),
+    lirePublic<{ slug: string; taux_tva_pourcent: number | string | null }>("tva_plats_publics").catch(() => []),
   ]);
   return { plats, liens, options, retraits, reglages, taux, tvaPlats };
 }
@@ -63,8 +64,9 @@ export async function chargerCatalogue(): Promise<Catalogue> {
 
 function construireCatalogue({ plats, liens, options, retraits, reglages, taux: tauxDuJour, tvaPlats }: DonneesCarte): Catalogue {
   // Taux réduit en vigueur, lu dans la table taux_tva : aucun taux en dur (R5).
-  const taux = Number(tauxDuJour.find((t) => t.categorie === "reduit")?.pourcent);
-  if (!Number.isFinite(taux)) throw new Error("Taux de TVA manquant : réduit en vigueur (table taux_tva)");
+  const lu = tauxDuJour.find((t) => t.categorie === "reduit")?.pourcent ?? reglages.find((r) => r.cle === "tva_emporter_pourcent")?.valeur;
+  const taux = Number(lu);
+  if (lu === undefined || !Number.isFinite(taux)) throw new Error("Taux de TVA manquant : réduit en vigueur (table taux_tva)");
   const tauxPlat = new Map(tvaPlats.map((t) => [t.slug, Number(t.taux_tva_pourcent)]));
 
   const groupes: Record<string, GroupeCatalogue> = {};

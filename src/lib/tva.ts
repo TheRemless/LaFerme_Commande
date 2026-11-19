@@ -71,7 +71,17 @@ export type BaseTva = {
   cagnotte: number;
   regles: ReglesTva;
 };
-export type PartTva = { taux: number; ttc: number; tva: number; frais_ttc: number; frais_tva: number; rabais_ttc: number; cagnotte_ttc: number };
+export type PartTva = {
+  taux: number;
+  ttc: number;
+  tva: number;
+  frais_ttc: number;
+  frais_tva: number;
+  rabais_ttc: number;
+  rabais_tva: number;
+  cagnotte_ttc: number;
+  cagnotte_tva: number;
+};
 
 // Parts par taux croissant. Somme des ttc = lignes + frais − remises − cagnotte.
 export function ventilerTva(b: BaseTva): PartTva[] {
@@ -92,7 +102,18 @@ export function ventilerTva(b: BaseTva): PartTva[] {
   return taux
     .map((t, i) => {
       const ttc = lignes[i] - remPlats[i] - cag[i] + frais[i] - remFrais[i];
-      return { taux: t, ttc, tva: tvaComprise(ttc, t), frais_ttc: frais[i], frais_tva: tvaComprise(frais[i], t), rabais_ttc: remPlats[i] + remFrais[i], cagnotte_ttc: cag[i] };
+      const rabais = remPlats[i] + remFrais[i];
+      return {
+        taux: t,
+        ttc,
+        tva: tvaComprise(ttc, t),
+        frais_ttc: frais[i],
+        frais_tva: tvaComprise(frais[i], t),
+        rabais_ttc: rabais,
+        rabais_tva: tvaComprise(rabais, t),
+        cagnotte_ttc: cag[i],
+        cagnotte_tva: tvaComprise(cag[i], t),
+      };
     })
     .filter((p) => p.ttc !== 0 || p.frais_ttc !== 0 || lignes[taux.indexOf(p.taux)] !== 0);
 }

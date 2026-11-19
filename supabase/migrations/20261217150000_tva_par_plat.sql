@@ -119,6 +119,11 @@ begin
   if p_teneur is not null and (p_teneur < 0 or p_teneur > 100) then
     raise exception 'teneur_invalide';
   end if;
+  -- Une denrée qui contient de l'alcool reste au taux réduit : seule une boisson porte une teneur.
+  if p_teneur is not null and not exists (select 1 from plats p join categories c on c.id = p.categorie_id
+                                          where p.slug = p_slug and c.slug = 'boissons') then
+    raise exception 'pas_une_boisson';
+  end if;
   update plats set teneur_alcool = round(p_teneur, 1), modifie_le = now() where slug = p_slug;
   perform journaliser(p_personnel, 'teneur_alcool', p_slug,
     jsonb_build_object('teneur_alcool', avant, 'taux_tva_pourcent', taux_tva_du(categorie_tva(avant), jour)),
@@ -149,6 +154,12 @@ language plpgsql as $$
 declare
   o commandes%rowtype;
 begin
+  -- Figé : une ligne modifiée sans changer de plat garde son taux (seule sa TVA suit le montant).
+  if tg_op = 'UPDATE' and new.plat_slug is not distinct from old.plat_slug then
+    new.taux_tva_pourcent := old.taux_tva_pourcent;
+    new.tva_centimes := round(new.total_centimes * new.taux_tva_pourcent / (100 + new.taux_tva_pourcent))::integer;
+    return new;
+  end if;
   select * into o from commandes where id = new.commande_id;
   new.taux_tva_pourcent := taux_tva_du(categorie_tva((select teneur_alcool from plats where slug = new.plat_slug)), jour_tva(o));
   new.tva_centimes := round(new.total_centimes * new.taux_tva_pourcent / (100 + new.taux_tva_pourcent))::integer;
@@ -232,7 +243,7 @@ begin
 end;
 $$;
 
--- [{ taux, ttc, tva, frais_ttc, frais_tva, rabais_ttc, cagnotte_ttc }] par taux croissant. ttc : payé net à ce
+-- [{ taux, ttc, tva, frais_ttc, frais_tva, rabais_ttc, rabais_tva, cagnotte_ttc, cagnotte_tva }] par taux croissant. ttc : payé net à ce
 -- taux (lignes + frais − rabais − cagnotte). Somme des ttc = total_centimes, somme des tva = tva_centimes.
 create or replace function ventilation_commande(o commandes) returns jsonb
 language plpgsql stable as $$
@@ -263,7 +274,9 @@ begin
     t := o.taux_tva_pourcent;
     return jsonb_build_array(jsonb_build_object('taux', t, 'ttc', o.total_centimes,
       'tva', round(o.total_centimes * t / (100 + t))::integer, 'frais_ttc', o.frais_centimes,
-      'frais_tva', round(o.frais_centimes * t / (100 + t))::integer, 'rabais_ttc', o.remise_centimes, 'cagnotte_ttc', o.cagnotte_centimes));
+      'frais_tva', round(o.frais_centimes * t / (100 + t))::integer, 'rabais_ttc', o.remise_centimes,
+      'rabais_tva', round(o.remise_centimes * t / (100 + t))::integer, 'cagnotte_ttc', o.cagnotte_centimes,
+      'cagnotte_tva', round(o.cagnotte_centimes * t / (100 + t))::integer));
   end if;
 
   -- Frais (R8, R9) : au taux des lignes s'il n'y en a qu'un ; commande mixte selon frais_tva_mixte.
@@ -311,12 +324,13 @@ begin
     if ttc[i] <> 0 or frais[i] <> 0 or lignes[i] <> 0 then
       r := r || jsonb_build_object('taux', t, 'ttc', ttc[i], 'tva', round(ttc[i] * t / (100 + t))::integer,
         'frais_ttc', frais[i], 'frais_tva', round(frais[i] * t / (100 + t))::integer,
-        'rabais_ttc', rem_plats[i] + rem_frais[i], 'cagnotte_ttc', cag[i]);
+        'rabais_ttc', rem_plats[i] + rem_frais[i], 'rabais_tva', round((rem_plats[i] + rem_frais[i]) * t / (100 + t))::integer,
+        'cagnotte_ttc', cag[i], 'cagnotte_tva', round(cag[i] * t / (100 + t))::integer);
     end if;
   end loop;
   if r = '[]'::jsonb then
     t := taux[n];
-    r := jsonb_build_array(jsonb_build_object('taux', t, 'ttc', 0, 'tva', 0, 'frais_ttc', 0, 'frais_tva', 0, 'rabais_ttc', 0, 'cagnotte_ttc', 0));
+    r := jsonb_build_array(jsonb_build_object('taux', t, 'ttc', 0, 'tva', 0, 'frais_ttc', 0, 'frais_tva', 0, 'rabais_ttc', 0, 'rabais_tva', 0, 'cagnotte_ttc', 0, 'cagnotte_tva', 0));
   end if;
   return r;
 end;
@@ -391,6 +405,7 @@ create trigger tva_commande_avant before update of total_centimes, frais_centime
   cagnotte_centimes, tva_centimes, taux_tva_pourcent, code_promo on commandes
   for each row execute function tva_commande_avant();
 
+-- Une fois par instruction (pas par ligne) : une commande de 20 lignes ne recalcule qu'une fois.
 create function tva_commande_lignes() returns trigger
 language plpgsql as $$
 declare
@@ -398,21 +413,24 @@ declare
   tv integer;
   tx numeric;
 begin
-  select * into o from commandes where id = coalesce(new.commande_id, old.commande_id);
-  if not found or not exists (select 1 from commande_lignes where commande_id = o.id) then
-    return null;
-  end if;
-  tv := (select coalesce(sum((x ->> 'tva')::integer), 0) from jsonb_array_elements(ventilation_commande(o)) x);
-  tx := (select max(taux_tva_pourcent) from commande_lignes where commande_id = o.id);
-  -- Seulement si quelque chose change : une commande juste ne voit pas son modifie_le avancer.
-  if (o.tva_centimes, o.taux_tva_pourcent) is distinct from (tv, tx) then
-    update commandes set tva_centimes = tv, taux_tva_pourcent = tx where id = o.id;
-  end if;
+  for o in select c.* from commandes c where c.id in (select commande_id from lignes_touchees) loop
+    continue when not exists (select 1 from commande_lignes where commande_id = o.id);
+    tv := (select coalesce(sum((x ->> 'tva')::integer), 0) from jsonb_array_elements(ventilation_commande(o)) x);
+    tx := (select max(taux_tva_pourcent) from commande_lignes where commande_id = o.id);
+    -- Seulement si quelque chose change : une commande juste ne voit pas son modifie_le avancer.
+    if (o.tva_centimes, o.taux_tva_pourcent) is distinct from (tv, tx) then
+      update commandes set tva_centimes = tv, taux_tva_pourcent = tx where id = o.id;
+    end if;
+  end loop;
   return null;
 end;
 $$;
-create trigger tva_commande_lignes after insert or update or delete on commande_lignes
-  for each row execute function tva_commande_lignes();
+create trigger tva_commande_lignes_insert after insert on commande_lignes
+  referencing new table as lignes_touchees for each statement execute function tva_commande_lignes();
+create trigger tva_commande_lignes_update after update on commande_lignes
+  referencing new table as lignes_touchees for each statement execute function tva_commande_lignes();
+create trigger tva_commande_lignes_delete after delete on commande_lignes
+  referencing old table as lignes_touchees for each statement execute function tva_commande_lignes();
 
 -- ---------- Back-office : la fiche lit la teneur et le taux ----------
 

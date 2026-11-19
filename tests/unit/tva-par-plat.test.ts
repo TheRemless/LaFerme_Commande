@@ -10,7 +10,7 @@ let db: PGlite;
 let gerant: string;
 let normal: number;
 let reduit: number;
-type Part = { taux: number; ttc: number; tva: number; frais_ttc: number; frais_tva: number; rabais_ttc: number; cagnotte_ttc: number };
+type Part = { taux: number; ttc: number; tva: number; frais_ttc: number; frais_tva: number; rabais_ttc: number; rabais_tva: number; cagnotte_ttc: number; cagnotte_tva: number };
 
 async function f<T>(sql: string, v: unknown[] = []): Promise<T> {
   return (await db.query<{ r: T }>(`select ${sql} as r`, v)).rows[0].r;
@@ -86,6 +86,11 @@ async function sommesJustes(id: string) {
   const c = await commandeLue(id);
   expect(v.reduce((s, p) => s + p.ttc, 0)).toBe(c.total_centimes);
   expect(v.reduce((s, p) => s + p.tva, 0)).toBe(c.tva_centimes);
+  for (const p of v) {
+    // Contrat de bo-pilotage : TVA de chaque montant arrondie à son taux, et jamais plus de rabais que de lignes.
+    expect([p.rabais_tva, p.cagnotte_tva, p.frais_tva]).toEqual([tva(p.rabais_ttc, p.taux), tva(p.cagnotte_ttc, p.taux), tva(p.frais_ttc, p.taux)]);
+    expect(p.ttc - p.frais_ttc + p.rabais_ttc + p.cagnotte_ttc).toBeGreaterThanOrEqual(0);
+  }
   return v;
 }
 
@@ -143,6 +148,8 @@ describe("taux d'un plat, calculé d'après la teneur en alcool (R1, R3)", () =>
 
   it("une teneur impossible est refusée ; seuls le gérant et le serveur la règlent", async () => {
     await expect(f("regler_teneur_alcool('coca-cola', 101, $1)", [gerant])).rejects.toThrow(/teneur_invalide/);
+    // Une denrée qui contient de l'alcool reste au réduit : seule une boisson porte une teneur.
+    await expect(f("regler_teneur_alcool('pizza-margherita', 5, $1)", [gerant])).rejects.toThrow(/pas_une_boisson/);
     const livreur = (await db.query<{ id: string }>("select id from personnel where role = 'livreur' and actif limit 1")).rows[0].id;
     await expect(f("regler_teneur_alcool('coca-cola', 5, $1)", [livreur])).rejects.toThrow();
     for (const role of ["anon", "authenticated"]) {
@@ -164,12 +171,22 @@ describe("commande mixte : pizza et bière à 5 % vol. (R1, R9, R15)", () => {
     await sommesJustes(id);
   });
 
+  it("le taux d'une ligne reste figé quand son montant change, même si la boisson change de teneur", async () => {
+    const b = await biere(5);
+    const id = await commande([{ slug: "pizza-margherita", total: 1500 }, { slug: b, total: 500 }]);
+    await f("regler_teneur_alcool($1, 0, $2)", [b, gerant]);
+    await db.query("update commande_lignes set total_centimes = 400, unitaire_centimes = 400 where commande_id = $1 and plat_slug = $2", [id, b]);
+    const l = (await db.query<{ taux: number; tva_centimes: number }>("select taux_tva_pourcent::float as taux, tva_centimes from commande_lignes where commande_id = $1 and plat_slug = $2", [id, b])).rows[0];
+    expect(l).toEqual({ taux: normal, tva_centimes: tva(400, normal) });
+    await f("regler_teneur_alcool($1, 5, $2)", [b, gerant]);
+  });
+
   it("une commande à un seul taux garde exactement la TVA d'avant", async () => {
     const id = await commande([{ slug: "pizza-margherita", total: 1800 }, { slug: "coca-cola", total: 450 }], { frais: 500 });
     const c = await commandeLue(id);
     expect(c.taux).toBe(reduit);
     expect(c.tva_centimes).toBe(tva(2750, reduit));
-    expect(await sommesJustes(id)).toEqual([{ taux: reduit, ttc: 2750, tva: tva(2750, reduit), frais_ttc: 500, frais_tva: tva(500, reduit), rabais_ttc: 0, cagnotte_ttc: 0 }]);
+    expect(await sommesJustes(id)).toEqual([{ taux: reduit, ttc: 2750, tva: tva(2750, reduit), frais_ttc: 500, frais_tva: tva(500, reduit), rabais_ttc: 0, rabais_tva: 0, cagnotte_ttc: 0, cagnotte_tva: 0 }]);
   });
 
   it("frais d'une commande mixte : jamais tous au réduit ; « normal » ou « prorata » selon le réglage", async () => {

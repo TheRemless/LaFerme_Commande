@@ -33,6 +33,8 @@ const ERREURS: Record<string, string> = {
   nom_invalide: "Nom vide ou trop long.",
   slug_invalide: "Nom illisible : utilisez des lettres ou des chiffres.",
   plat_archive: "Ce plat est archivé. Remettez-le à la carte d'abord.",
+  pas_une_boisson: "Seule une boisson porte une teneur en alcool.",
+  teneur_invalide: "Teneur en alcool : un nombre de 0 à 100, ou vide.",
   photo_inconnue: "Photo inconnue.",
   jour_invalide: "Date invalide : aujourd'hui ou dans les 14 jours.",
   service_invalide: "Choisissez midi, soir ou les deux.",
