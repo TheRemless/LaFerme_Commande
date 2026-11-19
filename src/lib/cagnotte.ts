@@ -4,12 +4,13 @@ import { courrielConfigure, envoyerParSmtp } from "@/lib/courriel/envoi";
 import { courrielRappelCagnotte } from "@/lib/courriel/modeles";
 import { ADRESSE_SITE } from "@/lib/site";
 
-// Cagnotte des clients (validée par Jérémy le 15.11.2026). Toutes les règles sont en base
+// Cagnotte des clients (validée par Jérémy le 15.11.2026). Parrainage : deux types, le crédit du parrain et celui du
+// filleul, que la fiduciaire peut traiter différemment (20261217100000, R28 et R29 du plan de conformité). Toutes les règles sont en base
 // (supabase/migrations/20261216090000_cagnotte.sql) : gain à la remise, utilisation sous verrou du compte,
 // restitution, retrait au remboursement, expiration. Ici, de simples appels et les textes des refus.
 
 export type MouvementCagnotte = {
-  type: "gain" | "utilise" | "rendu" | "retrait" | "expire" | "ajustement" | "parrainage";
+  type: "gain" | "utilise" | "rendu" | "retrait" | "expire" | "ajustement" | "parrainage_parrain" | "parrainage_filleul";
   montant_centimes: number;
   numero: number | null;
   motif: string | null;

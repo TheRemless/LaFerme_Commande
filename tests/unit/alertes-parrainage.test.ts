@@ -31,7 +31,7 @@ describe("alertes d'abus du parrainage, côté serveur", () => {
     const filleul = (await db.query<{ id: string }>("insert into comptes (email, prenom) values ('surv-filleul@exemple.ch', 'Noé') returning id")).rows[0].id;
     // Un cas posé directement : « reçu plus que payé » pour le filleul.
     await db.query("insert into parrainages (parrain_id, filleul_id, statut) values ($1, $2, 'credite')", [parrain, filleul]);
-    await db.query("insert into cagnotte_mouvements (compte_id, type, montant_centimes, motif) values ($1, 'parrainage', 1000, 'Bienvenue par parrainage')", [filleul]);
+    await db.query("insert into cagnotte_mouvements (compte_id, type, montant_centimes, motif) values ($1, 'parrainage_filleul', 1000, 'Bienvenue par parrainage')", [filleul]);
     await db.query("update surveillance_etat set surveillance_le = null where id");
     expect((await executerSurveillance()).fait).toBe(true);
     const copies = (await db.query<{ sujet: string; texte: string }>("select sujet, texte from courriels where sujet like 'Parrainage à surveiller%'")).rows;

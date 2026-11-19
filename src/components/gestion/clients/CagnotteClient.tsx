@@ -18,7 +18,8 @@ const TYPES: Record<string, string> = {
   retrait: "Retiré (commande remboursée)",
   expire: "Expiré",
   ajustement: "Ajusté",
-  parrainage: "Parrainage",
+  parrainage_parrain: "Parrainage, crédit du parrain",
+  parrainage_filleul: "Parrainage, bienvenue du filleul",
 };
 
 // Expiration un an plus tard : avec l'année.

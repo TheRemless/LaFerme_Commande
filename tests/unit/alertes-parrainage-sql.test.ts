@@ -59,7 +59,11 @@ async function filleul(code: string, i: number, o: { nom?: string; numero?: stri
   await commande(id, email, `079 50${i} 00 0${i}`, o.numero ?? `${300 + i}`, 4000, o.nom ?? `Nom${i}`);
   return id;
 }
-const detecter = () => f<{ id: number; type: string; compte_id: string }[]>("detecter_alertes_parrainage()");
+// La détection ne tourne qu'au premier tour de chaque heure (20261217100000) : chaque appel du test en simule un.
+async function detecter() {
+  await db.query("update surveillance_etat set parrainage_detecte_le = null where id");
+  return f<{ id: number; type: string; compte_id: string }[]>("detecter_alertes_parrainage()");
+}
 
 let parrain: string;
 let code: string;
@@ -120,6 +124,82 @@ describe("alertes d'abus du parrainage", () => {
   });
 });
 
+describe("chaîne de faux filleuls (relecture de qualite sur #268)", () => {
+  it("parrain → faux1 → faux2 → faux3, même IP : ip_du_parrain et chaine dès le deuxième maillon", async () => {
+    await db.query("insert into journal_connexions (compte_id, evenement, ip_court) values ($1, 'connexion', 'ab12cd34')", [parrain]);
+    const maillons: string[] = [];
+    let codeHaut = code;
+    for (let i = 1; i <= 2; i++) {
+      const id = await filleul(codeHaut, i, { ip: "ab12cd34" });
+      maillons.push(id);
+      codeHaut = await f<string>("code_parrainage($1)", [id]);
+    }
+    const cas = await detecter();
+    // Avant : aucune règle ne se déclenchait, chaque parrain n'ayant qu'un filleul.
+    expect(cas.filter((a) => a.type === "ip_du_parrain").map((a) => a.compte_id).sort()).toEqual([parrain, maillons[0]].sort());
+    expect(cas.filter((a) => a.type === "chaine").map((a) => a.compte_id)).toEqual([maillons[0]]);
+    // Le troisième maillon ajoute ses propres signaux, sans répéter les premiers.
+    await filleul(codeHaut, 3, { ip: "ab12cd34" });
+    const suite = await detecter();
+    expect(suite.filter((a) => a.type === "chaine").map((a) => a.compte_id)).toEqual([maillons[0], maillons[1]]);
+    expect((await db.query("select 1 from alertes_parrainage where type = 'chaine'")).rows).toHaveLength(2);
+  });
+
+  it("un filleul connecté depuis l'IP du parrain de son parrain, sans la partager avec son parrain : niveau 2", async () => {
+    await db.query("insert into journal_connexions (compte_id, evenement, ip_court) values ($1, 'connexion', 'grand000')", [parrain]);
+    const f1 = await filleul(code, 1, { ip: "autre111" });
+    await filleul(await f<string>("code_parrainage($1)", [f1]), 2, { ip: "grand000" });
+    const ip = (await db.query<{ compte_id: string; detail: { niveau: number } }>("select compte_id, detail from alertes_parrainage where type = 'ip_du_parrain'")).rows;
+    // Rien encore : la détection n'a pas tourné.
+    expect(ip).toEqual([]);
+    await detecter();
+    const apres = (await db.query<{ compte_id: string; detail: { niveau: number } }>("select compte_id, detail from alertes_parrainage where type = 'ip_du_parrain'")).rows;
+    expect(apres).toEqual([{ compte_id: f1, detail: { niveau: 2 } }]);
+  });
+
+  it("un inconnu qui tape un code faux pour l'e-mail du parrain puis du filleul ne fabrique aucun signal d'IP (relecture du chef)", async () => {
+    const f1 = await filleul(code, 1);
+    const f2 = await filleul(code, 2);
+    // demander_code et verifier_code notent la demande et l'échec sous le compte de l'e-mail tapé, avec l'IP de celui qui tape.
+    for (const [c, e] of [[parrain, "code_demande"], [parrain, "echec_code"], [f1, "code_demande"], [f1, "code_limite"], [f2, "echec_code"]]) {
+      await db.query("insert into journal_connexions (compte_id, evenement, ip_court) values ($1, $2, 'inconnu0')", [c, e]);
+    }
+    const types = (await detecter()).map((a) => a.type);
+    expect(types).not.toContain("ip_du_parrain");
+    expect(types).not.toContain("meme_ip");
+    // Une vraie connexion du filleul depuis l'IP du parrain, elle, compte.
+    await db.query("insert into journal_connexions (compte_id, evenement, ip_court) values ($1, 'connexion', 'maison00'), ($2, 'connexion', 'maison00')", [parrain, f1]);
+    expect((await detecter()).map((a) => a.type)).toContain("ip_du_parrain");
+  });
+
+  it("aucune clé d'alerte ne garde d'empreinte d'adresse, de nom ni d'IP", async () => {
+    await filleul(code, 1, { numero: "77", nom: "Dupont" });
+    await filleul(code, 2, { numero: "77", nom: "Dupont" });
+    await detecter();
+    const cles = (await db.query<{ cle: string }>("select cle from alertes_parrainage")).rows.map((r) => r.cle);
+    expect(cles.length).toBeGreaterThan(0);
+    for (const c of cles) expect(c).not.toMatch(/[0-9a-f]{32}/);
+    // L'IP (extrait chiffré) n'entre pas non plus dans la clé.
+    await db.query("insert into journal_connexions (compte_id, evenement, ip_court) select filleul_id, 'connexion', 'ip0cle00' from parrainages");
+    await detecter();
+    const ip = (await db.query<{ cle: string }>("select cle from alertes_parrainage where type = 'meme_ip'")).rows.map((r) => r.cle);
+    expect(ip).toHaveLength(1);
+    expect(ip[0]).not.toContain("ip0cle00");
+  });
+});
+
+describe("une détection par heure", () => {
+  it("le premier tour de l'heure détecte, les suivants ne lisent rien", async () => {
+    for (let i = 1; i <= 4; i++) await filleul(code, i);
+    expect((await detecter()).map((a) => a.type)).toContain("trop_de_filleuls");
+    // Même heure : rien, même pas les cas pas encore envoyés.
+    expect(await f("detecter_alertes_parrainage()")).toEqual([]);
+    // Heure suivante : les cas pas encore envoyés repartent.
+    await db.query("update surveillance_etat set parrainage_detecte_le = now() - interval '1 hour' where id");
+    expect((await f<{ type: string }[]>("detecter_alertes_parrainage()")).map((a) => a.type)).toContain("trop_de_filleuls");
+  });
+});
+
 describe("suspension d'un parrain", () => {
   it("gérant seulement, motif obligatoire ; bloque les nouveaux crédits et les nouveaux liens, garde les anciens", async () => {
     const ancien = await filleul(code, 1);
@@ -130,7 +210,7 @@ describe("suspension d'un parrain", () => {
     await expect(f("suspendre_parrain($1, '', $2)", [parrain, gerant])).rejects.toThrow(/motif/);
     await f("suspendre_parrain($1, 'Filleuls à la même adresse', $2)", [parrain, gerant]);
     // Les anciens crédits restent.
-    expect(await val<number>("select coalesce(sum(montant_centimes), 0)::integer from cagnotte_mouvements where compte_id = $1 and type = 'parrainage'", [ancien])).toBe(1000);
+    expect(await val<number>("select coalesce(sum(montant_centimes), 0)::integer from cagnotte_mouvements where compte_id = $1 and type = 'parrainage_filleul'", [ancien])).toBe(1000);
     // Le filleul en attente n'est pas crédité ; un nouveau lien est refusé.
     await commande(enAttente, "en-attente@exemple.ch", "079 600 00 01", "400");
     expect(await val<string>("select raison from parrainages where filleul_id = $1", [enAttente])).toBe("parrain_suspendu");

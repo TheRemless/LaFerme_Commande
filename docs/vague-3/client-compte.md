@@ -155,17 +155,23 @@ Jérémy a décidé le 19.11.2026 de ne pas vérifier le téléphone par SMS. À
 
 ### Alertes d'abus et suspension
 
-Migration `20261217090000_alertes_parrainage.sql`. La surveillance cherche à chaque tour les cas suivants :
+Migration `20261217090000_alertes_parrainage.sql`. La surveillance cherche les cas suivants une fois par heure, au premier tour de l'heure :
 
 - un parrain qui a plus de 3 filleuls crédités en 30 jours (réglable) ;
 - des filleuls d'un même parrain qui partagent une adresse de livraison, une adresse IP de connexion ou un même nom ;
 - un parrain dont les filleuls ne recommandent pas. L'alerte part dès 3 filleuls crédités depuis plus de 30 jours, si 75 % d'entre eux n'ont pas de deuxième commande. Ces deux seuils sont des propositions, réglables ;
-- un compte qui a reçu plus en parrainage qu'il n'a payé sur 30 jours.
+- un compte qui a reçu plus en parrainage qu'il n'a payé sur 30 jours ;
+- un filleul connecté (session ouverte, pas une simple demande de code) depuis la même adresse IP que son parrain, ou que le parrain de son parrain, dès le rattachement ;
+- un filleul crédité qui devient le parrain d'un filleul crédité dans les 90 jours (chaîne de faux comptes, relecture de qualite sur #268).
 
-Chaque cas part une seule fois, par le circuit des autres alertes (type « Parrainage à surveiller », réglable dans les alertes). Les cas d'un même tour partent dans un seul e-mail. Il ne donne que le type de signal et renvoie au back-office, sans nom ni adresse du client. L'alerte gardée en base ne contient que des nombres. L'accueil du back-office montre les signaux ouverts. Les signaux « trop de filleuls », « sans suite » et « reçu plus que payé » peuvent revenir le mois suivant, jamais deux fois dans le même mois.
+Chaque cas part une seule fois, par le circuit des autres alertes (type « Parrainage à surveiller », réglable dans les alertes). Les cas d'un même tour partent dans un seul e-mail. Il ne donne que le type de signal et renvoie au back-office, sans nom ni adresse du client. L'alerte gardée en base ne contient que des nombres. Sa clé ne garde aucune empreinte d'adresse ni de nom. L'accueil du back-office montre les signaux ouverts. Les signaux « trop de filleuls », « sans suite » et « reçu plus que payé » peuvent revenir le mois suivant, jamais deux fois dans le même mois.
 
 L'adresse IP est celle déjà notée à la connexion au compte (`journal_connexions.ip_court`, 8 caractères, déclarée dans la confidentialité). Rien de nouveau n'est gardé. L'appareil n'est pas comparé. Le journal ne garde qu'un libellé générique (« Safari sur iPhone »), partagé par trop de clients.
 
-La rubrique « Parrainages » du back-office est réservée au gérant. Elle montre pour chaque parrain ses filleuls (date, statut, montant crédité) et ses signaux, que le gérant peut classer. « Suspendre ce parrain » demande un motif de 3 à 200 caractères et passe au journal. La suspension bloque les nouveaux liens et les crédits en attente. Les crédits déjà versés restent. « Réactiver ce parrain » rouvre les nouveaux liens.
+La rubrique « Parrainages » du back-office est réservée au gérant. Elle montre pour chaque parrain ses filleuls (date, statut, montant crédité) et ses signaux, que le gérant peut classer. « Suspendre ce parrain » demande un motif de 3 à 200 caractères et passe au journal. La suspension bloque les nouveaux liens et les crédits en attente. Elle prend le verrou du compte du parrain, comme le rattachement et le crédit : un crédit en cours passe avant ou après, jamais au milieu. Les crédits déjà versés restent. « Réactiver ce parrain » rouvre les nouveaux liens.
 
 Captures dans `docs/rendus/vague-3/client-compte/` (`parrainages-bureau.png` et `parrainages-390.png`).
+
+### Deux types de crédit
+
+Migration `20261217100000_parrainage_types.sql` (plan de conformité compta, R28 et R29). Le crédit du parrain porte le type `parrainage_parrain`, celui du filleul `parrainage_filleul`. Une reprise au remboursement garde le type du crédit repris. Les deux mouvements portent la commande du filleul qui a déclenché le crédit. Le lien entre les deux comptes reste dans `parrainages`. La fiduciaire peut ainsi traiter le crédit du parrain à part (question F13). Le client voit « Parrainage » dans les deux cas. Le back-office distingue le crédit du parrain et la bienvenue du filleul.

@@ -175,7 +175,7 @@ export async function executerSurveillance(maintenant = new Date()): Promise<{ f
     ], "alerte", "tablette_muette").catch((e) => console.error(`Alerte non envoyée : ${e instanceof Error ? e.message : e}`));
   }
   // Parrainage à surveiller (vague 3, client-compte) : chaque cas nouveau part une fois par le circuit des alertes,
-  // puis il est noté envoyé. Avant la migration 20261217090000, la fonction n'existe pas : rien à faire.
+  // puis il est noté envoyé. La base ne détecte qu'au premier tour de chaque heure (20261217100000). Avant la migration 20261217090000, la fonction n'existe pas : rien à faire.
   await alerterParrainage().catch((e) => {
     const m = e instanceof Error ? e.message : String(e);
     if (!/does not exist|Could not find the function/i.test(m)) console.error(`Alertes de parrainage : ${m}`);
