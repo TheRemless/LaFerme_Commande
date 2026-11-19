@@ -196,10 +196,10 @@ describe("modifier les plats d'une commande", () => {
 
   it("R16 : un plat offert reste dans la commande, à 0 CHF, quand le client change ses plats", async () => {
     const c = await commande({ comptoir: true });
-    await db.query(
-      "insert into commande_lignes (commande_id, position, plat_slug, nom, station, qte, unitaire_centimes, total_centimes, note, offert) values ($1, 3, 'tiramisu', 'Tiramisu', 'cuisine', 1, 0, 0, 'Offert', true)",
+    const offerte = (await db.query<{ id: string }>(
+      "insert into commande_lignes (commande_id, position, plat_slug, nom, station, qte, unitaire_centimes, total_centimes, note, offert) values ($1, 3, 'tiramisu', 'Tiramisu', 'cuisine', 1, 0, 0, 'Offert', true) returning id",
       [c],
-    );
+    )).rows[0].id;
     await modifier(c, demande(`difference-${n}-offert-01`, [ligne("Margherita", 2000, 2)]));
     const lignes = (await db.query<{ nom: string; total_centimes: number; offert: boolean }>(
       "select nom, total_centimes, offert from commande_lignes where commande_id = $1 order by position", [c])).rows;
@@ -207,6 +207,8 @@ describe("modifier les plats d'une commande", () => {
       { nom: "Margherita", total_centimes: 4000, offert: false },
       { nom: "Tiramisu", total_centimes: 0, offert: true },
     ]);
+    // La même ligne (le geste la désigne par son id), passée après les nouvelles.
+    expect((await db.query<{ position: number }>("select position from commande_lignes where id = $1", [offerte])).rows[0].position).toBe(2);
     await expect(db.query("update commande_lignes set total_centimes = 500 where commande_id = $1 and offert", [c])).rejects.toThrow();
   });
 

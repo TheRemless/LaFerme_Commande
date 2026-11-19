@@ -59,7 +59,6 @@ declare
   y record;
   part integer;
   r2 remboursements%rowtype;
-  offerts jsonb;
 begin
   select * into m from modifications_commande where id = p_modification for update;
   if not found or m.statut in ('appliquee', 'payee_non_appliquee') then
@@ -116,8 +115,8 @@ begin
       'tva_centimes', k2.tva_centimes, 'frais_centimes', k2.frais_centimes, 'moyen', k2.moyen, 'statut', k2.statut) order by k2.cree_le), '[]'::jsonb)
       from complements k2 where k2.commande_id = c.id and k2.statut = 'a_encaisser')
   where id = m.id;
-  offerts := (select coalesce(jsonb_agg(to_jsonb(lo) order by lo.position), '[]'::jsonb) from commande_lignes lo where lo.commande_id = c.id and lo.offert);
-  delete from commande_lignes where commande_id = c.id;
+  -- R16 : un plat offert reste dans la commande, la même ligne (le geste la désigne), à 0 CHF, quoi que le client change.
+  delete from commande_lignes where commande_id = c.id and not offert;
   for l in select * from jsonb_array_elements(m.lignes) loop
     i := i + 1;
     insert into commande_lignes (commande_id, position, plat_slug, nom, station, qte, unitaire_centimes, total_centimes, choix, prix_choix, retraits, note, pour)
@@ -125,13 +124,10 @@ begin
       (l ->> 'total_centimes')::integer, coalesce(l -> 'choix', '{}'::jsonb), l -> 'prix_choix', coalesce(l -> 'retraits', '[]'::jsonb),
       coalesce(l ->> 'note', ''), coalesce(l ->> 'pour', ''));
   end loop;
-  -- R16 : un plat offert reste dans la commande, à 0 CHF, quoi que le client change.
-  for l in select * from jsonb_array_elements(offerts) loop
-    i := i + 1;
-    insert into commande_lignes (commande_id, position, plat_slug, nom, station, qte, unitaire_centimes, total_centimes, choix, prix_choix, retraits, note, pour, offert)
-    values (c.id, i, l ->> 'plat_slug', l ->> 'nom', (l ->> 'station')::station, (l ->> 'qte')::smallint, 0, 0, coalesce(l -> 'choix', '{}'::jsonb),
-      l -> 'prix_choix', coalesce(l -> 'retraits', '[]'::jsonb), coalesce(l ->> 'note', ''), coalesce(l ->> 'pour', ''), true);
-  end loop;
+  -- Les lignes offertes passent après les nouvelles lignes.
+  update commande_lignes lo set position = i + q.rang
+    from (select id, row_number() over (order by position) as rang from commande_lignes where commande_id = c.id and offert) q
+    where lo.id = q.id;
   update commandes set
     adresse = coalesce(m.adresse, adresse),
     details_livraison = coalesce(m.details_livraison, details_livraison),
