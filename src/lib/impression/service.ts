@@ -1,7 +1,7 @@
 import "server-only";
 import { chargerCatalogue } from "@/lib/catalogue";
 import { commandeParId, fonctionSql, type Commande } from "@/lib/db/serveur";
-import { ticketAnnulation, ticketsDeCommande, type LigneTicket } from "@/lib/impression/ticket";
+import { posteDuSac, ticketAnnulation, ticketClient, ticketsDeCommande, type LigneTicket } from "@/lib/impression/ticket";
 import { detailsTablette } from "@/lib/tablette-details";
 
 // Une tâche par poste (pizza, cuisine) qui a des lignes, envoyée à la première imprimante active de ce poste.
@@ -15,14 +15,18 @@ export async function imprimerCommande(
 ): Promise<number> {
   const [c, cat] = await Promise.all([commandeParId(commandeId), chargerCatalogue().catch(() => null)]);
   if (!c) return 0;
-  const tickets = ticketsDeCommande(
-    {
-      ...c,
-      lignes: c.lignes.map((l) => ({ nom: l.nom, qte: l.qte, station: l.station, details: detailsTablette(cat, l), pour: (l as { pour?: string }).pour })),
-    },
-    // Ticket d'une commande à l'avance imprimé le jour J : il dit quand elle a été acceptée, pas quand il sort.
-    { accepteLe: c.accepte_le ?? new Date(), reimpression },
-  ).filter((t) => !station || t.station === station);
+  const pourTicket = {
+    ...c,
+    lignes: c.lignes.map((l) => ({ nom: l.nom, qte: l.qte, station: l.station, details: detailsTablette(cat, l), pour: (l as { pour?: string }).pour, total_centimes: l.total_centimes })),
+  };
+  // Ticket d'une commande à l'avance imprimé le jour J : il dit quand elle a été acceptée, pas quand il sort.
+  const accepteLe = c.accepte_le ?? new Date();
+  const tickets = [
+    ...ticketsDeCommande(pourTicket, { accepteLe, reimpression }),
+    // Justificatif du client (compta, R6, R7, R24) : ticket à part, au poste qui fait le sac, coupé par l'imprimante
+    // et glissé dans le sac. Les tickets de poste restent sans prix.
+    { station: posteDuSac(pourTicket), contenu: ticketClient(pourTicket as Parameters<typeof ticketClient>[0], { accepteLe }) },
+  ].filter((t) => !station || t.station === station);
   if (tickets.length === 0) return 0;
   if (!reimpression) return fonctionSql<number>("premiers_tickets", { p_commande: commandeId, p: tickets });
   return fonctionSql<number>("creer_taches_impression", { p_commande: commandeId, p: tickets, p_reimpression: true });
