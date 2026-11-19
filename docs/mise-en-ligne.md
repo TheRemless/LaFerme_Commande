@@ -45,7 +45,7 @@ Les clés et mots de passe (Stripe, Infomaniak, Supabase) se saisissent directem
 ### Comptes et services
 
 - [ ] Jérémy : choisir le nom de domaine. restaurantlaferme.ch est encore chez Wix : ce site devient-il le site principal ou un sous-domaine (par exemple commande.restaurantlaferme.ch) ? Donner l'accès aux réglages DNS. Détail : [PROMPT.md](PROMPT.md) §12.
-- [ ] Jérémy : ouvrir le compte Stripe, activer TWINT, regarder si Apple Pay et Google Pay s'activent simplement (sinon le site ne les annonce pas). Saisir dans Netlify la clé de test `sk_test_…` pour les préversions (elle ne sert qu'une fois les préversions branchées sur le projet de test, phase 3). Les clés live viennent à la bascule (phase 4).
+- [ ] Jérémy : ouvrir le compte Stripe, activer TWINT (pas à pas : [stripe-pas-a-pas.md](stripe-pas-a-pas.md)), regarder si Apple Pay et Google Pay s'activent simplement (sinon le site ne les annonce pas). Saisir dans Netlify la clé de test `sk_test_…` pour les préversions (elle ne sert qu'une fois les préversions branchées sur le projet de test, phase 3). Les clés live viennent à la bascule (phase 4).
 - [ ] Jérémy : chez Infomaniak, créer l'adresse d'envoi du site et un mot de passe d'appareil, puis saisir dans Netlify `SMTP_UTILISATEUR`, `SMTP_MOT_DE_PASSE` et `COURRIEL_EXPEDITEUR` (production et préversions). Vérifier la limite d'envoi par jour de la boîte. Détail : [comptes.md](comptes.md).
 - [ ] Claude : une fois l'envoi branché, mesurer la durée d'un envoi depuis une préversion (Ohio) puis depuis Francfort. Les e-mails de commande partent avant la réponse du site : un envoi lent ralentit d'autant l'acceptation sur la tablette.
 - [ ] Jérémy : passer Supabase en Pro (pas de mise en pause du projet). Au passage, créer si possible un projet de test à Zurich pour les préversions.
@@ -104,7 +104,7 @@ Claude donne les noms et les contextes, Jérémy saisit les valeurs secrètes.
 
 ### Stripe
 
-- [ ] Jérémy, guidé par Claude : créer dans Stripe (mode test) un webhook vers `https://<préversion>/api/stripe/webhook` avec les événements `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed` et `checkout.session.expired`. Claude refait le paiement de test de bout en bout (TWINT et carte).
+- [ ] Jérémy, guidé par Claude : créer dans Stripe (mode test) un webhook vers `https://<préversion>/api/stripe/webhook`, format Snapshot, avec les cinq événements de [stripe-pas-a-pas.md](stripe-pas-a-pas.md) (point 4). Il ne sert qu'avec une préversion branchée sur le projet Supabase de test (phase 3). Claude refait ensuite le paiement de test de bout en bout (point 5 du même guide).
 
 ### Imprimantes et tablette
 
@@ -145,7 +145,7 @@ Un jour sans service, jamais pendant un service.
   - membre d'équipe de test : déjà retiré par la migration `20261112090000_correctifs_securite.sql` ; vérifier qu'aucune adresse en `.test` ne reste (le build de production échoue sinon) ;
   - imprimantes de test « Test pizza (préversion) » et « Test cuisine (préversion) » ;
   - ce que le build ne contrôle pas (audit de sécurité 2, S2-09) : plats et plats du jour ajoutés depuis le back-office pendant la construction (`select slug, nom, prix_centimes, jour, commandable from plats where origine <> 'carte'`), photos envoyées (`photos_plats`), comptes clients de test (`comptes` en `.test` ou `@exemple`). Claude les liste, Jérémy dit ce qui reste.
-- [ ] Jérémy : saisir les clés Stripe live et le secret du webhook live. Claude crée avec lui le webhook live vers `https://<domaine>/api/stripe/webhook` (mêmes quatre événements).
+- [ ] Jérémy : saisir les clés Stripe live et le secret du webhook live. Claude crée avec lui le webhook live vers `https://<domaine>/api/stripe/webhook` (mêmes réglages et mêmes cinq événements, [stripe-pas-a-pas.md](stripe-pas-a-pas.md) point 6).
 - [ ] Claude : poser `PAGES_LEGALES_VALIDEES=1` (relecture faite) et `URL_SITE`.
 - [ ] Jérémy et Claude : relier le domaine à Netlify (DNS), attendre le certificat HTTPS.
 - [ ] Claude : retirer de `netlify.toml` la ligne `ignore` qui saute les builds de production de `main` (ajoutée le 9.11.2026 pour ne pas lancer de builds inutiles avant le lancement).
