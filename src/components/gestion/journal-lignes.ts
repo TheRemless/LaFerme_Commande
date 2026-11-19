@@ -160,6 +160,7 @@ export function quoi(e: Entree): string {
     case "cloture":
       return "Clôture du jour";
     case "plan_comptes":
+      if (e.cle.startsWith("code_tva_")) return `Plan de comptes Crésus, code TVA ${e.cle.slice(9).replace("_", ",")} %`;
       return `Plan de comptes Crésus, ${LIBELLES_COMPTES[e.cle as RoleCompte] ?? lisible(e.cle)}`;
     default:
       return `${nomObjet(e.objet)}${e.cle ? `, ${lisible(e.cle)}` : ""}`;
@@ -236,7 +237,9 @@ export function resume(e: Entree): string {
     if (!ap) return `Retirée de la zone ${av.zone_numero}`;
     return `Zone ${av.zone_numero} → zone ${ap.zone_numero}`;
   }
-  if (e.objet === "plan_comptes") return `Compte ${valeurLisible(e.cle, e.avant)} → ${valeurLisible(e.cle, e.apres)}`;
+  if (e.objet === "plan_comptes") {
+    return `${e.cle.startsWith("code_tva_") ? "Code" : "Compte"} ${valeurLisible(e.cle, e.avant)} → ${valeurLisible(e.cle, e.apres)}`;
+  }
   if (e.objet === "plat_archive") return e.apres?.archive ? "Archivé" : "Remis à la carte";
   if (e.objet === "remboursement" && e.apres) {
     const a = e.apres as { montant_centimes?: number; motif?: string; moyen?: string };
