@@ -232,6 +232,18 @@ describe("commande mixte : pizza et bière à 5 % vol. (R1, R9, R15)", () => {
     ]);
   });
 
+  it("l'export Crésus étendu (bo-pilotage) sort une ligne par taux pour une commande mixte", async () => {
+    await db.exec("truncate commandes cascade");
+    const id = await commande([{ slug: "pizza-margherita", total: 1500 }, { slug: await biere(5), total: 500 }], { frais: 500 });
+    const jour = await q<string>("select jour::text as r from commandes where id = $1", [id]);
+    const e = await q<{ ventes: { taux: number; ttc: number; tva: number }[] }>("select export_cresus_etendu($1::date, $1::date) as r", [jour]);
+    expect(e.ventes.map((v) => [Number(v.taux), v.ttc])).toEqual([
+      [reduit, 1500],
+      [normal, 1000],
+    ]);
+    expect(e.ventes.reduce((x, v) => x + v.tva, 0)).toBe((await commandeLue(id)).tva_centimes);
+  });
+
   it("remboursement : par ligne quand le manque les donne, sinon selon la règle des rabais", async () => {
     const id = await commande([{ slug: "pizza-margherita", total: 1500 }, { slug: await biere(5), total: 500 }]);
     const rembourser = async (montant: number, lignes: Record<string, number> | null) =>
