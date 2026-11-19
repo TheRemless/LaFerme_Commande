@@ -153,8 +153,8 @@ Migration `20261217090000_alertes_parrainage.sql`. La surveillance cherche les c
 - des filleuls d'un même parrain qui partagent une adresse de livraison, une adresse IP de connexion ou un même nom ;
 - un parrain dont les filleuls ne recommandent pas. L'alerte part dès 3 filleuls crédités depuis plus de 30 jours, si 75 % d'entre eux n'ont pas de deuxième commande. Ces deux seuils sont des propositions, réglables ;
 - un compte qui a reçu plus en parrainage qu'il n'a payé sur 30 jours ;
-- un filleul connecté depuis la même adresse IP que son parrain, ou que le parrain de son parrain, dès le rattachement ;
-- un filleul crédité qui devient le parrain d'un filleul crédité dans les 30 jours (chaîne de faux comptes, relecture de qualite sur #268).
+- un filleul connecté (session ouverte, pas une simple demande de code) depuis la même adresse IP que son parrain, ou que le parrain de son parrain, dès le rattachement ;
+- un filleul crédité qui devient le parrain d'un filleul crédité dans les 90 jours (chaîne de faux comptes, relecture de qualite sur #268).
 
 Chaque cas part une seule fois, par le circuit des autres alertes (type « Parrainage à surveiller », réglable dans les alertes). Les cas d'un même tour partent dans un seul e-mail. Il ne donne que le type de signal et renvoie au back-office, sans nom ni adresse du client. L'alerte gardée en base ne contient que des nombres. Sa clé ne garde aucune empreinte d'adresse ni de nom. L'accueil du back-office montre les signaux ouverts. Les signaux « trop de filleuls », « sans suite » et « reçu plus que payé » peuvent revenir le mois suivant, jamais deux fois dans le même mois.
 

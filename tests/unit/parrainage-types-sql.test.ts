@@ -106,6 +106,27 @@ describe("types de mouvement du parrainage", () => {
     ]);
   });
 
+  it("conversion : la reprise du parrain dont le filleul a supprimé son compte reste au parrain (relecture du chef)", async () => {
+    await db.query(
+      "insert into remboursements (commande_id, cle, montant_centimes, motif, moyen, statut, personnel_nom, fait_le) values ($1, 'remb-conv', 4500, 'Erreur', 'stripe', 'fait', 'Test', now())",
+      [declenche],
+    );
+    // Base d'avant la migration, puis le filleul supprime son compte : ses mouvements et le parrainage partent avec lui.
+    await db.exec(`
+      alter table cagnotte_mouvements drop constraint cagnotte_mouvements_type_check;
+      update cagnotte_mouvements set type = 'parrainage' where type like 'parrainage%';
+      alter table cagnotte_mouvements add constraint cagnotte_mouvements_type_check
+        check (type in ('gain', 'utilise', 'rendu', 'retrait', 'expire', 'ajustement', 'parrainage'));`);
+    await db.query("delete from comptes where id = $1", [filleul]);
+    expect((await db.query("select 1 from parrainages")).rows).toEqual([]);
+    const sql = await readFile("supabase/migrations/20261217100000_parrainage_types.sql", "utf8");
+    await db.exec(sql.slice(sql.indexOf("alter table cagnotte_mouvements drop constraint"), sql.indexOf("create or replace function")));
+    expect((await mouvements()).map((m) => [m.compte_id, m.type, m.montant_centimes])).toEqual([
+      [parrain, "parrainage_parrain", 1000],
+      [parrain, "parrainage_parrain", -1000],
+    ]);
+  });
+
   it("l'écran Parrainages et l'alerte « reçu plus que payé » lisent les nouveaux types", async () => {
     const liste = await f<{ parrain_id: string; filleuls: { montant_centimes: number }[] }[]>("parrainages_gestion()");
     expect(liste.find((x) => x.parrain_id === parrain)!.filleuls.map((x) => x.montant_centimes)).toEqual([1000]);

@@ -157,13 +157,34 @@ describe("chaîne de faux filleuls (relecture de qualite sur #268)", () => {
     expect(apres).toEqual([{ compte_id: f1, detail: { niveau: 2 } }]);
   });
 
-  it("aucune clé d'alerte ne garde d'empreinte d'adresse ni de nom", async () => {
+  it("un inconnu qui tape un code faux pour l'e-mail du parrain puis du filleul ne fabrique aucun signal d'IP (relecture du chef)", async () => {
+    const f1 = await filleul(code, 1);
+    const f2 = await filleul(code, 2);
+    // demander_code et verifier_code notent la demande et l'échec sous le compte de l'e-mail tapé, avec l'IP de celui qui tape.
+    for (const [c, e] of [[parrain, "code_demande"], [parrain, "echec_code"], [f1, "code_demande"], [f1, "code_limite"], [f2, "echec_code"]]) {
+      await db.query("insert into journal_connexions (compte_id, evenement, ip_court) values ($1, $2, 'inconnu0')", [c, e]);
+    }
+    const types = (await detecter()).map((a) => a.type);
+    expect(types).not.toContain("ip_du_parrain");
+    expect(types).not.toContain("meme_ip");
+    // Une vraie connexion du filleul depuis l'IP du parrain, elle, compte.
+    await db.query("insert into journal_connexions (compte_id, evenement, ip_court) values ($1, 'connexion', 'maison00'), ($2, 'connexion', 'maison00')", [parrain, f1]);
+    expect((await detecter()).map((a) => a.type)).toContain("ip_du_parrain");
+  });
+
+  it("aucune clé d'alerte ne garde d'empreinte d'adresse, de nom ni d'IP", async () => {
     await filleul(code, 1, { numero: "77", nom: "Dupont" });
     await filleul(code, 2, { numero: "77", nom: "Dupont" });
     await detecter();
     const cles = (await db.query<{ cle: string }>("select cle from alertes_parrainage")).rows.map((r) => r.cle);
     expect(cles.length).toBeGreaterThan(0);
     for (const c of cles) expect(c).not.toMatch(/[0-9a-f]{32}/);
+    // L'IP (extrait chiffré) n'entre pas non plus dans la clé.
+    await db.query("insert into journal_connexions (compte_id, evenement, ip_court) select filleul_id, 'connexion', 'ip0cle00' from parrainages");
+    await detecter();
+    const ip = (await db.query<{ cle: string }>("select cle from alertes_parrainage where type = 'meme_ip'")).rows.map((r) => r.cle);
+    expect(ip).toHaveLength(1);
+    expect(ip[0]).not.toContain("ip0cle00");
   });
 });
 

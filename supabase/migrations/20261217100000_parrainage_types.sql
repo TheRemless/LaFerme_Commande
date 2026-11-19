@@ -16,9 +16,13 @@
 -- règles comparaient les filleuls d'un même parrain entre eux). Deux signaux de plus :
 -- - ip_du_parrain : un filleul connecté depuis la même adresse IP (extrait chiffré ip_court) que son parrain, ou que le
 --   parrain de son parrain ;
--- - chaine : un filleul crédité qui devient le parrain d'un filleul crédité dans les 30 jours.
+-- - chaine : un filleul crédité qui devient le parrain d'un filleul crédité dans les 90 jours.
 -- Et deux mineurs : la suspension sous verrou du compte du parrain (suspendre_parrain, lier_parrainage,
 -- crediter_parrainage), et des clés d'alerte qui ne gardent ni empreinte d'adresse ni empreinte de nom.
+--
+-- Relecture du chef (35f124c6) : les comparaisons d'IP ne lisent que les événements d'une session ouverte
+-- (evenement_de_session). demander_code et verifier_code notent code_demande, code_limite et echec_code sous le compte de
+-- l'e-mail TAPÉ, avec l'IP de celui qui tape : sans ce filtre, un inconnu fabriquait une alerte sur un parrain honnête.
 --
 -- Objets recréés : lier_parrainage, suspendre_parrain, crediter_parrainage et detecter_alertes_parrainage, parrainages_gestion (client-compte,
 -- 20261217090000), reprendre_parrainage (20261216100000), rattraper_retraits (20261216190000). Seul le type change.
@@ -30,7 +34,16 @@ alter table alertes_parrainage add constraint alertes_parrainage_type_check chec
   'trop_de_filleuls', 'meme_adresse', 'meme_ip', 'meme_nom', 'sans_suite', 'recu_plus_que_paye', 'ip_du_parrain', 'chaine'));
 
 -- Clés déjà écrites avec une empreinte md5 d'adresse ou de nom (retrouvable par dictionnaire) : réécrites sans.
-update alertes_parrainage set cle = type || ':' || compte_id || ':' || id where type in ('meme_adresse', 'meme_nom');
+update alertes_parrainage set cle = type || ':' || compte_id || ':' || id where type in ('meme_adresse', 'meme_nom', 'meme_ip');
+
+-- Événements du journal des connexions qui supposent une session ouverte (le titulaire connecté). code_demande,
+-- code_limite et echec_code sont écrits sous le compte de l'e-mail tapé par n'importe qui : jamais comparés.
+create function evenement_de_session(p_evenement text) returns boolean
+language sql immutable as $$
+  select p_evenement in ('connexion', 'deconnexion', 'deconnexion_partout', 'profil_modifie', 'adresse_supprimee', 'export');
+$$;
+revoke execute on function evenement_de_session(text) from public, anon, authenticated;
+grant execute on function evenement_de_session(text) to service_role;
 
 alter table cagnotte_mouvements drop constraint cagnotte_mouvements_type_check;
 
@@ -39,6 +52,10 @@ update cagnotte_mouvements m set type = case
     when exists (select 1 from parrainages p where p.commande_id = m.commande_id and p.parrain_id = m.compte_id) then 'parrainage_parrain'
     when exists (select 1 from parrainages p where p.commande_id = m.commande_id and p.filleul_id = m.compte_id) then 'parrainage_filleul'
     when m.motif like 'Parrainage d''un proche%' then 'parrainage_parrain'
+    -- Reprise (négative) du parrain dont le filleul a supprimé son compte : le parrainage n'existe plus, le crédit du
+    -- parrain sur la même commande le désigne.
+    when m.montant_centimes < 0 and exists (select 1 from cagnotte_mouvements x where x.commande_id = m.commande_id
+           and x.compte_id = m.compte_id and x.motif like 'Parrainage d''un proche%') then 'parrainage_parrain'
     else 'parrainage_filleul'
   end
   where m.type = 'parrainage';
@@ -197,13 +214,14 @@ begin
   ) x
   on conflict (cle) do nothing;
 
-  -- Filleuls d'un même parrain connectés depuis la même adresse IP (extrait chiffré du journal des connexions).
+  -- Filleuls d'un même parrain connectés depuis la même adresse IP (extrait chiffré du journal des connexions, sessions
+  -- ouvertes seulement). Clé sans l'IP.
   insert into alertes_parrainage (cle, compte_id, type, detail)
-  select 'meme_ip:' || x.parrain_id || ':' || x.ip_court, x.parrain_id, 'meme_ip', jsonb_build_object('filleuls', x.n)
+  select 'meme_ip:' || x.parrain_id || ':' || mois, x.parrain_id, 'meme_ip', jsonb_build_object('filleuls', x.n)
   from (
     select p.parrain_id, j.ip_court, count(distinct p.filleul_id) as n
     from parrainages p join journal_connexions j on j.compte_id = p.filleul_id
-    where j.ip_court is not null and j.ip_court <> ''
+    where j.ip_court is not null and j.ip_court <> '' and evenement_de_session(j.evenement)
     group by p.parrain_id, j.ip_court having count(distinct p.filleul_id) >= 2
   ) x
   on conflict (cle) do nothing;
@@ -252,33 +270,36 @@ begin
   where x.recu > x.paye
   on conflict (cle) do nothing;
 
-  -- Filleul connecté depuis la même adresse IP que son parrain (niveau 1) ou que le parrain de son parrain (niveau 2), dès
+  -- Filleul connecté (session ouverte) depuis la même adresse IP que son parrain (niveau 1) ou que le parrain de son parrain (niveau 2), dès
   -- le rattachement : le signe le plus simple d'un auto-parrainage. Une alerte par parrainage.
   insert into alertes_parrainage (cle, compte_id, type, detail)
   select 'ip_du_parrain:' || x.id, x.parrain_id, 'ip_du_parrain', jsonb_build_object('niveau', x.niveau)
   from (
     select p.id, p.parrain_id,
       case when exists (select 1 from journal_connexions jf join journal_connexions jp on jp.ip_court = jf.ip_court
-                        where jf.compte_id = p.filleul_id and jp.compte_id = p.parrain_id and coalesce(jf.ip_court, '') <> '')
+                        where jf.compte_id = p.filleul_id and jp.compte_id = p.parrain_id and coalesce(jf.ip_court, '') <> ''
+                          and evenement_de_session(jf.evenement) and evenement_de_session(jp.evenement))
            then 1 else 2 end as niveau
     from parrainages p
     where exists (select 1 from journal_connexions jf join journal_connexions jp on jp.ip_court = jf.ip_court
-                  where jf.compte_id = p.filleul_id and jp.compte_id = p.parrain_id and coalesce(jf.ip_court, '') <> '')
+                  where jf.compte_id = p.filleul_id and jp.compte_id = p.parrain_id and coalesce(jf.ip_court, '') <> ''
+                          and evenement_de_session(jf.evenement) and evenement_de_session(jp.evenement))
        or exists (select 1 from parrainages g
                   join journal_connexions jf on jf.compte_id = p.filleul_id
                   join journal_connexions jg on jg.compte_id = g.parrain_id and jg.ip_court = jf.ip_court
-                  where g.filleul_id = p.parrain_id and coalesce(jf.ip_court, '') <> '')
+                  where g.filleul_id = p.parrain_id and coalesce(jf.ip_court, '') <> ''
+                    and evenement_de_session(jf.evenement) and evenement_de_session(jg.evenement))
   ) x
   on conflict (cle) do nothing;
 
-  -- Chaîne : un filleul crédité qui devient le parrain d'un filleul crédité dans les 30 jours. Signalé sur ce maillon,
+  -- Chaîne : un filleul crédité qui devient le parrain d'un filleul crédité dans les 90 jours. Signalé sur ce maillon,
   -- visible chez son parrain (comme filleul) et chez lui (comme parrain).
   insert into alertes_parrainage (cle, compte_id, type, detail)
   select 'chaine:' || p2.id, p2.parrain_id, 'chaine',
          jsonb_build_object('jours', floor(extract(epoch from (p2.termine_le - p1.termine_le)) / 86400)::integer)
   from parrainages p1 join parrainages p2 on p2.parrain_id = p1.filleul_id
   where p1.statut = 'credite' and p2.statut = 'credite'
-    and p2.termine_le >= p1.termine_le and p2.termine_le <= p1.termine_le + interval '30 days'
+    and p2.termine_le >= p1.termine_le and p2.termine_le <= p1.termine_le + interval '90 days'
   on conflict (cle) do nothing;
 
   return coalesce((

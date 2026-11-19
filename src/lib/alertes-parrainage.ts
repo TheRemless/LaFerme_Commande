@@ -14,7 +14,7 @@ export const TYPES_SIGNAL: Record<string, string> = {
   sans_suite: "Filleuls qui ne recommandent jamais",
   recu_plus_que_paye: "Plus reçu en parrainage que payé sur 30 jours",
   ip_du_parrain: "Filleul connecté depuis la même adresse IP que son parrain",
-  chaine: "Filleul qui parraine à son tour dans les 30 jours",
+  chaine: "Filleul qui parraine à son tour dans les 90 jours",
 };
 
 export type CasParrainage = { id: number; type: string; compte_id: string; detail: Record<string, unknown> };
