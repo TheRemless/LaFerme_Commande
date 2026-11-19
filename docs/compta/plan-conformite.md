@@ -81,3 +81,8 @@ La mention du justificatif (début de 3) peut partir tout de suite, sans attendr
 ## Pour la fiduciaire
 
 Les 16 questions F1 à F16 sont dans [tva-et-cagnotte.md](tva-et-cagnotte.md). Le site lui donnera, avant toute décision, une journée type exportée (R34) et l'état des soldes de cagnotte au 31.12 (R27).
+
+## Avancement
+
+- PR 1 (bo-pilotage, 20261217130000) : ventilation par taux, avoirs numérotés, codes TVA en réglage, comptes de rabais et de cagnotte, Crésus au format étendu. Couvre R11, R12, R14, R30 à R32. La clôture par taux, le rabais et la cagnotte utilisée à la clôture (R20) suivent dans une PR à part, avant que bo-carte n'active un second taux.
+

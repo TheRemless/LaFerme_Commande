@@ -101,7 +101,7 @@ Source : https://docs.netlify.com/manage/accounts-and-billing/billing/billing-fo
 |---|---|---|
 | Chaque imprimante (réglage sur l'imprimante) | toutes les 5 s, deux appels à la base | toutes les 10 s conseillé, un appel |
 | Tablette | toutes les 5 s, quatre appels à la base | 15 s en service, 60 s hors service, deux appels (5 s si le signal Realtime ne passe pas) |
-| Surveillance (fonction planifiée, production) | chaque minute | chaque minute |
+| Surveillance (fonction planifiée, production) | chaque minute | chaque minute ; depuis le 19.11.2026 toutes les 2 minutes aux heures utiles ([netlify-sobre.md](netlify-sobre.md)) |
 
 La surveillance n'est plus relancée à chaque passage d'imprimante ou de tablette (une fois par minute au plus). Le signe de vie de la tablette s'écrit toutes les 30 secondes au plus (le seuil d'alerte est de 3 minutes).
 
