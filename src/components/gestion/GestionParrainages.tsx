@@ -166,7 +166,7 @@ function FicheParrain({ p, apres }: { p: Parrain; apres: () => Promise<void> }) 
         </ul>
       )}
 
-      <table className="bo-fiche-lignes">
+      <table className="bo-parr-table">
         <caption className="sr-only">Filleuls de {nomDe(p)}</caption>
         <thead>
           <tr>

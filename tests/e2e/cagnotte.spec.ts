@@ -212,3 +212,25 @@ test("parrainer : CHF 10 au parrain et au filleul après la première commande r
   await expect(client.locator(".parrainage-compte")).toContainText("1 proche parrainé.");
   await filleul.context().close();
 });
+
+test("rubrique Parrainages : le gérant voit le filleul, suspend puis réactive le parrain", async () => {
+  await gestion.goto("/gestion/parrainages");
+  const fiche = gestion.locator(".bo-parr-fiche", { hasText: email });
+  await expect(fiche).toContainText("Crédité");
+  await fiche.getByRole("button", { name: "Suspendre ce parrain" }).click();
+  await fiche.getByLabel("Pourquoi le suspendre").fill("Essai de la suspension");
+  await fiche.getByRole("button", { name: "Suspendre", exact: true }).click();
+  await expect(fiche).toContainText("Suspendu");
+  await expect(fiche).toContainText("Essai de la suspension");
+  const r = await new AxeBuilder({ page: gestion }).include(".bo-parr").withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
+  expect(r.violations.map((v) => v.id)).toEqual([]);
+  await gestion.screenshot({ path: capture("parrainages-bureau.png"), fullPage: true });
+  await gestion.setViewportSize({ width: 390, height: 844 });
+  await gestion.reload();
+  await expect(fiche).toContainText("Suspendu");
+  await gestion.screenshot({ path: capture("parrainages-390.png") });
+  await gestion.setViewportSize({ width: 1440, height: 900 });
+  await fiche.getByRole("button", { name: "Réactiver ce parrain" }).click();
+  await gestion.getByRole("button", { name: "Réactiver", exact: true }).click();
+  await expect(fiche.getByRole("button", { name: "Suspendre ce parrain" })).toBeVisible();
+});
