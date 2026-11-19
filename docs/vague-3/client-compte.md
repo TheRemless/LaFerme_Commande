@@ -135,7 +135,7 @@ Durcissements après la revue de sécurité :
 Parrainage sûr (relecture de qualite, migration `20261216190000_parrainage_sur.sql`) :
 
 - le parrainage a son propre interrupteur, « Parrainage », éteint : la cagnotte peut s'allumer sans lui ;
-- la commande qui déclenche le crédit doit atteindre un minimum de plats nets (CHF 30 proposé à Jérémy, réglable au back-office). En dessous, le parrainage attend la commande suivante ;
+- la commande qui déclenche le crédit doit atteindre un minimum de plats nets (CHF 30, validé par Jérémy le 19.11.2026, réglable au back-office). En dessous, le parrainage attend la commande suivante ;
 - un lien ne vaut que si son titulaire a lui-même une commande remise, payée et au minimum. Un faux compte qui n'a commandé qu'une eau ne recrute personne. La chaîne de faux filleuls est cassée ;
 - une reprise manquée faute de solde est retenue dès qu'un montant revient au compte ;
 - un remboursement partiel qui fait passer la commande qui a déclenché le crédit sous le minimum reprend les deux crédits (relecture #262, migration `20261216200000_parrainage_remboursement.sql`) ;
@@ -143,4 +143,21 @@ Parrainage sûr (relecture de qualite, migration `20261216190000_parrainage_sur.
 
 L'empreinte du moyen de paiement n'est pas utilisée. Stripe n'en documente pas pour TWINT, elle est notée pour plus tard.
 
-Reste ouvert, pour Jérémy : à emporter, le téléphone n'est jamais vérifié. Une personne décidée peut se parrainer elle-même avec une nouvelle boîte e-mail et un autre numéro. Les parades possibles sont une vérification par SMS, un montant minimum pour la commande qui déclenche le crédit, ou le crédit réservé aux livraisons. Le plafond de 10 par mois limite la perte.
+Jérémy a décidé le 19.11.2026 de ne pas vérifier le téléphone par SMS. À emporter, une personne décidée peut encore se parrainer elle-même avec une nouvelle boîte e-mail et un autre numéro. Le minimum de CHF 30, le plafond de 10 par mois et les alertes au gérant limitent la perte.
+
+### Alertes d'abus et suspension
+
+Migration `20261217090000_alertes_parrainage.sql`. La surveillance cherche à chaque tour les cas suivants :
+
+- un parrain qui a plus de 3 filleuls crédités en 30 jours (réglable) ;
+- des filleuls d'un même parrain qui partagent une adresse de livraison, une adresse IP de connexion ou un même nom ;
+- un parrain dont les filleuls ne recommandent pas. L'alerte part dès 3 filleuls crédités depuis plus de 30 jours, si 75 % d'entre eux n'ont pas de deuxième commande. Ces deux seuils sont des propositions, réglables ;
+- un compte qui a reçu plus en parrainage qu'il n'a payé sur 30 jours.
+
+Chaque cas part une seule fois, par le circuit des autres alertes (type « Parrainage à surveiller », réglable dans les alertes). L'e-mail ne donne que le type de signal et renvoie au back-office, sans nom ni adresse du client. L'accueil du back-office montre les signaux ouverts. Les signaux « trop de filleuls », « sans suite » et « reçu plus que payé » peuvent revenir le mois suivant, jamais deux fois dans le même mois.
+
+L'adresse IP est celle déjà notée à la connexion au compte (`journal_connexions.ip_court`, 8 caractères, déclarée dans la confidentialité). Rien de nouveau n'est gardé. L'appareil n'est pas comparé. Le journal ne garde qu'un libellé générique (« Safari sur iPhone »), partagé par trop de clients.
+
+La rubrique « Parrainages » du back-office est réservée au gérant. Elle montre pour chaque parrain ses filleuls (date, statut, montant crédité) et ses signaux, que le gérant peut classer. « Suspendre ce parrain » demande un motif de 3 à 200 caractères et passe au journal. La suspension bloque les nouveaux liens et les crédits en attente. Les crédits déjà versés restent. « Réactiver ce parrain » rouvre les nouveaux liens.
+
+Captures dans `docs/rendus/vague-3/client-compte/` (`parrainages-bureau.png` et `parrainages-390.png`).
