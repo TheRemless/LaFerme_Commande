@@ -194,6 +194,22 @@ describe("modifier les plats d'une commande", () => {
     expect(cl.ecarts.some((e) => e.type === "complement_sans_encaissement" && e.numero === numero)).toBe(false);
   });
 
+  it("R16 : un plat offert reste dans la commande, à 0 CHF, quand le client change ses plats", async () => {
+    const c = await commande({ comptoir: true });
+    await db.query(
+      "insert into commande_lignes (commande_id, position, plat_slug, nom, station, qte, unitaire_centimes, total_centimes, note, offert) values ($1, 3, 'tiramisu', 'Tiramisu', 'cuisine', 1, 0, 0, 'Offert', true)",
+      [c],
+    );
+    await modifier(c, demande(`difference-${n}-offert-01`, [ligne("Margherita", 2000, 2)]));
+    const lignes = (await db.query<{ nom: string; total_centimes: number; offert: boolean }>(
+      "select nom, total_centimes, offert from commande_lignes where commande_id = $1 order by position", [c])).rows;
+    expect(lignes).toEqual([
+      { nom: "Margherita", total_centimes: 4000, offert: false },
+      { nom: "Tiramisu", total_centimes: 0, offert: true },
+    ]);
+    await expect(db.query("update commande_lignes set total_centimes = 500 where commande_id = $1 and offert", [c])).rejects.toThrow();
+  });
+
   it("la commande a changé depuis le calcul : refus, rien n'est enregistré", async () => {
     const c = await commande({ comptoir: true });
     expect(await erreur("preparer_modification($1, $2, $3)", [c, demande(`difference-${n}-perime-01`, [ligne("Margherita", 2000, 2)], { valeur_avant: 1234 }), id.gerant])).toContain("deja_change");

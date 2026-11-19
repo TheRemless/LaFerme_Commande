@@ -44,6 +44,9 @@ describe("contrôles", () => {
     expect(suiviReclamation({})).toEqual({ ok: false, erreur: "Rien à enregistrer." });
     expect(gesteReclamation({ geste: "avoir", detail: "20 CHF" })).toEqual({ ok: false, erreur: "Geste inconnu." });
     expect(gesteReclamation({ geste: "aucun", detail: "Client absent" })).toEqual({ ok: true, valeur: { geste: "aucun", detail: "Client absent" } });
+    expect(gesteReclamation({ geste: "plat_offert", detail: "Un dessert" })).toEqual({ ok: false, erreur: "Choisissez le plat offert." });
+    expect(gesteReclamation({ geste: "plat_offert", plat_slug: "tiramisu" })).toEqual({ ok: true, valeur: { geste: "plat_offert", plat_slug: "tiramisu", detail: "" } });
+    expect(gesteReclamation({ geste: "plat_offert", plat_slug: "tiramisu", detail: "ok" })).toMatchObject({ ok: false });
     // Réduction (D3) : montant en centimes ou pourcentage, choisi par le gérant ; aucune valeur par défaut.
     expect(gesteReclamation({ geste: "reduction", type: "pourcentage", valeur: 15 })).toEqual({ ok: true, valeur: { geste: "reduction", type: "pourcentage", valeur: 15 } });
     expect(gesteReclamation({ geste: "reduction", type: "montant", valeur: 750 })).toEqual({ ok: true, valeur: { geste: "reduction", type: "montant", valeur: 750 } });
@@ -86,7 +89,7 @@ describe("routes", () => {
     expect(o.status).toBe(200);
     const id = o.corps.id as string;
     expect((await appel(gestion, { action: "suivre", id, statut: "en_cours", texte: "Rappel à 20h." })).corps.statut).toBe("en_cours");
-    expect(await appel(gestion, { action: "geste", id, geste: "plat_offert", detail: "Un dessert" })).toEqual({
+    expect(await appel(gestion, { action: "geste", id, geste: "plat_offert", plat_slug: "pizza-margherita" })).toEqual({
       status: 409, corps: { erreur: "Les gestes pour la prochaine commande ne sont pas encore activés." },
     });
     const fiche = await appel(commandes, { action: "fiche_complete", id: commande });

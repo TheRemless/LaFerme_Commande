@@ -34,6 +34,8 @@ export type DifferenceFiche = {
     par: string;
     cree_le: string;
   }[];
+  // Plats offerts après une réclamation (R16) : ils restent dans la commande, à 0 CHF, et ne se changent pas ici.
+  offerts?: { nom: string; qte: number }[];
   complements: {
     id: string;
     montant_centimes: number;
@@ -297,6 +299,12 @@ export function ChangerPlats({
             Abandonner la modification
           </button>
         </div>
+      )}
+      {(difference.offerts ?? []).length > 0 && (
+        <p className="bo-champ-aide">
+          Offert, reste dans la commande :{" "}
+          {(difference.offerts ?? []).map((o) => `${o.qte} × ${o.nom}`).join(", ")}.
+        </p>
       )}
       {difference.complements.length > 0 && (
         <ul className="bo-fiche-liste">

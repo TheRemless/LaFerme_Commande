@@ -131,6 +131,8 @@ export type LigneCommande = {
   choix: Record<string, string[]>;
   retraits: string[];
   note: string;
+  // Plat offert après une réclamation (R16), à 0 CHF.
+  offert?: boolean;
 };
 
 export type Commande = {

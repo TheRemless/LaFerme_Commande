@@ -9,7 +9,15 @@
 --   un complément ramené à zéro passe au statut 'annule' (annule_le, annule_par_modification), son montant gardé.
 -- Les lectures des compléments filtrent déjà 'encaisse' ou 'a_encaisser' (clôture, exports, récapitulatif, livreur),
 -- sauf pilotage_synthese : voir bo-pilotage (PR 1 du plan).
--- Objet recréé depuis sa dernière définition : appliquer_modification (20261216140000).
+--
+-- Règle R16 : un plat offert (geste après une réclamation) se choisit dans la carte et garde sa valeur. Posé sur une
+-- commande, il y entre comme une ligne à 0 CHF marquée « offert » (aucune TVA de plus, art. 31 al. 2 let. c LTVA), qui
+-- survit aux modifications de la commande. Chaque plat offert reste tracé par client avec sa valeur ; la fiche de
+-- réclamation donne le total offert au client dans l'année (seuil de 500 CHF par personne et par an).
+--
+-- Objets recréés, chacun depuis sa dernière définition : appliquer_modification (20261216140000),
+-- noter_geste_reclamation et fiche_reclamation_gestion (20261213190000), modifications_commande_gestion (20261215130000), appliquer_geste et gestes_en_attente
+-- (20261127130000).
 -- Numéro donné par le chef.
 
 alter table modifications_commande add column lignes_avant jsonb, add column commande_avant jsonb, add column complements_avant jsonb;
@@ -18,6 +26,13 @@ alter table complements drop constraint complements_statut_check;
 alter table complements add constraint complements_statut_check check (statut in ('a_encaisser', 'encaisse', 'annule'));
 alter table complements add column annule_le timestamptz, add column annule_par_modification uuid references modifications_commande (id) on delete set null;
 alter table complements add constraint complements_annule_check check ((statut = 'annule') = (annule_le is not null));
+
+-- R16 : plat offert choisi dans la carte, avec sa valeur au moment du geste puis au moment où il est posé.
+alter table commande_lignes add column offert boolean not null default false;
+alter table commande_lignes add constraint commande_lignes_offert_gratuit check (not offert or total_centimes = 0);
+alter table gestes_client add column plat_slug text, add column plat_nom text,
+  add column valeur_centimes integer check (valeur_centimes >= 0), add column offert_valeur_centimes integer check (offert_valeur_centimes >= 0),
+  add column offert_ligne_id uuid references commande_lignes (id) on delete set null;
 
 create or replace function appliquer_modification(p_modification uuid, p_evenement text default null, p_payment_intent text default null, p_montant integer default null)
 returns jsonb
@@ -44,6 +59,7 @@ declare
   y record;
   part integer;
   r2 remboursements%rowtype;
+  offerts jsonb;
 begin
   select * into m from modifications_commande where id = p_modification for update;
   if not found or m.statut in ('appliquee', 'payee_non_appliquee') then
@@ -100,6 +116,7 @@ begin
       'tva_centimes', k2.tva_centimes, 'frais_centimes', k2.frais_centimes, 'moyen', k2.moyen, 'statut', k2.statut) order by k2.cree_le), '[]'::jsonb)
       from complements k2 where k2.commande_id = c.id and k2.statut = 'a_encaisser')
   where id = m.id;
+  offerts := (select coalesce(jsonb_agg(to_jsonb(lo) order by lo.position), '[]'::jsonb) from commande_lignes lo where lo.commande_id = c.id and lo.offert);
   delete from commande_lignes where commande_id = c.id;
   for l in select * from jsonb_array_elements(m.lignes) loop
     i := i + 1;
@@ -107,6 +124,13 @@ begin
     values (c.id, i, l ->> 'slug', l ->> 'nom', (l ->> 'station')::station, (l ->> 'qte')::smallint, (l ->> 'unitaire_centimes')::integer,
       (l ->> 'total_centimes')::integer, coalesce(l -> 'choix', '{}'::jsonb), l -> 'prix_choix', coalesce(l -> 'retraits', '[]'::jsonb),
       coalesce(l ->> 'note', ''), coalesce(l ->> 'pour', ''));
+  end loop;
+  -- R16 : un plat offert reste dans la commande, à 0 CHF, quoi que le client change.
+  for l in select * from jsonb_array_elements(offerts) loop
+    i := i + 1;
+    insert into commande_lignes (commande_id, position, plat_slug, nom, station, qte, unitaire_centimes, total_centimes, choix, prix_choix, retraits, note, pour, offert)
+    values (c.id, i, l ->> 'plat_slug', l ->> 'nom', (l ->> 'station')::station, (l ->> 'qte')::smallint, 0, 0, coalesce(l -> 'choix', '{}'::jsonb),
+      l -> 'prix_choix', coalesce(l -> 'retraits', '[]'::jsonb), coalesce(l ->> 'note', ''), coalesce(l ->> 'pour', ''), true);
   end loop;
   update commandes set
     adresse = coalesce(m.adresse, adresse),
@@ -233,4 +257,204 @@ begin
     -- Baisse déduite d'un complément encore dû : ce que le client avait à payer avant et après (rien ne repart).
     'du_avant_centimes', du_avant, 'du_apres_centimes', du_apres);
 end;
+$$;
+
+-- p : { geste: remboursement | plat_offert | reduction | aucun, detail?, remboursement_id?, type?, valeur?, plat_slug? }
+-- plat_offert : plat_slug (un plat de la carte) obligatoire, detail facultatif (une précision).
+create or replace function noter_geste_reclamation(p_id uuid, p jsonb, p_personnel uuid) returns jsonb
+language plpgsql as $$
+declare
+  nom text := gerant_nom(p_personnel);
+  r reclamations%rowtype;
+  g text := p ->> 'geste';
+  d text := btrim(coalesce(p ->> 'detail', ''));
+  rb remboursements%rowtype;
+  t text := p ->> 'type';
+  v integer;
+  code_net text;
+  code_ref uuid;
+  pl plats%rowtype;
+begin
+  select * into r from reclamations where id = p_id for update;
+  if not found then
+    raise exception 'reclamation_inconnue';
+  end if;
+  if r.statut = 'close' then
+    raise exception 'reclamation_close';
+  end if;
+  if r.geste is not null then
+    raise exception 'geste_deja_note';
+  end if;
+  if g = 'remboursement' then
+    select * into rb from remboursements where id = (p ->> 'remboursement_id')::uuid;
+    if not found or rb.commande_id is distinct from r.commande_id or rb.statut = 'echec' then
+      raise exception 'remboursement_invalide';
+    end if;
+    d := (rb.montant_centimes / 100.0)::numeric(10, 2)::text || ' CHF, ' || rb.motif;
+  elsif g = 'plat_offert' then
+    if not gestes_actifs() then
+      raise exception 'gestes_desactives';
+    end if;
+    -- R16 : le plat se choisit dans la carte, sa valeur vient de la base ; le détail devient une précision facultative.
+    select * into pl from plats where slug = p ->> 'plat_slug' and archive_le is null;
+    if not found then
+      raise exception 'plat_inconnu';
+    end if;
+    if length(d) > 200 then
+      raise exception 'detail_invalide';
+    end if;
+    d := case when length(d) >= 3 then pl.nom || ', ' || d else pl.nom end;
+    insert into gestes_client (email, reclamation_id, detail, cree_par, plat_slug, plat_nom, valeur_centimes)
+      values (r.email, r.id, left(d, 200), nom, pl.slug, pl.nom, pl.prix_centimes);
+    d := left(d, 200) || ' (valeur CHF ' || (pl.prix_centimes / 100.0)::numeric(10, 2)::text || ')';
+  elsif g = 'reduction' then
+    if not gestes_actifs() then
+      raise exception 'gestes_desactives';
+    end if;
+    if not coalesce((select valeur = 'true'::jsonb from reglages where cle = 'codes_promo_actifs'), false) then
+      raise exception 'codes_desactives';
+    end if;
+    if coalesce(jsonb_typeof(p -> 'valeur'), '') <> 'number' or coalesce(p ->> 'valeur', '') !~ '^[0-9]{1,7}$' then
+      raise exception 'reduction_invalide';
+    end if;
+    v := (p ->> 'valeur')::integer;
+    if t is null or v is null or not ((t = 'pourcentage' and v between 1 and 100) or (t = 'montant' and v > 0)) then
+      raise exception 'reduction_invalide';
+    end if;
+    -- creer_code de bo-carte (validation, journal « code_promo » sans coordonnées) ; le code naît inactif. Puis il
+    -- est lié au client et allumé ici, sans modifier_code (rien à journaliser de plus que le geste).
+    loop
+      code_net := 'LAFERME-' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 8));
+      exit when not exists (select 1 from codes_promo where code = code_net);
+    end loop;
+    perform creer_code(jsonb_build_object('code', code_net, 'libelle', 'Geste après une réclamation', 'type', t, 'valeur', v,
+      'minimum_centimes', 0, 'debut', (now() at time zone 'Europe/Zurich')::date, 'plafond_utilisations', 1,
+      'premiere_commande', false, 'une_fois_par_client', true), p_personnel);
+    update codes_promo set actif = true, client_email = email_normal(r.email),
+        client_telephone = (select telephone_normal(c.client_telephone) from commandes c where c.id = r.commande_id), reclamation_id = r.id
+      where code = code_net
+      returning id into code_ref;
+    d := case t when 'montant' then 'CHF ' || (v / 100.0)::numeric(10, 2)::text else v::text || ' %' end
+      || ' sur la prochaine commande, code ' || code_net;
+  elsif g = 'aucun' then
+    if length(d) < 3 or length(d) > 200 then
+      raise exception 'detail_invalide';
+    end if;
+  else
+    raise exception 'geste_invalide';
+  end if;
+  update reclamations set geste = g, geste_detail = d, remboursement_id = rb.id, code_id = code_ref,
+      statut = case when statut = 'ouverte' then 'en_cours' else statut end
+    where id = p_id;
+  insert into suivis_reclamation (reclamation_id, par, texte) values (p_id, nom,
+    case g when 'remboursement' then 'Geste : remboursement de ' || d when 'plat_offert' then 'Geste : offert à la prochaine commande, ' || d
+      when 'reduction' then 'Geste : réduction de ' || d else 'Pas de geste : ' || d end);
+  perform journaliser(p_personnel, 'reclamation', p_id::text, null, jsonb_build_object('geste', g, 'detail', d));
+  return (select to_jsonb(x) from reclamations x where x.id = p_id);
+end;
+$$;
+
+-- Posé sur une commande en cours : une ligne à 0 CHF marquée « offert » (si le geste dit le plat), sa valeur du jour notée.
+-- Les gestes d'avant R16 (texte seul) restent posés comme avant, sans ligne.
+create or replace function appliquer_geste(p_geste uuid, p_commande uuid, p_personnel uuid) returns boolean
+language plpgsql as $$
+declare
+  nom text := equipe_nom(p_personnel);
+  g gestes_client%rowtype;
+  c commandes%rowtype;
+  pl plats%rowtype;
+  ligne uuid;
+begin
+  if not gestes_actifs() then
+    raise exception 'gestes_desactives';
+  end if;
+  select * into c from commandes where id = p_commande for update;
+  select * into g from gestes_client where id = p_geste for update;
+  if c.id is null or g.id is null or g.offert_le is not null or lower(c.client_email) is distinct from g.email then
+    return false;
+  end if;
+  if c.statut not in ('nouvelle', 'acceptee', 'en_preparation') then
+    raise exception 'statut_non_modifiable';
+  end if;
+  if g.plat_slug is not null then
+    select * into pl from plats where slug = g.plat_slug;
+    insert into commande_lignes (commande_id, position, plat_slug, nom, station, qte, unitaire_centimes, total_centimes, note, offert)
+    values (c.id, coalesce((select max(position) from commande_lignes where commande_id = c.id), 0) + 1, g.plat_slug, g.plat_nom,
+      coalesce(pl.station, 'cuisine'), 1, 0, 0, 'Offert', true)
+    returning id into ligne;
+  end if;
+  update gestes_client set offert_commande_id = c.id, offert_par = nom, offert_le = now(), offert_ligne_id = ligne,
+    offert_valeur_centimes = coalesce(pl.prix_centimes, g.valeur_centimes)
+    where id = g.id;
+  insert into evenements_commande (commande_id, de, vers, par, detail)
+    values (c.id, c.statut, c.statut, 'tablette:' || nom, 'geste offert ' || g.detail);
+  return true;
+end;
+$$;
+
+create or replace function gestes_en_attente(p_email text) returns jsonb
+language sql stable as $$
+  select coalesce(jsonb_agg(jsonb_build_object('id', g.id, 'detail', g.detail, 'plat_slug', g.plat_slug, 'plat_nom', g.plat_nom,
+      'valeur_centimes', g.valeur_centimes, 'cree_par', g.cree_par, 'cree_le', g.cree_le) order by g.cree_le), '[]'::jsonb)
+  from gestes_client g
+  where gestes_actifs() and g.email = lower(btrim(coalesce(p_email, ''))) and g.offert_le is null;
+$$;
+
+-- Valeur des plats offerts à un client dans l'année civile (Europe/Zurich), posés ou promis : celle du jour où il a été
+-- posé, sinon celle du geste. Pour le seuil de 500 CHF par personne et par an.
+create or replace function plats_offerts_annee(p_email text, p_annee integer default null) returns integer
+language sql stable as $$
+  select coalesce(sum(coalesce(g.offert_valeur_centimes, g.valeur_centimes, 0)), 0)::integer
+  from gestes_client g
+  where g.email = lower(btrim(coalesce(p_email, '')))
+    and extract(year from coalesce(g.offert_le, g.cree_le) at time zone 'Europe/Zurich')
+      = coalesce(p_annee, extract(year from now() at time zone 'Europe/Zurich')::integer);
+$$;
+
+create or replace function fiche_reclamation_gestion(p_id uuid) returns jsonb
+language sql stable as $$
+  select to_jsonb(x) || jsonb_build_object(
+    'commande', (select jsonb_build_object('id', c.id, 'numero', c.numero, 'jour_service', c.jour_service, 'statut', c.statut, 'mode', c.mode,
+        'total_centimes', c.total_centimes, 'client_prenom', c.client_prenom, 'client_nom', c.client_nom, 'client_telephone', c.client_telephone)
+      from commandes c where c.id = x.commande_id),
+    'suivis', coalesce((select jsonb_agg(jsonb_build_object('par', s.par, 'texte', s.texte, 'le', s.le) order by s.le, s.id) from suivis_reclamation s where s.reclamation_id = x.id), '[]'::jsonb),
+    'remboursements', coalesce((select jsonb_agg(jsonb_build_object('id', rb.id, 'montant_centimes', rb.montant_centimes, 'motif', rb.motif, 'statut', rb.statut, 'cree_le', rb.cree_le) order by rb.cree_le)
+      from remboursements rb where rb.commande_id = x.commande_id and rb.statut <> 'echec'), '[]'::jsonb),
+    'autres', (select count(*) from reclamations y where y.email = x.email and y.id <> x.id),
+    'gestes_actifs', gestes_actifs(),
+    -- R16 : les plats qu'on peut offrir (carte en vente) et ce qui a déjà été offert au client cette année.
+    'plats_offrables', case when gestes_actifs() then coalesce((select jsonb_agg(jsonb_build_object('slug', pl.slug, 'nom', pl.nom, 'prix_centimes', pl.prix_centimes)
+        order by pl.nom) from plats pl where pl.archive_le is null and pl.commandable), '[]'::jsonb) else '[]'::jsonb end,
+    'offerts_annee_centimes', plats_offerts_annee(x.email),
+    'codes_actifs', coalesce((select valeur = 'true'::jsonb from reglages where cle = 'codes_promo_actifs'), false),
+    'code', (select jsonb_build_object('code', k.code, 'type', k.type, 'valeur', k.valeur, 'actif', k.actif,
+        'utilise_commande', (select o.numero from utilisations_codes u join commandes o on o.id = u.commande_id
+          where u.code_id = k.id and commande_compte(o) order by u.cree_le limit 1))
+      from codes_promo k where k.id = x.code_id)
+  )
+  from reclamations x where x.id = p_id;
+$$;
+
+revoke execute on function plats_offerts_annee(text, integer) from public, anon, authenticated;
+grant execute on function plats_offerts_annee(text, integer) to service_role;
+
+-- Changer les plats : les lignes offertes ne sont pas proposées au changement (elles restent, voir appliquer_modification).
+create or replace function modifications_commande_gestion(p_commande uuid) returns jsonb
+language sql stable as $$
+  select jsonb_build_object(
+    'valeur_centimes', valeur_commande(p_commande),
+    'frais_centimes', frais_commande(p_commande),
+    'lignes', coalesce((select jsonb_agg(jsonb_build_object('slug', l.plat_slug, 'nom', l.nom, 'qte', l.qte, 'choix', l.choix,
+        'retraits', l.retraits, 'note', l.note, 'total_centimes', l.total_centimes) order by l.position)
+      from commande_lignes l where l.commande_id = p_commande and not l.offert), '[]'::jsonb),
+    -- R16 : les plats offerts, à part (ils ne se changent pas et ne se paient pas).
+    'offerts', coalesce((select jsonb_agg(jsonb_build_object('nom', l.nom, 'qte', l.qte) order by l.position)
+      from commande_lignes l where l.commande_id = p_commande and l.offert), '[]'::jsonb),
+    'modifications', coalesce((select jsonb_agg(jsonb_build_object('id', m.id, 'statut', m.statut, 'reglement', m.reglement,
+        'difference_centimes', m.difference_centimes, 'total_centimes', m.total_centimes, 'par', m.personnel_nom,
+        'cree_le', m.cree_le, 'fini_le', m.fini_le, 'lien', m.stripe_session_id is not null) order by m.cree_le)
+      from modifications_commande m where m.commande_id = p_commande), '[]'::jsonb),
+    'complements', coalesce((select jsonb_agg(jsonb_build_object('id', k.id, 'montant_centimes', k.montant_centimes, 'moyen', k.moyen,
+        'statut', k.statut, 'moyen_encaissement', k.moyen_encaissement, 'encaisse_par', k.encaisse_par, 'encaisse_le', k.encaisse_le) order by k.cree_le)
+      from complements k where k.commande_id = p_commande), '[]'::jsonb));
 $$;
