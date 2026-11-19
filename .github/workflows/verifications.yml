@@ -79,12 +79,23 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium
+      # Le navigateur vient du cache s'il existe déjà, sinon de Playwright (sans apt).
       - name: Chromium
         if: steps.cache-navigateurs.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
+      # Dépendances système par apt, à chaque passage. Les miroirs d'Ubuntu tombent parfois (503 le 19.11.2026 : toutes
+      # les PR bloquées avant le premier test) : jusqu'à 3 essais, avec 30 s puis 90 s d'attente. Seule cette
+      # installation est reprise, jamais les tests.
       - name: Dépendances système de Chromium
-        if: steps.cache-navigateurs.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium
+        run: |
+          for attente in 30 90 0; do
+            npx playwright install-deps chromium && exit 0
+            if [ "$attente" -eq 0 ]; then break; fi
+            echo "::warning::Dépendances système de Chromium indisponibles, nouvel essai dans ${attente} s."
+            sleep "$attente"
+          done
+          echo "::error::Dépendances système de Chromium toujours indisponibles après 3 essais (miroirs apt d'Ubuntu)."
+          exit 1
 
       # Cache du compilateur de Next : le build suivant ne recompile que ce qui a changé. Pas le cache de
       # données (fetch-cache) : il garderait la config d'une autre base (playwright.config.ts le vide aussi).
