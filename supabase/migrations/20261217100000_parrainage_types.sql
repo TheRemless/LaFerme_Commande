@@ -9,8 +9,13 @@
 -- Les deux portent commande_id = la commande du filleul qui a déclenché le crédit. Le lien parrain et filleul est dans
 -- parrainages (parrain_id, filleul_id, commande_id).
 --
+-- Détection des abus une fois par heure, au premier tour de surveillance de l'heure (sobriété Netlify et Supabase,
+-- demande du chef du 19.11.2026) : surveillance_etat.parrainage_detecte_le. Les autres tours ne lisent rien.
+--
 -- Objets recréés : crediter_parrainage et detecter_alertes_parrainage, parrainages_gestion (client-compte,
 -- 20261217090000), reprendre_parrainage (20261216100000), rattraper_retraits (20261216190000). Seul le type change.
+
+alter table surveillance_etat add column parrainage_detecte_le timestamptz;
 
 alter table cagnotte_mouvements drop constraint cagnotte_mouvements_type_check;
 
@@ -149,6 +154,14 @@ declare
   pct_suite integer := least(greatest(fidelite_entier('parrainage_alerte_sans_suite_pourcent', 75), 1), 100);
   mois text := to_char(now() at time zone 'Europe/Zurich', 'YYYY-MM');
 begin
+  -- Une fois par heure : le premier tour de l'heure détecte et rend les cas à envoyer, les suivants ne font rien. Un
+  -- envoi en échec repart l'heure suivante.
+  update surveillance_etat set parrainage_detecte_le = now()
+    where id and (parrainage_detecte_le is null or parrainage_detecte_le < date_trunc('hour', now()));
+  if not found then
+    return '[]'::jsonb;
+  end if;
+
   -- Trop de filleuls crédités en 30 jours.
   insert into alertes_parrainage (cle, compte_id, type, detail)
   select 'trop_de_filleuls:' || p.parrain_id || ':' || mois, p.parrain_id, 'trop_de_filleuls', jsonb_build_object('filleuls_30j', count(*), 'seuil', seuil_filleuls)

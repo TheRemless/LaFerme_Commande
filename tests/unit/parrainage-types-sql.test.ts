@@ -111,6 +111,7 @@ describe("types de mouvement du parrainage", () => {
     expect(liste.find((x) => x.parrain_id === parrain)!.filleuls.map((x) => x.montant_centimes)).toEqual([1000]);
     // Le filleul a reçu CHF 10 et payé CHF 45 : rien. Avec CHF 50 reçus en plus comme parrain, l'alerte part.
     await db.query("insert into cagnotte_mouvements (compte_id, commande_id, type, montant_centimes, motif) values ($1, $2, 'parrainage_parrain', 5000, 'Parrainage d''un proche')", [filleul, declenche]);
+    await db.query("update surveillance_etat set parrainage_detecte_le = null where id");
     const cas = await f<{ type: string; compte_id: string }[]>("detecter_alertes_parrainage()");
     expect(cas.filter((c) => c.type === "recu_plus_que_paye" && c.compte_id === filleul)).toHaveLength(1);
   });

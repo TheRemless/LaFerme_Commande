@@ -59,7 +59,11 @@ async function filleul(code: string, i: number, o: { nom?: string; numero?: stri
   await commande(id, email, `079 50${i} 00 0${i}`, o.numero ?? `${300 + i}`, 4000, o.nom ?? `Nom${i}`);
   return id;
 }
-const detecter = () => f<{ id: number; type: string; compte_id: string }[]>("detecter_alertes_parrainage()");
+// La détection ne tourne qu'au premier tour de chaque heure (20261217100000) : chaque appel du test en simule un.
+async function detecter() {
+  await db.query("update surveillance_etat set parrainage_detecte_le = null where id");
+  return f<{ id: number; type: string; compte_id: string }[]>("detecter_alertes_parrainage()");
+}
 
 let parrain: string;
 let code: string;
@@ -117,6 +121,18 @@ describe("alertes d'abus du parrainage", () => {
     expect((await detecter()).filter((a) => a.type === "recu_plus_que_paye" && a.compte_id === parrain)).toEqual([]);
     await filleul(code, 5);
     expect((await detecter()).filter((a) => a.type === "recu_plus_que_paye" && a.compte_id === parrain)).toHaveLength(1);
+  });
+});
+
+describe("une détection par heure", () => {
+  it("le premier tour de l'heure détecte, les suivants ne lisent rien", async () => {
+    for (let i = 1; i <= 4; i++) await filleul(code, i);
+    expect((await detecter()).map((a) => a.type)).toContain("trop_de_filleuls");
+    // Même heure : rien, même pas les cas pas encore envoyés.
+    expect(await f("detecter_alertes_parrainage()")).toEqual([]);
+    // Heure suivante : les cas pas encore envoyés repartent.
+    await db.query("update surveillance_etat set parrainage_detecte_le = now() - interval '1 hour' where id");
+    expect((await f<{ type: string }[]>("detecter_alertes_parrainage()")).map((a) => a.type)).toContain("trop_de_filleuls");
   });
 });
 

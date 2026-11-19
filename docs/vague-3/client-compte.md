@@ -147,7 +147,7 @@ Jérémy a décidé le 19.11.2026 de ne pas vérifier le téléphone par SMS. À
 
 ### Alertes d'abus et suspension
 
-Migration `20261217090000_alertes_parrainage.sql`. La surveillance cherche à chaque tour les cas suivants :
+Migration `20261217090000_alertes_parrainage.sql`. La surveillance cherche les cas suivants une fois par heure, au premier tour de l'heure :
 
 - un parrain qui a plus de 3 filleuls crédités en 30 jours (réglable) ;
 - des filleuls d'un même parrain qui partagent une adresse de livraison, une adresse IP de connexion ou un même nom ;
