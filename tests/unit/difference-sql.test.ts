@@ -192,6 +192,12 @@ describe("modifier les plats d'une commande", () => {
     const cl = await f<{ encaissements: { complements: { a_encaisser_centimes: number } }; ecarts: { type: string; numero?: number }[] }>("cloture_rapport($1)", [jour]);
     const numero = (await db.query<{ numero: number }>("select numero from commandes where id = $1", [c])).rows[0].numero;
     expect(cl.ecarts.some((e) => e.type === "complement_sans_encaissement" && e.numero === numero)).toBe(false);
+    // Synthèse : les ventes reviennent à celles du départ, le complément annulé n'y compte plus.
+    const synthese = await f<{ ttc_centimes: number }>("pilotage_synthese($1, $1)", [jour]);
+    const sansCommande = (await db.query<{ t: number }>("select coalesce(sum(total_centimes), 0)::int as t from commandes where jour_service = $1 and statut not in ('paiement_en_attente', 'annulee', 'refusee')", [jour])).rows[0].t;
+    const complementsVivants = (await db.query<{ t: number }>(
+      "select coalesce(sum(k.montant_centimes), 0)::int as t from complements k join commandes o on o.id = k.commande_id where o.jour_service = $1 and k.statut in ('a_encaisser', 'encaisse') and o.statut not in ('paiement_en_attente', 'annulee', 'refusee')", [jour])).rows[0].t;
+    expect(synthese.ttc_centimes).toBe(sansCommande + complementsVivants);
   });
 
   it("R16 : un plat offert reste dans la commande, à 0 CHF, quand le client change ses plats", async () => {

@@ -8,7 +8,7 @@
 --     (adresse, zone, frais, totaux, TVA), complements_avant (les compléments encore dus, avant la baisse) ;
 --   un complément ramené à zéro passe au statut 'annule' (annule_le, annule_par_modification), son montant gardé.
 -- Les lectures des compléments filtrent déjà 'encaisse' ou 'a_encaisser' (clôture, exports, récapitulatif, livreur),
--- sauf pilotage_synthese : voir bo-pilotage (PR 1 du plan).
+-- sauf pilotage_synthese, recréée ici (accord de bo-pilotage) avec ce filtre.
 --
 -- Règle R16 : un plat offert (geste après une réclamation) se choisit dans la carte et garde sa valeur. Posé sur une
 -- commande, il y entre comme une ligne à 0 CHF marquée « offert » (aucune TVA de plus, art. 31 al. 2 let. c LTVA), qui
@@ -17,7 +17,7 @@
 --
 -- Objets recréés, chacun depuis sa dernière définition : appliquer_modification (20261216140000),
 -- noter_geste_reclamation et fiche_reclamation_gestion (20261213190000), modifications_commande_gestion (20261215130000), appliquer_geste et gestes_en_attente
--- (20261127130000).
+-- (20261127130000), pilotage_synthese (20261216140000, compléments annulés écartés).
 -- Numéro donné par le chef.
 
 alter table modifications_commande add column lignes_avant jsonb, add column commande_avant jsonb, add column complements_avant jsonb;
@@ -453,4 +453,141 @@ language sql stable as $$
     'complements', coalesce((select jsonb_agg(jsonb_build_object('id', k.id, 'montant_centimes', k.montant_centimes, 'moyen', k.moyen,
         'statut', k.statut, 'moyen_encaissement', k.moyen_encaissement, 'encaisse_par', k.encaisse_par, 'encaisse_le', k.encaisse_le) order by k.cree_le)
       from complements k where k.commande_id = p_commande), '[]'::jsonb));
+$$;
+
+-- R21 : un complément annulé n'est pas une vente.
+create or replace function pilotage_synthese(p_debut date, p_fin date, p_service text default null) returns jsonb
+language sql stable as $$
+  with prises as (
+    select o.mode, o.moyen_paiement, o.statut_paiement, o.total_centimes, o.tva_centimes, o.frais_centimes, o.taux_tva_pourcent
+    from commandes o
+    where o.jour_service between p_debut and p_fin
+      and o.statut not in ('paiement_en_attente', 'annulee', 'refusee')
+      and (p_service is null or pilotage_service_de(o) = p_service)
+  ),
+  -- Compléments des commandes modifiées (vague 3, bo-commandes), au jour de service de la commande : dans les ventes
+  -- (encaissés ou à encaisser, comme les commandes), pas dans le compte des commandes.
+  compl as (
+    select k.montant_centimes, k.tva_centimes, k.frais_centimes, k.statut, k.moyen, o.mode, o.taux_tva_pourcent
+    from complements k join commandes o on o.id = k.commande_id
+    where o.jour_service between p_debut and p_fin and k.statut in ('a_encaisser', 'encaisse')
+      and o.statut not in ('paiement_en_attente', 'annulee', 'refusee')
+      and (p_service is null or pilotage_service_de(o) = p_service)
+  ),
+  -- Refus du restaurant seulement : une annulation par le client (annulee_par_client_le) n'est pas un refus.
+  refusees as (
+    select o.total_centimes, coalesce(nullif(btrim(o.motif), ''), 'Sans motif') as motif
+    from commandes o
+    where o.jour_service between p_debut and p_fin and o.statut = 'refusee' and o.annulee_par_client_le is null
+      and (p_service is null or pilotage_service_de(o) = p_service)
+  ),
+  annulees_client as (
+    select o.total_centimes
+    from commandes o
+    where o.jour_service between p_debut and p_fin and o.statut = 'refusee' and o.annulee_par_client_le is not null
+      and (p_service is null or pilotage_service_de(o) = p_service)
+  ),
+  faits as (
+    select r.montant_centimes, r.moyen, o.taux_tva_pourcent
+    from remboursements r join commandes o on o.id = r.commande_id
+    where r.statut = 'fait'
+      and r.fait_le >= ((p_debut + time '05:00') at time zone 'Europe/Zurich')
+      and r.fait_le < ((p_fin + 1 + time '05:00') at time zone 'Europe/Zurich')
+      and o.statut not in ('refusee', 'annulee')
+      and (p_service is null or pilotage_service_heure(r.fait_le) = p_service)
+  ),
+  ouverts as (
+    select r.statut, r.montant_centimes
+    from remboursements r
+    where r.statut in ('en_cours', 'echec')
+      and r.cree_le >= ((p_debut + time '05:00') at time zone 'Europe/Zurich')
+      and r.cree_le < ((p_fin + 1 + time '05:00') at time zone 'Europe/Zurich')
+      and (p_service is null or pilotage_service_heure(r.cree_le) = p_service)
+  ),
+  taux as (
+    select t.taux, sum(t.ttc)::bigint as ttc, sum(t.tva)::bigint as tva, sum(t.rembourse)::bigint as rembourse, sum(t.tva_rembourse)::bigint as tva_rembourse
+    from (
+      select taux_tva_pourcent as taux, total_centimes as ttc, tva_centimes as tva, 0 as rembourse, 0 as tva_rembourse from prises
+      union all
+      select taux_tva_pourcent, montant_centimes, tva_centimes, 0, 0 from compl
+      union all
+      select taux_tva_pourcent, 0, 0, montant_centimes,
+        round(montant_centimes * taux_tva_pourcent / (100 + taux_tva_pourcent))::integer from faits
+    ) t
+    group by t.taux
+  )
+  select jsonb_build_object(
+    'commandes', p.commandes,
+    'ttc_centimes', p.ttc,
+    'tva_centimes', p.tva,
+    'ht_centimes', p.ttc - p.tva,
+    'panier_moyen_centimes', case when p.commandes > 0 then round(p.ttc::numeric / p.commandes)::bigint else 0 end,
+    'encaisse_centimes', p.encaisse,
+    'a_encaisser', p.a_encaisser,
+    'a_encaisser_centimes', p.a_encaisser_ttc,
+    'frais_centimes', p.frais,
+    'livraison', jsonb_build_object('commandes', p.livraisons, 'ttc_centimes', p.livraison_ttc),
+    'retrait', jsonb_build_object('commandes', p.commandes - p.livraisons, 'ttc_centimes', p.ttc - p.livraison_ttc),
+    'en_ligne', jsonb_build_object('commandes', p.en_ligne, 'ttc_centimes', p.en_ligne_ttc),
+    'comptoir', jsonb_build_object('commandes', p.commandes - p.en_ligne, 'ttc_centimes', p.ttc - p.en_ligne_ttc),
+    'refusees', jsonb_build_object(
+      'commandes', (select count(*) from refusees),
+      'ttc_centimes', (select coalesce(sum(total_centimes), 0) from refusees),
+      'motifs', coalesce((
+        select jsonb_agg(jsonb_build_object('motif', m.motif, 'commandes', m.n, 'ttc_centimes', m.ttc) order by m.n desc, m.motif)
+        from (select min(motif) as motif, count(*) as n, sum(total_centimes) as ttc from refusees group by lower(motif) order by count(*) desc, min(motif) limit 8) m
+      ), '[]'::jsonb)
+    ),
+    'remboursements', (
+      select jsonb_build_object(
+        'faits', (select count(*) from faits),
+        'faits_centimes', (select coalesce(sum(montant_centimes), 0) from faits),
+        'faits_en_ligne_centimes', (select coalesce(sum(montant_centimes) filter (where moyen = 'stripe'), 0) from faits),
+        'faits_especes_centimes', (select coalesce(sum(montant_centimes) filter (where moyen = 'especes'), 0) from faits),
+        'faits_terminal_centimes', (select coalesce(sum(montant_centimes) filter (where moyen = 'terminal'), 0) from faits),
+        'en_cours', count(*) filter (where statut = 'en_cours'),
+        'en_cours_centimes', coalesce(sum(montant_centimes) filter (where statut = 'en_cours'), 0),
+        'echecs', count(*) filter (where statut = 'echec'),
+        'echecs_centimes', coalesce(sum(montant_centimes) filter (where statut = 'echec'), 0),
+        -- Tous les échecs encore ouverts, quel que soit leur jour : l'argent dû au client ne sort pas du tableau.
+        'echecs_ouverts', (select count(*) from remboursements where statut = 'echec'),
+        'echecs_ouverts_centimes', (select coalesce(sum(montant_centimes), 0) from remboursements where statut = 'echec')
+      )
+      from ouverts
+    ),
+    'annulees_client', jsonb_build_object(
+      'commandes', (select count(*) from annulees_client),
+      'ttc_centimes', (select coalesce(sum(total_centimes), 0) from annulees_client)
+    ),
+    'net_ttc_centimes', p.ttc - (select coalesce(sum(montant_centimes), 0) from faits),
+    'tva', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'taux_pourcent', t.taux, 'ttc_centimes', t.ttc, 'tva_centimes', t.tva, 'ht_centimes', t.ttc - t.tva,
+        'rembourse_centimes', t.rembourse, 'tva_remboursee_centimes', t.tva_rembourse,
+        'net_ttc_centimes', t.ttc - t.rembourse, 'net_tva_centimes', t.tva - t.tva_rembourse,
+        'net_ht_centimes', (t.ttc - t.rembourse) - (t.tva - t.tva_rembourse)
+      ) order by t.taux)
+      from taux t
+    ), '[]'::jsonb)
+  )
+  from (
+    select
+      count(*) as commandes,
+      coalesce(sum(total_centimes), 0)::bigint + (select coalesce(sum(montant_centimes), 0) from compl)::bigint as ttc,
+      coalesce(sum(tva_centimes), 0)::bigint + (select coalesce(sum(tva_centimes), 0) from compl)::bigint as tva,
+      coalesce(sum(total_centimes) filter (where statut_paiement in ('paye', 'encaisse', 'rembourse')), 0)::bigint
+        + (select coalesce(sum(montant_centimes) filter (where statut = 'encaisse'), 0) from compl)::bigint as encaisse,
+      count(*) filter (where statut_paiement = 'a_encaisser_retrait') as a_encaisser,
+      coalesce(sum(total_centimes) filter (where statut_paiement = 'a_encaisser_retrait'), 0)::bigint
+        + (select coalesce(sum(montant_centimes) filter (where statut = 'a_encaisser'), 0) from compl)::bigint as a_encaisser_ttc,
+      coalesce(sum(frais_centimes) filter (where mode = 'livraison'), 0)::bigint
+        + (select coalesce(sum(frais_centimes) filter (where mode = 'livraison'), 0) from compl)::bigint as frais,
+      count(*) filter (where mode = 'livraison') as livraisons,
+      coalesce(sum(total_centimes) filter (where mode = 'livraison'), 0)::bigint
+        + (select coalesce(sum(montant_centimes) filter (where mode = 'livraison'), 0) from compl)::bigint as livraison_ttc,
+      count(*) filter (where moyen_paiement = 'en_ligne') as en_ligne,
+      coalesce(sum(total_centimes) filter (where moyen_paiement = 'en_ligne'), 0)::bigint
+        + (select coalesce(sum(montant_centimes) filter (where moyen = 'en_ligne'), 0) from compl)::bigint as en_ligne_ttc
+    from prises
+  ) p;
 $$;
