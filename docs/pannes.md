@@ -146,7 +146,7 @@ Source : docs.netlify.com, « How credits work », lue le 12.11.2026.
 
 **Signes** : un client appelle, il a payé en ligne (il a l'e-mail de Stripe ou le débit sur son compte), mais sa commande n'est pas sur la tablette.
 
-**Ce que fait le site** : chaque minute, la surveillance relit chez Stripe les paiements restés sans réponse depuis plus de 3 minutes. Une commande payée apparaît alors toute seule dans **À accepter**, avec son e-mail de confirmation au client. Ça couvre le message de Stripe perdu et le client qui a fermé la page avant son retour sur le site.
+**Ce que fait le site** : toutes les 2 minutes aux heures utiles ([netlify-sobre.md](netlify-sobre.md)), la surveillance relit chez Stripe les paiements restés sans réponse depuis plus de 3 minutes. Une commande payée apparaît alors toute seule dans **À accepter**, avec son e-mail de confirmation au client. Ça couvre le message de Stripe perdu et le client qui a fermé la page avant son retour sur le site.
 
 **En deux minutes**
 

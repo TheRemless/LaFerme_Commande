@@ -126,7 +126,7 @@ Coût côté Netlify : 8 640 appels par mois, chacun une lecture de la base. Env
 
 - npm : une PR groupée pour toutes les versions mineures et correctives, une autre pour les majeures. Trois PR ouvertes au plus. Next, React, eslint-config-next et `@types/node` ne changent pas de version majeure seuls : ils se suivent et se font à la main.
 - Actions GitHub (les actions sont épinglées par leur empreinte de commit) : une PR groupée, deux au plus.
-- Chaque PR lance les vérifications. Pas de préversion Netlify pour ces PR (`netlify.toml`, `ignore`) : la file de builds reste aux sessions.
+- Chaque PR lance les vérifications. Pas de préversion Netlify pour ces PR. Les autres PR n'en ont une que sur demande (`[preview]` ou label `preview`, [netlify-sobre.md](netlify-sobre.md)).
 - Les PR de Dependabot n'ont accès à aucun secret GitHub (docs.github.com, « Troubleshooting Dependabot on GitHub Actions »). Elles se fusionnent comme les autres : vérifications vertes, `code-review`.
 
 ## 4. Coût
