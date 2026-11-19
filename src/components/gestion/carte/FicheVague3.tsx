@@ -180,7 +180,7 @@ export function TeneurAlcool({ plat, recharger }: { plat: PlatGestion; recharger
     <section className="bo-fiche-partie" aria-labelledby={`${id}-titre`}>
       <h3 id={`${id}-titre`}>Teneur en alcool</h3>
       <p className="bo-champ-aide" id={`${id}-aide`}>
-        Seule la teneur se saisit. Au-dessus de {virgule(SEUIL_ALCOOL_POURCENT)} % vol., la boisson passe au taux normal de TVA, même livrée ou à l&apos;emporter. Laissez vide pour une boisson sans alcool.
+        Seule la teneur se saisit. Au-dessus de {virgule(SEUIL_ALCOOL_POURCENT)} % vol., la boisson passe au taux normal de TVA, même livrée ou à l&apos;emporter. Saisissez 0 pour une boisson sans alcool. Sans teneur, une boisson ne peut pas être en vente.
       </p>
       <form onSubmit={sauver} className="bo-ligne-champs">
         <div className="bo-champ">

@@ -65,11 +65,18 @@ for cat, _, _ in CATEGORIES:
     plats = [p for p in carte["plats"] if p["categorie"] == cat]
     plats.sort(key=lambda p: p["photo"] is None)
     for ordre, p in enumerate(plats, 1):
+        # Boissons : teneur en alcool (% vol.), obligatoire pour qu'une boisson soit en vente (20261217220000). Les
+        # autres plats gardent la ligne d'avant.
+        teneur = p.get("teneurAlcool")
         lignes.append(
-            "insert into plats (slug, categorie_id, nom, description, prix_centimes, station, photo, ordre, provenance, provenances_a_fournir) "
+            "insert into plats (slug, categorie_id, nom, description, prix_centimes, station, photo, ordre, provenance, provenances_a_fournir"
+            + (", teneur_alcool" if teneur is not None else "")
+            + ") "
             f"select {q(p['id'])}, id, {q(p['nom'])}, {q(p['descriptionSite'])}, {centimes(p['prixPropose'])}, {q(p['station'])}, "
             f"{q(p['photo'] + '.jpg' if p['photo'] else None)}, {ordre}, {q(provenance_affichee(p['provenancesConnues']))}, "
-            f"{tableau(p['provenancesManquantes'])} from categories where slug = {q(slug_categorie[cat])};"
+            f"{tableau(p['provenancesManquantes'])}"
+            + (f", {teneur}" if teneur is not None else "")
+            + f" from categories where slug = {q(slug_categorie[cat])};"
         )
         for g_ordre, cle in enumerate(p["groupes"], 1):
             lignes.append(

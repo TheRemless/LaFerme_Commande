@@ -34,6 +34,7 @@ const ERREURS: Record<string, string> = {
   slug_invalide: "Nom illisible : utilisez des lettres ou des chiffres.",
   plat_archive: "Ce plat est archivé. Remettez-le à la carte d'abord.",
   pas_une_boisson: "Seule une boisson porte une teneur en alcool.",
+  teneur_a_saisir: "Saisissez la teneur en alcool de cette boisson (0 si elle est sans alcool) avant de la mettre en vente.",
   alcool_compta_pas_prete: "Une boisson de plus de 0,5 % vol. ne peut pas être en vente tant que la compta ne tient pas deux taux de TVA. Retirez-la de la vente ou gardez une teneur de 0,5 au plus.",
   teneur_invalide: "Teneur en alcool : un nombre de 0 à 100, ou vide.",
   photo_inconnue: "Photo inconnue.",
