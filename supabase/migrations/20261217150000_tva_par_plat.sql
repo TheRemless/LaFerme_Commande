@@ -317,7 +317,10 @@ begin
   select coalesce(array_agg(x.taux order by x.taux), '{}'), coalesce(array_agg(x.ttc order by x.taux), '{}')
     into taux, lignes
     from (select l.taux_tva_pourcent as taux, sum(l.total_centimes)::integer as ttc
-          from commande_lignes l where l.commande_id = o.id group by l.taux_tva_pourcent) x;
+          from commande_lignes l where l.commande_id = o.id group by l.taux_tva_pourcent
+          -- Une ligne à 0 CHF (plat offert) ne fait pas une commande mixte : elle ne choisit ni le taux des frais ni la
+          -- répartition (relecture de client-compte sur #275).
+          having sum(l.total_centimes) <> 0) x;
   n := coalesce(array_length(taux, 1), 0);
   if n = 0 then
     -- Sans lignes (commande en cours d'écriture) : le taux de la commande, tout en un.
@@ -451,7 +454,9 @@ declare
 begin
   if exists (select 1 from commande_lignes where commande_id = new.id) then
     new.tva_centimes := (select coalesce(sum((x ->> 'tva')::integer), 0) from jsonb_array_elements(v) x);
-    new.taux_tva_pourcent := (select max(taux_tva_pourcent) from commande_lignes where commande_id = new.id);
+    -- Taux le plus haut des lignes payantes (une ligne à 0 CHF ne donne pas son taux), sinon de toutes.
+    new.taux_tva_pourcent := coalesce((select max(taux_tva_pourcent) from commande_lignes where commande_id = new.id and total_centimes <> 0),
+                                      (select max(taux_tva_pourcent) from commande_lignes where commande_id = new.id));
   end if;
   return new;
 end;
@@ -471,7 +476,8 @@ begin
   for o in select c.* from commandes c where c.id in (select commande_id from lignes_touchees) loop
     continue when not exists (select 1 from commande_lignes where commande_id = o.id);
     tv := (select coalesce(sum((x ->> 'tva')::integer), 0) from jsonb_array_elements(ventilation_commande(o)) x);
-    tx := (select max(taux_tva_pourcent) from commande_lignes where commande_id = o.id);
+    tx := coalesce((select max(taux_tva_pourcent) from commande_lignes where commande_id = o.id and total_centimes <> 0),
+                   (select max(taux_tva_pourcent) from commande_lignes where commande_id = o.id));
     -- Seulement si quelque chose change : une commande juste ne voit pas son modifie_le avancer.
     if (o.tva_centimes, o.taux_tva_pourcent) is distinct from (tv, tx) then
       update commandes set tva_centimes = tv, taux_tva_pourcent = tx where id = o.id;
