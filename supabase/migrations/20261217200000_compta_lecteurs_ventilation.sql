@@ -175,8 +175,8 @@ language sql stable as $$
 $$;
 
 -- Récapitulatif par jour et par taux : mêmes règles qu'avant (vente au jour de la commande, remboursement au jour
--- où il est fait), montants par taux pris des ventilations. Les frais d'un complément vont à sa plus grande part
--- positive (là où ils ont été payés). Un échange sans argent compte au jour où il est fait, sans moyen.
+-- où il est fait), montants par taux pris des ventilations. Les frais d'un complément : sa part frais_ttc à chaque taux
+-- (bo-commandes, 20261217230000), sinon sur sa plus grande part positive (là où ils ont été payés). Un échange sans argent compte au jour où il est fait, sans moyen.
 create or replace function export_recap_jours(p_debut date, p_fin date) returns jsonb
 language sql stable as $$
   with ventes as (
@@ -192,7 +192,7 @@ language sql stable as $$
     -- comptoir au comptoir. Pas une vente de plus dans le compte des commandes.
     select o.jour, (x ->> 'taux')::numeric, case when k.moyen = 'en_ligne' then 'en_ligne' else 'comptoir' end,
       (x ->> 'ttc')::integer, (x ->> 'tva')::integer,
-      case when row_number() over (partition by k.id order by (x ->> 'ttc')::integer desc, (x ->> 'taux')::numeric desc) = 1 then k.frais_centimes else 0 end,
+      coalesce((x ->> 'frais_ttc')::integer, case when row_number() over (partition by k.id order by (x ->> 'ttc')::integer desc, (x ->> 'taux')::numeric desc) = 1 then k.frais_centimes else 0 end),
       false
     from complements k join commandes o on o.id = k.commande_id, jsonb_array_elements(ventilation_complement(k)) x
     where o.jour between p_debut and p_fin and k.statut = 'encaisse' and o.statut not in ('refusee', 'annulee')
@@ -272,7 +272,7 @@ language sql stable as $$
     'taux_tva_pourcent', (x ->> 'taux')::numeric, 'tva_centimes', (x ->> 'tva')::integer, 'stripe_payment_intent', k.stripe_payment_intent,
     'premiere', false)
   from complements k join commandes o on o.id = k.commande_id,
-    lateral (select x, case when row_number() over (order by (x ->> 'ttc')::integer desc, (x ->> 'taux')::numeric desc) = 1 then k.frais_centimes else 0 end as frais
+    lateral (select x, coalesce((x ->> 'frais_ttc')::integer, case when row_number() over (order by (x ->> 'ttc')::integer desc, (x ->> 'taux')::numeric desc) = 1 then k.frais_centimes else 0 end) as frais
              from jsonb_array_elements(ventilation_complement(k)) x) f
   where o.jour between p_debut and p_fin and k.statut = 'encaisse' and o.statut not in ('refusee', 'annulee')
   union all
@@ -324,7 +324,7 @@ language sql stable as $$
     select o.jour, (x ->> 'taux')::numeric as taux,
       case when k.moyen = 'en_ligne' then 'stripe' when k.moyen_encaissement = 'carte' then 'terminal' else 'caisse' end as moyen,
       (x ->> 'ttc')::integer as total_centimes, (x ->> 'tva')::integer as tva_centimes,
-      case when row_number() over (partition by k.id order by (x ->> 'ttc')::integer desc, (x ->> 'taux')::numeric desc) = 1 then k.frais_centimes else 0 end as frais_centimes,
+      coalesce((x ->> 'frais_ttc')::integer, case when row_number() over (partition by k.id order by (x ->> 'ttc')::integer desc, (x ->> 'taux')::numeric desc) = 1 then k.frais_centimes else 0 end) as frais_centimes,
       0 as tva_frais, false as compte
     from complements k join commandes o on o.id = k.commande_id, jsonb_array_elements(ventilation_complement(k)) x
     where o.jour between p_debut and p_fin and k.statut = 'encaisse' and o.statut not in ('refusee', 'annulee')
@@ -387,11 +387,11 @@ language sql stable as $$
     select o.jour,
       case when k.moyen = 'en_ligne' then 'stripe' when k.moyen_encaissement = 'carte' then 'terminal' else 'caisse' end,
       jsonb_build_object('taux', (x ->> 'taux')::numeric, 'ttc', (x ->> 'ttc')::integer, 'tva', (x ->> 'tva')::integer,
-        'frais_ttc', f.frais, 'frais_tva', round(f.frais * (x ->> 'taux')::numeric / (100 + (x ->> 'taux')::numeric))::integer,
+        'frais_ttc', f.frais, 'frais_tva', coalesce((x ->> 'frais_tva')::integer, round(f.frais * (x ->> 'taux')::numeric / (100 + (x ->> 'taux')::numeric))::integer),
         'rabais_ttc', 0, 'rabais_tva', 0, 'cagnotte_ttc', 0, 'cagnotte_tva', 0),
       false
     from complements k join commandes o on o.id = k.commande_id,
-      lateral (select x, case when row_number() over (order by (x ->> 'ttc')::integer desc, (x ->> 'taux')::numeric desc) = 1 then k.frais_centimes else 0 end as frais
+      lateral (select x, coalesce((x ->> 'frais_ttc')::integer, case when row_number() over (order by (x ->> 'ttc')::integer desc, (x ->> 'taux')::numeric desc) = 1 then k.frais_centimes else 0 end) as frais
                from jsonb_array_elements(ventilation_complement(k)) x) f
     where o.jour between p_debut and p_fin and k.statut = 'encaisse' and o.statut not in ('refusee', 'annulee')
   ),
