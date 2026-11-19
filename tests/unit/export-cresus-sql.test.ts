@@ -1,7 +1,7 @@
 import type { PGlite } from "@electric-sql/pglite";
 import { beforeEach, describe, expect, it } from "vitest";
 import { creerBaseLocale } from "@/lib/db/locale";
-import { ecrituresCresus, type LigneCresus, type PlanComptes } from "@/lib/export-cresus";
+import { CONTREPARTIE, ecrituresCresus, ecrituresEtendues, type DonneesEtendues, type LigneCresus, type PlanComptes } from "@/lib/export-cresus";
 import type { RecapJour } from "@/lib/export-compta";
 
 // Export Crésus, côté base : migration 20261214120000_export_cresus.sql.
@@ -48,28 +48,40 @@ beforeEach(async () => {
   }
 });
 
-const COMPTES = { caisse: "1000", stripe: "1090", terminal: "1091", tva: "2200", ventes: "3200", livraison: "3400", remboursements: "3800" };
+const COMPTES = { caisse: "1000", stripe: "1090", terminal: "1091", tva: "2200", ventes: "3200", livraison: "3400", remboursements: "3800", rabais: "3801", cagnotte: "3802" };
+const CODES = { "2.6": "", "8.1": "" };
 
 describe("plan de comptes Crésus", () => {
   it("proposé au départ, marqué à confirmer", async () => {
-    expect(await f<PlanComptes>("plan_comptes_cresus()")).toEqual({ confirme: false, comptes: COMPTES });
+    expect(await f<PlanComptes>("plan_comptes_cresus()")).toEqual({ confirme: false, comptes: COMPTES, codes_tva: CODES });
   });
 
   it("le gérant l'enregistre : confirmé, une ligne de journal par compte changé", async () => {
-    const plan = await f<PlanComptes>("regler_plan_comptes_cresus($1::jsonb, $2)", [JSON.stringify({ ...COMPTES, ventes: "3000" }), ids.gerant]);
-    expect(plan).toEqual({ confirme: true, comptes: { ...COMPTES, ventes: "3000" } });
-    const j = await db.query<{ objet: string; cle: string; avant: unknown; apres: unknown }>("select objet, cle, avant, apres from journal_gestion where objet = 'plan_comptes'");
-    expect(j.rows).toEqual([{ objet: "plan_comptes", cle: "ventes", avant: "3200", apres: "3000" }]);
+    const plan = await f<PlanComptes>("regler_plan_comptes_cresus($1::jsonb, $2)", [
+      JSON.stringify({ comptes: { ...COMPTES, ventes: "3000" }, codes_tva: { ...CODES, "2.6": "TVARED" } }),
+      ids.gerant,
+    ]);
+    expect(plan).toEqual({ confirme: true, comptes: { ...COMPTES, ventes: "3000" }, codes_tva: { ...CODES, "2.6": "TVARED" } });
+    const j = await db.query<{ objet: string; cle: string; avant: unknown; apres: unknown }>("select objet, cle, avant, apres from journal_gestion where objet = 'plan_comptes' order by id");
+    expect(j.rows).toEqual([
+      { objet: "plan_comptes", cle: "ventes", avant: "3200", apres: "3000" },
+      { objet: "plan_comptes", cle: "code_tva_2_6", avant: "", apres: "TVARED" },
+    ]);
   });
 
   it("refuse un employé, un rôle manquant ou en trop, un compte en lettres, deux rôles sur un compte", async () => {
-    const regler = (p: unknown, qui = ids.gerant) => f("regler_plan_comptes_cresus($1::jsonb, $2)", [JSON.stringify(p), qui]);
+    const regler = (comptes: unknown, qui = ids.gerant, codes: unknown = CODES) =>
+      f("regler_plan_comptes_cresus($1::jsonb, $2)", [JSON.stringify({ comptes, codes_tva: codes }), qui]);
     await expect(regler(COMPTES, ids.service)).rejects.toThrow(/Réservé au gérant/);
     await expect(regler({ ...COMPTES, ventes: undefined })).rejects.toThrow(/plan_invalide/);
     await expect(regler({ ...COMPTES, autre: "9" })).rejects.toThrow(/plan_invalide/);
     await expect(regler({ ...COMPTES, caisse: "10a0" })).rejects.toThrow(/compte_invalide:caisse/);
     await expect(regler({ ...COMPTES, caisse: 1000 })).rejects.toThrow(/compte_invalide:caisse/);
     await expect(regler({ ...COMPTES, terminal: "1090" })).rejects.toThrow(/compte_double/);
+    await expect(regler(COMPTES, ids.gerant, { "2.6": "TVA RED" })).rejects.toThrow(/codes_invalides/);
+    await expect(regler(COMPTES, ids.gerant, null)).rejects.toThrow(/codes_invalides/);
+    // L'ancienne forme (les comptes seuls) est refusée.
+    await expect(f("regler_plan_comptes_cresus($1::jsonb, $2)", [JSON.stringify(COMPTES), ids.gerant])).rejects.toThrow(/plan_invalide/);
     expect((await f<PlanComptes>("plan_comptes_cresus()")).confirme).toBe(false);
   });
 
@@ -78,6 +90,7 @@ describe("plan de comptes Crésus", () => {
       await db.exec(`set role ${role}`);
       await expect(db.query("select export_cresus('2026-12-01', '2026-12-31')")).rejects.toThrow(/permission denied/);
       await expect(db.query("select plan_comptes_cresus()")).rejects.toThrow(/permission denied/);
+      await expect(db.query("select export_cresus_etendu('2026-12-01', '2026-12-31')")).rejects.toThrow(/permission denied/);
       await db.exec("reset role");
     }
   });
@@ -130,5 +143,53 @@ describe("export_cresus", () => {
     expect(recap.reduce((s, l) => s + (l.rembourse_terminal_centimes ?? 0), 0)).toBe(1026);
     expect(somme((e) => e.credit === COMPTES.terminal)).toBe(1026);
     expect(somme((e) => e.credit === COMPTES.tva) - somme((e) => e.debit === COMPTES.tva)).toBe(tvaNette);
+  });
+});
+
+describe("export étendu, ventilation et avoirs (20261217130000)", () => {
+  it("ventes au brut : rabais et cagnotte à part, sommes exactes ; avoirs numérotés dans l'ordre", async () => {
+    const a = await commande("2026-12-04", { total: 5130, tva: 130, frais: 490 });
+    await db.query("update commandes set remise_centimes = 500, cagnotte_centimes = 1000 where id = $1", [a]);
+    const b = await commande("2026-12-04", { total: 2052, tva: 52, moyen: "comptoir", comptoir: "especes", paiement: "encaisse" });
+    // Numéro d'avoir donné quand le remboursement devient fait : ici dans l'ordre d'enregistrement.
+    await remboursement(a, 513, "stripe", "2026-12-05T10:00:00+01:00");
+    await remboursement(b, 1026, "especes", "2026-12-05T12:00:00+01:00");
+    await remboursement(a, 300, "stripe", "2026-12-06T10:00:00+01:00", "en_cours");
+
+    const v = (await db.query<{ r: unknown }>("select ventilation_commande(o) as r from commandes o where id = $1", [a])).rows[0].r;
+    expect(v).toEqual([{ taux: 2.6, ttc: 5130, tva: 130, frais_ttc: 490, frais_tva: 12, rabais_ttc: 500, rabais_tva: 13, cagnotte_ttc: 1000, cagnotte_tva: 25 }]);
+
+    const d = await f<DonneesEtendues>("export_cresus_etendu($1, $2)", ["2026-12-01", "2026-12-31"]);
+    expect(d.ventes.map((x) => [x.moyen, x.nombre, x.ttc, x.rabais_ttc, x.cagnotte_ttc])).toEqual([
+      ["caisse", 1, 2052, 0, 0],
+      ["stripe", 1, 5130, 500, 1000],
+    ]);
+    // Avoirs : le premier fait porte le plus petit numéro ; celui en cours n'en a pas.
+    expect(d.avoirs.map((x) => [x.jour, x.moyen, x.ventilation[0].ttc])).toEqual([
+      ["2026-12-05", "stripe", 513],
+      ["2026-12-05", "caisse", 1026],
+    ]);
+    expect(d.avoirs[0].numero_avoir).toBeLessThan(d.avoirs[1].numero_avoir);
+    const sans = await db.query("select numero_avoir from remboursements where statut <> 'fait'");
+    expect(sans.rows).toEqual([{ numero_avoir: null }]);
+
+    const r = ecrituresEtendues(d, { comptes: COMPTES, codes_tva: { "2.6": "TVARED", "8.1": "" } });
+    if (!r.ok) throw new Error(r.erreur);
+    // Chaque écriture multiple s'équilibre ; le compte Stripe reçoit le payé net moins le remboursé.
+    const parMultiple = new Map<number, number>();
+    for (const l of r.lignes) {
+      const signe = l.debit === CONTREPARTIE ? -1 : 1;
+      parMultiple.set(l.multiple, (parMultiple.get(l.multiple) ?? 0) + signe * l.centimes);
+    }
+    for (const total of parMultiple.values()) expect(total).toBe(0);
+    const net = (compte: string) => r.lignes.reduce((s, l) => s + (l.debit === compte ? l.centimes : 0) - (l.credit === compte ? l.centimes : 0), 0);
+    expect(net(COMPTES.stripe)).toBe(5130 - 513);
+    expect(net(COMPTES.caisse)).toBe(2052 - 1026);
+    // TVA nette = TVA des commandes moins celle des remboursements, comme le récapitulatif.
+    const recap = await f<RecapJour[]>("export_recap_jours($1, $2)", ["2026-12-01", "2026-12-31"]);
+    expect(-net(COMPTES.tva)).toBe(recap.reduce((s, l) => s + l.net_tva_centimes, 0));
+    // Rabais et cagnotte au brut, à leur compte.
+    expect(net(COMPTES.rabais)).toBe(500 - 13);
+    expect(net(COMPTES.cagnotte)).toBe(1000 - 25);
   });
 });

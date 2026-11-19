@@ -38,6 +38,9 @@ describe("lignes du journal", () => {
     const l = e({ objet: "plan_comptes", cle: "ventes", avant: "3200" as never, apres: "3000" as never });
     expect(quoi(l)).toBe("Plan de comptes Crésus, Ventes");
     expect(resume(l)).toBe("Compte 3200 → 3000");
+    const code = e({ objet: "plan_comptes", cle: "code_tva_2_6", avant: "" as never, apres: "TVARED" as never });
+    expect(quoi(code)).toBe("Plan de comptes Crésus, code TVA 2,6 %");
+    expect(resume(code)).toBe("Code vide → TVARED");
     expect(sansChangement(l)).toBe(false);
   });
 });

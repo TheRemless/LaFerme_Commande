@@ -3,12 +3,13 @@ import { refus } from "@/lib/comptes/api";
 import { fonctionSql } from "@/lib/db/serveur";
 import { csvVentes, dateValide, type Remboursement, type Vente } from "@/lib/gestion";
 import { csvRecapJours, type RecapJour } from "@/lib/export-compta";
-import { ecrituresCresus, fichierCresus, type LigneCresus, type PlanComptes } from "@/lib/export-cresus";
+import { ecrituresCresus, ecrituresEtendues, fichierCresus, fichierCresusEtendu, type DonneesEtendues, type LigneCresus, type PlanComptes } from "@/lib/export-cresus";
 import { exigerGerant } from "@/lib/personnel/session";
 
 // Export CSV des ventes encaissées et des remboursements faits sur la période, pour la fiduciaire : ?debut=2026-11-01&fin=2026-11-30 (un an au plus).
 // &format=jours : une ligne par jour et par taux de TVA (récapitulatif, src/lib/export-compta.ts).
 // &format=cresus : écritures pour Crésus Comptabilité selon le plan de comptes réglé (src/lib/export-cresus.ts).
+// &format=cresus_etendu : format étendu avec la TVA, ventes au brut, rabais, cagnotte et avoirs (docs/compta).
 export async function GET(requete: Request) {
   const g = await exigerGerant(requete, { lecture: true });
   if ("reponse" in g) return g.reponse;
@@ -16,6 +17,21 @@ export async function GET(requete: Request) {
   const debut = dateValide(q.get("debut"));
   const fin = dateValide(q.get("fin"));
   if (!debut || !fin || fin < debut || Date.parse(fin) - Date.parse(debut) > 366 * 86_400_000) return refus("Période invalide (un an au plus).");
+  if (q.get("format") === "cresus_etendu") {
+    const [donnees, plan] = await Promise.all([
+      fonctionSql<DonneesEtendues>("export_cresus_etendu", { p_debut: debut, p_fin: fin }),
+      fonctionSql<PlanComptes>("plan_comptes_cresus", {}),
+    ]);
+    const r = ecrituresEtendues(donnees, plan);
+    if (!r.ok) return refus(r.erreur);
+    return new NextResponse(Buffer.from(fichierCresusEtendu(r.lignes)), {
+      headers: {
+        "Content-Type": "text/plain; charset=windows-1252",
+        "Content-Disposition": `attachment; filename="la-ferme-cresus-tva-${debut}-${fin}.txt"`,
+        "Cache-Control": "no-store",
+      },
+    });
+  }
   if (q.get("format") === "cresus") {
     const [lignes, plan] = await Promise.all([
       fonctionSql<LigneCresus[]>("export_cresus", { p_debut: debut, p_fin: fin }),

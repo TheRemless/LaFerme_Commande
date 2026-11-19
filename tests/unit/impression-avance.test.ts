@@ -78,7 +78,11 @@ async function taches(id: string) {
         gauche?: string;
         droite?: string;
       }[];
-    }>("select station::text, etat, reimpression, contenu from taches_impression where commande_id = $1 order by cree_le, station::text", [id])
+    }>(
+      // Tickets de préparation seulement : le justificatif du client (#269) sort en plus, au poste du sac.
+      "select station::text, etat, reimpression, contenu from taches_impression where commande_id = $1 and coalesce(contenu -> 0 ->> 'texte', '') <> 'JUSTIFICATIF CLIENT' order by cree_le, station::text",
+      [id],
+    )
   ).rows;
 }
 async function surveiller() {

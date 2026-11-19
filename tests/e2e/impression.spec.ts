@@ -41,6 +41,8 @@ test.afterAll(async () => {
 // Le faux client interroge jusqu'à trouver le ticket de cette commande (ou abandonne). La file est commune à
 // toute la base : une commande acceptée par tablette.spec.ts en même temps sort aussi sur cette imprimante.
 // Comme une vraie imprimante, le faux client imprime ces tickets-là (DELETE 200 OK) et continue.
+// Texte de chaque ticket lu par le faux client, pour retrouver un ticket déjà imprimé en cherchant un autre.
+const lus: string[] = [];
 async function attendreTicket(request: APIRequestContext, marque: RegExp): Promise<string> {
   for (let i = 0; i < 40; i++) {
     const r = await request.post(url, { headers: { "X-Star-Mac": MAC }, data: { statusCode: "200%20OK", printerMAC: MAC, status: "23 6 0 0 0 0 0 0 0 " } });
@@ -48,7 +50,9 @@ async function attendreTicket(request: APIRequestContext, marque: RegExp): Promi
     const j = await r.json();
     if (j.jobReady) {
       expect(j.mediaTypes).toContain("image/png");
-      if (marque.test(await (await request.get(`${url}?type=text/plain&token=${j.jobToken}&mac=${MAC}`)).text())) return j.jobToken;
+      const texte = await (await request.get(`${url}?type=text/plain&token=${j.jobToken}&mac=${MAC}`)).text();
+      lus.push(texte);
+      if (marque.test(texte)) return j.jobToken;
       expect((await request.delete(`${url}?code=200%20OK&token=${j.jobToken}&mac=${MAC}`)).status()).toBe(200);
       continue;
     }
@@ -97,9 +101,24 @@ test("une commande acceptée sort à l'imprimante pizza : POST, GET image/png, D
   expect(texte).toContain("oeuf a part");
 
   expect((await request.delete(`${url}?code=200%20OK&token=${jeton}&mac=${MAC}`)).status()).toBe(200);
+
+  // Justificatif du client (compta R6, R7, PR #269) : une deuxième tâche, au poste qui fait le sac, ici la pizza
+  // (aucune ligne cuisine). Il a pu sortir avant le ticket de préparation : on le cherche aussi dans ce qui est lu.
+  const marqueJustificatif = new RegExp(`^JUSTIFICATIF CLIENT[\\s\\S]*Commande No ${String(c.numero).padStart(3, "0")}`);
+  let justificatif = lus.find((t) => marqueJustificatif.test(t));
+  if (!justificatif) {
+    const jj = await attendreTicket(request, marqueJustificatif);
+    justificatif = await (await request.get(`${url}?type=text/plain&token=${jj}&mac=${MAC}`)).text();
+    expect((await request.delete(`${url}?code=200%20OK&token=${jj}&mac=${MAC}`)).status()).toBe(200);
+  }
+  expect(justificatif).toContain("A l'emporter");
+  expect(justificatif).toContain("1 x Pizza Margherita");
+  expect(justificatif).toMatch(/TVA/);
+
   const apres = await (await gerant.get("/api/tablette/file")).json();
   const taches = apres.impression.taches.filter((t: { commande_id: string }) => t.commande_id === c.id);
-  expect(taches.map((t: { etat: string }) => t.etat)).toEqual(["imprimee"]);
+  // Préparation et justificatif, tous deux imprimés.
+  expect(taches.map((t: { etat: string }) => t.etat)).toEqual(["imprimee", "imprimee"]);
   expect(apres.impression.imprimantes.find((i: { nom: string; actif: boolean }) => i.nom === NOM && i.actif).en_ligne).toBe(true);
 
   // Réimpression : un nouveau ticket marqué « RÉIMPRESSION ».
