@@ -155,6 +155,54 @@ describe("commande à deux taux", () => {
   });
 });
 
+describe("cas chiffrés de la relecture de #275 (client-compte, défauts 2 et 4)", () => {
+  const COMPTES = { caisse: "1000", stripe: "1090", terminal: "1091", tva: "2200", ventes: "3200", livraison: "3400", remboursements: "3800", rabais: "3801", cagnotte: "3802" };
+  async function lignes(jour: string) {
+    const d = await f<DonneesEtendues>("export_cresus_etendu($1, $2)", [jour, jour]);
+    const r = ecrituresEtendues(d, { comptes: COMPTES, codes_tva: { [reduit.toFixed(1)]: "RED", [normal.toFixed(1)]: "NOR" } });
+    if (!r.ok) throw new Error(r.erreur);
+    return r.lignes;
+  }
+  const tvaDue = (l: Awaited<ReturnType<typeof lignes>>) => l.reduce((s, x) => s + (x.credit === COMPTES.tva ? x.centimes : 0) - (x.debit === COMPTES.tva ? x.centimes : 0), 0);
+
+  it("pizza 18.50 échangée contre un vin 18.50 : la TVA déclarée passe de 47 à 139 centimes (+92)", async () => {
+    const jour = "2026-12-08";
+    const v = await commande([{ slug: pizza, total: 1850 }], "r20-vin");
+    await db.query(
+      `insert into modifications_commande (commande_id, cle, statut, reglement, lignes, sous_total_centimes, frais_centimes, total_centimes, tva_centimes,
+         ancienne_valeur_centimes, difference_centimes, personnel_id, personnel_nom, ventilation, fini_le)
+       values ($1, 'echange-r20-vin-0001', 'appliquee', 'aucun', '[{"slug":"x"}]', 1850, 0, 1850, 0, 1850, 0, $2, 'R20', $3, $4::timestamptz)`,
+      [v, gerant, JSON.stringify([{ taux: reduit, ttc: -1850, tva: -tva(1850, reduit) }, { taux: normal, ttc: 1850, tva: tva(1850, normal) }]), `${jour}T12:00:00+01:00`],
+    );
+    expect(tva(1850, reduit)).toBe(47);
+    expect(tva(1850, normal)).toBe(139);
+    expect(tvaDue(await lignes(jour))).toBe(139 - 47);
+  });
+
+  it("avoir de 31.00 : +37.00 rendus à 2,6 % et −6.00 vendus à 8,1 %, l'export ne s'arrête pas", async () => {
+    const jour = "2026-12-09";
+    const c = await commande([{ slug: pizza, total: 3700 }], "r20-avoir-signe");
+    const m = (
+      await db.query<{ id: string }>(
+        `insert into modifications_commande (commande_id, cle, statut, reglement, lignes, sous_total_centimes, frais_centimes, total_centimes, tva_centimes,
+           ancienne_valeur_centimes, difference_centimes, personnel_id, personnel_nom, ventilation, fini_le)
+         values ($1, 'baisse-r20-signe-001', 'appliquee', 'remboursement', '[{"slug":"x"}]', 600, 0, 600, 0, 3700, -3100, $2, 'R20', $3, $4::timestamptz)
+         returning id`,
+        [c, gerant, JSON.stringify([{ taux: reduit, ttc: -3700, tva: -tva(3700, reduit) }, { taux: normal, ttc: 600, tva: tva(600, normal) }]), `${jour}T12:00:00+01:00`],
+      )
+    ).rows[0].id;
+    await db.query(
+      `insert into remboursements (commande_id, cle, montant_centimes, motif, moyen, statut, personnel_nom, cree_le, fait_le, modification_id)
+       values ($1, 'remb-r20-signe-0001', 3100, 'Commande modifiée', 'stripe', 'fait', 'R20', $2::timestamptz, $2::timestamptz, $3)`,
+      [c, `${jour}T12:01:00+01:00`, m],
+    );
+    const l = await lignes(jour);
+    const net = (compte: string) => l.reduce((s, x) => s + (x.debit === compte ? x.centimes : 0) - (x.credit === compte ? x.centimes : 0), 0);
+    expect(net(COMPTES.stripe)).toBe(-3100);
+    expect(tvaDue(l)).toBe(tva(600, normal) - tva(3700, reduit));
+  });
+});
+
 describe("règles de TVA d'une commande à deux taux", () => {
   it("le gérant les change, journalisé ; une valeur inconnue ou un employé est refusé", async () => {
     expect(await f<unknown>("regles_tva()")).toEqual({ frais_tva_mixte: "normal", rabais_tva_mixte: "reduit_dabord" });
