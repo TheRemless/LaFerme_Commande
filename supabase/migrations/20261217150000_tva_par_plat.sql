@@ -290,9 +290,11 @@ $$;
 
 -- [{ taux, ttc, tva, frais_ttc, frais_tva, rabais_ttc, rabais_tva, cagnotte_ttc, cagnotte_tva }] par taux croissant. ttc : payé net à ce
 -- taux (lignes + frais − rabais − cagnotte). Somme des ttc = total_centimes, somme des tva = tva_centimes.
--- ventilation_lignes suit toujours les lignes et montants actuels (TVA de la commande, reçu). ventilation_commande est
--- ce que lit la compta : aujourd'hui la même chose ; bo-commandes la recrée pour rendre la ventilation figée au
--- paiement quand elle existe (coalesce(o.ventilation_figee, ventilation_lignes(o))).
+-- ventilation_lignes suit toujours les lignes et montants actuels. ventilation_commande est la ventilation de la
+-- commande (compta, TVA de la commande par les déclencheurs) : aujourd'hui la même chose ; bo-commandes la recrée pour
+-- rendre la ventilation figée au paiement quand elle existe (coalesce(o.ventilation_figee, ventilation_lignes(o))).
+-- Une commande payée garde son total payé même modifiée (#249) : sa TVA reste celle de la vente, les différences
+-- passent par les compléments et les avoirs.
 create function ventilation_lignes(o commandes) returns jsonb
 language plpgsql stable as $$
 declare
@@ -445,7 +447,7 @@ $$;
 create function tva_commande_avant() returns trigger
 language plpgsql as $$
 declare
-  v jsonb := ventilation_lignes(new);
+  v jsonb := ventilation_commande(new);
 begin
   if exists (select 1 from commande_lignes where commande_id = new.id) then
     new.tva_centimes := (select coalesce(sum((x ->> 'tva')::integer), 0) from jsonb_array_elements(v) x);
@@ -468,7 +470,7 @@ declare
 begin
   for o in select c.* from commandes c where c.id in (select commande_id from lignes_touchees) loop
     continue when not exists (select 1 from commande_lignes where commande_id = o.id);
-    tv := (select coalesce(sum((x ->> 'tva')::integer), 0) from jsonb_array_elements(ventilation_lignes(o)) x);
+    tv := (select coalesce(sum((x ->> 'tva')::integer), 0) from jsonb_array_elements(ventilation_commande(o)) x);
     tx := (select max(taux_tva_pourcent) from commande_lignes where commande_id = o.id);
     -- Seulement si quelque chose change : une commande juste ne voit pas son modifie_le avancer.
     if (o.tva_centimes, o.taux_tva_pourcent) is distinct from (tv, tx) then
