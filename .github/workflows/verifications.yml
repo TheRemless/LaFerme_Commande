@@ -56,7 +56,11 @@ jobs:
     # Pas sur main après une fusion (déjà passé sur la PR) ; à la demande, oui.
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && !github.event.pull_request.draft)
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    # 25 minutes : une passe verte prend environ 9 minutes, mais sous charge des runners GitHub elle a dépassé 15 minutes
+    # et fini « cancelled » sans vraie erreur (#263, #269, #272 le 19.11.2026), ce qui bloquait les fusions. Un passage
+    # vraiment bloqué s'arrête quand même, au plus 10 minutes plus tard qu'avant. Le groupe concurrency (plus haut) n'annule
+    # que les passages de la même PR, ou de la même branche hors PR.
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
