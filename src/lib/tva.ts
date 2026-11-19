@@ -87,7 +87,8 @@ export type PartTva = {
 export function ventilerTva(b: BaseTva): PartTva[] {
   const parTaux = new Map<number, number>();
   for (const l of b.lignes) parTaux.set(l.taux, (parTaux.get(l.taux) ?? 0) + l.ttc);
-  const taux = [...parTaux.keys()].sort((a, c) => a - c);
+  // Un taux dont les lignes valent 0 CHF (plat offert) ne compte pas : même règle qu'en base.
+  const taux = [...parTaux.keys()].filter((t) => parTaux.get(t) !== 0).sort((a, c) => a - c);
   const lignes = taux.map((t) => parTaux.get(t) ?? 0);
   const n = taux.length;
   if (n === 0) return [];

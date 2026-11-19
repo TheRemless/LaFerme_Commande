@@ -199,6 +199,16 @@ describe("commande mixte : pizza et bière à 5 % vol. (R1, R9, R15)", () => {
     await f("regler_teneur_alcool($1, 5, $2)", [b, gerant]);
   });
 
+  it("plat offert à 0 CHF : la commande n'est pas mixte, les frais restent au réduit (relecture de #275)", async () => {
+    // Pizza payée, bière offerte (0 CHF), livraison : rien n'est vendu au taux normal.
+    const id = await commande([{ slug: "pizza-margherita", total: 1500 }, { slug: await biere(5), total: 0 }], { frais: 500 });
+    const v = await sommesJustes(id);
+    expect(v).toEqual([{ taux: reduit, ttc: 2000, tva: tva(2000, reduit), frais_ttc: 500, frais_tva: tva(500, reduit), rabais_ttc: 0, rabais_tva: 0, cagnotte_ttc: 0, cagnotte_tva: 0 }]);
+    expect((await commandeLue(id)).taux).toBe(reduit);
+    // Même règle au panier.
+    expect(ventilerTva({ lignes: [{ taux: reduit, ttc: 1500 }, { taux: normal, ttc: 0 }], frais: 500, remisePlats: 0, remiseFrais: 0, cagnotte: 0, regles: { frais: "normal", rabais: "reduit_dabord" } })).toEqual(v);
+  });
+
   it("une commande à un seul taux garde exactement la TVA d'avant", async () => {
     const id = await commande([{ slug: "pizza-margherita", total: 1800 }, { slug: "coca-cola", total: 450 }], { frais: 500 });
     const c = await commandeLue(id);
