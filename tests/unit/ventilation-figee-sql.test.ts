@@ -26,15 +26,15 @@ const ligne = (p: { slug: string; nom: string; prix: number }, qte = 1) => ({
 type Ligne = ReturnType<typeof ligne>;
 
 let n = 0;
-async function commande(lignes: Ligne[], comptoir = false): Promise<string> {
+async function commande(lignes: Ligne[], comptoir = false, remise = 0): Promise<string> {
   n += 1;
-  const total = lignes.reduce((t, l) => t + l.total_centimes, 0);
+  const total = lignes.reduce((t, l) => t + l.total_centimes, 0) - remise;
   const c = (await db.query<{ id: string }>("select id from creer_commande($1)", [{
     jeton_suivi: `jeton-figee-${n}-abcdefgh`, cle_idempotence: `figee-${n}-cle-essai`, mode: "retrait",
     statut: comptoir ? "nouvelle" : "paiement_en_attente", statut_paiement: comptoir ? "a_encaisser_retrait" : "en_attente",
     moyen_paiement: comptoir ? "comptoir" : "en_ligne", client_prenom: "Léa", client_nom: "Rossi", client_telephone: "079 555 12 34",
-    client_email: "figee@exemple.ch", quand_type: "asap", pizzas_seulement: false, sous_total_centimes: total, frais_centimes: 0,
-    total_centimes: total, tva_centimes: 1, taux_tva_pourcent: 0, origine: "http://localhost:3000", lignes,
+    client_email: "figee@exemple.ch", quand_type: "asap", pizzas_seulement: false, sous_total_centimes: total + remise, frais_centimes: 0,
+    total_centimes: total, tva_centimes: 1, taux_tva_pourcent: 0, origine: "http://localhost:3000", lignes, remise_centimes: remise,
   }])).rows[0].id;
   // Payée par l'événement de paiement, comme en vrai : c'est là que la ventilation se fige.
   if (!comptoir) await f("appliquer_paiement($1, $2, 'paye', 'pi_figee', $3)", [`evt-${c}`, c, total]);
@@ -143,6 +143,67 @@ describe("ventilation figée", () => {
       [c, biere.slug, biere.nom],
     );
     expect(Number((await db.query<{ t: string }>("select taux_tva_pourcent::text as t from commandes where id = $1", [c])).rows[0].t)).toBe(reduit);
+  });
+
+  it("rattrapage des commandes déjà payées : seule la ventilation figée change, modifie_le garde sa vraie date", async () => {
+    const c = await commande([ligne(pizza)]);
+    // Comme une commande payée avant la migration : pas encore figée, modifiée pour la dernière fois il y a un mois.
+    await db.query("alter table commandes disable trigger commandes_modifie_le");
+    await db.query("update commandes set ventilation_figee = null, modifie_le = now() - interval '30 days' where id = $1", [c]);
+    await db.query("alter table commandes enable trigger commandes_modifie_le");
+    const avant = (await db.query<{ m: string }>("select modifie_le::text as m from commandes where id = $1", [c])).rows[0].m;
+    expect(await f<number>("rattraper_ventilations_figees()")).toBeGreaterThanOrEqual(1);
+    const apres = (await db.query<{ m: string; v: Part[] | null }>("select modifie_le::text as m, ventilation_figee as v from commandes where id = $1", [c])).rows[0];
+    expect(apres.m).toBe(avant);
+    expect(parts(apres.v ?? [])).toEqual([{ taux: reduit, ttc: pizza.prix, tva: tva(pizza.prix, reduit) }]);
+    // Le déclencheur est bien rallumé.
+    await db.query("update commandes set client_nom = client_nom where id = $1", [c]);
+    expect((await db.query<{ m: string }>("select modifie_le::text as m from commandes where id = $1", [c])).rows[0].m).not.toBe(avant);
+  });
+
+  // Défaut 3 de la relecture de client-compte : une commande remboursée en entier doit finir à 0, en argent et en TVA,
+  // à chaque taux. Vente figée + compléments − avoirs, par taux.
+  async function net(c: string) {
+    const v = new Map<number, { ttc: number; tva: number }>();
+    const ajouter = (x: Part, signe: number) => {
+      const t = Number(x.taux);
+      const e = v.get(t) ?? { ttc: 0, tva: 0 };
+      v.set(t, { ttc: e.ttc + signe * x.ttc, tva: e.tva + signe * x.tva });
+    };
+    for (const x of await ventilation(c)) ajouter(x, 1);
+    for (const r of (await db.query<{ v: Part[] }>("select ventilation_remboursement(x) as v from remboursements x where x.commande_id = $1 and x.statut in ('fait', 'en_cours')", [c])).rows)
+      for (const x of r.v) ajouter(x, -1);
+    return [...v.entries()].filter(([, e]) => e.ttc !== 0 || e.tva !== 0).map(([taux, e]) => ({ taux, ...e }));
+  }
+
+  for (const [nom, lignes, gardee] of [
+    ["un taux", () => [ligne(pizza, 2)], () => ligne(pizza)],
+    ["deux taux", () => [ligne(pizza), ligne(biere)], () => ligne(biere)],
+  ] as const) {
+    it(`${nom}, avec une réduction : baisse remboursée, puis le reste rendu par le gérant ; net 0 en argent et en TVA à chaque taux`, async () => {
+      const remise = Math.round(pizza.prix / 2);
+      const c = await commande([...lignes()], true, remise);
+      await f("marquer_encaisse($1, 'tablette:Test', 'especes')", [c]);
+      // La pizza retirée : remboursée sur ce qui a été payé.
+      await modifier(c, demande(`figee-${n}-net0-baisse`, [gardee()]));
+      const reste = (await db.query<{ r: number }>(
+        "select o.total_centimes - coalesce((select sum(montant_centimes) from remboursements where commande_id = o.id and statut in ('fait', 'en_cours')), 0) as r from commandes o where o.id = $1", [c])).rows[0].r;
+      await f("changer_statut($1, 'prete', 'tablette:Test', now())", [c]);
+      if (reste > 0) await f("demander_remboursement($1, $2, 'Le reste', $3, $4)", [c, reste, `cle-net0-${n}`, gerant]);
+      expect(await net(c)).toEqual([]);
+    });
+  }
+
+  it("la cagnotte (réduction) n'est jamais rendue, la baisse remboursée en entier finit à net 0 en TVA", async () => {
+    const remise = pizza.prix + Math.round(biere.prix / 2);
+    const c = await commande([ligne(pizza), ligne(biere), ligne(pizza)], true, remise);
+    await f("marquer_encaisse($1, 'tablette:Test', 'especes')", [c]);
+    // On ne garde qu'une pizza : la baisse dépasse ce qui a été payé, tout le payé est rendu.
+    await modifier(c, demande(`figee-${n}-net0-cag01`, [ligne(pizza)]));
+    const paye = (await db.query<{ t: number }>("select total_centimes as t from commandes where id = $1", [c])).rows[0].t;
+    const rendu = (await db.query<{ r: number }>("select coalesce(sum(montant_centimes), 0)::int as r from remboursements where commande_id = $1", [c])).rows[0].r;
+    expect(rendu).toBe(paye);
+    expect(await net(c)).toEqual([]);
   });
 
   it("répartition signée : somme exacte, signes gardés, au prorata", async () => {

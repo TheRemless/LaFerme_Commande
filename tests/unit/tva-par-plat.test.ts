@@ -201,6 +201,16 @@ describe("commande mixte : pizza et bière à 5 % vol. (R1, R9, R15)", () => {
     await f("regler_teneur_alcool($1, 5, $2)", [b, gerant]);
   });
 
+  it("plat offert à 0 CHF : la commande n'est pas mixte, les frais restent au réduit (relecture de #275)", async () => {
+    // Pizza payée, bière offerte (0 CHF), livraison : rien n'est vendu au taux normal.
+    const id = await commande([{ slug: "pizza-margherita", total: 1500 }, { slug: await biere(5), total: 0 }], { frais: 500 });
+    const v = await sommesJustes(id);
+    expect(v).toEqual([{ taux: reduit, ttc: 2000, tva: tva(2000, reduit), frais_ttc: 500, frais_tva: tva(500, reduit), rabais_ttc: 0, rabais_tva: 0, cagnotte_ttc: 0, cagnotte_tva: 0 }]);
+    expect((await commandeLue(id)).taux).toBe(reduit);
+    // Même règle au panier.
+    expect(ventilerTva({ lignes: [{ taux: reduit, ttc: 1500 }, { taux: normal, ttc: 0 }], frais: 500, remisePlats: 0, remiseFrais: 0, cagnotte: 0, regles: { frais: "normal", rabais: "reduit_dabord" } })).toEqual(v);
+  });
+
   it("une commande à un seul taux garde exactement la TVA d'avant", async () => {
     const id = await commande([{ slug: "pizza-margherita", total: 1800 }, { slug: "coca-cola", total: 450 }], { frais: 500 });
     const c = await commandeLue(id);
@@ -265,7 +275,7 @@ describe("commande mixte : pizza et bière à 5 % vol. (R1, R9, R15)", () => {
   });
 
   it("remboursement : par ligne quand le manque les donne, sinon selon la règle des rabais", async () => {
-    const id = await commande([{ slug: "pizza-margherita", total: 1500 }, { slug: await biere(5), total: 500 }]);
+    let id = await commande([{ slug: "pizza-margherita", total: 1500 }, { slug: await biere(5), total: 500 }]);
     const rembourser = async (montant: number, lignes: Record<string, number> | null) =>
       (await db.query<{ v: { taux: number; ttc: number; tva: number }[] }>(
         "insert into remboursements (commande_id, cle, montant_centimes, motif, moyen, statut, personnel_nom, montants_lignes) values ($1, gen_random_uuid()::text, $2, 'essai', 'stripe', 'en_cours', 'essai', $3) returning ventilation_remboursement(remboursements) as v",
@@ -273,7 +283,12 @@ describe("commande mixte : pizza et bière à 5 % vol. (R1, R9, R15)", () => {
       )).rows[0].v.map((p) => ({ ...p, taux: Number(p.taux) }));
     expect(await rembourser(500, { "1": 500 })).toEqual([{ taux: normal, ttc: 500, tva: tva(500, normal) }]);
     expect(await rembourser(800, null)).toEqual([{ taux: reduit, ttc: 800, tva: tva(800, reduit) }]);
+    // Sur ce qui reste payé (20261217190000, bo-commandes) : la bière est déjà toute rendue, le reste ne peut partir
+    // qu'au réduit, même au prorata.
     await regler("rabais_tva_mixte", "prorata");
+    expect((await rembourser(200, null)).map((x) => [x.taux, x.ttc])).toEqual([[reduit, 200]]);
+    // Au prorata sur une vente mixte entière (commande neuve) : 1500 et 500 donnent 600 et 200.
+    id = await commande([{ slug: "pizza-margherita", total: 1500 }, { slug: await biere(5), total: 500 }]);
     const p = await rembourser(800, null);
     expect(p.map((x) => [x.taux, x.ttc])).toEqual([[reduit, 600], [normal, 200]]);
   });
