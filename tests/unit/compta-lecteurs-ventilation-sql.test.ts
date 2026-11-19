@@ -203,6 +203,39 @@ describe("cas chiffrés de la relecture de #275 (client-compte, défauts 2 et 4)
   });
 });
 
+describe("tout rendre (remboursements.ventilation de #275, figée à la création)", () => {
+  it("commande à deux taux rendue en deux fois : net 0 à chaque taux dans le récap, la synthèse et Crésus", async () => {
+    const jour = "2026-12-11";
+    const c = await commande([{ slug: pizza, total: 1850 }, { slug: "biere-r20", total: 650 }], "r20-tout-rendre");
+    await db.query("update commandes set jour = $2, jour_service = $2 where id = $1", [c, jour]);
+    for (const [cle, montant] of [["remb-r20-tout-01", 1000], ["remb-r20-tout-02", 1500]] as const) {
+      await db.query(
+        `insert into remboursements (commande_id, cle, montant_centimes, motif, moyen, statut, personnel_nom, cree_le, fait_le)
+         values ($1, $2, $3, 'Geste', 'stripe', 'fait', 'R20', $4::timestamptz, $4::timestamptz)`,
+        [c, cle, montant, `${jour}T13:00:00+01:00`],
+      );
+    }
+    const recap = await f<RecapJour[]>("export_recap_jours($1, $2)", [jour, jour]);
+    expect(recap.map((l) => [Number(l.taux_tva_pourcent), l.net_ttc_centimes, l.net_tva_centimes])).toEqual([
+      [reduit, 0, 0],
+      [normal, 0, 0],
+    ]);
+    const s = await f<{ tva: { taux_pourcent: number; net_ttc_centimes: number; net_tva_centimes: number }[] }>("pilotage_synthese($1, $2)", [jour, jour]);
+    expect(s.tva.map((t) => [Number(t.taux_pourcent), t.net_ttc_centimes, t.net_tva_centimes])).toEqual([
+      [reduit, 0, 0],
+      [normal, 0, 0],
+    ]);
+    const d = await f<DonneesEtendues>("export_cresus_etendu($1, $2)", [jour, jour]);
+    const COMPTES = { caisse: "1000", stripe: "1090", terminal: "1091", tva: "2200", ventes: "3200", livraison: "3400", remboursements: "3800", rabais: "3801", cagnotte: "3802" };
+    const r = ecrituresEtendues(d, { comptes: COMPTES, codes_tva: { [reduit.toFixed(1)]: "RED", [normal.toFixed(1)]: "NOR" } });
+    if (!r.ok) throw new Error(r.erreur);
+    for (const code of ["RED", "NOR"]) {
+      const tvaNette = r.lignes.filter((l) => l.code === code).reduce((x, l) => x + (l.credit === COMPTES.tva ? l.centimes : 0) - (l.debit === COMPTES.tva ? l.centimes : 0), 0);
+      expect(tvaNette).toBe(0);
+    }
+  });
+});
+
 describe("règles de TVA d'une commande à deux taux", () => {
   it("le gérant les change, journalisé ; une valeur inconnue ou un employé est refusé", async () => {
     expect(await f<unknown>("regles_tva()")).toEqual({ frais_tva_mixte: "normal", rabais_tva_mixte: "reduit_dabord" });
