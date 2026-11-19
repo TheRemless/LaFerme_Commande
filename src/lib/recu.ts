@@ -8,13 +8,8 @@ import type { RemboursementSuivi } from "@/lib/suivi";
 // Reçu avec TVA d'une commande payée, depuis le suivi et le compte. Pas de nom de famille, de téléphone ni
 // d'adresse de livraison : le lien de suivi se transfère, le reçu aussi.
 
-// Registre de faits La Ferme : extrait du registre du commerce de Genève (rc.ge.ch, 13.11.2026) et registre
-// IDE fédéral (uid.admin.ch, lu le 13.11.2026, TVA active depuis le 1.1.2016).
-export const VENDEUR = {
-  raison: "Restaurant La Ferme Sàrl",
-  adresse: "Route de Chancy 132, 1213 Onex",
-  tva: "CHE-103.250.692 TVA",
-} as const;
+// Vendeur (raison sociale, adresse, numéro de TVA) : un seul endroit, partagé avec le justificatif papier.
+export { VENDEUR } from "@/lib/vendeur";
 
 // Une vente encaissée : payée en ligne ou au comptoir. Une commande refusée ou annulée n'est pas une vente.
 export function recuDisponible(c: Pick<Commande, "statut" | "statut_paiement">): boolean {

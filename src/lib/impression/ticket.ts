@@ -1,4 +1,5 @@
 import type { PostePlat } from "@/lib/postes-plat";
+import { VENDEUR } from "@/lib/vendeur";
 import { prixChf } from "@/lib/prix";
 
 // Ticket de cuisine 80 mm (docs/recherche/prompt-v1-ancien-site.md §8). Une liste de lignes mises en
@@ -122,6 +123,66 @@ export function ticketsDeCommande(
     }
     return { station, contenu };
   });
+}
+
+// ---------- Justificatif du client, dans le sac (compta, R6, R7, R24 de docs/compta/plan-conformite.md) ----------
+
+// Sans la mention « Livraison sans préparation ni service » ou « À l'emporter », l'AFC présume la restauration à
+// 8,1 % sur tout (Info TVA 08, ch. 1.3.2 et 1.3.3). Le justificatif porte donc la mention, la raison sociale, la
+// localité et le numéro de TVA, la date, chaque article avec son prix et son taux, les rabais, le total et la TVA.
+// Un seul taux par commande aujourd'hui (pas d'alcool à la carte) : code « A » et sa légende. Le taux par ligne
+// viendra avec bo-carte (commande_lignes.taux_tva_pourcent).
+export type CommandePourJustificatif = CommandePourTicket & {
+  lignes: (CommandePourTicket["lignes"][number] & { total_centimes: number })[];
+  sous_total_centimes: number;
+  frais_centimes: number;
+  total_centimes: number;
+  tva_centimes: number;
+  taux_tva_pourcent: number;
+  cagnotte_centimes?: number | null;
+  remise_centimes?: number | null;
+  code_promo?: string | null;
+};
+
+const chf = (centimes: number) => `CHF ${(centimes / 100).toFixed(2)}`;
+const DATE_TICKET = new Intl.DateTimeFormat("fr-CH", { timeZone: "Europe/Zurich", day: "2-digit", month: "2-digit", year: "numeric" });
+
+// Mention qui fixe le taux réduit : seule ligne que l'AFC lit pour distinguer la vente à l'emporter du service à table.
+export function mentionJustificatif(c: Pick<CommandePourTicket, "mode" | "client_prenom" | "client_nom" | "adresse" | "destinataire">): string[] {
+  if (c.mode !== "livraison") return ["À l'emporter"];
+  const nom = c.destinataire?.nom?.trim() || `${c.client_prenom} ${c.client_nom}`.trim();
+  const a = c.adresse;
+  return ["Livraison sans préparation ni service à :", nom, ...(a ? [`${a.rue} ${a.numero}`, `${a.npa} ${a.localite}`] : [])];
+}
+
+export function ticketClient(c: CommandePourJustificatif, { accepteLe }: { accepteLe: string | Date }): LigneTicket[] {
+  const taux = String(c.taux_tva_pourcent).replace(".", ",");
+  const contenu: LigneTicket[] = [
+    { t: "texte", texte: "JUSTIFICATIF CLIENT", taille: 2, gras: true },
+    { t: "texte", texte: VENDEUR.raison, gras: true },
+    { t: "texte", texte: VENDEUR.adresse },
+    { t: "texte", texte: VENDEUR.tva },
+    { t: "deux", gauche: `Commande N° ${String(c.numero).padStart(3, "0")}`, droite: DATE_TICKET.format(new Date(c.heure_confirmee ?? accepteLe)) },
+    { t: "filet" },
+  ];
+  mentionJustificatif(c).forEach((texte, i) => contenu.push({ t: "texte", texte, gras: i === 0 }));
+  contenu.push({ t: "filet" });
+  for (const l of c.lignes) {
+    const article = `${l.qte} x ${l.nom}`;
+    const prix = `${chf(l.total_centimes)} A`;
+    // 48 colonnes à l'impression : un nom long passe seul sur sa ligne, le prix à droite de la suivante.
+    if (article.length + prix.length + 1 > 48) contenu.push({ t: "texte", texte: article }, { t: "deux", gauche: "", droite: prix });
+    else contenu.push({ t: "deux", gauche: article, droite: prix });
+  }
+  if (c.mode === "livraison" && c.frais_centimes > 0) contenu.push({ t: "deux", gauche: "Frais de livraison", droite: `${chf(c.frais_centimes)} A` });
+  if (c.remise_centimes) contenu.push({ t: "deux", gauche: c.code_promo ? `Code ${c.code_promo}` : "Rabais", droite: `- ${chf(c.remise_centimes)}` });
+  // Cagnotte : réduction de prix, la TVA est calculée sur le total net (R24).
+  if (c.cagnotte_centimes) contenu.push({ t: "deux", gauche: "Cagnotte utilisée", droite: `- ${chf(c.cagnotte_centimes)}` });
+  contenu.push({ t: "filet" });
+  contenu.push({ t: "deux", gauche: "TOTAL", droite: chf(c.total_centimes), taille: 2, gras: true });
+  contenu.push({ t: "texte", texte: `A = TVA ${taux} %, comprise : ${chf(c.tva_centimes)} sur ${chf(c.total_centimes)}` });
+  contenu.push({ t: "texte", texte: `Paiement : ${paiement(c)}` });
+  return contenu;
 }
 
 // Ticket « ANNULÉE » pour un poste qui a déjà reçu la commande (annulation après acceptation, SS-03).
