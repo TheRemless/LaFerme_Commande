@@ -107,6 +107,9 @@ test("reçu avec TVA : vendeur, numéro de TVA, plats et TVA, sans données du c
   await expect(recu.locator(".recu-total")).toContainText("Total");
   await expect(recu).toContainText(/dont TVA \d+,?\d* %/);
   await expect(recu).toContainText("Payé en ligne.");
+  // Mention qui fonde la TVA à 2,6 % et code de taux par ligne (plan de conformité R6 et R7).
+  await expect(recu.locator(".recu-mention")).toHaveText("À l'emporter");
+  await expect(recu).toContainText("A = TVA 2,6 % comprise.");
   // Ni nom de famille, ni téléphone, ni e-mail.
   await expect(recu).not.toContainText("079 000 00 00");
   await expect(recu).not.toContainText(`${prenom.toLowerCase()}@laferme.test`);
