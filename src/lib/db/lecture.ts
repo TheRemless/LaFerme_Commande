@@ -14,6 +14,9 @@ const LISIBLES = [
   "fermetures",
   "reglages",
   "ouvertures",
+  // TVA (20261217150000) : taux du jour et taux de chaque plat.
+  "taux_tva_en_vigueur",
+  "tva_plats_publics",
 ] as const;
 export type Lisible = (typeof LISIBLES)[number];
 export type SourceDonnees = "supabase" | "locale";

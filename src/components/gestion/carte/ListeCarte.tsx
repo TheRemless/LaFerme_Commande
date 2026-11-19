@@ -5,7 +5,7 @@ import "./carte.css";
 import { FichePlat, NouveauPlat, type DonneesCarte, type PlatGestion } from "@/components/gestion/GestionCarte";
 import { PhotosEnLot } from "@/components/gestion/carte/PhotosEnLot";
 import { PrixEnLot } from "@/components/gestion/carte/PrixEnLot";
-import { DispoRupture, CopierPlat, Etiquettes, ETIQUETTES } from "@/components/gestion/carte/FicheVague3";
+import { DispoRupture, CopierPlat, Etiquettes, ETIQUETTES, TeneurAlcool } from "@/components/gestion/carte/FicheVague3";
 import { CommandesTouchees, EpuiserPoste, RupturesGroupees } from "@/components/gestion/carte/FourEnPanne";
 import { jourCourtFr } from "@/components/gestion/carte/dates";
 import { enregistrer } from "@/components/gestion/enregistrer";
@@ -398,6 +398,9 @@ export function ListeCarte({ donnees, recharger, version }: { donnees: DonneesCa
             <CommandesTouchees key={touchees.fois} requete={{ slugs: [plat.slug], jusqu_au: touchees.jusqu_au }} aujourdhui={donnees.aujourdhui} />
           )}
           {!plat.archive && <Etiquettes key={`e-${plat.slug}-${version}-${(plat.etiquettes ?? []).join()}`} plat={plat} recharger={recharger} />}
+          {!plat.archive && plat.categorie_slug === "boissons" && (
+            <TeneurAlcool key={`t-${plat.slug}-${version}-${plat.teneur_alcool ?? ""}`} plat={plat} recharger={recharger} />
+          )}
           {plat.origine !== "jour" && (
             <CopierPlat
               plat={plat}

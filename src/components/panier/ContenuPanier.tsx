@@ -6,6 +6,7 @@ import { calculerPanier, platDe, type Catalogue, type LignePanier } from "@/lib/
 import type { CalculPanier, ReponsePanier, SuiviPanier } from "@/lib/panier-local";
 import type { Choix } from "@/lib/choix";
 import { prixChf, prixCourt } from "@/lib/prix";
+import { libelleTaux } from "@/lib/tva";
 import { estPanneRegistre } from "@/lib/registre-panne";
 import { PanneRegistre } from "@/components/PanneRegistre";
 import { nomAffiche } from "@/components/Plat";
@@ -165,7 +166,7 @@ export function ContenuPanier({
           <dd>{prixChf(t.total_centimes)}</dd>
         </div>
         <div className="tva">
-          <dt>dont TVA {String(catalogue.tauxTvaPourcent).replace(".", ",")} %</dt>
+          <dt>dont TVA {libelleTaux(t.taux_tva?.length ? t.taux_tva : [catalogue.tauxTvaPourcent])}</dt>
           <dd>{prixChf(t.tva_centimes)}</dd>
         </div>
       </dl>

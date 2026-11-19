@@ -116,6 +116,37 @@ test("les étiquettes se posent sur la fiche ; végane coche aussi végétarien"
   await gestion.keyboard.press("Escape");
 });
 
+test("boisson : la teneur en alcool se saisit, le taux de TVA en découle (0,6 % vol. change le taux)", async ({}, info) => {
+  // Une boisson par projet : bureau et mobile tournent en même temps sur la même base.
+  const nom = info.project.name === "mobile" ? "Coca-Cola Zéro" : "Thé froid pêche";
+  await gestion.goto("/gestion/carte");
+  const recherche = gestion.getByRole("searchbox").or(gestion.getByPlaceholder("Nom ou description")).first();
+  await recherche.fill(nom);
+  await gestion.getByRole("table").getByRole("button", { name: new RegExp(`^${nom}`) }).click();
+  const panneau = gestion.getByRole("dialog", { name: nom });
+  const teneur = panneau.getByLabel("Teneur en alcool (% vol.)");
+  await expect(teneur).toHaveValue("");
+  const taux = panneau.getByText(/^Taux de TVA aujourd'hui/);
+  const sansAlcool = await taux.textContent();
+  await teneur.fill("0,6");
+  await panneau.getByRole("button", { name: "Enregistrer la teneur" }).click();
+  await expect(gestion.getByText(/^Teneur enregistrée\. TVA/).last()).toBeVisible();
+  await expect(taux).not.toHaveText(sansAlcool!);
+  await taux.scrollIntoViewIfNeeded();
+  await capture("carte-teneur-alcool", info);
+  // Remise sans alcool, pour ne rien laisser dans la carte des autres tests.
+  await panneau.getByLabel("Teneur en alcool (% vol.)").fill("");
+  await panneau.getByRole("button", { name: "Enregistrer la teneur" }).click();
+  await expect(taux).toHaveText(sansAlcool!);
+  // Un plat qui n'est pas une boisson n'a pas le champ.
+  await gestion.keyboard.press("Escape");
+  await recherche.fill("Tonno");
+  await gestion.getByRole("table").getByRole("button", { name: "Pizza Tonno" }).click();
+  await expect(gestion.getByRole("dialog", { name: "Pizza Tonno" }).getByLabel("Teneur en alcool (% vol.)")).toHaveCount(0);
+  await gestion.keyboard.press("Escape");
+  await recherche.fill("");
+});
+
 test("en lot : retirer de la vente puis remettre en vente", async () => {
   await gestion.goto("/gestion/carte");
   const tableau = gestion.getByRole("table");
@@ -125,7 +156,8 @@ test("en lot : retirer de la vente puis remettre en vente", async () => {
   await expect(gestion.getByText("1 plat retiré de la vente.")).toBeVisible();
   await expect(ligne).toContainText("Hors vente");
   await tableau.getByRole("checkbox", { name: "Sélectionner Pizza Tonno" }).check();
-  await gestion.getByRole("button", { name: "Mettre en vente" }).click();
+  // exact : le bandeau « Four en panne » du test de l'autre projet peut montrer « Remettre en vente » en même temps.
+  await gestion.getByRole("button", { name: "Mettre en vente", exact: true }).click();
   await expect(gestion.getByText("1 plat en vente.")).toBeVisible();
   await expect(ligne).toContainText("En vente");
 });
