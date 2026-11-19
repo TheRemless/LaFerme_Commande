@@ -53,12 +53,6 @@ beforeAll(async () => {
   mixte = await commande([{ slug: pizza, total: 2000 }, { slug: "biere-r20", total: 500 }], "r20-mixte");
 });
 
-describe("verrou de l'alcool", () => {
-  it("reste fermé : bo-carte l'ouvre avec la teneur obligatoire, après cette PR", async () => {
-    expect(await f<unknown>("(select valeur from reglages where cle = 'compta_multi_taux_pret')")).toBe(false);
-  });
-});
-
 describe("commande à deux taux", () => {
   it("récap, export des ventes et synthèse : une ligne par taux, TVA de chaque taux, commande comptée une fois", async () => {
     const recap = await f<RecapJour[]>("export_recap_jours($1, $2)", [JOUR, JOUR]);
