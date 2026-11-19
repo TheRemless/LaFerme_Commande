@@ -11,6 +11,7 @@ import { destinataireAlertes } from "@/lib/reglages-generaux";
 import { etatService, type ConfigService } from "@/lib/service";
 import { rafraichirCaches } from "@/lib/tablette";
 import { tourCagnotte } from "@/lib/cagnotte";
+import { courrielCasParrainage, detecterAlertesParrainage, noterAlerteParrainageEnvoyee } from "@/lib/alertes-parrainage";
 
 // Surveillance du service, une fois par minute au plus, déclenchée par les passages des imprimantes,
 // les relectures de la tablette et, en production, une fonction planifiée Netlify.
@@ -173,8 +174,24 @@ export async function executerSurveillance(maintenant = new Date()): Promise<{ f
       "Les commandes en ligne sont en pause. Rallumez la tablette, puis touchez « Reprendre les commandes ».",
     ], "alerte", "tablette_muette").catch((e) => console.error(`Alerte non envoyée : ${e instanceof Error ? e.message : e}`));
   }
+  // Parrainage à surveiller (vague 3, client-compte) : chaque cas nouveau part une fois par le circuit des alertes,
+  // puis il est noté envoyé. Avant la migration 20261217090000, la fonction n'existe pas : rien à faire.
+  await alerterParrainage().catch((e) => {
+    const m = e instanceof Error ? e.message : String(e);
+    if (!/does not exist|Could not find the function/i.test(m)) console.error(`Alertes de parrainage : ${m}`);
+  });
+
   // En dernier, les paiements perdus (appels à Stripe) : un Stripe lent ne retarde ni la pause automatique
   // ni les alertes ci-dessus.
   const rattrapes = await rattraperPaiements();
   return { fait: true, retards: retards.length, pause, imprimees, rattrapes };
+}
+
+// Tous les cas du tour dans un seul e-mail (un abus en déclenche souvent plusieurs : même adresse, même nom, même IP).
+async function alerterParrainage(): Promise<void> {
+  const cas = await detecterAlertesParrainage();
+  if (!cas.length) return;
+  const m = courrielCasParrainage(cas);
+  await alerter(m.sujet, m.lignes, "alerte", "parrainage_abus");
+  for (const c of cas) await noterAlerteParrainageEnvoyee(c.id);
 }

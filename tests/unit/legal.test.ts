@@ -68,7 +68,8 @@ describe("ébauches légales", () => {
     expect(commande).toContain("L'heure de livraison ou de retrait s'affiche alors sur la page de suivi.");
   });
 
-  it("CGV, cagnotte : les règles validées par Jérémy le 15.11.2026", () => {
+  it("CGV, cagnotte : les règles validées par Jérémy le 15.11.2026 (minimum du parrainage le 19.11.2026)", () => {
+    expect(JSON.stringify(CGV)).not.toContain("à confirmer par Jérémy]");
     const texte = JSON.stringify(CGV.sections.find((s) => s.titre === "Cagnotte")?.contenu);
     for (const regle of [
       "chaque commande livrée ou retirée vous rapporte 5 % du prix des plats",
@@ -80,7 +81,8 @@ describe("ébauches légales", () => {
       "Elle ne sert ni au comptoir ni pour une commande passée par téléphone.",
       "Elle expire 12 mois après votre dernière commande. Un e-mail vous prévient 30 jours avant",
       "vous recevez chacun CHF 10 dans votre cagnotte",
-      "Le lien vaut une fois que vous avez vous-même passé une commande livrée ou retirée",
+      "Le lien vaut une fois que vous avez vous-même passé une commande livrée ou retirée d'au moins CHF 30 de plats",
+      "Le restaurant peut suspendre un parrainage en cas d'abus",
       "Le crédit est repris si cette commande est remboursée en entier, ou en partie au point de passer sous ce montant de plats.",
       "Un proche n'a qu'un seul parrain. Un compte parraine au plus 10 proches par mois.",
     ]) {

@@ -38,6 +38,8 @@ export const GROUPES: Groupe[] = [
       { href: "/gestion/commandes", titre: "Commandes", icone: "commandes", resume: "Retrouver une commande, voir son historique, rembourser.", droit: "voir_commandes" },
       // bo-commandes. Responsable : lecture (liste, fiche) ; notes, marque et gestes restent au gérant (routes).
       { href: "/gestion/clients", titre: "Clients", icone: "clients", resume: "Les clients, leurs commandes et leurs réclamations.", droit: "voir_commandes" },
+      // client-compte. Gérant seulement (pas de droit délégué au responsable) : suspendre un parrain touche à l'argent.
+      { href: "/gestion/parrainages", titre: "Parrainages", icone: "clients", resume: "Les parrains, leurs filleuls et les signaux d'abus à examiner." },
     ],
   },
   {

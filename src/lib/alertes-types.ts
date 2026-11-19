@@ -14,7 +14,8 @@ export type GenreAlerte =
   | "reclamation"
   | "quota_courriels"
   | "plafond_codes"
-  | "adresse_bloquee";
+  | "adresse_bloquee"
+  | "parrainage_abus";
 
 export type TypeAlerte = { cle: GenreAlerte; libelle: string; aide: string | null; actif: boolean };
 
