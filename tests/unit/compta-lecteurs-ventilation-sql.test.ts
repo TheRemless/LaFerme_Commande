@@ -45,7 +45,7 @@ beforeAll(async () => {
   normal = Number(await f<string>("taux_tva_du('normal', $1::date)", [JOUR]));
   reduit = Number(await f<string>("taux_tva_du('reduit', $1::date)", [JOUR]));
   pizza = (await db.query<{ slug: string }>("select slug from plats where station = 'pizza' order by slug limit 1")).rows[0].slug;
-  // Une bière à 5 % vol. : vendable puisque la compta à deux taux est prête (20261217200000).
+  // Une bière à 5 % vol., hors vente (verrou de bo-carte) : les commandes d'essai sont écrites directement.
   await db.query(
     "insert into plats (slug, categorie_id, nom, prix_centimes, station, commandable) select 'biere-r20', id, 'Bière', 500, 'comptoir', false from categories where slug = 'boissons'",
   );
@@ -53,11 +53,9 @@ beforeAll(async () => {
   mixte = await commande([{ slug: pizza, total: 2000 }, { slug: "biere-r20", total: 500 }], "r20-mixte");
 });
 
-describe("compta à deux taux prête", () => {
-  it("le verrou de bo-carte est levé : une boisson alcoolisée peut être mise en vente", async () => {
-    expect(await f<unknown>("(select valeur from reglages where cle = 'compta_multi_taux_pret')")).toBe(true);
-    await db.query("update plats set commandable = true where slug = 'biere-r20'");
-    expect(await f<boolean>("(select commandable from plats where slug = 'biere-r20')")).toBe(true);
+describe("verrou de l'alcool", () => {
+  it("reste fermé : bo-carte l'ouvre avec la teneur obligatoire, après cette PR", async () => {
+    expect(await f<unknown>("(select valeur from reglages where cle = 'compta_multi_taux_pret')")).toBe(false);
   });
 });
 

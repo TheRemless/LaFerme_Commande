@@ -134,8 +134,6 @@ describe("taux datés (R5)", () => {
 
 describe("taux d'un plat, calculé d'après la teneur en alcool (R1, R3)", () => {
   it("garde-fou : une boisson alcoolisée ne se met pas en vente tant que la compta à deux taux n'est pas prête", async () => {
-    // Le réglage est vrai depuis 20261217200000 (bo-pilotage : lecteurs sur la ventilation) ; le verrou reste à vérifier.
-    await db.query("update reglages set valeur = 'false' where cle = 'compta_multi_taux_pret'");
     // Coca-Cola est en vente : 0,6 % vol. est refusé, rien n'est écrit.
     await expect(f("regler_teneur_alcool('coca-cola', 0.6, $1)", [gerant])).rejects.toThrow(/alcool_compta_pas_prete/);
     expect(await q<string | null>("select teneur_alcool as r from plats where slug = 'coca-cola'")).toBeNull();

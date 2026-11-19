@@ -13,8 +13,8 @@
 --   export_recap_jours (20261216140000), export_cresus (20261216140000), export_ventes (20261215140000),
 --   export_remboursements (20261117090000), export_cresus_etendu (20261217130000).
 -- Nouveau : regler_regle_tva (réglages frais_tva_mixte et rabais_tva_mixte de bo-carte, à l'écran du gérant).
--- Le réglage compta_multi_taux_pret passe à vrai : les lecteurs suivent la ventilation, une boisson alcoolisée peut
--- être mise en vente (verrou de 20261217150000).
+-- Le réglage compta_multi_taux_pret reste faux : bo-carte le passe à vrai dans la PR qui rend la teneur en alcool
+-- obligatoire pour vendre une boisson (accord du 19.11.2026), une fois ces lecteurs fusionnés.
 
 create or replace function pilotage_synthese(p_debut date, p_fin date, p_service text default null) returns jsonb
 language sql stable as $$
@@ -437,7 +437,7 @@ language sql stable as $$
   );
 $$;
 
--- ---------- Réglages de bo-carte à l'écran (F3, F4), compta à deux taux prête ----------
+-- ---------- Réglages de bo-carte à l'écran (F3, F4) ----------
 
 -- p_cle : frais_tva_mixte ('normal' | 'prorata') ou rabais_tva_mixte ('reduit_dabord' | 'prorata'). Gérant, journalisé.
 create function regler_regle_tva(p_cle text, p_valeur text, p_personnel uuid) returns text
@@ -464,9 +464,6 @@ create function regles_tva() returns jsonb
 language sql stable as $$
   select jsonb_build_object('frais_tva_mixte', regle_tva('frais_tva_mixte'), 'rabais_tva_mixte', regle_tva('rabais_tva_mixte'));
 $$;
-
-insert into reglages (cle, valeur, proposition) values ('compta_multi_taux_pret', 'true', false)
-  on conflict (cle) do update set valeur = 'true';
 
 revoke execute on function regler_regle_tva(text, text, uuid), regles_tva() from public, anon, authenticated;
 grant execute on function regler_regle_tva(text, text, uuid), regles_tva() to service_role;
