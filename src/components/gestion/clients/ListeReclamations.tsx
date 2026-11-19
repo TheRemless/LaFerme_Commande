@@ -244,6 +244,9 @@ type Fiche = Ligne & {
   autres: number;
   gestes_actifs: boolean;
   codes_actifs?: boolean;
+  // R16 : plats de la carte qu'on peut offrir, et la valeur déjà offerte au client cette année.
+  plats_offrables?: { slug: string; nom: string; prix_centimes: number }[];
+  offerts_annee_centimes?: number;
   code?: {
     code: string;
     type: "montant" | "pourcentage";
@@ -511,6 +514,7 @@ function Geste({ fiche, fait }: { fiche: Fiche; fait: () => Promise<void> }) {
     {
       geste: "",
       remboursement_id: remboursables[0]?.id ?? "",
+      plat_slug: "",
       detail: "",
       type: "",
       valeur: "",
@@ -538,14 +542,14 @@ function Geste({ fiche, fait }: { fiche: Fiche; fait: () => Promise<void> }) {
             ? {}
             : { valeur: "Un montant en francs, par exemple 5 ou 7.50." };
         }
-        return v.detail.trim().length >= 3
-          ? {}
-          : {
-              detail:
-                v.geste === "plat_offert"
-                  ? "Dites ce qui est offert."
-                  : "Dites pourquoi.",
-            };
+        if (v.geste === "plat_offert") {
+          if (!v.plat_slug) return { plat_slug: "Choisissez le plat offert." };
+          const n = v.detail.trim().length;
+          return n === 0 || (n >= 3 && n <= 150)
+            ? {}
+            : { detail: "De 3 à 150 caractères, ou rien." };
+        }
+        return v.detail.trim().length >= 3 ? {} : { detail: "Dites pourquoi." };
       },
       enregistrer: (v) =>
         poster("/api/gestion/reclamations", {
@@ -562,7 +566,9 @@ function Geste({ fiche, fait }: { fiche: Fiche; fait: () => Promise<void> }) {
                       ? Number(v.valeur.trim())
                       : centimesDe(v.valeur),
                 }
-              : { detail: v.detail }),
+              : v.geste === "plat_offert"
+                ? { plat_slug: v.plat_slug, detail: v.detail.trim() }
+                : { detail: v.detail }),
         }),
       // Annoncé une fois la fiche rechargée : un choix fait juste après n'est plus effacé (qualite, CI #181).
       apres: async () => {
@@ -660,11 +666,10 @@ function Geste({ fiche, fait }: { fiche: Fiche; fait: () => Promise<void> }) {
               )}
             </Champ>
           </>
+        ) : g === "plat_offert" ? (
+          <PlatOffert fiche={fiche} f={f} />
         ) : (
-          <Champ
-            libelle={g === "plat_offert" ? "Ce qui est offert" : "Pourquoi"}
-            erreur={f.erreurs.detail}
-          >
+          <Champ libelle="Pourquoi" erreur={f.erreurs.detail}>
             {(a) => (
               <input
                 {...a}
@@ -691,5 +696,65 @@ function Geste({ fiche, fait }: { fiche: Fiche; fait: () => Promise<void> }) {
         />
       </form>
     </section>
+  );
+}
+
+// R16 : le plat offert se choisit dans la carte (sa valeur vient de la base) ; la précision est facultative. La
+// valeur déjà offerte au client dans l'année est rappelée, avec le seuil de CHF 500 par personne et par an.
+const SEUIL_OFFERT_CENTIMES = 50_000;
+function PlatOffert({
+  fiche,
+  f,
+}: {
+  fiche: Fiche;
+  f: {
+    valeurs: { plat_slug: string; detail: string };
+    erreurs: { plat_slug?: string; detail?: string };
+    changer: (k: "plat_slug" | "detail", v: string) => void;
+  };
+}) {
+  const plats = fiche.plats_offrables ?? [];
+  const choisi = plats.find((p) => p.slug === f.valeurs.plat_slug);
+  const deja = fiche.offerts_annee_centimes ?? 0;
+  const apres = deja + (choisi?.prix_centimes ?? 0);
+  return (
+    <>
+      <Champ
+        libelle="Plat offert"
+        aide={`Déjà offert à ce client cette année : CHF ${montant(deja)}.`}
+        erreur={f.erreurs.plat_slug}
+      >
+        {(a) => (
+          <select
+            {...a}
+            value={f.valeurs.plat_slug}
+            onChange={(e) => f.changer("plat_slug", e.target.value)}
+          >
+            <option value="">Choisir…</option>
+            {plats.map((p) => (
+              <option key={p.slug} value={p.slug}>
+                {p.nom}, CHF {montant(p.prix_centimes)}
+              </option>
+            ))}
+          </select>
+        )}
+      </Champ>
+      {apres > SEUIL_OFFERT_CENTIMES && (
+        <p className="bo-champ-aide" role="status">
+          Avec ce plat, ce client aura reçu CHF {montant(apres)} offerts cette
+          année. Le seuil est de CHF 500 par personne et par an.
+        </p>
+      )}
+      <Champ libelle="Précision (facultatif)" erreur={f.erreurs.detail}>
+        {(a) => (
+          <input
+            {...a}
+            maxLength={150}
+            value={f.valeurs.detail}
+            onChange={(e) => f.changer("detail", e.target.value)}
+          />
+        )}
+      </Champ>
+    </>
   );
 }

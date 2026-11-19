@@ -51,5 +51,36 @@ for (const [l, h] of [[1440, 900], [375, 812]]) {
     await contexte.close();
   }
 }
+// R16 (plan de conformité comptable) : plat offert choisi dans la carte. Les plats et leurs prix viennent de la carte
+// de l'instance (GET /api/gestion/carte) ; la valeur déjà offerte au client est un exemple, pour montrer l'avertissement.
+const carte = await http("GET", "/api/gestion/carte", { cookie: gerant });
+const plats = (carte.json.categories ?? [])
+  .flatMap((c) => c.plats)
+  .filter((x) => !x.archive && x.commandable)
+  .map((x) => ({ slug: x.slug, nom: x.nom, prix_centimes: x.prix_centimes }))
+  .sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
+if (!plats.length) throw new Error("Carte vide : rien à offrir.");
+for (const [l, h] of [[1440, 900], [375, 812]]) {
+  const contexte = await navigateur.newContext({ viewport: { width: l, height: h }, hasTouch: l < 1100 });
+  await contexte.addCookies([{ name: nom, value: valeur, url: BASE }]);
+  const p = await contexte.newPage();
+  await p.route("**/api/gestion/reclamations", async (r) => {
+    const corps = JSON.parse(r.request().postData() ?? "{}");
+    if (corps.action !== "fiche") return r.continue();
+    const vraie = await (await r.fetch()).json();
+    await r.fulfill({ json: { ...vraie, gestes_actifs: true, codes_actifs: true, plats_offrables: plats, offerts_annee_centimes: 49_500 } });
+  });
+  await p.addInitScript((c) => sessionStorage.setItem("laferme.gestion.ouvrir", JSON.stringify({ type: "reclamation", cle: c, le: Date.now() })), id);
+  await p.goto(`${BASE}/gestion/clients`);
+  const fiche = p.getByRole("dialog");
+  await fiche.getByText("Les pizzas sont arrivées tièdes.", { exact: false }).waitFor();
+  await fiche.getByLabel("Geste pour le client").selectOption("plat_offert");
+  await fiche.getByLabel("Plat offert").selectOption(plats[0].slug);
+  await fiche.getByLabel("Précision (facultatif)").fill("avec nos excuses pour le retard");
+  await fiche.getByLabel("Geste pour le client").scrollIntoViewIfNeeded();
+  await attendre(400);
+  await p.screenshot({ path: `${dossier}/gestes-plat-offert-${l}.jpg`, quality: 80, fullPage: l === 375 });
+  await contexte.close();
+}
 await navigateur.close();
 console.log("Captures écrites dans", dossier);
