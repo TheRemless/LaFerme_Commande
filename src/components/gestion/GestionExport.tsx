@@ -1,16 +1,21 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
-import { LIBELLES_COMPTES, ROLES_COMPTES, type PlanComptes, type RoleCompte } from "@/lib/export-cresus";
+import { LIBELLES_COMPTES, ROLES_COMPTES, TAUX_CODES, type CodesTva, type PlanComptes, type RoleCompte } from "@/lib/export-cresus";
 import { jourGeneveDe } from "@/lib/heures";
 import { poster } from "@/lib/requete-client";
 import "./export.css";
 
-type Format = "commandes" | "jours" | "cresus";
+type Format = "commandes" | "jours" | "cresus" | "cresus_etendu";
 const FORMATS: [Format, string, string][] = [
   ["commandes", "Une ligne par commande", "Fichier CSV pour un tableur, puis le total par taux de TVA."],
   ["jours", "Une ligne par jour", "Fichier CSV : ventes, remboursements et TVA de chaque jour."],
   ["cresus", "Écritures pour Crésus", "Fichier texte à importer dans Crésus Comptabilité, avec le plan de comptes ci-dessous."],
+  [
+    "cresus_etendu",
+    "Écritures pour Crésus, avec la TVA",
+    "Format étendu : ventes au brut, rabais et cagnotte à part, un avoir par remboursement, codes TVA du dossier. À valider par un import d'essai avec la fiduciaire.",
+  ],
 ];
 
 const AIDES: Partial<Record<RoleCompte, string>> = {
@@ -19,6 +24,8 @@ const AIDES: Partial<Record<RoleCompte, string>> = {
   ventes: "Ventes hors TVA, à 2,6 % (à l'emporter et livraison).",
   livraison: "Frais de livraison hors TVA.",
   remboursements: "Remboursements faits aux clients, hors TVA.",
+  rabais: "Rabais des codes promo, hors TVA, en diminution des ventes.",
+  cagnotte: "Cagnotte utilisée par les clients, hors TVA, en diminution des ventes.",
 };
 
 // Export comptable : ventes par commande ou par jour (CSV), écritures pour Crésus, et le plan de comptes.
@@ -83,7 +90,7 @@ export function GestionExport() {
           ))}
         </fieldset>
         <button type="button" className="bouton-principal" onClick={telecharger}>
-          {format === "cresus" ? "Télécharger pour Crésus" : "Télécharger le fichier CSV"}
+          {format === "cresus" || format === "cresus_etendu" ? "Télécharger pour Crésus" : "Télécharger le fichier CSV"}
         </button>
         {erreur && (
           <p className="panier-alerte" role="alert">
@@ -99,6 +106,7 @@ export function GestionExport() {
 function PlanCresus() {
   const [plan, setPlan] = useState<PlanComptes | null>(null);
   const [comptes, setComptes] = useState<Record<RoleCompte, string> | null>(null);
+  const [codes, setCodes] = useState<CodesTva>({});
   const [message, setMessage] = useState<{ ok: boolean; texte: string } | null>(null);
   const [envoi, setEnvoi] = useState(false);
 
@@ -108,6 +116,7 @@ function PlanCresus() {
       .then((p) => {
         setPlan(p);
         setComptes(p.comptes);
+        setCodes(p.codes_tva ?? {});
       })
       .catch(() => setMessage({ ok: false, texte: "Plan de comptes pas lu. Rechargez la page." }));
   }, []);
@@ -117,11 +126,12 @@ function PlanCresus() {
     if (!comptes) return;
     setEnvoi(true);
     setMessage(null);
-    const r = await poster("/api/gestion/export/plan", { comptes });
+    const r = await poster("/api/gestion/export/plan", { comptes, codes_tva: codes });
     if (r.ok) {
       const p = r.donnees as unknown as PlanComptes;
       setPlan(p);
       setComptes(p.comptes);
+      setCodes(p.codes_tva ?? {});
       setMessage({ ok: true, texte: "Plan de comptes enregistré." });
     } else {
       setMessage({ ok: false, texte: String(r.donnees.erreur ?? "Pas enregistré.") });
@@ -139,8 +149,9 @@ function PlanCresus() {
         </p>
       )}
       <p className="aide">
-        Chaque jour donne des écritures simples, un compte au débit et un au crédit : les ventes hors TVA, les frais de livraison et la TVA, par moyen
-        d&apos;encaissement, puis les remboursements. Les frais de Stripe n&apos;y sont pas : ils se voient sur les versements de Stripe.
+        Chaque jour donne, par moyen d&apos;encaissement, les ventes, les frais de livraison et la TVA, puis les remboursements. Avec la TVA (format
+        étendu), les ventes sortent au brut, le rabais des codes promo et la cagnotte à part, et chaque remboursement devient un avoir numéroté. Les
+        frais de Stripe n&apos;y sont pas encore : ils se voient sur les versements de Stripe.
       </p>
       {comptes && (
         <form className="bo-export-plan" onSubmit={enregistrer} noValidate>
@@ -160,6 +171,22 @@ function PlanCresus() {
                   {AIDES[r]}
                 </span>
               )}
+            </div>
+          ))}
+          {TAUX_CODES.map((t) => (
+            <div className="champ" key={t}>
+              <label htmlFor={`code-${t}`}>Code TVA {t.replace(".", ",")} %</label>
+              <input
+                id={`code-${t}`}
+                maxLength={12}
+                autoComplete="off"
+                value={codes[t] ?? ""}
+                onChange={(e) => setCodes({ ...codes, [t]: e.target.value })}
+                aria-describedby={`code-${t}-aide`}
+              />
+              <span id={`code-${t}-aide`} className="aide">
+                Recopié de la table TVA de votre dossier Crésus. Nécessaire pour le fichier avec la TVA.
+              </span>
             </div>
           ))}
           <button type="submit" className="bouton-second" disabled={envoi}>

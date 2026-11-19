@@ -367,3 +367,15 @@ Comme « Changer les plats » au back-office (#257, moyen « terminal » des rem
 - Journal de la commande : « 18.00 CHF, 1 × Lasagne de bœuf, rendu sur le terminal », et « (proposé : terminal) » quand l'équipe a changé le moyen. La clôture du jour compte le rendu sur le terminal à part (#257).
 - E-mail au client : « Nous vous remboursons CHF 18.00 sur votre carte, au comptoir. »
 - Tests : `tests/unit/manque-terminal-sql.test.ts`.
+
+## Justificatif du client dans le sac (mission compta, R6, R7 et R24 de `docs/compta/plan-conformite.md`)
+
+Sans la mention « Livraison sans préparation ni service » ou « À l'emporter » sur le justificatif, l'AFC présume la restauration à 8,1 % sur tout (Info TVA 08, ch. 1.3.2 et 1.3.3). Les tickets de poste restent sans prix : le justificatif est un ticket à part, imprimé avec eux à l'acceptation, au poste qui fait le sac, coupé par l'imprimante et glissé dans le sac.
+
+- Contenu (`ticketClient`, `src/lib/impression/ticket.ts`) : « JUSTIFICATIF CLIENT », raison sociale, adresse et numéro de TVA (`src/lib/vendeur.ts`, partagé avec le reçu web), numéro et date de la commande, puis la mention :
+  - livraison : « Livraison sans préparation ni service à : », le nom de la personne qui reçoit (ou du client) et l'adresse de livraison ;
+  - retrait : « À l'emporter ».
+- Ensuite chaque article avec son prix et le code « A », les frais de livraison, le code promo et la cagnotte déduits, le total, « A = TVA 2,6 %, comprise : CHF 1.27 sur CHF 50.00 », le paiement. Un seul taux par commande aujourd'hui (pas d'alcool à la carte) ; le taux par ligne viendra avec `commande_lignes.taux_tva_pourcent` (bo-carte).
+- Un nom d'article trop long pour 48 colonnes passe seul sur sa ligne, le prix à droite de la suivante.
+- Migration `20261217160000_justificatif_client.sql` : `creer_taches_impression` ne saute plus, en réimpression, le deuxième ticket d'un même poste créé dans le même appel (seules comptent les tâches d'avant). `tickets_commande` (« Ticket » à la tablette) rend tous les tickets de la dernière impression de chaque poste, préparation puis justificatif.
+- Tests : `tests/unit/justificatif-client.test.ts` (échoue si la mention disparaît, en livraison comme à l'emporter), `justificatif-taches-sql.test.ts`.
