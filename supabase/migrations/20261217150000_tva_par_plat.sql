@@ -94,6 +94,51 @@ $$;
 
 alter table plats add column teneur_alcool numeric(4, 1) check (teneur_alcool is null or (teneur_alcool >= 0 and teneur_alcool <= 100));
 
+-- Garde-fou (demande de bo-pilotage, 19.11.2026) : tant que récap, Crésus simple, synthèse et clôture ne lisent pas
+-- la ventilation, ils rangeraient une commande mixte entière au taux le plus haut. Une boisson à plus de 0,5 % vol. ne
+-- peut donc pas être en vente avant que bo-pilotage passe compta_multi_taux_pret à vrai (faux par défaut).
+insert into reglages (cle, valeur, proposition) values ('compta_multi_taux_pret', 'false', false) on conflict (cle) do nothing;
+
+create function alcool_compta_prete() returns boolean
+language sql stable as $$
+  select coalesce((select (valeur #>> '{}')::boolean from reglages where cle = 'compta_multi_taux_pret'), false);
+$$;
+
+create function garde_alcool() returns trigger
+language plpgsql as $$
+begin
+  if new.commandable and categorie_tva(new.teneur_alcool) = 'normal' and not alcool_compta_prete() then
+    raise exception 'alcool_compta_pas_prete';
+  end if;
+  return new;
+end;
+$$;
+create trigger garde_alcool before insert or update of commandable, teneur_alcool on plats
+  for each row execute function garde_alcool();
+
+-- Même liste que 20261118090000_carte_gestion.sql, + le garde-fou : le gérant voit dans la fiche pourquoi la
+-- boisson ne se met pas en vente.
+create or replace function motifs_plat(p_id uuid) returns text[]
+language sql stable as $$
+  select coalesce(array_agg(x.motif order by x.rang, x.motif), '{}')
+  from (
+    select 1 as rang, 'prix à valider' as motif from plats p where p.id = p_id and p.prix_a_valider
+    union all
+    select 2, 'allergènes manquants' from plats p where p.id = p_id and coalesce(p.allergenes, '') = ''
+    union all
+    select 3, 'provenance à fournir' from plats p where p.id = p_id and cardinality(p.provenances_a_fournir) > 0
+    union all
+    select distinct 4, 'supplément à valider : ' || o.nom
+    from plat_groupes g join options o on o.groupe_id = g.groupe_id and o.actif and o.prix_a_valider
+    where g.plat_id = p_id
+    union all
+    select 5, 'retraits à valider' where exists (select 1 from plat_retraits r where r.plat_id = p_id and r.a_valider)
+    union all
+    select 6, 'boisson alcoolisée : la compta à deux taux n''est pas prête'
+    from plats p where p.id = p_id and categorie_tva(p.teneur_alcool) = 'normal' and not alcool_compta_prete()
+  ) x;
+$$;
+
 -- Taux de chaque plat aujourd'hui, pour le calcul du panier. Même règle que le déclencheur des lignes.
 create view tva_plats_publics with (security_invoker = true) as
   select p.slug, p.teneur_alcool,
@@ -245,7 +290,12 @@ $$;
 
 -- [{ taux, ttc, tva, frais_ttc, frais_tva, rabais_ttc, rabais_tva, cagnotte_ttc, cagnotte_tva }] par taux croissant. ttc : payé net à ce
 -- taux (lignes + frais − rabais − cagnotte). Somme des ttc = total_centimes, somme des tva = tva_centimes.
-create or replace function ventilation_commande(o commandes) returns jsonb
+-- ventilation_lignes suit toujours les lignes et montants actuels. ventilation_commande est la ventilation de la
+-- commande (compta, TVA de la commande par les déclencheurs) : aujourd'hui la même chose ; bo-commandes la recrée pour
+-- rendre la ventilation figée au paiement quand elle existe (coalesce(o.ventilation_figee, ventilation_lignes(o))).
+-- Une commande payée garde son total payé même modifiée (#249) : sa TVA reste celle de la vente, les différences
+-- passent par les compléments et les avoirs.
+create function ventilation_lignes(o commandes) returns jsonb
 language plpgsql stable as $$
 declare
   taux numeric[];
@@ -334,6 +384,11 @@ begin
   end if;
   return r;
 end;
+$$;
+
+create or replace function ventilation_commande(o commandes) returns jsonb
+language sql stable as $$
+  select ventilation_lignes(o);
 $$;
 
 -- [{ taux, ttc, tva }] par taux croissant, somme des ttc = montant_centimes. Un manque rend par ligne
@@ -491,11 +546,11 @@ language sql stable as $$
 $$;
 
 revoke execute on function taux_tva_du(text, date), regle_tva(text), regler_teneur_alcool(text, numeric, uuid),
-  repartir_centimes(integer, integer[]), imputer_dans_lordre(integer, integer[]),
+  repartir_centimes(integer, integer[]), imputer_dans_lordre(integer, integer[]), ventilation_lignes(commandes),
   ventilation_commande(commandes), ventilation_remboursement(remboursements), jour_tva(commandes),
-  taux_ligne(), tva_commande_avant(), tva_commande_lignes()
+  taux_ligne(), tva_commande_avant(), tva_commande_lignes(), garde_alcool()
   from public, anon, authenticated;
 grant execute on function taux_tva_du(text, date), regle_tva(text), regler_teneur_alcool(text, numeric, uuid),
-  repartir_centimes(integer, integer[]), imputer_dans_lordre(integer, integer[]),
+  repartir_centimes(integer, integer[]), imputer_dans_lordre(integer, integer[]), ventilation_lignes(commandes),
   ventilation_commande(commandes), ventilation_remboursement(remboursements), jour_tva(commandes)
   to service_role;

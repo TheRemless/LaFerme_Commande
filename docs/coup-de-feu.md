@@ -11,7 +11,7 @@ Un soir chargé, l'équipe durcit le service en un geste au lieu de trois bouton
 | Livraison fermée | Fermée si le geste le demande. Une livraison déjà fermée n'est jamais rouverte | Valeur d'avant |
 | Pause des commandes en ligne | Inchangée (bouton à part sur la tablette) | Inchangée |
 
-- **Fin** : à l'heure choisie (de 15 minutes à 6 heures), par la surveillance qui tourne chaque minute, ou d'un geste « Fin du coup de feu ».
+- **Fin** : à l'heure choisie (de 15 minutes à 6 heures), par la surveillance (toutes les 2 minutes aux heures utiles, et à chaque relecture de la tablette), ou d'un geste « Fin du coup de feu ».
 - **Réglage changé entre-temps** : il n'est pas rendu. Un gérant qui met la capacité des livraisons à 1 en plein coup de feu la garde après.
 - **Relancer pendant un coup de feu** : le nouveau geste remplace l'ancien (mêmes valeurs d'avant, même heure de début). Pour prolonger, on relance avec une nouvelle durée.
 - **Remise de 5h** : si un coup de feu dure au-delà de 5h (heure de Genève), la remise du jour remet le retard à zéro et rouvre la livraison comme chaque nuit. La fin du coup de feu rend ensuite la capacité.
