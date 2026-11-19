@@ -137,8 +137,12 @@ test("boisson : la teneur en alcool se saisit ; plus de 0,5 % vol. refusé en ve
   await teneur.fill("0,5");
   await panneau.getByRole("button", { name: "Enregistrer la teneur" }).click();
   await expect(gestion.getByText(/^Teneur enregistrée\. TVA/).last()).toBeVisible();
+  // La fiche se recharge après l'enregistrement (CI de #274, mobile) : attendre la valeur relue avant de défiler.
+  await expect(panneau.getByLabel("Teneur en alcool (% vol.)")).toHaveValue("0,5");
   await expect(taux).toHaveText(sansAlcool!);
-  await taux.scrollIntoViewIfNeeded();
+  await expect(async () => {
+    await taux.scrollIntoViewIfNeeded({ timeout: 1000 });
+  }).toPass();
   await capture("carte-teneur-alcool", info);
   // Remise sans alcool, pour ne rien laisser dans la carte des autres tests.
   await panneau.getByLabel("Teneur en alcool (% vol.)").fill("");
