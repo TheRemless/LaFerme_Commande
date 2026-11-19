@@ -26,10 +26,12 @@ export async function recreerCommande(sourceId: string, quand: Quand, cle: strin
   if (quand.type === "aucun") return { ok: false, message: "Choisissez « dès que possible » ou un créneau." };
   const source = await commandeParId(sourceId);
   if (!source) return { ok: false, message: "Commande introuvable." };
-  if (source.lignes.length === 0) return { ok: false, message: "Cette commande n'a aucun plat à reprendre." };
+  // Un plat offert (R16) ne se reprend pas : il serait refacturé au prix du jour.
+  const reprises = source.lignes.filter((l) => !l.offert);
+  if (reprises.length === 0) return { ok: false, message: "Cette commande n'a aucun plat à reprendre." };
 
   const [catalogue, config] = await Promise.all([chargerCatalogue(), chargerConfigService()]);
-  const lignes: LignePanier[] = source.lignes.map((l) => ({ slug: l.plat_slug, qte: l.qte, choix: l.choix ?? {}, retraits: l.retraits ?? [], note: l.note ?? "" }));
+  const lignes: LignePanier[] = reprises.map((l) => ({ slug: l.plat_slug, qte: l.qte, choix: l.choix ?? {}, retraits: l.retraits ?? [], note: l.note ?? "" }));
   const totaux = calculerPanier(catalogue, lignes, null);
   const fausse = totaux.lignes.find((l) => l.erreur);
   if (fausse) return { ok: false, message: `${nomClient(fausse.nom, platDe(catalogue, fausse.slug)?.categorie_slug === "pizzas")} : ${fausse.erreur}` };

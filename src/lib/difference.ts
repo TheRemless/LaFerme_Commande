@@ -127,7 +127,8 @@ async function calculer(commandeId: string, d: Record<string, unknown>): Promise
 
   // Ajouts et retraits, ligne par ligne (même plat, mêmes options) : pour les tickets et l'e-mail.
   const avant = new Map<string, { nom: string; qte: number; station: string }>();
-  for (const l of c.lignes) {
+  // Un plat offert (R16) reste à part : ni ajouté ni retiré, il suit la commande à 0 CHF.
+  for (const l of c.lignes.filter((x) => !x.offert)) {
     const k = cleLigne({ slug: l.plat_slug, choix: l.choix ?? {}, retraits: l.retraits ?? [], note: l.note ?? "" });
     const x = avant.get(k);
     avant.set(k, { nom: l.nom, station: l.station, qte: (x?.qte ?? 0) + l.qte });

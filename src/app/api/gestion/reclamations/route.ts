@@ -21,6 +21,7 @@ const ERREURS: Record<string, [string, number]> = {
   reduction_invalide: ["Indiquez un montant, ou un pourcentage de 1 à 100.", 422],
   resolution_manquante: ["Écrivez comment la réclamation s'est réglée.", 422],
   detail_invalide: ["Précisez le geste (3 à 200 caractères).", 422],
+  plat_inconnu: ["Ce plat n'est plus à la carte. Choisissez-en un autre.", 422],
 };
 
 // Responsable de service (D1) : la liste et le dossier ; ouvrir, suivre et noter un geste restent au gérant.

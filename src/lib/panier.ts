@@ -3,6 +3,7 @@
 // Tous les prix viennent du catalogue lu en base : aucun montant n'est écrit ici.
 import type { Dispo } from "@/lib/disponibilite";
 import { pizzasSeulement, type PostePlat } from "@/lib/postes-plat";
+import { REGLES_TVA_PRUDENTES, tvaTotale, type BaseTva, type ReglesTva } from "@/lib/tva";
 
 // par_defaut : cochée d'avance sur la fiche (le client peut la décocher).
 export type OptionCatalogue = { nom: string; prix_centimes: number; prix_a_valider: boolean; rupture?: boolean; par_defaut?: boolean };
@@ -15,6 +16,8 @@ export type PlatCatalogue = {
   prix_centimes: number;
   prix_a_valider: boolean;
   station: PostePlat;
+  // Taux du plat aujourd'hui, calculé en base d'après sa teneur en alcool (20261217150000). Absent : le réduit.
+  taux_tva_pourcent?: number;
   rupture_motif: string | null;
   groupes: string[];
   retraits: RetraitCatalogue[];
@@ -27,7 +30,10 @@ export type PlatCatalogue = {
 export type Catalogue = {
   plats: Record<string, PlatCatalogue>;
   groupes: Record<string, GroupeCatalogue>;
+  // Taux réduit en vigueur (table taux_tva), celui d'un plat sans alcool.
   tauxTvaPourcent: number;
+  // Frais et rabais d'une commande mixte (réglages frais_tva_mixte et rabais_tva_mixte). Absent : options prudentes.
+  reglesTva?: ReglesTva;
 };
 
 export type LignePanier = {
@@ -51,6 +57,9 @@ export type Totaux = {
   frais_centimes: number;
   total_centimes: number;
   tva_centimes: number;
+  // Ce qui sert à recalculer la TVA après un code ou la cagnotte (appliquerRemise), et les taux présents.
+  tva_base: BaseTva;
+  taux_tva: number[];
   manque_minimum_centimes: number;
   // Tous les plats sortent du poste pizza : commande possible jusqu'à la dernière commande des pizzas.
   pizzas_seulement: boolean;
@@ -120,7 +129,14 @@ export function calculerPanier(cat: Catalogue, lignes: LignePanier[], livraison:
   const sousTotal = calculees.reduce((s, l) => s + l.total_centimes, 0);
   const frais = livraison && calculees.length ? livraison.frais_centimes : 0;
   const total = sousTotal + frais;
-  const taux = cat.tauxTvaPourcent;
+  const tvaBase: BaseTva = {
+    lignes: calculees.map((l) => ({ taux: platDe(cat, l.slug)?.taux_tva_pourcent ?? cat.tauxTvaPourcent, ttc: l.total_centimes })),
+    frais,
+    remisePlats: 0,
+    remiseFrais: 0,
+    cagnotte: 0,
+    regles: cat.reglesTva ?? REGLES_TVA_PRUDENTES,
+  };
   const plats = calculees.map((l) => platDe(cat, l.slug)).filter((p): p is PlatCatalogue => p !== undefined);
   const optionsAValider = calculees.some((l) =>
     Object.entries(l.choix).some(([g, noms]) => noms.some((n) => groupeDe(cat, g)?.options.find((o) => o.nom === n)?.prix_a_valider)),
@@ -131,8 +147,10 @@ export function calculerPanier(cat: Catalogue, lignes: LignePanier[], livraison:
     sous_total_centimes: sousTotal,
     frais_centimes: frais,
     total_centimes: total,
-    // TVA comprise dans le prix : part = total × taux / (100 + taux).
-    tva_centimes: Math.round((total * taux) / (100 + taux)),
+    // TVA comprise dans le prix, par taux : part = montant × taux / (100 + taux) (même règle qu'en base).
+    tva_centimes: calculees.length ? tvaTotale(tvaBase) : Math.round((total * cat.tauxTvaPourcent) / (100 + cat.tauxTvaPourcent)),
+    tva_base: tvaBase,
+    taux_tva: [...new Set(tvaBase.lignes.map((l) => l.taux))].sort((a, b) => a - b),
     manque_minimum_centimes: manque,
     pizzas_seulement: pizzasSeulement(plats.map((p) => p.station)),
     prix_a_valider: plats.some((p) => p.prix_a_valider) || optionsAValider,

@@ -110,20 +110,59 @@ describe("suivre, geste, clore", () => {
     expect(await erreur("noter_geste_reclamation($1, $2, $3)", [r.id, { geste: "remboursement", remboursement_id: rb }, gerant])).toContain("remboursement_invalide");
   });
 
-  it("plat offert : désactivé par défaut ; activé, en attente sur le client puis appliqué à sa commande suivante", async () => {
+  it("plat offert : désactivé par défaut ; activé, choisi dans la carte avec sa valeur, en attente puis posé à 0 CHF sur la commande suivante (R16)", async () => {
     const c = await commande("fidele@exemple.ch");
     const r = await ouvrir({ commande_id: c.id, source: "telephone", type: "retard", description: "45 minutes de retard." }, service);
-    expect(await erreur("noter_geste_reclamation($1, $2, $3)", [r.id, { geste: "plat_offert", detail: "Un dessert offert" }, gerant])).toContain("gestes_desactives");
+    // Un plat de la carte : son prix vient de la base, jamais du test.
+    const plat = (await db.query<{ slug: string; nom: string; prix_centimes: number }>(
+      "select slug, nom, prix_centimes from plats where archive_le is null and commandable order by slug limit 1")).rows[0];
+    expect(await erreur("noter_geste_reclamation($1, $2, $3)", [r.id, { geste: "plat_offert", plat_slug: plat.slug }, gerant])).toContain("gestes_desactives");
     await db.query("update reglages set valeur = 'true' where cle = 'gestes_commerciaux_actifs'");
-    await f("noter_geste_reclamation($1, $2, $3)", [r.id, { geste: "plat_offert", detail: "Un dessert offert" }, gerant]);
-    const attente = await f<{ id: string; detail: string }[]>("gestes_en_attente('Fidele@exemple.ch')");
-    expect(attente.map((g) => g.detail)).toEqual(["Un dessert offert"]);
+    expect(await erreur("noter_geste_reclamation($1, $2, $3)", [r.id, { geste: "plat_offert", plat_slug: "plat-qui-n-existe-pas" }, gerant])).toContain("plat_inconnu");
+    const fiche0 = await f<{ plats_offrables: { slug: string; prix_centimes: number }[]; offerts_annee_centimes: number }>("fiche_reclamation_gestion($1)", [r.id]);
+    expect(fiche0.plats_offrables).toContainEqual({ slug: plat.slug, nom: plat.nom, prix_centimes: plat.prix_centimes });
+    const avantAnnee = fiche0.offerts_annee_centimes;
+    const rec = await f<Rec>("noter_geste_reclamation($1, $2, $3)", [r.id, { geste: "plat_offert", plat_slug: plat.slug, detail: "avec nos excuses" }, gerant]);
+    expect(rec.geste_detail).toContain(plat.nom);
+    const attente = await f<{ id: string; plat_slug: string; valeur_centimes: number }[]>("gestes_en_attente('Fidele@exemple.ch')");
+    expect(attente).toEqual([expect.objectContaining({ plat_slug: plat.slug, valeur_centimes: plat.prix_centimes })]);
+    expect((await f<{ offerts_annee_centimes: number }>("fiche_reclamation_gestion($1)", [r.id])).offerts_annee_centimes - avantAnnee).toBe(plat.prix_centimes);
     const suivante = await commande("fidele@exemple.ch");
     const autre = await commande("autre@exemple.ch");
     expect(await f("appliquer_geste($1, $2, $3)", [attente[0].id, autre.id, service])).toBe(false);
     expect(await f("appliquer_geste($1, $2, $3)", [attente[0].id, suivante.id, service])).toBe(true);
     expect(await f("appliquer_geste($1, $2, $3)", [attente[0].id, suivante.id, service])).toBe(false);
     expect(await f("gestes_en_attente('fidele@exemple.ch')")).toEqual([]);
+    // Une ligne à 0 CHF marquée « offert » ; le total payé ne bouge pas ; la valeur du jour est notée sur le geste.
+    const lignes = (await db.query<{ plat_slug: string; total_centimes: number; offert: boolean }>(
+      "select plat_slug, total_centimes, offert from commande_lignes where commande_id = $1 order by position", [suivante.id])).rows;
+    expect(lignes.at(-1)).toEqual({ plat_slug: plat.slug, total_centimes: 0, offert: true });
+    const station = (await db.query<{ s: string }>("select station::text as s from plats where slug = $1", [plat.slug])).rows[0].s;
+    if (station !== "pizza") expect((await db.query<{ p: boolean }>("select pizzas_seulement as p from commandes where id = $1", [suivante.id])).rows[0].p).toBe(false);
+    expect((await db.query<{ t: number }>("select total_centimes as t from commandes where id = $1", [suivante.id])).rows[0].t).toBe(4000);
+    const g = (await db.query<{ offert_valeur_centimes: number; offert_ligne_id: string | null }>("select offert_valeur_centimes, offert_ligne_id from gestes_client where id = $1", [attente[0].id])).rows[0];
+    expect(g.offert_valeur_centimes).toBe(plat.prix_centimes);
+    expect(g.offert_ligne_id).not.toBeNull();
+    // Changer les plats ne propose pas la ligne offerte.
+    const mod = await f<{ lignes: { slug: string }[]; offerts: { nom: string }[] }>("modifications_commande_gestion($1)", [suivante.id]);
+    expect(mod.offerts).toEqual([{ nom: plat.nom, qte: 1 }]);
+    expect(mod.lignes.map((l) => l.slug)).toEqual(["x"]);
+    // « Reprendre cette commande » ne reprend pas la ligne offerte (elle serait refacturée au prix du jour).
+    const compte = (await db.query<{ id: string }>("insert into comptes (email) values ('fidele-compte@exemple.ch') returning id")).rows[0].id;
+    await db.query("update commandes set compte_id = $2 where id = $1", [suivante.id, compte]);
+    expect((await f<{ slug: string }[]>("lignes_commande_compte($1, $2)", [compte, suivante.id])).map((l) => l.slug)).toEqual(["x"]);
+    expect((await f<{ lignes: { nom: string }[] }>("derniere_commande_compte($1)", [compte])).lignes.map((l) => l.nom)).toEqual(["Tiramisu"]);
+    // Commande partie : plus de geste posé dessus.
+    const partie = await commande("fidele@exemple.ch");
+    await db.query("update commandes set statut = 'partie' where id = $1", [partie.id]);
+    const r2 = await ouvrir({ commande_id: c.id, source: "telephone", type: "retard", description: "Encore en retard." }, service);
+    await f("noter_geste_reclamation($1, $2, $3)", [r2.id, { geste: "plat_offert", plat_slug: plat.slug }, gerant]);
+    const g2 = (await f<{ id: string }[]>("gestes_en_attente('fidele@exemple.ch')"))[0];
+    expect(await erreur("appliquer_geste($1, $2, $3)", [g2.id, partie.id, service])).toContain("statut_non_modifiable");
+    // Prête : encore au restaurant, comme pour changer les plats.
+    const prete = await commande("fidele@exemple.ch");
+    await db.query("update commandes set statut = 'prete' where id = $1", [prete.id]);
+    expect(await f("appliquer_geste($1, $2, $3)", [g2.id, prete.id, service])).toBe(true);
     // Réglage éteint ensuite : plus rien en attente n'est montré.
     await db.query("update reglages set valeur = 'false' where cle = 'gestes_commerciaux_actifs'");
     expect(await erreur("appliquer_geste($1, $2, $3)", [attente[0].id, suivante.id, service])).toContain("gestes_desactives");
@@ -152,7 +191,7 @@ describe("suivre, geste, clore", () => {
     expect(await evaluer("autre@exemple.ch", "079 000 00 00")).toMatchObject({ ok: false, raison: "inconnu" });
     expect(await evaluer("reduc+promo@exemple.ch", null)).toMatchObject({ ok: true, remise_centimes: 600 });
     expect(await evaluer("nouvelle@exemple.ch", "+41 79 555 12 34")).toMatchObject({ ok: true, remise_centimes: 600 });
-    expect(await erreur("noter_geste_reclamation($1, $2, $3)", [r.id, { geste: "plat_offert", detail: "Un dessert" }, gerant])).toContain("geste_deja_note");
+    expect(await erreur("noter_geste_reclamation($1, $2, $3)", [r.id, { geste: "plat_offert", plat_slug: "x" }, gerant])).toContain("geste_deja_note");
     // Promotions : modifier un code personnel ne met au journal ni l'e-mail ni le téléphone du client.
     await f("modifier_code($1, $2, $3)", [code, { minimum_centimes: 1000 }, gerant]);
     const journal = JSON.stringify((await db.query("select avant, apres from journal_gestion where objet = 'code_promo' and cle = $1", [code])).rows);

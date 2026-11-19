@@ -703,7 +703,7 @@ function Gestes({
     <div className="bo-fiche-sections">
       {gerant &&
         (fiche.plats_offerts ?? []).length > 0 &&
-        !["refusee", "annulee"].includes(fiche.statut) && (
+        ["nouvelle", "acceptee", "en_preparation", "prete"].includes(fiche.statut) && (
           <PlatsOfferts fiche={fiche} apres={apres} />
         )}
       {gerant && HEURE_MODIFIABLE.includes(fiche.statut) && (
@@ -1209,8 +1209,8 @@ function ChangerHeure({
   );
 }
 
-// Un plat offert après une réclamation attend la commande suivante du client : l'équipe le met dans la commande,
-// puis le marque ici (il ne s'offre qu'une fois).
+// Un plat offert après une réclamation attend la commande suivante du client : « C'est offert » l'ajoute à cette
+// commande à 0 CHF (R16) et, si les tickets sont sortis, l'annonce au poste qui fait le sac. Il ne s'offre qu'une fois.
 function PlatsOfferts({
   fiche,
   apres,
@@ -1224,7 +1224,7 @@ function PlatsOfferts({
   async function offrir(g: { id: string; detail: string }) {
     const ok = await confirmer({
       titre: "Offert dans cette commande ?",
-      texte: `« ${g.detail} » est noté comme offert dans la commande N° ${fiche.numero}. Il ne sera plus proposé.`,
+      texte: `« ${g.detail} » est ajouté à la commande N° ${fiche.numero}, à 0 CHF. Il ne sera plus proposé.`,
       oui: "C'est offert",
     });
     if (!ok) return;

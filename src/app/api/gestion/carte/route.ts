@@ -33,6 +33,9 @@ const ERREURS: Record<string, string> = {
   nom_invalide: "Nom vide ou trop long.",
   slug_invalide: "Nom illisible : utilisez des lettres ou des chiffres.",
   plat_archive: "Ce plat est archivé. Remettez-le à la carte d'abord.",
+  pas_une_boisson: "Seule une boisson porte une teneur en alcool.",
+  alcool_compta_pas_prete: "Une boisson de plus de 0,5 % vol. ne peut pas être en vente tant que la compta ne tient pas deux taux de TVA. Retirez-la de la vente ou gardez une teneur de 0,5 au plus.",
+  teneur_invalide: "Teneur en alcool : un nombre de 0 à 100, ou vide.",
   photo_inconnue: "Photo inconnue.",
   jour_invalide: "Date invalide : aujourd'hui ou dans les 14 jours.",
   service_invalide: "Choisissez midi, soir ou les deux.",
@@ -233,6 +236,14 @@ async function agir(c: Record<string, unknown>, qui: string): Promise<Reponse | 
       const ok = Array.isArray(c.etiquettes) && c.etiquettes.length <= 3 && c.etiquettes.every((e) => e === "vegetarien" || e === "vegane" || e === "epice");
       if (!slug(c.slug) || !ok) return refus("Étiquettes illisibles.");
       return { ok: await fonctionSql<boolean>("regler_etiquettes", { p_slug: c.slug, p_etiquettes: c.etiquettes, p_personnel: qui }) };
+    }
+    case "teneur_alcool": {
+      // Seule la teneur se saisit : le taux de TVA en découle en base (plus de 0,5 % vol. : taux normal).
+      const t = c.teneur_alcool;
+      const ok = t === null || (typeof t === "number" && Number.isFinite(t) && t >= 0 && t <= 100 && Math.round(t * 10) === t * 10);
+      if (!slug(c.slug) || !ok) return refus("Teneur en alcool : un nombre de 0 à 100, une décimale au plus, ou vide.");
+      const r = await fonctionSql<Record<string, unknown> | null>("regler_teneur_alcool", { p_slug: c.slug, p_teneur: t, p_personnel: qui });
+      return r ? { ok: true, donnees: r } : { ok: false };
     }
     default:
       return refus("Type inconnu.");

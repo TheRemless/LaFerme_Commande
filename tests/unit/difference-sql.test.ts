@@ -163,6 +163,61 @@ describe("modifier les plats d'une commande", () => {
     expect(await f<boolean>("encaisser_complement($1, 'especes', $2)", [k[0].id, id.gerant])).toBe(false);
   });
 
+  it("R21 : l'état d'avant reste sur la modification, un complément dû ramené à zéro est annulé, jamais supprimé", async () => {
+    const c = await commande({ mode: "livraison" });
+    const lignesDepart = (await db.query<{ nom: string; qte: number; total_centimes: number }>(
+      "select nom, qte, total_centimes from commande_lignes where commande_id = $1 order by position", [c])).rows;
+    const avant = (await db.query<{ total_centimes: number; tva_centimes: number }>("select total_centimes, tva_centimes from commandes where id = $1", [c])).rows[0];
+    await modifier(c, demande(`difference-${n}-r21-0001`, [ligne("Margherita", 2000, 2), ligne("Tiramisu", 800, 1, "cuisine")], { reglement: "porte" }));
+    const m1 = (await db.query<{ lignes_avant: { nom: string; qte: number; total_centimes: number }[]; commande_avant: { total_centimes: number; tva_centimes: number } }>(
+      "select lignes_avant, commande_avant from modifications_commande where commande_id = $1 order by cree_le limit 1", [c])).rows[0];
+    expect(m1.lignes_avant.map((l) => ({ nom: l.nom, qte: l.qte, total_centimes: l.total_centimes }))).toEqual(lignesDepart);
+    expect(m1.commande_avant).toMatchObject({ total_centimes: avant.total_centimes, tva_centimes: avant.tva_centimes });
+    const k = (await db.query<{ id: string; montant_centimes: number }>("select id, montant_centimes from complements where commande_id = $1", [c])).rows[0];
+
+    // Retour à la commande de départ : le complément dû tombe à zéro. Annulé, pas supprimé ; son montant reste.
+    await modifier(c, demande(`difference-${n}-r21-0002`, [ligne("Margherita", 2000), ligne("Tiramisu", 800, 1, "cuisine")]));
+    const apres = (await db.query<{ statut: string; montant_centimes: number; annule_le: string | null; annule_par_modification: string | null }>(
+      "select statut, montant_centimes, annule_le, annule_par_modification from complements where id = $1", [k.id])).rows[0];
+    expect(apres).toMatchObject({ statut: "annule", montant_centimes: k.montant_centimes });
+    expect(apres.annule_le).not.toBeNull();
+    const m2 = (await db.query<{ id: string; complements_avant: { id: string; montant_centimes: number; statut: string }[]; lignes_avant: unknown[] }>(
+      "select id, complements_avant, lignes_avant from modifications_commande where commande_id = $1 order by cree_le desc limit 1", [c])).rows[0];
+    expect(apres.annule_par_modification).toBe(m2.id);
+    expect(m2.complements_avant).toEqual([expect.objectContaining({ id: k.id, montant_centimes: k.montant_centimes, statut: "a_encaisser" })]);
+    expect(m2.lignes_avant).toHaveLength(2);
+    // Un complément annulé ne s'encaisse pas et ne compte ni à la clôture ni dans les ventes.
+    expect(await f<boolean>("encaisser_complement($1, 'especes', $2)", [k.id, id.gerant])).toBe(false);
+    const jour = (await db.query<{ j: string }>("select jour_service::text as j from commandes where id = $1", [c])).rows[0].j;
+    const cl = await f<{ encaissements: { complements: { a_encaisser_centimes: number } }; ecarts: { type: string; numero?: number }[] }>("cloture_rapport($1)", [jour]);
+    const numero = (await db.query<{ numero: number }>("select numero from commandes where id = $1", [c])).rows[0].numero;
+    expect(cl.ecarts.some((e) => e.type === "complement_sans_encaissement" && e.numero === numero)).toBe(false);
+    // Synthèse : les ventes reviennent à celles du départ, le complément annulé n'y compte plus.
+    const synthese = await f<{ ttc_centimes: number }>("pilotage_synthese($1, $1)", [jour]);
+    const sansCommande = (await db.query<{ t: number }>("select coalesce(sum(total_centimes), 0)::int as t from commandes where jour_service = $1 and statut not in ('paiement_en_attente', 'annulee', 'refusee')", [jour])).rows[0].t;
+    const complementsVivants = (await db.query<{ t: number }>(
+      "select coalesce(sum(k.montant_centimes), 0)::int as t from complements k join commandes o on o.id = k.commande_id where o.jour_service = $1 and k.statut in ('a_encaisser', 'encaisse') and o.statut not in ('paiement_en_attente', 'annulee', 'refusee')", [jour])).rows[0].t;
+    expect(synthese.ttc_centimes).toBe(sansCommande + complementsVivants);
+  });
+
+  it("R16 : un plat offert reste dans la commande, à 0 CHF, quand le client change ses plats", async () => {
+    const c = await commande({ comptoir: true });
+    const offerte = (await db.query<{ id: string }>(
+      "insert into commande_lignes (commande_id, position, plat_slug, nom, station, qte, unitaire_centimes, total_centimes, note, offert) values ($1, 3, 'tiramisu', 'Tiramisu', 'cuisine', 1, 0, 0, 'Offert', true) returning id",
+      [c],
+    )).rows[0].id;
+    await modifier(c, demande(`difference-${n}-offert-01`, [ligne("Margherita", 2000, 2)]));
+    const lignes = (await db.query<{ nom: string; total_centimes: number; offert: boolean }>(
+      "select nom, total_centimes, offert from commande_lignes where commande_id = $1 order by position", [c])).rows;
+    expect(lignes).toEqual([
+      { nom: "Margherita", total_centimes: 4000, offert: false },
+      { nom: "Tiramisu", total_centimes: 0, offert: true },
+    ]);
+    // La même ligne (le geste la désigne par son id), passée après les nouvelles.
+    expect((await db.query<{ position: number }>("select position from commande_lignes where id = $1", [offerte])).rows[0].position).toBe(2);
+    await expect(db.query("update commande_lignes set total_centimes = 500 where commande_id = $1 and offert", [c])).rejects.toThrow();
+  });
+
   it("la commande a changé depuis le calcul : refus, rien n'est enregistré", async () => {
     const c = await commande({ comptoir: true });
     expect(await erreur("preparer_modification($1, $2, $3)", [c, demande(`difference-${n}-perime-01`, [ligne("Margherita", 2000, 2)], { valeur_avant: 1234 }), id.gerant])).toContain("deja_change");

@@ -98,7 +98,14 @@ export function gesteReclamation(c: Record<string, unknown>): Resultat<Record<st
     } else return { ok: false, erreur: "Choisissez un montant ou un pourcentage." };
     return { ok: true, valeur: { geste: c.geste, type: c.type, valeur: v } };
   }
+  if (c.geste === "plat_offert") {
+    // R16 : le plat vient de la carte (sa valeur est lue en base) ; la précision est facultative.
+    if (typeof c.plat_slug !== "string" || !/^[a-z0-9-]{1,80}$/.test(c.plat_slug)) return { ok: false, erreur: "Choisissez le plat offert." };
+    const precision = c.detail === undefined || c.detail === "" ? "" : texteLibre(c.detail, 3, 150);
+    if (precision === null) return { ok: false, erreur: "Précision : 3 à 150 caractères, ou rien." };
+    return { ok: true, valeur: { geste: c.geste, plat_slug: c.plat_slug, detail: precision } };
+  }
   const d = texteLibre(c.detail, 3, 200);
-  if (!d) return { ok: false, erreur: c.geste === "plat_offert" ? "Dites ce qui est offert (3 à 200 caractères)." : "Dites pourquoi (3 à 200 caractères)." };
+  if (!d) return { ok: false, erreur: "Dites pourquoi (3 à 200 caractères)." };
   return { ok: true, valeur: { geste: c.geste, detail: d } };
 }
