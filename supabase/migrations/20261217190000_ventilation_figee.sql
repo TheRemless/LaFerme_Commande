@@ -17,6 +17,12 @@
 --      contrainte « tva_centimes >= 0 » des compléments tombe). Réduit par une baisse : ramené au prorata.
 --   4. Un remboursement d'une modification la désigne (remboursements.modification_id) ; ventilation_remboursement
 --      rend l'opposé de la ventilation de la modification, ramené à son montant.
+--   4 bis. Chaque remboursement est réparti une fois, à sa création (remboursements.ventilation, déclencheur
+--      ventiler_remboursement), sur ce qui reste payé à chaque taux : vente figée + compléments encaissés + corrections
+--      sans argent − avoirs précédents (ventilation_en_cours). Celui qui rend tout le reste rend exactement ce reste,
+--      TVA comprise : une commande remboursée en entier finit à 0 en argent et en TVA, à chaque taux (défaut 3 de la
+--      relecture de client-compte : arrondis cumulés, cagnotte et avoirs successifs). Une baisse se rend d'abord sur
+--      les taux des articles retirés, dans la limite de ce qui y reste payé.
 --   5. ventilation_complement(k) [{ taux, ttc, tva }] pour les exports de bo-pilotage : complements.ventilation, sinon
 --      repli sur le taux de la commande et k.tva_centimes.
 -- Plat offert (relecture argent de client-compte sur #271) : « Reprendre cette commande » (lignes_commande_compte,
@@ -32,6 +38,7 @@ alter table modifications_commande add column ventilation jsonb;
 alter table complements add column ventilation jsonb;
 alter table complements drop constraint complements_tva_centimes_check;
 alter table remboursements add column modification_id uuid references modifications_commande (id) on delete set null;
+alter table remboursements add column ventilation jsonb;
 
 -- Répartit p_montant au prorata de poids signés (somme des poids non nulle), au centime : plus forts restes.
 create or replace function repartir_signe(p_montant integer, p_poids integer[]) returns integer[]
@@ -178,6 +185,10 @@ declare
   t numeric;
   mv jsonb;
 begin
+  -- Répartie une fois pour toutes à sa création (calculer_ventilation_remboursement) : c'est elle qui fait foi.
+  if r.ventilation is not null then
+    return r.ventilation;
+  end if;
   -- Remboursement d'une modification (baisse) : l'opposé de la ventilation de la modification, ramené au montant
   -- (plafond, partage entre paiements). Parts signées : une part négative est une vente (article ajouté).
   if r.modification_id is not null then
@@ -229,11 +240,12 @@ declare
 begin
   if exists (select 1 from commande_lignes where commande_id = new.id) then
     new.tva_centimes := (select coalesce(sum((x ->> 'tva')::integer), 0) from jsonb_array_elements(v) x);
-    -- Taux : celui de la vente figée s'il y en a une, sinon le plus haut des lignes ; une ligne offerte (0 CHF) ne
-    -- donne pas son taux (bo-commandes).
+    -- Taux le plus haut des lignes payantes (une ligne à 0 CHF ne donne pas son taux), sinon de toutes.
+    -- Vente figée : son taux le plus haut. Sinon (bo-carte) le plus haut des lignes payantes non offertes, sinon de toutes.
     new.taux_tva_pourcent := case when new.ventilation_figee is not null
       then (select max((x ->> 'taux')::numeric) from jsonb_array_elements(new.ventilation_figee) x)
-      else coalesce((select max(taux_tva_pourcent) from commande_lignes where commande_id = new.id and not offert), new.taux_tva_pourcent) end;
+      else coalesce((select max(taux_tva_pourcent) from commande_lignes where commande_id = new.id and total_centimes <> 0 and not offert),
+                    (select max(taux_tva_pourcent) from commande_lignes where commande_id = new.id)) end;
   end if;
   return new;
 end;
@@ -251,7 +263,8 @@ begin
     tv := (select coalesce(sum((x ->> 'tva')::integer), 0) from jsonb_array_elements(ventilation_commande(o)) x);
     tx := case when o.ventilation_figee is not null
       then (select max((x ->> 'taux')::numeric) from jsonb_array_elements(o.ventilation_figee) x)
-      else coalesce((select max(taux_tva_pourcent) from commande_lignes where commande_id = o.id and not offert), o.taux_tva_pourcent) end;
+      else coalesce((select max(taux_tva_pourcent) from commande_lignes where commande_id = o.id and total_centimes <> 0 and not offert),
+                    (select max(taux_tva_pourcent) from commande_lignes where commande_id = o.id)) end;
     -- Seulement si quelque chose change : une commande juste ne voit pas son modifie_le avancer.
     if (o.tva_centimes, o.taux_tva_pourcent) is distinct from (tv, tx) then
       update commandes set tva_centimes = tv, taux_tva_pourcent = tx where id = o.id;
@@ -593,3 +606,146 @@ begin
   return true;
 end;
 $$;
+
+-- Ce qui reste payé à chaque taux : [{ taux, ttc, tva }], par taux croissant, parts nulles écartées. Vente figée
+-- (ventilation_commande), compléments encaissés (pas ceux rendus à l'annulation), modifications appliquées sans argent
+-- (échange au même prix), moins les remboursements faits ou en cours.
+create or replace function ventilation_en_cours(p_commande uuid) returns jsonb
+language sql stable as $$
+  with parts as (
+    select (x ->> 'taux')::numeric as taux, (x ->> 'ttc')::integer as ttc, (x ->> 'tva')::integer as tva
+    from commandes o, jsonb_array_elements(ventilation_commande(o)) x where o.id = p_commande
+    union all
+    select (x ->> 'taux')::numeric, (x ->> 'ttc')::integer, (x ->> 'tva')::integer
+    from complements k, jsonb_array_elements(ventilation_complement(k)) x
+    where k.commande_id = p_commande and k.statut = 'encaisse' and k.rembourse_le is null
+    union all
+    select (x ->> 'taux')::numeric, (x ->> 'ttc')::integer, (x ->> 'tva')::integer
+    from modifications_commande m, jsonb_array_elements(m.ventilation) x
+    where m.commande_id = p_commande and m.statut = 'appliquee' and m.difference_centimes = 0 and m.ventilation is not null
+    union all
+    select (x ->> 'taux')::numeric, -(x ->> 'ttc')::integer, -(x ->> 'tva')::integer
+    from remboursements r, jsonb_array_elements(ventilation_remboursement(r)) x
+    where r.commande_id = p_commande and r.statut in ('fait', 'en_cours')
+  )
+  select coalesce(jsonb_agg(jsonb_build_object('taux', taux, 'ttc', ttc, 'tva', tva) order by taux), '[]'::jsonb)
+  from (select taux, sum(ttc)::integer as ttc, sum(tva)::integer as tva from parts group by taux) t
+  where ttc <> 0 or tva <> 0;
+$$;
+
+-- Répartition d'un remboursement au moment où il naît, sur ce qui reste payé à chaque taux.
+--   Tout le reste rendu : exactement le reste, TVA comprise (aucun arrondi cumulé).
+--   Remboursement d'une baisse : d'abord les taux des articles retirés (l'opposé de la ventilation de la modification),
+--     chacun plafonné à ce qui y reste payé ; au-delà (frais, partage), le reste comme un remboursement global.
+--   Manque rendu par ligne (montants_lignes) : la règle par article de bo-carte.
+--   Sinon : sur ce qui reste payé, selon rabais_tva_mixte (réduit d'abord, ou au prorata).
+create or replace function calculer_ventilation_remboursement(r remboursements) returns jsonb
+language plpgsql stable as $$
+declare
+  e jsonb := ventilation_en_cours(r.commande_id);
+  mv jsonb;
+  taux numeric[];
+  e_ttc integer[];
+  e_tva integer[];
+  w integer[];
+  reste integer[];
+  plus integer[];
+  parts integer[];
+  n integer;
+  total_e integer := 0;
+  somme_w integer := 0;
+  res jsonb := '[]'::jsonb;
+  i integer;
+  t numeric;
+  v integer;
+begin
+  if jsonb_typeof(r.montants_lignes) = 'object' then
+    r.ventilation := null;
+    return ventilation_remboursement(r);
+  end if;
+  if r.modification_id is not null then
+    mv := (select ventilation from modifications_commande where id = r.modification_id);
+  end if;
+  -- Les taux de ce qui reste payé, et ceux de la modification.
+  select coalesce(array_agg(x.taux order by x.taux), '{}') into taux from (
+    select (y ->> 'taux')::numeric as taux from jsonb_array_elements(e) y
+    union select (y ->> 'taux')::numeric from jsonb_array_elements(coalesce(mv, '[]'::jsonb)) y) x;
+  n := coalesce(array_length(taux, 1), 0);
+  if n = 0 then
+    r.ventilation := null;
+    return ventilation_remboursement(r);
+  end if;
+  e_ttc := array_fill(0, array[n]);
+  e_tva := array_fill(0, array[n]);
+  w := array_fill(0, array[n]);
+  for i in 1 .. n loop
+    e_ttc[i] := (select coalesce(sum((y ->> 'ttc')::integer), 0) from jsonb_array_elements(e) y where (y ->> 'taux')::numeric = taux[i]);
+    e_tva[i] := (select coalesce(sum((y ->> 'tva')::integer), 0) from jsonb_array_elements(e) y where (y ->> 'taux')::numeric = taux[i]);
+    total_e := total_e + e_ttc[i];
+    if mv is not null then
+      w[i] := (select coalesce(-sum((y ->> 'ttc')::integer), 0) from jsonb_array_elements(mv) y where (y ->> 'taux')::numeric = taux[i]);
+    end if;
+  end loop;
+
+  if total_e > 0 and r.montant_centimes >= total_e then
+    -- Tout le reste : exactement, TVA comprise ; un dépassement (ne devrait pas arriver) au taux le plus haut.
+    for i in 1 .. n loop
+      v := e_ttc[i] + case when i = n then r.montant_centimes - total_e else 0 end;
+      if v <> 0 then
+        res := res || jsonb_build_object('taux', taux[i], 'ttc', v,
+          'tva', case when v = e_ttc[i] then e_tva[i] else round(v * taux[i] / (100 + taux[i]))::integer end);
+      end if;
+    end loop;
+    return res;
+  end if;
+
+  -- Baisse : les taux retirés, plafonnés à ce qui y reste payé.
+  for i in 1 .. n loop
+    if w[i] > 0 then
+      w[i] := least(w[i], greatest(e_ttc[i], 0));
+    end if;
+    somme_w := somme_w + w[i];
+  end loop;
+  if mv is not null and somme_w > 0 and r.montant_centimes <= somme_w then
+    parts := repartir_signe(r.montant_centimes, w);
+  else
+    -- Le reste (ou tout, sans modification) sur ce qui reste payé à chaque taux, après la part des taux retirés.
+    if mv is null or somme_w <= 0 then
+      w := array_fill(0, array[n]);
+      somme_w := 0;
+    end if;
+    reste := array_fill(0, array[n]);
+    for i in 1 .. n loop
+      reste[i] := greatest(e_ttc[i] - greatest(w[i], 0), 0);
+    end loop;
+    plus := case when regle_tva('rabais_tva_mixte') = 'prorata' then repartir_centimes(r.montant_centimes - somme_w, reste)
+                 else imputer_dans_lordre(r.montant_centimes - somme_w, reste) end;
+    parts := w;
+    for i in 1 .. n loop
+      parts[i] := w[i] + plus[i];
+    end loop;
+  end if;
+  for i in 1 .. n loop
+    t := taux[i];
+    if parts[i] <> 0 then
+      res := res || jsonb_build_object('taux', t, 'ttc', parts[i],
+        'tva', case when parts[i] = e_ttc[i] then e_tva[i] else round(parts[i] * t / (100 + t))::integer end);
+    end if;
+  end loop;
+  return res;
+end;
+$$;
+
+create or replace function ventiler_remboursement() returns trigger
+language plpgsql as $$
+begin
+  new.ventilation := calculer_ventilation_remboursement(new);
+  return new;
+end;
+$$;
+create trigger ventiler_remboursement before insert on remboursements
+  for each row execute function ventiler_remboursement();
+
+revoke execute on function ventilation_en_cours(uuid), calculer_ventilation_remboursement(remboursements), ventiler_remboursement()
+  from public, anon, authenticated;
+grant execute on function ventilation_en_cours(uuid), calculer_ventilation_remboursement(remboursements) to service_role;
