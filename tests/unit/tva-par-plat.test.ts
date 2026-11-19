@@ -133,10 +133,17 @@ describe("taux datés (R5)", () => {
 });
 
 describe("taux d'un plat, calculé d'après la teneur en alcool (R1, R3)", () => {
+  it("la compta à deux taux est déclarée prête (20261217220000, après la #276 de bo-pilotage)", async () => {
+    expect(await q<boolean>("select alcool_compta_prete() as r")).toBe(true);
+  });
+
   it("garde-fou : une boisson alcoolisée ne se met pas en vente tant que la compta à deux taux n'est pas prête", async () => {
+    // Prête depuis 20261217220000 : le garde-fou se vérifie réglage coupé.
+    await db.query("update reglages set valeur = 'false' where cle = 'compta_multi_taux_pret'");
     // Coca-Cola est en vente : 0,6 % vol. est refusé, rien n'est écrit.
     await expect(f("regler_teneur_alcool('coca-cola', 0.6, $1)", [gerant])).rejects.toThrow(/alcool_compta_pas_prete/);
-    expect(await q<string | null>("select teneur_alcool as r from plats where slug = 'coca-cola'")).toBeNull();
+    // Le jeu de test donne 0 % vol. aux boissons en vente (20261217220000) : rien n'a changé.
+    expect(Number(await q<string | null>("select teneur_alcool as r from plats where slug = 'coca-cola'"))).toBe(0);
     // Hors vente, la teneur se pose ; la remettre en vente est refusé, et la fiche dit pourquoi.
     const b = await biere(5);
     await expect(db.query("update plats set commandable = true where slug = $1", [b])).rejects.toThrow(/alcool_compta_pas_prete/);
@@ -146,7 +153,6 @@ describe("taux d'un plat, calculé d'après la teneur en alcool (R1, R3)", () =>
     await db.query("update plats set commandable = true where slug = $1", [b]);
     expect(await q<string[]>("select motifs_plat(id) as r from plats where slug = $1", [b])).not.toContain("boisson alcoolisée : la compta à deux taux n'est pas prête");
     await db.query("update plats set commandable = false where slug = $1", [b]);
-    await db.query("update reglages set valeur = 'false' where cle = 'compta_multi_taux_pret'");
   });
 
   it("0,5 % vol. donne le réduit, 0,6 % le normal ; le back-office le montre et le journal le garde", async () => {
@@ -159,9 +165,8 @@ describe("taux d'un plat, calculé d'après la teneur en alcool (R1, R3)", () =>
     expect([Number(fiche.teneur_alcool), Number(fiche.taux_tva_pourcent)]).toEqual([0.6, normal]);
     const j = (await db.query<{ apres: { teneur_alcool: number } }>("select apres from journal_gestion where objet = 'teneur_alcool' order by id desc limit 1")).rows[0];
     expect(Number(j.apres.teneur_alcool)).toBe(0.6);
-    await f("regler_teneur_alcool('coca-cola', null, $1)", [gerant]);
+    await f("regler_teneur_alcool('coca-cola', 0, $1)", [gerant]);
     expect(Number(await q<string>("select taux_tva_pourcent as r from tva_plats_publics where slug = 'coca-cola'"))).toBe(reduit);
-    await db.query("update reglages set valeur = 'false' where cle = 'compta_multi_taux_pret'");
   });
 
   it("une teneur impossible est refusée ; seuls le gérant et le serveur la règlent", async () => {

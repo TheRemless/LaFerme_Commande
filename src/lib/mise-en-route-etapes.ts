@@ -165,6 +165,7 @@ export function etapesMiseEnRoute(e: EtatMiseEnRoute, s: EtatServeur): MiseEnRou
         "Remplissez les cases jaunes du tableau de validation de la carte (prix, commandable, poste, provenance, allergènes).",
         "Importez-le dans « Importer le tableau », qui le vérifie avant de l'appliquer.",
         "Tant qu'un plat commandable a un prix à valider, la mise en ligne est refusée.",
+        "Dans la fiche de chaque boisson, saisissez sa teneur en alcool (0 si elle est sans alcool). Sans teneur, elle bloque la mise en ligne.",
       ],
       liens: [
         { href: "/gestion/carte", texte: "Ouvrir la Carte" },

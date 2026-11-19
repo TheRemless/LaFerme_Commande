@@ -285,7 +285,7 @@ export function ListeCarte({ donnees, recharger, version }: { donnees: DonneesCa
       <RupturesGroupees donnees={donnees} recharger={recharger} />
       {donnees.bloquants > 0 && (
         <p className="bo-champ-aide">
-          {donnees.bloquants} plat{donnees.bloquants > 1 ? "s" : ""} en vente bloque{donnees.bloquants > 1 ? "nt" : ""} la mise en ligne (prix, allergènes, provenance ou supplément à valider).
+          {donnees.bloquants} plat{donnees.bloquants > 1 ? "s" : ""} en vente bloque{donnees.bloquants > 1 ? "nt" : ""} la mise en ligne (prix, allergènes, provenance, supplément à valider ou teneur en alcool d&apos;une boisson).
         </p>
       )}
       <TableauDonnees<LignePlatListe>

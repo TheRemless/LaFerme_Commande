@@ -939,7 +939,8 @@
    "provenancesConnues": [],
    "provenancesManquantes": [],
    "photo": null,
-   "faitMaisonSurUber": false
+   "faitMaisonSurUber": false,
+   "teneurAlcool": 0
   },
   {
    "id": "coca-cola-zero",
@@ -961,7 +962,8 @@
    "provenancesConnues": [],
    "provenancesManquantes": [],
    "photo": null,
-   "faitMaisonSurUber": false
+   "faitMaisonSurUber": false,
+   "teneurAlcool": 0
   },
   {
    "id": "the-froid-citron",
@@ -983,7 +985,8 @@
    "provenancesConnues": [],
    "provenancesManquantes": [],
    "photo": null,
-   "faitMaisonSurUber": false
+   "faitMaisonSurUber": false,
+   "teneurAlcool": 0
   },
   {
    "id": "the-froid-peche",
@@ -1005,7 +1008,8 @@
    "provenancesConnues": [],
    "provenancesManquantes": [],
    "photo": null,
-   "faitMaisonSurUber": false
+   "faitMaisonSurUber": false,
+   "teneurAlcool": 0
   },
   {
    "id": "burrata-tomates-et-mortadella",

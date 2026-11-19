@@ -116,7 +116,7 @@ test("les étiquettes se posent sur la fiche ; végane coche aussi végétarien"
   await gestion.keyboard.press("Escape");
 });
 
-test("boisson : la teneur en alcool se saisit ; plus de 0,5 % vol. refusé en vente tant que la compta n'est pas prête", async ({}, info) => {
+test("boisson : la teneur en alcool se saisit, le taux en découle ; vide refusé pour une boisson en vente", async ({}, info) => {
   // Une boisson par projet : bureau et mobile tournent en même temps sur la même base.
   const nom = info.project.name === "mobile" ? "Coca-Cola Zéro" : "Thé froid pêche";
   await gestion.goto("/gestion/carte");
@@ -125,28 +125,30 @@ test("boisson : la teneur en alcool se saisit ; plus de 0,5 % vol. refusé en ve
   await gestion.getByRole("table").getByRole("button", { name: new RegExp(`^${nom}`) }).click();
   const panneau = gestion.getByRole("dialog", { name: nom });
   const teneur = panneau.getByLabel("Teneur en alcool (% vol.)");
-  await expect(teneur).toHaveValue("");
+  // Le jeu de test donne 0 % vol. aux boissons en vente (teneur obligatoire, 20261217220000).
+  await expect(teneur).toHaveValue("0");
   const taux = panneau.getByText(/^Taux de TVA aujourd'hui/);
   const sansAlcool = await taux.textContent();
-  // Garde-fou : une boisson en vente ne passe pas à plus de 0,5 % vol. tant que la compta à deux taux n'est pas prête.
+  // La compta à deux taux est prête (20261217220000) : 0,6 % vol. passe la boisson au taux normal. Le garde-fou (réglage
+  // coupé) est vérifié en base, tests/unit/tva-par-plat.test.ts.
   await teneur.fill("0,6");
-  await panneau.getByRole("button", { name: "Enregistrer la teneur" }).click();
-  await expect(gestion.getByText(/^Une boisson de plus de 0,5 % vol\. ne peut pas être en vente/).last()).toBeVisible();
-  await expect(taux).toHaveText(sansAlcool!);
-  // 0,5 % vol. ou moins : enregistrée, le taux ne change pas.
-  await teneur.fill("0,5");
   await panneau.getByRole("button", { name: "Enregistrer la teneur" }).click();
   await expect(gestion.getByText(/^Teneur enregistrée\. TVA/).last()).toBeVisible();
   // La fiche se recharge après l'enregistrement (CI de #274, mobile) : attendre la valeur relue avant de défiler.
-  await expect(panneau.getByLabel("Teneur en alcool (% vol.)")).toHaveValue("0,5");
-  await expect(taux).toHaveText(sansAlcool!);
+  await expect(panneau.getByLabel("Teneur en alcool (% vol.)")).toHaveValue("0,6");
+  await expect(taux).not.toHaveText(sansAlcool!);
   await expect(async () => {
     await taux.scrollIntoViewIfNeeded({ timeout: 1000 });
   }).toPass();
   await capture("carte-teneur-alcool", info);
-  // Remise sans alcool, pour ne rien laisser dans la carte des autres tests.
+  // Vider la teneur d'une boisson en vente est refusé : elle est obligatoire (0 pour une boisson sans alcool).
   await panneau.getByLabel("Teneur en alcool (% vol.)").fill("");
   await panneau.getByRole("button", { name: "Enregistrer la teneur" }).click();
+  await expect(gestion.getByText(/^Saisissez la teneur en alcool de cette boisson/).last()).toBeVisible();
+  // Remise à 0, pour ne rien laisser dans la carte des autres tests.
+  await panneau.getByLabel("Teneur en alcool (% vol.)").fill("0");
+  await panneau.getByRole("button", { name: "Enregistrer la teneur" }).click();
+  await expect(panneau.getByLabel("Teneur en alcool (% vol.)")).toHaveValue("0");
   await expect(taux).toHaveText(sansAlcool!);
   // Un plat qui n'est pas une boisson n'a pas le champ.
   await gestion.keyboard.press("Escape");
