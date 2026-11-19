@@ -144,10 +144,25 @@ $$;
 create trigger figer_ventilation before update of statut_paiement on commandes
   for each row execute function figer_ventilation();
 
--- Commandes déjà payées : figées sur leur ventilation du moment.
-update commandes c set ventilation_figee = ventilation_commande(c)
-  where c.statut_paiement in ('paye', 'encaisse', 'rembourse') and c.ventilation_figee is null
-    and exists (select 1 from commande_lignes l where l.commande_id = c.id);
+-- Commandes déjà payées : figées sur leur ventilation du moment. Seule ventilation_figee change : modifie_le garde
+-- la vraie dernière modification (relecture de bo-carte), le déclencheur commandes_modifie_le est coupé le temps du
+-- rattrapage (aucun autre déclencheur ne suit cette colonne). Renvoie le nombre de commandes figées.
+create or replace function rattraper_ventilations_figees() returns integer
+language plpgsql as $$
+declare
+  n integer;
+begin
+  alter table commandes disable trigger commandes_modifie_le;
+  update commandes c set ventilation_figee = ventilation_commande(c)
+    where c.statut_paiement in ('paye', 'encaisse', 'rembourse') and c.ventilation_figee is null
+      and exists (select 1 from commande_lignes l where l.commande_id = c.id);
+  get diagnostics n = row_count;
+  alter table commandes enable trigger commandes_modifie_le;
+  return n;
+end;
+$$;
+revoke execute on function rattraper_ventilations_figees() from public, anon, authenticated, service_role;
+select rattraper_ventilations_figees();
 
 create or replace function ventilation_remboursement(r remboursements) returns jsonb
 language plpgsql stable as $$

@@ -145,6 +145,22 @@ describe("ventilation figée", () => {
     expect(Number((await db.query<{ t: string }>("select taux_tva_pourcent::text as t from commandes where id = $1", [c])).rows[0].t)).toBe(reduit);
   });
 
+  it("rattrapage des commandes déjà payées : seule la ventilation figée change, modifie_le garde sa vraie date", async () => {
+    const c = await commande([ligne(pizza)]);
+    // Comme une commande payée avant la migration : pas encore figée, modifiée pour la dernière fois il y a un mois.
+    await db.query("alter table commandes disable trigger commandes_modifie_le");
+    await db.query("update commandes set ventilation_figee = null, modifie_le = now() - interval '30 days' where id = $1", [c]);
+    await db.query("alter table commandes enable trigger commandes_modifie_le");
+    const avant = (await db.query<{ m: string }>("select modifie_le::text as m from commandes where id = $1", [c])).rows[0].m;
+    expect(await f<number>("rattraper_ventilations_figees()")).toBeGreaterThanOrEqual(1);
+    const apres = (await db.query<{ m: string; v: Part[] | null }>("select modifie_le::text as m, ventilation_figee as v from commandes where id = $1", [c])).rows[0];
+    expect(apres.m).toBe(avant);
+    expect(parts(apres.v ?? [])).toEqual([{ taux: reduit, ttc: pizza.prix, tva: tva(pizza.prix, reduit) }]);
+    // Le déclencheur est bien rallumé.
+    await db.query("update commandes set client_nom = client_nom where id = $1", [c]);
+    expect((await db.query<{ m: string }>("select modifie_le::text as m from commandes where id = $1", [c])).rows[0].m).not.toBe(avant);
+  });
+
   it("répartition signée : somme exacte, signes gardés, au prorata", async () => {
     expect(await f<number[]>("repartir_signe(500, array[-2000, 2500])")).toEqual([-2000, 2500]);
     const r = await f<number[]>("repartir_signe(301, array[-2000, 2500])");
