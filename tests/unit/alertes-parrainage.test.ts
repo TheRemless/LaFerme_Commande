@@ -9,9 +9,15 @@ const { executerSurveillance } = await import("@/lib/surveillance");
 
 describe("alertes d'abus du parrainage, côté serveur", () => {
   it("l'e-mail ne dit que le type de signal", () => {
-    const m = courrielCasParrainage({ id: 1, type: "meme_adresse", compte_id: "x", email: "client@exemple.ch", detail: { adresse: { rue: "Route de Chancy" } } });
+    const m = courrielCasParrainage([{ id: 1, type: "meme_adresse", compte_id: "x", detail: { filleuls: 2 } }]);
     expect(m.sujet).toBe("Parrainage à surveiller : filleuls à la même adresse de livraison");
-    expect(JSON.stringify(m)).not.toMatch(/client@exemple\.ch|Chancy/);
+    // Plusieurs cas du même tour : un seul e-mail.
+    const deux = courrielCasParrainage([
+      { id: 1, type: "meme_adresse", compte_id: "x", detail: {} },
+      { id: 2, type: "meme_nom", compte_id: "x", detail: {} },
+    ]);
+    expect(deux.sujet).toBe("Parrainage à surveiller : 2 signaux");
+    expect(deux.lignes.slice(0, 2)).toEqual(["Filleuls à la même adresse de livraison.", "Filleuls au même nom."]);
   });
 
   it("accueil : rien sans signal ouvert, un geste vers la rubrique sinon", () => {

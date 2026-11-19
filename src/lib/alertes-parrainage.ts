@@ -15,17 +15,18 @@ export const TYPES_SIGNAL: Record<string, string> = {
   recu_plus_que_paye: "Plus reçu en parrainage que payé sur 30 jours",
 };
 
-export type CasParrainage = { id: number; type: string; compte_id: string; email: string; detail: Record<string, unknown> };
+export type CasParrainage = { id: number; type: string; compte_id: string; detail: Record<string, unknown> };
 
 export const detecterAlertesParrainage = () => fonctionSql<CasParrainage[]>("detecter_alertes_parrainage", {});
 export const noterAlerteParrainageEnvoyee = (id: number) => fonctionSql<null>("noter_alerte_parrainage_envoyee", { p_id: id });
 
-// E-mail au restaurant : le type de signal seulement, jamais d'e-mail, de nom ni d'adresse de client.
-export function courrielCasParrainage(c: CasParrainage): { sujet: string; lignes: string[] } {
-  const libelle = TYPES_SIGNAL[c.type] ?? "Parrainage à surveiller";
+// Un seul e-mail au restaurant par tour, quel que soit le nombre de cas : le type de signal seulement, jamais d'e-mail,
+// de nom ni d'adresse de client.
+export function courrielCasParrainage(cas: CasParrainage[]): { sujet: string; lignes: string[] } {
+  const libelles = cas.map((c) => TYPES_SIGNAL[c.type] ?? "Parrainage à surveiller");
   return {
-    sujet: `Parrainage à surveiller : ${libelle.toLowerCase()}`,
-    lignes: [`${libelle}.`, "Le détail, les filleuls et le geste « Suspendre ce parrain » sont dans le back-office, rubrique Parrainages."],
+    sujet: cas.length === 1 ? `Parrainage à surveiller : ${libelles[0].toLowerCase()}` : `Parrainage à surveiller : ${cas.length} signaux`,
+    lignes: [...libelles.map((l) => `${l}.`), "", "Le détail, les filleuls et le geste « Suspendre ce parrain » sont dans le back-office, rubrique Parrainages."],
   };
 }
 

@@ -173,7 +173,9 @@ language sql immutable as $$
 $$;
 
 -- Détecte les cas nouveaux et les note (une seule fois par cas). Rend les cas pas encore envoyés, nouveaux ou en
--- échec d'envoi : [{ id, type, compte_id, email, detail }]. Le serveur les envoie, puis noter_alerte_parrainage_envoyee.
+-- échec d'envoi : [{ id, type, compte_id, detail }]. Le serveur les envoie, puis noter_alerte_parrainage_envoyee.
+-- detail ne garde que des nombres : ni adresse, ni nom, ni e-mail de client (la clé n'en garde qu'une empreinte md5),
+-- pour que l'effacement des données d'un client ne laisse rien ici.
 create function detecter_alertes_parrainage() returns jsonb
 language plpgsql as $$
 declare
@@ -191,9 +193,9 @@ begin
 
   -- Filleuls d'un même parrain à la même adresse de livraison.
   insert into alertes_parrainage (cle, compte_id, type, detail)
-  select 'meme_adresse:' || x.parrain_id || ':' || md5(x.adr), x.parrain_id, 'meme_adresse', jsonb_build_object('filleuls', x.n, 'adresse', x.adresse)
+  select 'meme_adresse:' || x.parrain_id || ':' || md5(x.adr), x.parrain_id, 'meme_adresse', jsonb_build_object('filleuls', x.n)
   from (
-    select p.parrain_id, adresse_cle(o.adresse) as adr, min(o.adresse::text)::jsonb as adresse, count(distinct p.filleul_id) as n
+    select p.parrain_id, adresse_cle(o.adresse) as adr, count(distinct p.filleul_id) as n
     from parrainages p join commandes o on o.compte_id = p.filleul_id and o.mode = 'livraison'
     where o.statut not in ('paiement_en_attente', 'annulee') and adresse_cle(o.adresse) is not null
     group by p.parrain_id, adresse_cle(o.adresse) having count(distinct p.filleul_id) >= 2
@@ -213,7 +215,7 @@ begin
 
   -- Filleuls d'un même parrain au même nom (compte ou commande).
   insert into alertes_parrainage (cle, compte_id, type, detail)
-  select 'meme_nom:' || x.parrain_id || ':' || md5(x.nom), x.parrain_id, 'meme_nom', jsonb_build_object('filleuls', x.n, 'nom', x.nom)
+  select 'meme_nom:' || x.parrain_id || ':' || md5(x.nom), x.parrain_id, 'meme_nom', jsonb_build_object('filleuls', x.n)
   from (
     select y.parrain_id, y.nom, count(distinct y.filleul_id) as n
     from (
@@ -256,8 +258,8 @@ begin
   on conflict (cle) do nothing;
 
   return coalesce((
-    select jsonb_agg(jsonb_build_object('id', a.id, 'type', a.type, 'compte_id', a.compte_id, 'email', k.email, 'detail', a.detail) order by a.id)
-    from alertes_parrainage a join comptes k on k.id = a.compte_id where a.envoye_le is null
+    select jsonb_agg(jsonb_build_object('id', a.id, 'type', a.type, 'compte_id', a.compte_id, 'detail', a.detail) order by a.id)
+    from alertes_parrainage a where a.envoye_le is null
   ), '[]'::jsonb);
 end;
 $$;

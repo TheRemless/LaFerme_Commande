@@ -187,10 +187,11 @@ export async function executerSurveillance(maintenant = new Date()): Promise<{ f
   return { fait: true, retards: retards.length, pause, imprimees, rattrapes };
 }
 
+// Tous les cas du tour dans un seul e-mail (un abus en déclenche souvent plusieurs : même adresse, même nom, même IP).
 async function alerterParrainage(): Promise<void> {
-  for (const c of await detecterAlertesParrainage()) {
-    const m = courrielCasParrainage(c);
-    await alerter(m.sujet, m.lignes, "alerte", "parrainage_abus");
-    await noterAlerteParrainageEnvoyee(c.id);
-  }
+  const cas = await detecterAlertesParrainage();
+  if (!cas.length) return;
+  const m = courrielCasParrainage(cas);
+  await alerter(m.sujet, m.lignes, "alerte", "parrainage_abus");
+  for (const c of cas) await noterAlerteParrainageEnvoyee(c.id);
 }

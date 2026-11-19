@@ -154,7 +154,7 @@ Migration `20261217090000_alertes_parrainage.sql`. La surveillance cherche à ch
 - un parrain dont les filleuls ne recommandent pas. L'alerte part dès 3 filleuls crédités depuis plus de 30 jours, si 75 % d'entre eux n'ont pas de deuxième commande. Ces deux seuils sont des propositions, réglables ;
 - un compte qui a reçu plus en parrainage qu'il n'a payé sur 30 jours.
 
-Chaque cas part une seule fois, par le circuit des autres alertes (type « Parrainage à surveiller », réglable dans les alertes). L'e-mail ne donne que le type de signal et renvoie au back-office, sans nom ni adresse du client. L'accueil du back-office montre les signaux ouverts. Les signaux « trop de filleuls », « sans suite » et « reçu plus que payé » peuvent revenir le mois suivant, jamais deux fois dans le même mois.
+Chaque cas part une seule fois, par le circuit des autres alertes (type « Parrainage à surveiller », réglable dans les alertes). Les cas d'un même tour partent dans un seul e-mail. Il ne donne que le type de signal et renvoie au back-office, sans nom ni adresse du client. L'alerte gardée en base ne contient que des nombres. L'accueil du back-office montre les signaux ouverts. Les signaux « trop de filleuls », « sans suite » et « reçu plus que payé » peuvent revenir le mois suivant, jamais deux fois dans le même mois.
 
 L'adresse IP est celle déjà notée à la connexion au compte (`journal_connexions.ip_court`, 8 caractères, déclarée dans la confidentialité). Rien de nouveau n'est gardé. L'appareil n'est pas comparé. Le journal ne garde qu'un libellé générique (« Safari sur iPhone »), partagé par trop de clients.
 

@@ -88,8 +88,11 @@ describe("alertes d'abus du parrainage", () => {
   it("filleuls d'un même parrain qui partagent une adresse, une IP de connexion ou un nom", async () => {
     await filleul(code, 1, { numero: "77", ip: "ab12cd34", nom: "Dupont" });
     await filleul(code, 2, { numero: "77", ip: "ab12cd34", nom: "Dupont" });
-    const types = (await detecter()).map((a) => a.type).sort();
-    expect(types).toEqual(expect.arrayContaining(["meme_adresse", "meme_ip", "meme_nom"]));
+    const cas = await detecter();
+    expect(cas.map((a) => a.type).sort()).toEqual(expect.arrayContaining(["meme_adresse", "meme_ip", "meme_nom"]));
+    // Ni adresse, ni nom, ni e-mail de client gardés avec l'alerte : seulement des nombres.
+    const gardes = JSON.stringify((await db.query("select cle, detail from alertes_parrainage")).rows);
+    expect(gardes).not.toMatch(/Chancy|Dupont|exemple\.ch/i);
   });
 
   it("filleuls qui ne recommandent jamais : ratio par parrain, après 30 jours", async () => {
