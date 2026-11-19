@@ -153,7 +153,8 @@ language sql stable as $$
     select
       count(*) as commandes,
       coalesce(sum(total_centimes), 0)::bigint + (select coalesce(sum(montant_centimes), 0) from compl)::bigint as ttc,
-      coalesce(sum(tva_centimes), 0)::bigint + (select coalesce(sum(tva_centimes), 0) from compl)::bigint as tva,
+      -- Somme de la TVA par taux : un échange sans argent déplace la TVA sans changer le TTC.
+      (select coalesce(sum(tva), 0) from taux)::bigint as tva,
       coalesce(sum(total_centimes) filter (where statut_paiement in ('paye', 'encaisse', 'rembourse')), 0)::bigint
         + (select coalesce(sum(montant_centimes) filter (where statut = 'encaisse'), 0) from compl)::bigint as encaisse,
       count(*) filter (where statut_paiement = 'a_encaisser_retrait') as a_encaisser,
@@ -174,8 +175,8 @@ language sql stable as $$
 $$;
 
 -- Récapitulatif par jour et par taux : mêmes règles qu'avant (vente au jour de la commande, remboursement au jour
--- où il est fait), montants par taux pris des ventilations. Les frais d'un complément vont à sa part du taux le
--- plus haut. Un échange sans argent compte au jour où il est fait, sans moyen.
+-- où il est fait), montants par taux pris des ventilations. Les frais d'un complément vont à sa plus grande part
+-- positive (là où ils ont été payés). Un échange sans argent compte au jour où il est fait, sans moyen.
 create or replace function export_recap_jours(p_debut date, p_fin date) returns jsonb
 language sql stable as $$
   with ventes as (
@@ -191,7 +192,7 @@ language sql stable as $$
     -- comptoir au comptoir. Pas une vente de plus dans le compte des commandes.
     select o.jour, (x ->> 'taux')::numeric, case when k.moyen = 'en_ligne' then 'en_ligne' else 'comptoir' end,
       (x ->> 'ttc')::integer, (x ->> 'tva')::integer,
-      case when row_number() over (partition by k.id order by (x ->> 'taux')::numeric desc) = 1 then k.frais_centimes else 0 end,
+      case when row_number() over (partition by k.id order by (x ->> 'ttc')::integer desc, (x ->> 'taux')::numeric desc) = 1 then k.frais_centimes else 0 end,
       false
     from complements k join commandes o on o.id = k.commande_id, jsonb_array_elements(ventilation_complement(k)) x
     where o.jour between p_debut and p_fin and k.statut = 'encaisse' and o.statut not in ('refusee', 'annulee')
@@ -267,10 +268,12 @@ language sql stable as $$
   select o.jour, o.numero, 1, (x ->> 'taux')::numeric, jsonb_build_object(
     'jour', o.jour, 'numero', o.numero, 'heure', to_char(k.encaisse_le at time zone 'Europe/Zurich', 'HH24:MI'),
     'mode', o.mode, 'paiement', case when k.moyen = 'en_ligne' then 'en ligne (complément)' else 'comptoir (complément)' end,
-    'sous_total_centimes', (x ->> 'ttc')::integer, 'frais_centimes', 0, 'total_centimes', (x ->> 'ttc')::integer,
+    'sous_total_centimes', (x ->> 'ttc')::integer - f.frais, 'frais_centimes', f.frais, 'total_centimes', (x ->> 'ttc')::integer,
     'taux_tva_pourcent', (x ->> 'taux')::numeric, 'tva_centimes', (x ->> 'tva')::integer, 'stripe_payment_intent', k.stripe_payment_intent,
     'premiere', false)
-  from complements k join commandes o on o.id = k.commande_id, jsonb_array_elements(ventilation_complement(k)) x
+  from complements k join commandes o on o.id = k.commande_id,
+    lateral (select x, case when row_number() over (order by (x ->> 'ttc')::integer desc, (x ->> 'taux')::numeric desc) = 1 then k.frais_centimes else 0 end as frais
+             from jsonb_array_elements(ventilation_complement(k)) x) f
   where o.jour between p_debut and p_fin and k.statut = 'encaisse' and o.statut not in ('refusee', 'annulee')
   union all
   select (m.fini_le at time zone 'Europe/Zurich')::date, o.numero, 2, (x ->> 'taux')::numeric, jsonb_build_object(
@@ -303,7 +306,7 @@ language sql stable as $$
 $$;
 
 -- Format simple : mêmes lignes qu'avant, par taux de la ventilation (le format refuse plusieurs taux sur une période,
--- un seul compte de ventes). Les échanges sans argent n'existent qu'entre deux taux : refusés avec eux.
+-- un seul compte de ventes). Les échanges sans argent y entrent : entre deux taux, la période est refusée.
 create or replace function export_cresus(p_debut date, p_fin date) returns jsonb
 language sql stable as $$
   with ventes as (
@@ -321,7 +324,7 @@ language sql stable as $$
     select o.jour, (x ->> 'taux')::numeric as taux,
       case when k.moyen = 'en_ligne' then 'stripe' when k.moyen_encaissement = 'carte' then 'terminal' else 'caisse' end as moyen,
       (x ->> 'ttc')::integer as total_centimes, (x ->> 'tva')::integer as tva_centimes,
-      case when row_number() over (partition by k.id order by (x ->> 'taux')::numeric desc) = 1 then k.frais_centimes else 0 end as frais_centimes,
+      case when row_number() over (partition by k.id order by (x ->> 'ttc')::integer desc, (x ->> 'taux')::numeric desc) = 1 then k.frais_centimes else 0 end as frais_centimes,
       0 as tva_frais, false as compte
     from complements k join commandes o on o.id = k.commande_id, jsonb_array_elements(ventilation_complement(k)) x
     where o.jour between p_debut and p_fin and k.statut = 'encaisse' and o.statut not in ('refusee', 'annulee')
@@ -330,6 +333,17 @@ language sql stable as $$
     select jour, taux, moyen, total_centimes, tva_centimes, frais_centimes,
       round(frais_centimes * taux / (100 + taux))::integer as tva_frais, compte
     from complements_v
+  ),
+  -- Échange sans argent (à fini_le) : il met deux taux sur la période, et le format simple la refuse avec un message.
+  echanges as (
+    select (m.fini_le at time zone 'Europe/Zurich')::date as jour, (x ->> 'taux')::numeric as taux,
+      case when o.moyen_paiement = 'en_ligne' then 'stripe' when o.moyen_comptoir = 'carte' then 'terminal' else 'caisse' end as moyen,
+      (x ->> 'ttc')::integer as total_centimes, (x ->> 'tva')::integer as tva_centimes, 0 as frais_centimes, 0 as tva_frais, false as compte
+    from modifications_commande m join commandes o on o.id = m.commande_id, jsonb_array_elements(m.ventilation) x
+    where m.statut = 'appliquee' and m.difference_centimes = 0 and m.ventilation is not null
+      and m.fini_le >= (p_debut::timestamp at time zone 'Europe/Zurich')
+      and m.fini_le < ((p_fin + 1)::timestamp at time zone 'Europe/Zurich')
+      and o.statut not in ('refusee', 'annulee')
   ),
   rembs as (
     select (r.fait_le at time zone 'Europe/Zurich')::date as jour, (x ->> 'taux')::numeric as taux,
@@ -345,7 +359,7 @@ language sql stable as $$
   lignes as (
     select jour, taux, 'vente' as sorte, moyen, count(*) filter (where compte) as nombre, sum(total_centimes) as ttc, sum(tva_centimes) as tva,
       sum(frais_centimes) as frais, sum(tva_frais) as tva_frais
-    from (select * from ventes union all select * from complements_f) v group by jour, taux, moyen
+    from (select * from ventes union all select * from complements_f union all select * from echanges) v group by jour, taux, moyen
     union all
     select jour, taux, 'remboursement', moyen, count(*), sum(montant_centimes), sum(tva), 0, 0
     from rembs group by jour, taux, moyen
@@ -377,7 +391,7 @@ language sql stable as $$
         'rabais_ttc', 0, 'rabais_tva', 0, 'cagnotte_ttc', 0, 'cagnotte_tva', 0),
       false
     from complements k join commandes o on o.id = k.commande_id,
-      lateral (select x, case when row_number() over (order by (x ->> 'taux')::numeric desc) = 1 then k.frais_centimes else 0 end as frais
+      lateral (select x, case when row_number() over (order by (x ->> 'ttc')::integer desc, (x ->> 'taux')::numeric desc) = 1 then k.frais_centimes else 0 end as frais
                from jsonb_array_elements(ventilation_complement(k)) x) f
     where o.jour between p_debut and p_fin and k.statut = 'encaisse' and o.statut not in ('refusee', 'annulee')
   ),

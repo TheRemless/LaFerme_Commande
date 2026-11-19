@@ -2,7 +2,7 @@ import type { PGlite } from "@electric-sql/pglite";
 import { beforeAll, describe, expect, it } from "vitest";
 import { creerBaseLocale } from "@/lib/db/locale";
 import type { RecapJour } from "@/lib/export-compta";
-import { CONTREPARTIE, ecrituresEtendues, type DonneesEtendues } from "@/lib/export-cresus";
+import { CONTREPARTIE, ecrituresCresus, ecrituresEtendues, type DonneesEtendues, type LigneCresus } from "@/lib/export-cresus";
 import type { Remboursement, Vente } from "@/lib/gestion";
 
 // R20 du plan docs/compta/plan-conformite.md : les lecteurs de la compta suivent la ventilation par taux
@@ -200,6 +200,48 @@ describe("cas chiffrés de la relecture de #275 (client-compte, défauts 2 et 4)
     const net = (compte: string) => l.reduce((s, x) => s + (x.debit === compte ? x.centimes : 0) - (x.credit === compte ? x.centimes : 0), 0);
     expect(net(COMPTES.stripe)).toBe(-3100);
     expect(tvaDue(l)).toBe(tva(600, normal) - tva(3700, reduit));
+  });
+});
+
+describe("relecture de #276 par client-compte (A, B, C)", () => {
+  it("A et B : un échange sans argent sur une vente à un taux fait refuser le format simple, et la TVA du haut de la synthèse suit les taux", async () => {
+    const jour = "2026-12-12";
+    const v = await commande([{ slug: pizza, total: 1850 }], "r20-echange-simple");
+    await db.query("update commandes set jour = $2, jour_service = $2 where id = $1", [v, jour]);
+    await db.query(
+      `insert into modifications_commande (commande_id, cle, statut, reglement, lignes, sous_total_centimes, frais_centimes, total_centimes, tva_centimes,
+         ancienne_valeur_centimes, difference_centimes, personnel_id, personnel_nom, ventilation, fini_le)
+       values ($1, 'echange-r20-simple-01', 'appliquee', 'aucun', '[{"slug":"x"}]', 1850, 0, 1850, 0, 1850, 0, $2, 'R20', $3, $4::timestamptz)`,
+      [v, gerant, JSON.stringify([{ taux: reduit, ttc: -1850, tva: -tva(1850, reduit) }, { taux: normal, ttc: 1850, tva: tva(1850, normal) }]), `${jour}T12:00:00+01:00`],
+    );
+    const lignes = await f<LigneCresus[]>("export_cresus($1, $2)", [jour, jour]);
+    const r = ecrituresCresus(lignes, { caisse: "1000", stripe: "1090", terminal: "1091", tva: "2200", ventes: "3200", livraison: "3400", remboursements: "3800", rabais: "3801", cagnotte: "3802" });
+    expect(r).toEqual({ ok: false, erreur: expect.stringContaining("Plusieurs taux") });
+    const s = await f<{ ttc_centimes: number; tva_centimes: number; ht_centimes: number; tva: { tva_centimes: number }[] }>("pilotage_synthese($1, $2)", [jour, jour]);
+    expect(s.ttc_centimes).toBe(1850);
+    expect(s.tva_centimes).toBe(tva(1850, normal));
+    expect(s.tva_centimes).toBe(s.tva.reduce((x, t) => x + t.tva_centimes, 0));
+    expect(s.ht_centimes).toBe(1850 - tva(1850, normal));
+  });
+
+  it("C : les frais d'un complément vont à sa part payée, et l'export des ventes les montre", async () => {
+    const jour = "2026-12-13";
+    const c = await commande([{ slug: "biere-r20", total: 1000 }], "r20-frais-complement");
+    await db.query("update commandes set jour = $2, jour_service = $2 where id = $1", [c, jour]);
+    // Bières remplacées par des pizzas, frais de 5.00 à 8.00 : complément de 3.00 de frais compris, parts +2300 à 2,6 %, −1000 à 8,1 %.
+    await db.query(
+      `insert into complements (commande_id, montant_centimes, tva_centimes, frais_centimes, moyen, statut, moyen_encaissement, encaisse_le, ventilation)
+       values ($1, 1300, $2, 300, 'comptoir', 'encaisse', 'especes', now(), $3)`,
+      [c, tva(2300, reduit) - tva(1000, normal), JSON.stringify([{ taux: reduit, ttc: 2300, tva: tva(2300, reduit) }, { taux: normal, ttc: -1000, tva: -tva(1000, normal) }])],
+    );
+    const ventes = await f<Vente[]>("export_ventes($1, $2)", [jour, jour]);
+    const compl = ventes.filter((x) => x.paiement.includes("complément"));
+    expect(compl.map((x) => [Number(x.taux_tva_pourcent), x.frais_centimes])).toEqual([
+      [reduit, 300],
+      [normal, 0],
+    ]);
+    const d = await f<DonneesEtendues>("export_cresus_etendu($1, $2)", [jour, jour]);
+    expect(d.ventes.find((x) => Number(x.taux) === reduit && x.moyen === "caisse")?.frais_ttc).toBe(300);
   });
 });
 
