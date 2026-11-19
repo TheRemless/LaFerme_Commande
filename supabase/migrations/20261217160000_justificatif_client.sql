@@ -33,7 +33,9 @@ $$;
 -- au hasard entre deux tâches créées au même instant. Recréée (20261111090000), même signature.
 create or replace function tickets_commande(p_commande uuid) returns jsonb
 language sql stable as $$
-  select coalesce(jsonb_agg(jsonb_build_object('station', t.station, 'contenu', t.contenu) order by t.station, t.id), '[]'::jsonb)
+  -- Identifiants en UUID : l'ordre est donné par le contenu, le justificatif après le ticket de préparation.
+  select coalesce(jsonb_agg(jsonb_build_object('station', t.station, 'contenu', t.contenu)
+    order by t.station, coalesce(t.contenu -> 0 ->> 'texte', '') = 'JUSTIFICATIF CLIENT', t.id), '[]'::jsonb)
   from taches_impression t
   where t.commande_id = p_commande
     and t.cree_le = (select max(x.cree_le) from taches_impression x where x.commande_id = p_commande and x.station = t.station);
