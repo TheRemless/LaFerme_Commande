@@ -11,7 +11,7 @@ import type { TypeCourriel } from "@/lib/courriel/quota";
 import { fourchette } from "@/lib/heure-reelle";
 import { plageTexte } from "@/lib/plage-heure";
 import { instantGeneve, type ConfigService } from "@/lib/service";
-import { recuDisponible } from "@/lib/recu";
+import { CODE_TVA, legendeTva, mentionLivraison, recuDisponible } from "@/lib/recu";
 
 // Même heure partout que l'accueil (client-commande) : fourchette selon les réglages de largeur de
 // bo-operations ; sans configuration ou à largeur 0, une seule heure (« vers 19h40 »).
@@ -122,10 +122,14 @@ export function courrielConfirmation(c: Commande, cat: Catalogue | null, estimat
       : c.mode === "livraison"
         ? `À payer à la livraison, en espèces ou par carte, ${prixChf(c.total_centimes)}.`
         : `À payer au comptoir en venant la chercher, ${prixChf(c.total_centimes)}.`;
-  const lignes = c.lignes.map((l) => ({ titre: `${l.qte} × ${nomClient(l.nom, l.station === "pizza")}`, prix: prixCourt(l.total_centimes), details: detailsLigne(cat, l) }));
+  const lignes = c.lignes.map((l) => ({ titre: `${l.qte} × ${nomClient(l.nom, l.station === "pizza")}`, prix: `${prixCourt(l.total_centimes)} ${CODE_TVA}`, details: detailsLigne(cat, l) }));
+  // Justificatif de la TVA à 2,6 % (plan de conformité R6 et R7) : la mention avec le nom et l'adresse complète (l'e-mail
+  // arrive dans la boîte du client), le code de taux de chaque ligne et sa légende.
+  const m = mentionLivraison(c as Commande & { destinataire?: { nom?: string } | null }, true);
+  const mention = m.length > 1 ? `${m[0]} ${m.slice(1).join(", ")}.` : `${m[0]}.`;
   const sommes = [
     ["Sous-total", prixChf(c.sous_total_centimes)],
-    ...(c.mode === "livraison" ? [["Livraison", prixChf(c.frais_centimes)]] : []),
+    ...(c.mode === "livraison" ? [["Livraison", `${prixChf(c.frais_centimes)} ${CODE_TVA}`]] : []),
     ...(c.cagnotte_centimes ? [["Cagnotte utilisée", `− ${prixChf(c.cagnotte_centimes)}`]] : []),
     ["Total", prixChf(c.total_centimes)],
     [`dont TVA ${String(c.taux_tva_pourcent).replace(".", ",")} %`, prixChf(c.tva_centimes)],
@@ -140,9 +144,11 @@ export function courrielConfirmation(c: Commande, cat: Catalogue | null, estimat
     HEURE_AU_SUIVI,
     ...(c.allergie ? [ALLERGIE_SIGNALEE] : []),
     "",
+    mention,
     ...lignes.flatMap((l) => [`${l.titre}  ${l.prix}`, ...l.details.map((d) => `   ${d}`)]),
     "",
     ...sommes.map(([a, b]) => `${a}  ${b}`),
+    `${legendeTva(c)}.`,
     paiement,
     "",
     `Suivre la commande : ${lienSuivi(c)}`,
@@ -154,6 +160,7 @@ export function courrielConfirmation(c: Commande, cat: Catalogue | null, estimat
   const html = enveloppe(`
 <p>Bonjour ${echapper(c.client_prenom)},</p>
 <p>Nous avons bien reçu votre commande n° <strong>${c.numero}</strong>.<br>${echapper(modeTexte(c, estimation, config))}<br>${HEURE_AU_SUIVI}</p>${c.allergie ? `\n<p><strong>${ALLERGIE_SIGNALEE}</strong></p>` : ""}
+<p><strong>${echapper(mention)}</strong></p>
 <table style="width:100%;border-collapse:collapse">${lignes
     .map(
       (l) => `<tr><td style="padding:6px 0;border-top:1px solid #ddd"><strong>${echapper(l.titre)}</strong>${l.details
@@ -166,6 +173,7 @@ export function courrielConfirmation(c: Commande, cat: Catalogue | null, estimat
       return `<tr><td style="padding:4px 0${fort}">${echapper(a)}</td><td style="padding:4px 0;text-align:right${fort}">${b}</td></tr>`;
     })
     .join("")}</table>
+<p style="color:#55524f">${echapper(legendeTva(c))}.</p>
 <p>${echapper(paiement)}</p>
 ${bouton(lienSuivi(c), "Suivre la commande")}${recu ? `\n<p><a href="${echapper(`${lienSuivi(c)}/recu`)}" style="color:#1c1b1a">Reçu avec TVA</a></p>` : ""}
 <p>Une question ? ${TELEPHONE}</p>`, c.origine, `Nous avons bien reçu votre commande n° ${c.numero}.`);

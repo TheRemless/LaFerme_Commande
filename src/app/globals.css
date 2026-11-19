@@ -3642,8 +3642,16 @@ body.fiche-ouverte {
   font-size: 28px;
 }
 .recu-vendeur,
-.recu-meta {
+.recu-meta,
+.recu-mention {
   margin: 12px 0;
+}
+/* Mention du justificatif (TVA à 2,6 %), première ligne en gras comme sur le ticket du sac. */
+.recu-mention > span:first-child {
+  font-weight: 700;
+}
+.recu-legende {
+  color: var(--encre-douce);
 }
 .recu-table {
   width: 100%;
