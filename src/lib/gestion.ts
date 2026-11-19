@@ -267,6 +267,8 @@ export type Vente = {
   taux_tva_pourcent: number;
   tva_centimes: number;
   stripe_payment_intent: string | null;
+  // Une commande à deux taux donne une ligne par taux : seule la première compte la commande (20261217200000).
+  premiere?: boolean;
 };
 
 export type Remboursement = {
@@ -327,7 +329,7 @@ export function csvVentes(ventes: Vente[], remboursements: Remboursement[] = [])
   const taux = (t: number) => parTaux.get(String(t)) ?? { total: 0, tva: 0, n: 0, rembourse: 0, tvaRemb: 0 };
   for (const v of ventes) {
     const t = taux(v.taux_tva_pourcent);
-    parTaux.set(String(v.taux_tva_pourcent), { ...t, total: t.total + v.total_centimes, tva: t.tva + v.tva_centimes, n: t.n + 1 });
+    parTaux.set(String(v.taux_tva_pourcent), { ...t, total: t.total + v.total_centimes, tva: t.tva + v.tva_centimes, n: t.n + (v.premiere === false ? 0 : 1) });
   }
   for (const r of remboursements) {
     const t = taux(r.taux_tva_pourcent);

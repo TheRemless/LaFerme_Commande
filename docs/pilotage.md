@@ -129,7 +129,9 @@ Plan et règles : `docs/compta/plan-conformite.md`, référence `docs/compta/tva
 - Avoirs (R11, R12) : un par remboursement fait, numéroté dans l'ordre où les remboursements deviennent faits (`remboursements.numero_avoir`), à sa date, avec la commande et la référence Stripe dans le libellé.
 - Seize champs. Les champs 1 à 16 sont les mêmes sur la page web (20 champs) et dans le PDF (19) du manuel : l'écart entre les deux ne joue pas. Windows-1252, montant en monnaie étrangère et cours à zéro.
 - Refusé avec un message tant que le code TVA d'un taux présent n'est pas saisi.
-- Ventilation par taux : `ventilation_commande` et `ventilation_remboursement`, un seul taux aujourd'hui, recréées par bo-carte quand les lignes porteront leur taux.
+- Ventilation par taux : `ventilation_commande` (vente figée au paiement), `ventilation_complement`, `ventilation_remboursement` (parts signées : une part négative d'un avoir est une vente) et, pour un échange sans argent, `modifications_commande.ventilation` à sa date. Depuis `20261217200000`, le récapitulatif, l'export des ventes et des remboursements (une ligne par taux), les deux formats Crésus, la synthèse des Rapports et la clôture ne lisent plus que ces ventilations.
+- Échange sans argent : un avoir pour la part retirée, une vente pour la part ajoutée, les deux TTC passent par le compte du moyen et s'annulent.
+- Règles d'une commande à deux taux (frais de livraison, rabais) : réglables à l'écran « Export comptable », valeur prudente par défaut, à confirmer avec la fiduciaire (F3, F4).
 - À confirmer par le test d'acceptation R34 : encodage, sens exact de « … », valeur du champ 8, numéros de pièce. Le restaurant saisit une journée type à la main dans Crésus, l'exporte en texte étendu. On compare ensuite champ par champ.
 
 Avant le premier vrai import : exporter une semaine, l'importer dans une copie de la comptabilité et comparer avec la clôture du jour.

@@ -165,7 +165,9 @@ export type AvoirEtendu = {
   stripe_refund_id: string | null;
   ventilation: { taux: number; ttc: number; tva: number }[];
 };
-export type DonneesEtendues = { ventes: VenteEtendue[]; avoirs: AvoirEtendu[] };
+// Échange sans argent (modification d'une commande payée à différence 0, bo-commandes) : parts signées, somme nulle.
+export type EchangeEtendu = { jour: string; moyen: MoyenCresus; commande: number; ventilation: { taux: number; ttc: number; tva: number }[] };
+export type DonneesEtendues = { ventes: VenteEtendue[]; avoirs: AvoirEtendu[]; echanges?: EchangeEtendu[] };
 
 export const CONTREPARTIE = "…";
 export type LigneEtendue = {
@@ -184,7 +186,12 @@ const MOYENS_TEXTE: Record<MoyenCresus, string> = { stripe: "en ligne", caisse: 
 
 export function ecrituresEtendues(d: DonneesEtendues, plan: Pick<PlanComptes, "comptes" | "codes_tva">): { ok: true; lignes: LigneEtendue[] } | { ok: false; erreur: string } {
   const { comptes } = plan;
-  const tous = [...d.ventes.map((v) => Number(v.taux)), ...d.avoirs.flatMap((a) => a.ventilation.map((x) => Number(x.taux)))];
+  const echanges = d.echanges ?? [];
+  const tous = [
+    ...d.ventes.map((v) => Number(v.taux)),
+    ...d.avoirs.flatMap((a) => a.ventilation.map((x) => Number(x.taux))),
+    ...echanges.flatMap((e) => e.ventilation.map((x) => Number(x.taux))),
+  ];
   for (const t of [...new Set(tous)].sort((a, b) => a - b)) {
     if (!plan.codes_tva[cleTaux(t)]) {
       return { ok: false, erreur: `Code TVA du taux ${tauxTexte(t)} manquant : recopiez-le de la table TVA de votre dossier Crésus, dans le plan de comptes ci-dessous.` };
@@ -195,8 +202,14 @@ export function ecrituresEtendues(d: DonneesEtendues, plan: Pick<PlanComptes, "c
   // Une écriture multiple : HT et TVA du côté « cote », TTC de l'autre côté sur le compte du moyen.
   const groupe = (date: string, cote: "credit" | "debit", compte: string, moyen: string, t: number, ttc: number, tva: number, libelle: string): string | null => {
     if (ttc === 0) return null;
+    // Montant négatif (part signée d'un complément ou d'un échange, bo-commandes) : même compte, de l'autre côté.
+    if (ttc < 0) {
+      cote = cote === "credit" ? "debit" : "credit";
+      ttc = -ttc;
+      tva = -tva;
+    }
     const ht = ttc - tva;
-    if (ttc < 0 || tva < 0 || ht < 0) return `Montant négatif le ${date} (${libelle}) : export arrêté, à signaler.`;
+    if (tva < 0 || ht < 0) return `TVA plus grande que le montant le ${date} (${libelle}) : export arrêté, à signaler.`;
     n += 1;
     const code = plan.codes_tva[cleTaux(t)];
     const l = (debit: string, credit: string, texte: string, c: number) => lignes.push({ date, debit, credit, libelle: texte, centimes: c, multiple: n, code });
@@ -230,8 +243,29 @@ export function ecrituresEtendues(d: DonneesEtendues, plan: Pick<PlanComptes, "c
     const date = dateCresus(a.jour);
     for (const x of a.ventilation) {
       const ref = a.stripe_refund_id ? `, ${a.stripe_refund_id}` : "";
-      const erreur = groupe(date, "debit", comptes.remboursements, comptes[a.moyen], x.taux, Number(x.ttc), Number(x.tva),
-        `Avoir ${a.numero_avoir}, commande ${a.commande}, ${tauxTexte(x.taux)} ${MOYENS_TEXTE[a.moyen]}${ref}`);
+      const ttc = Number(x.ttc);
+      const tva = Number(x.tva);
+      const quoi = `commande ${a.commande}, ${tauxTexte(x.taux)} ${MOYENS_TEXTE[a.moyen]}${ref}`;
+      // Part positive : rendue au client (avoir). Part négative : article ajouté lors de la baisse, une vente.
+      const erreur =
+        ttc >= 0
+          ? groupe(date, "debit", comptes.remboursements, comptes[a.moyen], x.taux, ttc, tva, `Avoir ${a.numero_avoir}, ${quoi}`)
+          : groupe(date, "credit", comptes.ventes, comptes[a.moyen], x.taux, -ttc, -tva, `Avoir ${a.numero_avoir}, vente, ${quoi}`);
+      if (erreur) return { ok: false, erreur };
+    }
+  }
+  // Échange sans argent : un avoir pour ce qui est retiré, une vente pour ce qui est ajouté, à la date de l'échange
+  // (art. 41 LTVA). Les deux TTC passent par le compte du moyen et s'annulent.
+  for (const e of echanges) {
+    const date = dateCresus(e.jour);
+    for (const x of e.ventilation) {
+      const ttc = Number(x.ttc);
+      const tva = Number(x.tva);
+      const quoi = `commande ${e.commande}, ${tauxTexte(x.taux)} ${MOYENS_TEXTE[e.moyen]}`;
+      const erreur =
+        ttc >= 0
+          ? groupe(date, "credit", comptes.ventes, comptes[e.moyen], x.taux, ttc, tva, `Échange, vente, ${quoi}`)
+          : groupe(date, "debit", comptes.remboursements, comptes[e.moyen], x.taux, -ttc, -tva, `Échange, avoir, ${quoi}`);
       if (erreur) return { ok: false, erreur };
     }
   }
@@ -269,4 +303,31 @@ export function fichierCresusEtendu(lignes: LigneEtendue[]): Uint8Array {
     })
     .join("");
   return windows1252(texte);
+}
+
+// ---------- Règles de TVA d'une commande à deux taux (bo-carte, 20261217150000 ; écran : 20261217200000) ----------
+
+export type ReglesTva = { frais_tva_mixte: "normal" | "prorata"; rabais_tva_mixte: "reduit_dabord" | "prorata" };
+export const OPTIONS_REGLES: { [K in keyof ReglesTva]: { titre: string; options: [ReglesTva[K], string][] } } = {
+  frais_tva_mixte: {
+    titre: "Frais de livraison d'une commande avec une boisson alcoolisée",
+    options: [
+      ["normal", "Tous au taux normal (8,1 %), prudent"],
+      ["prorata", "Au prorata des montants à chaque taux"],
+    ],
+  },
+  rabais_tva_mixte: {
+    titre: "Rabais, cagnotte ou remboursement global sur une commande avec une boisson alcoolisée",
+    options: [
+      ["reduit_dabord", "D'abord sur la part à 2,6 %, prudent"],
+      ["prorata", "Au prorata des montants à chaque taux"],
+    ],
+  },
+};
+
+export function validerRegleTva(cle: unknown, valeur: unknown): { ok: true; cle: keyof ReglesTva; valeur: string } | { ok: false; erreur: string } {
+  if (cle !== "frais_tva_mixte" && cle !== "rabais_tva_mixte") return { ok: false, erreur: "Règle inconnue." };
+  const permis = OPTIONS_REGLES[cle].options.map(([v]) => v as string);
+  if (typeof valeur !== "string" || !permis.includes(valeur)) return { ok: false, erreur: "Valeur inconnue." };
+  return { ok: true, cle, valeur };
 }

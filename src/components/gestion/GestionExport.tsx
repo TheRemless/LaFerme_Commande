@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
-import { LIBELLES_COMPTES, ROLES_COMPTES, TAUX_CODES, type CodesTva, type PlanComptes, type RoleCompte } from "@/lib/export-cresus";
+import { LIBELLES_COMPTES, OPTIONS_REGLES, ROLES_COMPTES, TAUX_CODES, type CodesTva, type PlanComptes, type ReglesTva, type RoleCompte } from "@/lib/export-cresus";
 import { jourGeneveDe } from "@/lib/heures";
 import { poster } from "@/lib/requete-client";
 import "./export.css";
@@ -99,6 +99,7 @@ export function GestionExport() {
         )}
       </section>
       <PlanCresus />
+      <ReglesDeuxTaux />
     </>
   );
 }
@@ -202,3 +203,59 @@ function PlanCresus() {
     </section>
   );
 }
+
+// Règles de TVA d'une commande à deux taux (boisson alcoolisée et nourriture) : réglages de bo-carte, à faire
+// confirmer par la fiduciaire (questions F3 et F4 de docs/compta/tva-et-cagnotte.md). Valeur prudente par défaut.
+function ReglesDeuxTaux() {
+  const [regles, setRegles] = useState<ReglesTva | null>(null);
+  const [message, setMessage] = useState<{ ok: boolean; texte: string } | null>(null);
+  const [envoi, setEnvoi] = useState(false);
+  const ids = useId();
+
+  useEffect(() => {
+    fetch("/api/gestion/export/regles")
+      .then((r) => (r.ok ? (r.json() as Promise<ReglesTva>) : Promise.reject()))
+      .then(setRegles)
+      .catch(() => setMessage({ ok: false, texte: "Règles de TVA pas lues. Rechargez la page." }));
+  }, []);
+
+  async function changer(cle: keyof ReglesTva, valeur: string) {
+    setEnvoi(true);
+    setMessage(null);
+    const r = await poster("/api/gestion/export/regles", { cle, valeur });
+    if (r.ok) {
+      setRegles(r.donnees as unknown as ReglesTva);
+      setMessage({ ok: true, texte: "Règle enregistrée." });
+    } else {
+      setMessage({ ok: false, texte: String(r.donnees.erreur ?? "Pas enregistré.") });
+    }
+    setEnvoi(false);
+  }
+
+  return (
+    <section className="ges-bloc">
+      <h2>TVA d&apos;une commande à deux taux</h2>
+      <p className="bo-export-a-confirmer">
+        À confirmer avec la fiduciaire. Ne compte que pour une commande avec une boisson alcoolisée (8,1 %) et des plats (2,6 %).
+      </p>
+      {regles &&
+        (Object.keys(OPTIONS_REGLES) as (keyof ReglesTva)[]).map((cle) => (
+          <fieldset className="bo-export-formats" key={cle}>
+            <legend>{OPTIONS_REGLES[cle].titre}</legend>
+            {OPTIONS_REGLES[cle].options.map(([v, texte]) => (
+              <label key={v}>
+                <input type="radio" name={`${ids}-${cle}`} checked={regles[cle] === v} disabled={envoi} onChange={() => changer(cle, v)} />
+                <span>{texte}</span>
+              </label>
+            ))}
+          </fieldset>
+        ))}
+      {message && (
+        <p className={message.ok ? "tab-message" : "panier-alerte"} role={message.ok ? "status" : "alert"}>
+          {message.texte}
+        </p>
+      )}
+    </section>
+  );
+}
+

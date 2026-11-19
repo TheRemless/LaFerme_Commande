@@ -87,6 +87,8 @@ const REGLAGES: Record<string, (v: unknown) => string> = {
 
 // Nom du réglage sur chaque ligne du journal. Un réglage ajouté plus tard sans nom ici s'affiche sous sa clé.
 const NOMS_REGLAGES: Record<string, string> = {
+  frais_tva_mixte: "TVA des frais d'une commande à deux taux",
+  rabais_tva_mixte: "TVA d'un rabais sur une commande à deux taux",
   plafond_comptoir_centimes: "paiement au comptoir",
   capacite_livraisons_par_creneau: "livraisons par créneau",
   capacite_retraits_par_creneau: "retraits par créneau",
