@@ -37,6 +37,8 @@ const SIGNAUX: Record<string, string> = {
   meme_nom: "Filleuls au même nom",
   sans_suite: "Filleuls qui ne recommandent jamais",
   recu_plus_que_paye: "Plus reçu en parrainage que payé sur 30 jours",
+  ip_du_parrain: "Filleul connecté depuis la même adresse IP que son parrain",
+  chaine: "Filleul qui parraine à son tour dans les 30 jours",
 };
 
 function detailSignal(s: Signal): string {
@@ -44,6 +46,8 @@ function detailSignal(s: Signal): string {
   if (s.type === "trop_de_filleuls") return `${d.filleuls_30j} filleuls crédités (seuil ${d.seuil}).`;
   if (s.type === "sans_suite") return `${d.sans_suite} sur ${d.filleuls} sans deuxième commande (${d.pourcent} %).`;
   if (s.type === "recu_plus_que_paye") return `Reçu CHF ${montant(Number(d.recu_centimes))}, payé CHF ${montant(Number(d.paye_centimes))}${s.filleul ? ", chez un filleul" : ""}.`;
+  if (s.type === "ip_du_parrain") return d.niveau === 2 ? "Même adresse IP que le parrain de son parrain." : "Même adresse IP que son parrain.";
+  if (s.type === "chaine") return `Son filleul crédité ${d.jours} jour${Number(d.jours) > 1 ? "s" : ""} après lui.`;
   if (typeof d.filleuls === "number") return `${d.filleuls} filleuls.`;
   return "";
 }

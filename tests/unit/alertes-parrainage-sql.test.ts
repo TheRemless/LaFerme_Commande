@@ -124,6 +124,49 @@ describe("alertes d'abus du parrainage", () => {
   });
 });
 
+describe("chaîne de faux filleuls (relecture de qualite sur #268)", () => {
+  it("parrain → faux1 → faux2 → faux3, même IP : ip_du_parrain et chaine dès le deuxième maillon", async () => {
+    await db.query("insert into journal_connexions (compte_id, evenement, ip_court) values ($1, 'connexion', 'ab12cd34')", [parrain]);
+    const maillons: string[] = [];
+    let codeHaut = code;
+    for (let i = 1; i <= 2; i++) {
+      const id = await filleul(codeHaut, i, { ip: "ab12cd34" });
+      maillons.push(id);
+      codeHaut = await f<string>("code_parrainage($1)", [id]);
+    }
+    const cas = await detecter();
+    // Avant : aucune règle ne se déclenchait, chaque parrain n'ayant qu'un filleul.
+    expect(cas.filter((a) => a.type === "ip_du_parrain").map((a) => a.compte_id).sort()).toEqual([parrain, maillons[0]].sort());
+    expect(cas.filter((a) => a.type === "chaine").map((a) => a.compte_id)).toEqual([maillons[0]]);
+    // Le troisième maillon ajoute ses propres signaux, sans répéter les premiers.
+    await filleul(codeHaut, 3, { ip: "ab12cd34" });
+    const suite = await detecter();
+    expect(suite.filter((a) => a.type === "chaine").map((a) => a.compte_id)).toEqual([maillons[0], maillons[1]]);
+    expect((await db.query("select 1 from alertes_parrainage where type = 'chaine'")).rows).toHaveLength(2);
+  });
+
+  it("un filleul connecté depuis l'IP du parrain de son parrain, sans la partager avec son parrain : niveau 2", async () => {
+    await db.query("insert into journal_connexions (compte_id, evenement, ip_court) values ($1, 'connexion', 'grand000')", [parrain]);
+    const f1 = await filleul(code, 1, { ip: "autre111" });
+    await filleul(await f<string>("code_parrainage($1)", [f1]), 2, { ip: "grand000" });
+    const ip = (await db.query<{ compte_id: string; detail: { niveau: number } }>("select compte_id, detail from alertes_parrainage where type = 'ip_du_parrain'")).rows;
+    // Rien encore : la détection n'a pas tourné.
+    expect(ip).toEqual([]);
+    await detecter();
+    const apres = (await db.query<{ compte_id: string; detail: { niveau: number } }>("select compte_id, detail from alertes_parrainage where type = 'ip_du_parrain'")).rows;
+    expect(apres).toEqual([{ compte_id: f1, detail: { niveau: 2 } }]);
+  });
+
+  it("aucune clé d'alerte ne garde d'empreinte d'adresse ni de nom", async () => {
+    await filleul(code, 1, { numero: "77", nom: "Dupont" });
+    await filleul(code, 2, { numero: "77", nom: "Dupont" });
+    await detecter();
+    const cles = (await db.query<{ cle: string }>("select cle from alertes_parrainage")).rows.map((r) => r.cle);
+    expect(cles.length).toBeGreaterThan(0);
+    for (const c of cles) expect(c).not.toMatch(/[0-9a-f]{32}/);
+  });
+});
+
 describe("une détection par heure", () => {
   it("le premier tour de l'heure détecte, les suivants ne lisent rien", async () => {
     for (let i = 1; i <= 4; i++) await filleul(code, i);

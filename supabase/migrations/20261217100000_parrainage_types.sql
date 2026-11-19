@@ -12,10 +12,25 @@
 -- Détection des abus une fois par heure, au premier tour de surveillance de l'heure (sobriété Netlify et Supabase,
 -- demande du chef du 19.11.2026) : surveillance_etat.parrainage_detecte_le. Les autres tours ne lisent rien.
 --
--- Objets recréés : crediter_parrainage et detecter_alertes_parrainage, parrainages_gestion (client-compte,
+-- Relecture de qualite (#268) : une chaîne parrain → faux1 → faux2, même IP, ne déclenchait aucune alerte (toutes les
+-- règles comparaient les filleuls d'un même parrain entre eux). Deux signaux de plus :
+-- - ip_du_parrain : un filleul connecté depuis la même adresse IP (extrait chiffré ip_court) que son parrain, ou que le
+--   parrain de son parrain ;
+-- - chaine : un filleul crédité qui devient le parrain d'un filleul crédité dans les 30 jours.
+-- Et deux mineurs : la suspension sous verrou du compte du parrain (suspendre_parrain, lier_parrainage,
+-- crediter_parrainage), et des clés d'alerte qui ne gardent ni empreinte d'adresse ni empreinte de nom.
+--
+-- Objets recréés : lier_parrainage, suspendre_parrain, crediter_parrainage et detecter_alertes_parrainage, parrainages_gestion (client-compte,
 -- 20261217090000), reprendre_parrainage (20261216100000), rattraper_retraits (20261216190000). Seul le type change.
 
 alter table surveillance_etat add column parrainage_detecte_le timestamptz;
+
+alter table alertes_parrainage drop constraint alertes_parrainage_type_check;
+alter table alertes_parrainage add constraint alertes_parrainage_type_check check (type in (
+  'trop_de_filleuls', 'meme_adresse', 'meme_ip', 'meme_nom', 'sans_suite', 'recu_plus_que_paye', 'ip_du_parrain', 'chaine'));
+
+-- Clés déjà écrites avec une empreinte md5 d'adresse ou de nom (retrouvable par dictionnaire) : réécrites sans.
+update alertes_parrainage set cle = type || ':' || compte_id || ':' || id where type in ('meme_adresse', 'meme_nom');
 
 alter table cagnotte_mouvements drop constraint cagnotte_mouvements_type_check;
 
@@ -57,7 +72,9 @@ begin
   if o.statut_paiement in ('a_encaisser_retrait', 'en_attente') then
     return null;
   end if;
-  -- Parrain suspendu par le gérant : pas de nouveau crédit, ni pour lui ni pour le filleul. Les anciens restent.
+  -- Parrain suspendu par le gérant : pas de nouveau crédit, ni pour lui ni pour le filleul. Les anciens restent. Lu sous
+  -- le verrou du compte du parrain, que suspendre_parrain prend aussi : une suspension en cours passe avant ou après.
+  perform 1 from comptes where id = p.parrain_id for update;
   if exists (select 1 from parrains_suspendus s where s.parrain_id = p.parrain_id) then
     v_raison := 'parrain_suspendu';
   elsif o.statut_paiement not in ('paye', 'encaisse')
@@ -171,7 +188,7 @@ begin
 
   -- Filleuls d'un même parrain à la même adresse de livraison.
   insert into alertes_parrainage (cle, compte_id, type, detail)
-  select 'meme_adresse:' || x.parrain_id || ':' || md5(x.adr), x.parrain_id, 'meme_adresse', jsonb_build_object('filleuls', x.n)
+  select 'meme_adresse:' || x.parrain_id || ':' || mois, x.parrain_id, 'meme_adresse', jsonb_build_object('filleuls', x.n)
   from (
     select p.parrain_id, adresse_cle(o.adresse) as adr, count(distinct p.filleul_id) as n
     from parrainages p join commandes o on o.compte_id = p.filleul_id and o.mode = 'livraison'
@@ -193,7 +210,7 @@ begin
 
   -- Filleuls d'un même parrain au même nom (compte ou commande).
   insert into alertes_parrainage (cle, compte_id, type, detail)
-  select 'meme_nom:' || x.parrain_id || ':' || md5(x.nom), x.parrain_id, 'meme_nom', jsonb_build_object('filleuls', x.n)
+  select 'meme_nom:' || x.parrain_id || ':' || mois, x.parrain_id, 'meme_nom', jsonb_build_object('filleuls', x.n)
   from (
     select y.parrain_id, y.nom, count(distinct y.filleul_id) as n
     from (
@@ -233,6 +250,35 @@ begin
     group by m.compte_id
   ) x
   where x.recu > x.paye
+  on conflict (cle) do nothing;
+
+  -- Filleul connecté depuis la même adresse IP que son parrain (niveau 1) ou que le parrain de son parrain (niveau 2), dès
+  -- le rattachement : le signe le plus simple d'un auto-parrainage. Une alerte par parrainage.
+  insert into alertes_parrainage (cle, compte_id, type, detail)
+  select 'ip_du_parrain:' || x.id, x.parrain_id, 'ip_du_parrain', jsonb_build_object('niveau', x.niveau)
+  from (
+    select p.id, p.parrain_id,
+      case when exists (select 1 from journal_connexions jf join journal_connexions jp on jp.ip_court = jf.ip_court
+                        where jf.compte_id = p.filleul_id and jp.compte_id = p.parrain_id and coalesce(jf.ip_court, '') <> '')
+           then 1 else 2 end as niveau
+    from parrainages p
+    where exists (select 1 from journal_connexions jf join journal_connexions jp on jp.ip_court = jf.ip_court
+                  where jf.compte_id = p.filleul_id and jp.compte_id = p.parrain_id and coalesce(jf.ip_court, '') <> '')
+       or exists (select 1 from parrainages g
+                  join journal_connexions jf on jf.compte_id = p.filleul_id
+                  join journal_connexions jg on jg.compte_id = g.parrain_id and jg.ip_court = jf.ip_court
+                  where g.filleul_id = p.parrain_id and coalesce(jf.ip_court, '') <> '')
+  ) x
+  on conflict (cle) do nothing;
+
+  -- Chaîne : un filleul crédité qui devient le parrain d'un filleul crédité dans les 30 jours. Signalé sur ce maillon,
+  -- visible chez son parrain (comme filleul) et chez lui (comme parrain).
+  insert into alertes_parrainage (cle, compte_id, type, detail)
+  select 'chaine:' || p2.id, p2.parrain_id, 'chaine',
+         jsonb_build_object('jours', floor(extract(epoch from (p2.termine_le - p1.termine_le)) / 86400)::integer)
+  from parrainages p1 join parrainages p2 on p2.parrain_id = p1.filleul_id
+  where p1.statut = 'credite' and p2.statut = 'credite'
+    and p2.termine_le >= p1.termine_le and p2.termine_le <= p1.termine_le + interval '30 days'
   on conflict (cle) do nothing;
 
   return coalesce((
@@ -275,4 +321,81 @@ language sql stable as $$
     from comptes k
     where exists (select 1 from parrainages p where p.parrain_id = k.id)
   ) x;
+$$;
+
+create or replace function lier_parrainage(p_email text, p_code text) returns text
+language plpgsql as $$
+declare
+  f comptes%rowtype;
+  parrain uuid;
+  debut_mois timestamptz := date_trunc('month', now() at time zone 'Europe/Zurich') at time zone 'Europe/Zurich';
+begin
+  if not parrainage_actif() then
+    return 'desactive';
+  end if;
+  select id into parrain from comptes where code_parrainage = upper(btrim(coalesce(p_code, '')));
+  if parrain is null then
+    return 'code';
+  end if;
+  select * into f from comptes where email = lower(btrim(coalesce(p_email, ''))) for update;
+  if not found then
+    return 'code';
+  end if;
+  if f.id = parrain then
+    return 'soi_meme';
+  end if;
+  -- Parrain qualifié (relecture #260) : au moins une commande remise, payée et au minimum. Un faux compte qui n'a
+  -- commandé qu'une eau à CHF 3 ne recrute personne : la chaîne de faux filleuls est cassée.
+  if not parrain_qualifie(parrain) then
+    return 'parrain_non_qualifie';
+  end if;
+  -- Parrain suspendu par le gérant (20261217090000) : plus de nouveau filleul.
+  if exists (select 1 from parrains_suspendus s where s.parrain_id = parrain) then
+    return 'parrain_suspendu';
+  end if;
+  if exists (select 1 from parrainages where filleul_id = f.id) then
+    return 'deja';
+  end if;
+  -- Client nouveau : compte de moins de 24 heures, aucune commande avec ce compte ni avec cet e-mail (Gmail sans
+  -- points, sans « +étiquette »), aucun autre compte sur la même boîte.
+  if f.cree_le < now() - interval '24 hours'
+     or exists (select 1 from commandes where compte_id = f.id)
+     or exists (select 1 from commandes where email_cle(client_email) = email_cle(f.email))
+     or exists (select 1 from comptes k where k.id <> f.id and email_cle(k.email) = email_cle(f.email)) then
+    return 'ancien';
+  end if;
+  perform 1 from comptes where id = parrain for update;
+  -- Relu sous le verrou du parrain (relecture de qualite) : une suspension qui vient d'être posée est vue.
+  if exists (select 1 from parrains_suspendus s where s.parrain_id = parrain) then
+    return 'parrain_suspendu';
+  end if;
+  if (select count(*) from parrainages where parrain_id = parrain and cree_le >= debut_mois)
+     >= greatest(fidelite_entier('parrainage_plafond_mois', 10), 0) then
+    return 'plafond';
+  end if;
+  insert into parrainages (parrain_id, filleul_id) values (parrain, f.id);
+  return 'ok';
+end;
+$$;
+
+create or replace function suspendre_parrain(p_compte uuid, p_motif text, p_personnel uuid) returns boolean
+language plpgsql as $$
+declare
+  auteur text := gerant_nom(p_personnel);
+  m text := btrim(coalesce(p_motif, ''));
+begin
+  if length(m) not between 3 and 200 then
+    raise exception 'suspension_refusee:motif';
+  end if;
+  -- Verrou du compte du parrain : un crédit ou un rattachement en cours (qui prennent le même verrou) passe avant ou
+  -- après la suspension, jamais au milieu.
+  perform 1 from comptes where id = p_compte for update;
+  if not found then
+    raise exception 'suspension_refusee:compte';
+  end if;
+  insert into parrains_suspendus (parrain_id, motif, par) values (p_compte, m, auteur)
+    on conflict (parrain_id) do update set motif = excluded.motif, par = excluded.par, le = now();
+  perform journaliser(p_personnel, 'parrainage', p_compte::text, null, jsonb_build_object('suspendu', true, 'motif', m));
+  return true;
+end;
 $$;
