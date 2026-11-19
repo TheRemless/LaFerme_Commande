@@ -311,7 +311,9 @@ export function ChangerPlats({
               ,{" "}
               {k.statut === "encaisse"
                 ? `encaissé${k.moyen_encaissement === "especes" ? " en espèces" : k.moyen_encaissement === "carte" ? " par carte" : ""}`
-                : "à encaisser"}
+                : k.statut === "annule"
+                  ? "annulé par une baisse"
+                  : "à encaisser"}
             </li>
           ))}
         </ul>
