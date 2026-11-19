@@ -3,7 +3,7 @@
 // l'accueil (notification du navigateur). À ne pas confondre avec les types des alertes par e-mail
 // (src/lib/alertes-types.ts, bo-operations, côté serveur seulement) : réglés au restaurant, pas par appareil.
 
-export type CategorieAlerte = "acceptation" | "tablette" | "pause" | "impression" | "retard" | "livreurs" | "remboursements" | "courriels" | "comptoir";
+export type CategorieAlerte = "acceptation" | "tablette" | "pause" | "impression" | "retard" | "livreurs" | "remboursements" | "courriels" | "comptoir" | "parrainage";
 
 export const CATEGORIES_ALERTE: { type: CategorieAlerte; libelle: string }[] = [
   { type: "acceptation", libelle: "Commande pas acceptée à temps" },
@@ -15,6 +15,7 @@ export const CATEGORIES_ALERTE: { type: CategorieAlerte; libelle: string }[] = [
   { type: "remboursements", libelle: "Remboursement échoué ou bloqué" },
   { type: "courriels", libelle: "Limite d'e-mails du jour" },
   { type: "comptoir", libelle: "Commandes au comptoir pas encaissées" },
+  { type: "parrainage", libelle: "Parrainage à surveiller" },
 ];
 
 /** Commande citée par une alerte : son jour, car les numéros repartent à 1 chaque jour. */
@@ -53,6 +54,8 @@ export const PREFERENCES_PAR_DEFAUT: PreferencesAlertes = {
     remboursements: false,
     courriels: true,
     comptoir: false,
+    // Parrainage à surveiller : à examiner, pas urgent pendant le service.
+    parrainage: false,
   },
 };
 

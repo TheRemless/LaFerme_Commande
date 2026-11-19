@@ -18,7 +18,7 @@ beforeAll(async () => {
 }, 120_000);
 
 describe("types d'alertes", () => {
-  it("neuf types, tous envoyés au départ, dans l'ordre", async () => {
+  it("dix types, tous envoyés au départ, dans l'ordre", async () => {
     const t = await types();
     expect(t.map((x) => x.cle)).toEqual([
       "commande_en_attente",
@@ -30,6 +30,8 @@ describe("types d'alertes", () => {
       "quota_courriels",
       "plafond_codes",
       "adresse_bloquee",
+      // client-compte, 20261217090000 : parrainage à surveiller.
+      "parrainage_abus",
     ]);
     expect(t.every((x) => x.actif)).toBe(true);
   });

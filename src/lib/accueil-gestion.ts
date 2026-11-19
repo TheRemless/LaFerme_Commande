@@ -15,6 +15,7 @@ import { heureDe } from "@/lib/heures";
 import { etatImpression, type EtatImpression } from "@/lib/impression/service";
 import { jourDeService, serviceDe, type Service, type TableauVentes } from "@/lib/pilotage";
 import { chargerAlerteAdresseAlertes } from "@/lib/adresse-alertes";
+import { chargerAlerteParrainage } from "@/lib/alertes-parrainage";
 import { chargerAlerteSansLivreur } from "@/lib/sans-livreur";
 import { ajouterJours, etatService, serviceEnCours, zoneFermeeJusqua, type ConfigService, type EtatService } from "@/lib/service";
 import { fileTablette, type CommandeTablette } from "@/lib/tablette";
@@ -71,6 +72,8 @@ export type DonneesAccueil = {
   /** « Aucune adresse ne reçoit les alertes » de bo-operations (src/lib/adresse-alertes.ts) : null dès qu'une
    *  adresse est saisie dans Réglages généraux ou que la variable d'installation ALERTE_EMAIL existe. */
   adresse_alertes?: Alerte | null;
+  /** Parrainage à surveiller (client-compte, 20261217090000) : signaux pas encore classés. */
+  parrainage?: Alerte | null;
   /** Remboursements à suivre, tous jours confondus (remboursements_a_suivre de bo-pilotage) : en échec, ou pas
    *  confirmés par Stripe depuis plus de 24 heures. null tant que la fonction manque (base pas encore migrée) :
    *  l'accueil retombe alors sur les chiffres du service en cours. Champ facultatif pour les anciens appels. */
@@ -166,6 +169,7 @@ export function alertesDe(d: DonneesAccueil): Alerte[] {
     a.push({ cle: "retard", type: "retard", niveau: "attention", titre: `${NB(c.en_retard.length, "commande", "commandes")} après l'heure promise`, detail: `N° ${c.en_retard.map((x) => x.numero).join(", ")}.`, depuis: c.en_retard[0].heure, geste: { href: "/tablette", texte: "Voir sur la tablette" } });
   if (d.sans_livreur) a.push({ ...d.sans_livreur, type: "livreurs" });
   if (d.adresse_alertes) a.push(d.adresse_alertes);
+  if (d.parrainage) a.push(d.parrainage);
   const rs = d.remboursements;
   if (rs) {
     if (rs.echecs.length) {
@@ -258,7 +262,7 @@ export async function chargerAccueil(maintenant = new Date()): Promise<DonneesAc
   const jour = jourDeService(maintenant);
   const service = serviceDe(maintenant);
   const lireConfig = sur(chargerConfigService());
-  const [file, config, impression, quota, ventes, hier, comptoir, catalogue, muette, minutes, aSuivre, sansLivreur, adresseAlertes] = await Promise.all([
+  const [file, config, impression, quota, ventes, hier, comptoir, catalogue, muette, minutes, aSuivre, sansLivreur, adresseAlertes, parrainage] = await Promise.all([
     sur(fileTablette(maintenant)),
     lireConfig,
     sur(etatImpression()),
@@ -273,6 +277,7 @@ export async function chargerAccueil(maintenant = new Date()): Promise<DonneesAc
     // Une requête légère, lancée dès que la configuration est lue.
     lireConfig.then((c) => (c ? sur(chargerAlerteSansLivreur(c, maintenant)) : null)),
     sur(chargerAlerteAdresseAlertes()),
+    sur(chargerAlerteParrainage()),
   ]);
   // Réglage illisible : 5 minutes, la valeur posée par la migration 20261111090000 (la même que la surveillance lit).
   const seuil = minutes ?? 5;
@@ -297,6 +302,7 @@ export async function chargerAccueil(maintenant = new Date()): Promise<DonneesAc
     alerte_acceptation_minutes: seuil,
     sans_livreur: sansLivreur,
     adresse_alertes: adresseAlertes,
+    parrainage,
     remboursements: aSuivre
       ? {
           echecs: aSuivre.filter((x) => x.statut === "echec").map(({ numero, cree_le, commande_id, jour }) => ({ numero, cree_le, commande_id, jour })),
