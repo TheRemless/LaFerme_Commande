@@ -148,10 +148,10 @@ Un jour sans service, jamais pendant un service.
 - [ ] Jérémy : saisir les clés Stripe live et le secret du webhook live. Claude crée avec lui le webhook live vers `https://<domaine>/api/stripe/webhook` (mêmes quatre événements).
 - [ ] Claude : poser `PAGES_LEGALES_VALIDEES=1` (relecture faite) et `URL_SITE`.
 - [ ] Jérémy et Claude : relier le domaine à Netlify (DNS), attendre le certificat HTTPS.
-- [ ] Claude : retirer de `netlify.toml` la ligne `ignore` qui saute les builds de production de `main` (ajoutée le 9.11.2026 pour ne pas lancer de builds inutiles avant le lancement).
+- [ ] Claude, au mot « bascule » du chef : dans `scripts/netlify/ignorer-build.sh` (appelé par `netlify.toml`), remplacer la ligne `PRODUCTION_LANCEE=non` par `PRODUCTION_LANCEE=oui`. Ensuite, `main` ne se construit que si son dernier commit porte `[production]` (fusion par `gh pr merge <numéro> --merge --subject "Merge pull request #<numéro> [production]"`, hors service) : chaque mise en production coûte 15 crédits Netlify. Détail : [netlify-sobre.md](netlify-sobre.md).
 - [ ] Claude : lancer le déploiement de production, par le build Netlify seulement (jamais un build du poste publié avec `netlify deploy`, que le site refuse). Le build échoue si un plat reste à valider, si `URL_SITE` ou `SECRET_COMPTES` manque, si `BASE_DE_TEST` est posée, ou s'il reste un membre en `.test`, une imprimante de test ou une commande passée sur une préversion.
 - [ ] Claude : après le déploiement, vérifier que `/api/diagnostic/latence` et `/paiement-test/<id>` répondent 404, que le cookie de session commence par `__Host-` et porte `Secure`, et relire `journal_gestion` (aucune modification de prix ou d'allergène faite par « Équipe test » sans explication).
-- [ ] Claude : vérifier `https://<domaine>/api/sante` : `"etat":"ok"`, `"contexte":"production"` et une surveillance passée il y a moins d'une minute (la fonction planifiée tourne). Noter l'adresse du site en tête de [pannes.md](pannes.md), puis l'imprimer pour le comptoir.
+- [ ] Claude : vérifier `https://<domaine>/api/sante` : `"etat":"ok"`, `"contexte":"production"` et, entre 10h et 15h ou 17h30 et minuit, une surveillance passée il y a moins de 2 minutes (la fonction planifiée tourne aux heures utiles seulement, [netlify-sobre.md](netlify-sobre.md)). Noter l'adresse du site en tête de [pannes.md](pannes.md), puis l'imprimer pour le comptoir.
 - [ ] Jérémy : créer le moniteur UptimeRobot sur `https://<domaine>/api/sante`, alertes au restaurant et à Jérémy. Claude vérifie que l'alerte part. Détail : [filet.md](filet.md), section 2.
 - [ ] Jérémy : passer une vraie commande de faible montant payée par TWINT, puis la refuser sur la tablette. Le remboursement doit arriver. Claude vérifie Stripe, la base, les tickets et les e-mails.
 
@@ -162,6 +162,6 @@ Un jour sans service, jamais pendant un service.
 - [ ] Claude : vérifier que `/robots.txt` ouvre l'accueil, la carte et les pages légales. Le plan du site doit les lister.
 - [ ] Jérémy : flyers avec un QR code vers le site (offre de lancement fournie par Jérémy, texte relu avec `redaction-fr`).
 - [ ] Jérémy : garder Uber Eats en parallèle quelques mois, puis comparer le nombre de commandes et les frais. Détail : [PROMPT.md](PROMPT.md).
-- [ ] Jérémy : suivre la consommation de crédits Netlify le premier mois (attendu : environ 300 sans client). Détail : [performance.md](performance.md).
+- [ ] Jérémy : suivre la consommation de crédits Netlify le premier mois (attendu : environ 285 sans client, plus 15 par mise en production). Activer la recharge automatique au lancement. Pas à pas : [netlify-sobre.md](netlify-sobre.md).
 - [ ] Claude, après un mois : bilan des commandes, des alertes, des coûts et des demandes de l'équipe.
 - [ ] Claude, chaque trimestre : rejouer la restauration de la dernière sauvegarde dans une base vide. Chaque mois : relire la place des artefacts (avertissement à 400 Mo) et les minutes GitHub consommées. Détail : [sauvegardes.md](sauvegardes.md), [filet.md](filet.md).
