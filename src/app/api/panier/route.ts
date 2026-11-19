@@ -105,7 +105,8 @@ export async function POST(requete: Request) {
       frais_centimes: totaux.frais_centimes,
     });
     if (ev.ok) {
-      aPayer = appliquerRemise(totaux, ev.remise_centimes, catalogue.tauxTvaPourcent);
+      // Code « livraison » : la remise porte sur les frais (même règle que remise_plats en base).
+      aPayer = appliquerRemise(totaux, ev.remise_centimes, ev.type === "livraison" ? "frais" : "plats");
       resultatCode = { code, ok: true, remise_centimes: ev.remise_centimes };
     } else if (ev.raison !== "desactive") {
       resultatCode = { code, ok: false, message: messageCode(ev) };
@@ -123,7 +124,7 @@ export async function POST(requete: Request) {
       const utilisable = cagnotteUtilisable(k.solde_centimes, k.seuil_centimes, totaux.sous_total_centimes - remisePlats, aPayer.total_centimes);
       const utilisee = corps.moyen === "comptoir" ? 0 : Math.min(montantCagnotte(corps.cagnotte), utilisable);
       // La remise du code reste celle du code : la cagnotte est donnée à part (utilisee_centimes).
-      if (utilisee > 0) aPayer = Object.assign(appliquerRemise(aPayer, utilisee, catalogue.tauxTvaPourcent), { remise_centimes: totaux.total_centimes - aPayer.total_centimes });
+      if (utilisee > 0) aPayer = Object.assign(appliquerRemise(aPayer, utilisee, "cagnotte"), { remise_centimes: totaux.total_centimes - aPayer.total_centimes });
       cagnotte = { solde_centimes: k.solde_centimes, seuil_centimes: k.seuil_centimes, utilisable_centimes: utilisable, utilisee_centimes: utilisee };
     }
   }

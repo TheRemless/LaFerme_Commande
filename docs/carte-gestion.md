@@ -38,6 +38,20 @@ Migration `supabase/migrations/20261210150000_etiquettes.sql`. Tests : `tests/un
 - La carte publique les donne (`carte_publique.etiquettes`) pour le filtre et la fiche, affichés par `client-commande`.
 - Journal : objet `etiquettes`, avant et après.
 
+## TVA par plat et par ligne (compta, 19.11.2026)
+
+Demande de Jérémy du 19.11.2026 (comptes justes au droit suisse), coordination bo-pilotage. Référence : `docs/compta/tva-et-cagnotte.md` (règles R1, R3, R5, R9, R13, R15) et `docs/compta/plan-conformite.md`. Migration 20261217150000.
+
+- **Taux datés (R5).** Table `taux_tva` (normal, réduit, `valable_du`, `valable_au`). `taux_tva_du(categorie, jour)` lève `taux_tva_manquant` plutôt que de rendre 0. Un changement de taux (vote du 29.11.2026, 8,5 % début 2028 s'il passe) se fait en fermant la ligne en cours et en ajoutant la suivante, sans code. Le site lit les taux du jour dans la vue `taux_tva_en_vigueur`. Le réglage `tva_emporter_pourcent` reçoit la valeur du réduit, mais seuls deux scripts d'essai le lisent encore.
+- **Taux d'un plat (R1, R3).** `plats.teneur_alcool` (% vol.) se saisit au back-office sur les boissons (fiche, « Teneur en alcool »). Le taux se calcule, il ne se saisit jamais. Au-dessus de 0,5 % vol., c'est le taux normal, sinon le réduit. Le site vend seulement en livraison et à l'emporter, le canal ne change donc pas le taux. Action `teneur_alcool` de `/api/gestion/carte`, fonction `regler_teneur_alcool`, gérant seulement, journalisée. Aucune boisson alcoolisée n'est à la carte : Jérémy décide.
+- **Taux et TVA par ligne.** `commande_lignes.taux_tva_pourcent` et `tva_centimes` sont remplis par un déclencheur à l'insertion, au taux du jour de service de la commande. Ce que l'appelant envoie est ignoré. `commandes.tva_centimes` vaut toujours la somme de `ventilation_commande`. `commandes.taux_tva_pourcent` garde le taux unique, ou le plus haut si la commande en a deux, pour les anciens lecteurs. Pour une commande à un seul taux, la TVA est exactement celle d'avant.
+- **Frais d'une commande mixte (R9, F3).** Réglage `frais_tva_mixte`. Avec `normal` (défaut), tous les frais vont au taux le plus haut. Avec `prorata`, ils suivent les lignes. 2,6 % sur la totalité des frais n'existe dans aucun réglage.
+- **Rabais d'une commande mixte (R15, F4).** Réglage `rabais_tva_mixte`, pour un code promo, la cagnotte ou un remboursement global. Avec `reduit_dabord` (défaut), le rabais est imputé d'abord au taux le plus bas, ce qui ne sous-déclare jamais. Avec `prorata`, il est réparti selon les montants. Une remise de code « livraison » porte sur les frais. Somme répartie = montant, au centime.
+- **Ventilation (contrat avec bo-pilotage).** `ventilation_commande(o)` rend `[{ taux, ttc, tva, frais_ttc, frais_tva, rabais_ttc, rabais_tva, cagnotte_ttc, cagnotte_tva }]` par taux croissant, chaque TVA arrondie à son taux. La somme des `ttc` égale `total_centimes` et celle des `tva` égale `tva_centimes`. `ventilation_remboursement(r)` rend `[{ taux, ttc, tva }]`. Un manque (`montants_lignes`) est rendu au taux de chaque ligne. Un remboursement global suit `rabais_tva_mixte`.
+- **Panier.** `src/lib/tva.ts` reprend la même règle pour l'aperçu (`calculerPanier`, `appliquerRemise`). La base recalcule à la commande et fait foi. Un test compare les deux au centime.
+- **Pas encore par ligne.** Un complément de modification prend le taux de la commande, c'est-à-dire le plus haut pour une commande mixte (bo-commandes et bo-pilotage, R17). Le reçu et le ticket ne montrent pas encore le taux par ligne (tablette et client-compte, R6 et R7).
+- Tests : `tests/unit/tva-par-plat.test.ts` (taux datés, seuil 0,5 et 0,6, commande mixte pizza et bière, deux réglages, remboursements, même calcul que le panier), `tests/unit/panier.test.ts`, `tests/e2e/gestion-carte-liste.spec.ts` (« boisson : la teneur en alcool »).
+
 ## Poste d'un plat : four, cuisine ou comptoir (vague 3, 14.11.2026)
 
 Décision de Jérémy du 14.11.2026 : l'équipe du comptoir met boissons et desserts prêts dans le sac.

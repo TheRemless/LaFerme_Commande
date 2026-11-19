@@ -37,6 +37,9 @@ export type PlatGestion = {
   rupture_jusqu_au?: string | null;
   // Étiquettes posées par le gérant (vegetarien, vegane, epice), absentes avant la migration 20261210150000.
   etiquettes?: string[];
+  // Boissons : teneur en alcool (% vol.) et taux de TVA du jour qui en découle (absents avant 20261217150000).
+  teneur_alcool?: number | string | null;
+  taux_tva_pourcent?: number | string;
 };
 export type GroupeGestion = {
   slug: string;

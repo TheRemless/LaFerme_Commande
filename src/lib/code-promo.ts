@@ -1,6 +1,7 @@
 import "server-only";
 import { fonctionSql } from "@/lib/db/serveur";
 import type { Totaux } from "@/lib/panier";
+import { tvaTotale, type BaseTva } from "@/lib/tva";
 import { codeSaisi, messageRefus, type RaisonRefus } from "@/lib/codes-promo";
 
 // Codes promo côté client (moteur de bo-carte, 20261210120000_codes_promo.sql). Construits complets mais
@@ -55,9 +56,27 @@ export function messageCode(r: Extract<ResultatCode, { ok: false }>): string {
   return messageRefus({ raison: r.raison as RaisonRefus, minimum_centimes: r.minimum_centimes }) ?? "Ce code n'existe pas. Vérifiez l'orthographe.";
 }
 
-// Totaux après remise : le total payé baisse, la TVA comprise est recalculée sur ce total.
-export function appliquerRemise<T extends Pick<Totaux, "total_centimes" | "tva_centimes">>(t: T, remise: number, tauxTva: number): T & { remise_centimes: number } {
+function remisePlatsBornee(b: BaseTva, r: number): BaseTva {
+  const plats = b.lignes.reduce((x, l) => x + l.ttc, 0);
+  const surPlats = Math.min(r, Math.max(plats - b.remisePlats, 0));
+  return { ...b, remisePlats: b.remisePlats + surPlats, remiseFrais: b.remiseFrais + r - surPlats };
+}
+
+// Totaux après remise : le total payé baisse, la TVA comprise est recalculée par taux (même règle qu'en base).
+// sorte : remise d'un code sur les plats, sur les frais (code « livraison »), ou cagnotte utilisée.
+export function appliquerRemise<T extends Pick<Totaux, "total_centimes" | "tva_centimes" | "tva_base">>(
+  t: T,
+  remise: number,
+  sorte: "plats" | "frais" | "cagnotte",
+): T & { remise_centimes: number } {
   const r = Math.max(0, Math.min(remise, t.total_centimes));
-  const total = t.total_centimes - r;
-  return { ...t, total_centimes: total, tva_centimes: Math.round((total * tauxTva) / (100 + tauxTva)), remise_centimes: r };
+  const b = t.tva_base;
+  const base: BaseTva =
+    sorte === "frais"
+      ? { ...b, remiseFrais: b.remiseFrais + r }
+      : sorte === "cagnotte"
+        ? { ...b, cagnotte: b.cagnotte + r }
+        : // Comme remise_plats en base : au plus le montant des plats, le reste sur les frais.
+          remisePlatsBornee(b, r);
+  return { ...t, total_centimes: t.total_centimes - r, tva_centimes: tvaTotale(base), tva_base: base, remise_centimes: r };
 }
