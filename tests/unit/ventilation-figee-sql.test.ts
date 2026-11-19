@@ -26,14 +26,17 @@ const ligne = (p: { slug: string; nom: string; prix: number }, qte = 1) => ({
 type Ligne = ReturnType<typeof ligne>;
 
 let n = 0;
-async function commande(lignes: Ligne[], comptoir = false, remise = 0): Promise<string> {
+async function commande(lignes: Ligne[], comptoir = false, remise = 0, livraison = false, frais = 0): Promise<string> {
   n += 1;
-  const total = lignes.reduce((t, l) => t + l.total_centimes, 0) - remise;
+  const total = lignes.reduce((t, l) => t + l.total_centimes, 0) - remise + frais;
   const c = (await db.query<{ id: string }>("select id from creer_commande($1)", [{
-    jeton_suivi: `jeton-figee-${n}-abcdefgh`, cle_idempotence: `figee-${n}-cle-essai`, mode: "retrait",
+    jeton_suivi: `jeton-figee-${n}-abcdefgh`, cle_idempotence: `figee-${n}-cle-essai`, mode: livraison ? "livraison" : "retrait",
+    adresse: livraison ? { rue: "Route de Chancy", numero: "1", npa: "1213", localite: "Onex" } : null,
+    details_livraison: livraison ? { sonnette: "Rossi", etage: "", code: "", instructions: "" } : null,
+    zone_numero: livraison ? 1 : null,
     statut: comptoir ? "nouvelle" : "paiement_en_attente", statut_paiement: comptoir ? "a_encaisser_retrait" : "en_attente",
     moyen_paiement: comptoir ? "comptoir" : "en_ligne", client_prenom: "Léa", client_nom: "Rossi", client_telephone: "079 555 12 34",
-    client_email: "figee@exemple.ch", quand_type: "asap", pizzas_seulement: false, sous_total_centimes: total + remise, frais_centimes: 0,
+    client_email: "figee@exemple.ch", quand_type: "asap", pizzas_seulement: false, sous_total_centimes: total + remise - frais, frais_centimes: frais,
     total_centimes: total, tva_centimes: 1, taux_tva_pourcent: 0, origine: "http://localhost:3000", lignes, remise_centimes: remise,
   }])).rows[0].id;
   // Payée par l'événement de paiement, comme en vrai : c'est là que la ventilation se fige.
@@ -204,6 +207,51 @@ describe("ventilation figée", () => {
     const rendu = (await db.query<{ r: number }>("select coalesce(sum(montant_centimes), 0)::int as r from remboursements where commande_id = $1", [c])).rows[0].r;
     expect(rendu).toBe(paye);
     expect(await net(c)).toEqual([]);
+  });
+
+  it("frais par taux : bière ajoutée et zone plus chère, les frais du complément au taux de la règle frais_tva_mixte", async () => {
+    const c = await commande([ligne(pizza)], false, 0, true);
+    // Montant d'essai : la nouvelle zone coûte 3.00 de frais (la commande de départ n'en avait pas).
+    const frais = 300;
+    const zone2 = { adresse: { rue: "Rue de Lancy", numero: "5", npa: "1212", localite: "Grand-Lancy" }, zone_numero: 2, frais_centimes: frais };
+    const lignes = [ligne(pizza), ligne(biere)];
+    const total = pizza.prix + biere.prix + frais;
+    await modifier(c, demande(`figee-${n}-frais-0001`, lignes, { ...zone2, total_centimes: total, reglement: "porte" }));
+    const k = (await db.query<{ id: string; montant_centimes: number; frais_centimes: number }>("select id, montant_centimes, frais_centimes from complements where commande_id = $1", [c])).rows[0];
+    expect(k).toMatchObject({ montant_centimes: biere.prix + frais, frais_centimes: frais });
+    // Règle « normal » (défaut) : les frais d'une commande mixte au taux le plus haut.
+    const v = await q<(Part & { frais_ttc: number; frais_tva: number })[]>("select ventilation_complement(k) as r from complements k where k.id = $1", [k.id]);
+    expect(v.map((x) => ({ taux: Number(x.taux), ttc: x.ttc, frais_ttc: x.frais_ttc, frais_tva: x.frais_tva }))).toEqual([
+      { taux: normal, ttc: biere.prix + frais, frais_ttc: frais, frais_tva: tva(frais, normal) },
+    ]);
+    expect(v.reduce((t, x) => t + x.frais_ttc, 0)).toBe(k.frais_centimes);
+    // La modification porte la même part de frais.
+    const m = (await db.query<{ v: { frais_ttc: number }[] }>("select ventilation as v from modifications_commande where commande_id = $1", [c])).rows[0].v;
+    expect(m.reduce((t, x) => t + x.frais_ttc, 0)).toBe(frais);
+  });
+
+  it("frais par taux (cas de bo-pilotage) : bières remplacées par des pizzas, frais de 5.00 à 8.00, plus d'alcool après", async () => {
+    // Montants d'essai : frais de 5.00 au départ, 8.00 dans la nouvelle zone. La bière coûte le prix de la pizza.
+    const c = await commande([ligne(biere, 2)], false, 0, true, 500);
+    const zone2 = { adresse: { rue: "Rue de Lancy", numero: "5", npa: "1212", localite: "Grand-Lancy" }, zone_numero: 2, frais_centimes: 800 };
+    await modifier(c, demande(`figee-${n}-frais-bp01`, [ligne(pizza, 2)], { ...zone2, total_centimes: 2 * pizza.prix + 800, reglement: "porte" }));
+    const k = (await db.query<{ id: string; montant_centimes: number }>("select id, montant_centimes from complements where commande_id = $1", [c])).rows[0];
+    expect(k.montant_centimes).toBe(300);
+    const v = await q<(Part & { frais_ttc: number })[]>("select ventilation_complement(k) as r from complements k where k.id = $1", [k.id]);
+    expect(v.map((x) => ({ taux: Number(x.taux), ttc: x.ttc, frais_ttc: x.frais_ttc }))).toEqual([
+      { taux: reduit, ttc: 2 * pizza.prix + 800, frais_ttc: 800 },
+      { taux: normal, ttc: -(2 * biere.prix + 500), frais_ttc: -500 },
+    ]);
+  });
+
+  it("frais par taux : complément ramené par une baisse, ses frais ramenés au prorata", async () => {
+    expect(await f<{ taux: number; ttc: number; frais_ttc: number }[]>("ventilation_frais_ramenes($1, $2, 150)", [
+      JSON.stringify([{ taux: reduit, ttc: 1000, frais_ttc: 100 }, { taux: normal, ttc: 1000, frais_ttc: 200 }]),
+      JSON.stringify([{ taux: reduit, ttc: 500, tva: 13 }, { taux: normal, ttc: 500, tva: 37 }]),
+    ])).toEqual([
+      { taux: reduit, ttc: 500, tva: 13, frais_ttc: 50, frais_tva: tva(50, reduit) },
+      { taux: normal, ttc: 500, tva: 37, frais_ttc: 100, frais_tva: tva(100, normal) },
+    ]);
   });
 
   it("répartition signée : somme exacte, signes gardés, au prorata", async () => {
